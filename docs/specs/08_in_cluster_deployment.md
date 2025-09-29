@@ -2,11 +2,16 @@
 
 ## 文档信息
 
-- **版本**: v1.0
-- **最后更新**: 2025-09-28
-- **状态**: Draft
+- **版本**: v1.6
+- **最后更新**: 2025年9月28日
+- **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
-- **文档类型**: In-Cluster 部署指南
+- **文档类型**: In-Cluster 部署实现指南
+
+> **文档关联**:
+> - **核心架构**: [02_architecture.md](./02_architecture.md) - 系统整体架构设计
+> - **通用部署**: [04_deployment.md](./04_deployment.md) - 通用部署配置指南
+> - **对比方案**: [09_agent_proxy_mode.md](./09_agent_proxy_mode.md) - Agent代理模式
 
 ## 目录
 
@@ -25,11 +30,13 @@
 
 ### 1.2 部署模式对比
 
-| 部署模式 | 说明 | 优点 | 缺点 | 适用场景 |
-|---------|------|------|------|---------|
-| **In-Cluster** | 部署在集群内 | 无需kubeconfig<br>自动认证<br>网络高效 | 每个集群需独立部署 | 单集群监控 ⭐⭐⭐⭐⭐ |
-| **Out-of-Cluster** | 外部独立部署 | 集中管理<br>跨集群监控 | 需要kubeconfig<br>网络延迟 | 多集群管理中心 ⭐⭐⭐⭐ |
-| **Agent代理模式** | 中心+边缘Agent | 兼具两者优势<br>多集群统一管理 | 架构复杂 | 多集群监控 ⭐⭐⭐⭐⭐ |
+> **模式选择指南**: 根据集群数量和管理需求选择合适的部署模式
+
+| 部署模式 | 核心特点 | 主要优势 | 主要限制 | 最佳适用场景 | 推荐度 |
+|---------|----------|----------|----------|-------------|--------|
+| **In-Cluster**<br>(本文档) | 完整部署在单个集群内 | • 无需外部kubeconfig<br>• ServiceAccount自动认证<br>• 集群内网络高效<br>• 部署配置简单 | • 每个集群需独立部署<br>• 无法跨集群统一管理<br>• 资源占用相对较高 | **单集群环境**<br>• 独立的生产集群<br>• 开发/测试环境<br>• 网络隔离严格的环境 | ⭐⭐⭐⭐⭐ |
+| **Out-of-Cluster** | 中央控制平面+远程kubeconfig | • 集中管理多个集群<br>• 统一的控制界面<br>• 配置和策略统一 | • 需要管理多个kubeconfig<br>• 网络连通性要求高<br>• 安全性配置复杂 | **传统多集群管理**<br>• 集群数量较少(2-5个)<br>• 网络连通性良好 | ⭐⭐⭐ |
+| **Agent代理模式**<br>([详见09文档](./09_agent_proxy_mode.md)) | 中央控制平面+轻量级Agent | • 兼具两者优势<br>• Agent主动上报<br>• 网络要求较低<br>• 安全隔离性好 | • 架构相对复杂<br>• 需要维护Agent<br>• 消息总线依赖 | **大规模多集群**<br>• 多云/混合云环境<br>• 网络条件复杂<br>• 安全要求较高 | ⭐⭐⭐⭐⭐ |
 
 ### 1.3 In-Cluster 部署架构
 
@@ -1160,25 +1167,41 @@ echo "Check logs: kubectl -n aetherius-system logs -l app.kubernetes.io/componen
 
 ### 6.1 最小权限原则
 
+**重要说明**: 系统遵循最小权限原则，仅请求诊断所需的只读权限。虽然某些权限（如 pods/log）在技术上允许读取敏感信息，但系统设计保证：
+1. 仅在诊断流程中按需读取
+2. 所有操作都有完整审计日志
+3. 绝不执行任何写操作（create, update, patch, delete）
+
 ```yaml
-# 只读权限 - 推荐配置
+# 诊断只读权限 - 推荐配置
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: aetherius-read-only
+  name: aetherius-diagnostic-readonly
 rules:
-# 事件只读
+# 事件监听（核心功能）
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["get", "list", "watch"]
 
-# Pod只读
+# Pod诊断信息（包括日志读取用于故障分析）
 - apiGroups: [""]
-  resources: ["pods", "pods/status"]
+  resources: ["pods", "pods/status", "pods/log"]
   verbs: ["get", "list"]
 
-# 禁止写操作
-# (不包含 create, update, patch, delete)
+# 集群上下文信息
+- apiGroups: [""]
+  resources: ["nodes", "namespaces", "services", "endpoints"]
+  verbs: ["get", "list"]
+
+# 配置读取
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]  # secrets仅用于读取诊断配置，不包含应用密钥
+  verbs: ["get", "list"]
+  resourceNames: ["aetherius-*"]  # 限制只能读取系统自身配置
+
+# 明确禁止所有写操作
+# 不包含: create, update, patch, delete, deletecollection
 ```
 
 ### 6.2 网络策略

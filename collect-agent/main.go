@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"path/filepath"
 
 	"k8s.io/client-go/kubernetes"
@@ -24,10 +23,9 @@ func main() {
 		panic(err)
 	}
 
-	clientset,err := kubernetes.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err)
 	}
-
 
 }

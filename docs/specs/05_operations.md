@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025-09-28
+- **最后更新**: 2025年9月28日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: 运维安全指南
@@ -12,13 +12,30 @@
 
 ### 1.1 文档目标
 
-本文档提供 Aetherius AI Agent 的运维和安全管理指南,涵盖:
+> **重要说明**: 本文档与 [ai_agent.md 第8-10章](../ai_agent.md#8-可观测性与监控) 相互补充
+> - **ai_agent.md**: 提供完整的业务需求和架构设计
+> - **本文档**: 提供具体的运维实施细节和配置示例
 
-- **安全架构**: 身份认证、授权、数据保护、审计合规
-- **运维管理**: 监控告警、日志管理、性能调优、故障排查
-- **成本管理**: AI服务费用控制、资源优化
-- **灾难恢复**: 备份策略、故障转移、业务连续性
-- **最佳实践**: 安全加固、性能优化、运维自动化
+本文档涵盖以下运维和安全管理内容:
+
+**安全管理** (对应ai_agent.md第10章):
+- 身份认证与授权 (OIDC/RBAC) 的具体配置
+- 数据加密和网络安全的实施细节
+- 审计合规的日志配置和监控设置
+
+**运维管理** (对应ai_agent.md第8章):
+- 监控告警系统的完整配置
+- 日志管理的存储和分析策略
+- 性能调优和故障排查的操作手册
+
+**成本管理** (对应ai_agent.md第3.3.2节):
+- AI服务费用的实时监控和控制
+- 资源优化的自动化策略
+
+**灾难恢复**:
+- 备份策略的具体实施
+- 故障转移的自动化流程
+- 业务连续性保障措施
 
 ### 1.2 目标受众
 
@@ -1889,7 +1906,7 @@ kubectl scale deployment aetherius-orchestrator --replicas=5 -n aetherius
 
 # 滚动更新
 kubectl set image deployment/aetherius-orchestrator \
-  orchestrator=aetherius/orchestrator:v1.7 -n aetherius
+  orchestrator=aetherius/orchestrator:v1.6 -n aetherius
 kubectl rollout status deployment/aetherius-orchestrator -n aetherius
 kubectl rollout undo deployment/aetherius-orchestrator -n aetherius
 ```

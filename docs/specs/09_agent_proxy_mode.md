@@ -2,11 +2,16 @@
 
 ## 文档信息
 
-- **版本**: v1.0
-- **最后更新**: 2025-09-28
-- **状态**: Draft
+- **版本**: v1.6
+- **最后更新**: 2025年9月28日
+- **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: Agent 代理架构设计
+
+> **文档关联**:
+> - **多集群管理**: [ai_agent.md#5.5](../ai_agent.md#55-多集群管理策略-multi-cluster-management-strategy) - 业务需求和策略
+> - **单集群模式**: [08_in_cluster_deployment.md](./08_in_cluster_deployment.md) - In-Cluster 部署对比
+> - **微服务架构**: [06_microservices.md](./06_microservices.md) - 服务拆分设计
 
 ## 目录
 

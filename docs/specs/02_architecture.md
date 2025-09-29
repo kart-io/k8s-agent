@@ -21,35 +21,57 @@
 
 ### 1.1 系统架构图
 
-完整架构图参见: [ai_agent.md#5.1.1](../ai_agent.md#511-整体系统架构)
+> **权威来源**: 完整架构详见 [ai_agent.md#5.1.1](../ai_agent.md#511-整体系统架构)
+>
+> **本节目的**: 提供系统架构的快速概览，详细的组件交互和技术实现请参考ai_agent.md
 
-**分层架构**:
+**逻辑分层架构**:
 
 ```
 ┌─────────────────────────────────────────────────┐
-│ 输入层: Alertmanager, K8s Events, Manual        │
+│ 输入层 (Input Layer)                            │
+│ • Alertmanager Webhooks                         │
+│ • K8s Event Streams                             │
+│ • Manual Triggers (Dashboard/API)               │
 ├─────────────────────────────────────────────────┤
-│ 事件网关: Webhook Handler, Filter, Validator    │
+│ 事件网关层 (Event Gateway Layer)                │
+│ • Webhook Handler                               │
+│ • Event Filter & Validator                     │
+│ • Event Standardization                        │
 ├─────────────────────────────────────────────────┤
-│ 编排层: Task Scheduler, Priority Manager        │
+│ 编排层 (Orchestration Layer)                    │
+│ • Task Scheduler                                │
+│ • Priority Queue Manager                       │
+│ • Workflow Engine                              │
 ├─────────────────────────────────────────────────┤
-│ 智能分析层: Reasoning Service, Knowledge Base   │
+│ 智能分析层 (AI Analysis Layer)                  │
+│ • Reasoning Service (LLM)                      │
+│ • Knowledge Base (RAG)                         │
+│ • Strategy Generator                           │
 ├─────────────────────────────────────────────────┤
-│ 执行层: Execution Gateway (MCP), Tool Registry  │
+│ 执行层 (Execution Layer)                        │
+│ • Execution Gateway (MCP Protocol)             │
+│ • Tool Registry                                │
+│ • Security Validator                           │
 ├─────────────────────────────────────────────────┤
-│ 输出层: Report Generator, Notification Service  │
+│ 输出层 (Output Layer)                           │
+│ • Report Generator                              │
+│ • Notification Service (Multi-channel)         │
+│ • Dashboard API                                 │
 └─────────────────────────────────────────────────┘
 ```
 
 ### 1.2 架构特性
 
-| 特性 | 说明 | 优势 |
-|------|------|------|
-| **事件驱动** | 基于事件的异步架构 | 高吞吐、松耦合 |
-| **微服务** | 组件独立部署和扩展 | 易维护、可扩展 |
-| **无状态设计** | 服务实例无状态 | 水平扩展、高可用 |
-| **分层架构** | 清晰的职责分离 | 易理解、可测试 |
-| **插件化** | 工具注册表机制 | 易扩展、可定制 |
+| 特性 | 说明 | 优势 | 体现 |
+|------|------|------|------|
+| **事件驱动** | 基于事件的异步架构 | 高吞吐、松耦合 | NATS消息总线、异步处理 |
+| **微服务** | 组件独立部署和扩展 | 易维护、可扩展 | 6大核心服务独立运行 |
+| **无状态设计** | 服务实例无状态 | 水平扩展、高可用 | 状态存储在数据层 |
+| **分层架构** | 清晰的职责分离 | 易理解、可测试 | 6层逻辑架构设计 |
+| **插件化** | 工具注册表机制 | 易扩展、可定制 | Tool Registry动态配置 |
+
+> **架构一致性说明**: 本架构设计与 [ai_agent.md#5章](../ai_agent.md#5-系统设计-system-design) 和 [06_microservices.md](./06_microservices.md) 保持完全一致
 
 ### 1.3 技术栈
 
@@ -71,12 +93,12 @@
 
 ### 2.1 组件职责矩阵
 
-详见: [ai_agent.md#5.1.2](../ai_agent.md#512-核心服务详细架构)
+详见: [ai_agent.md#5.1.2核心服务详细架构](../ai_agent.md#512-核心服务详细架构)
 
 | 组件 | 职责 | 输入 | 输出 | 依赖 |
 |------|------|------|------|------|
-| **Event Gateway** | 接收和验证事件 | Webhook/Event | StandardizedEvent | None |
-| **Orchestrator** | 任务调度和编排 | StandardizedEvent | DiagnosticTask | Redis, PostgreSQL |
+| **Event Gateway** | 接收和验证事件 | Webhook/Event | 标准化事件 | None |
+| **Orchestrator** | 任务调度和编排 | 标准化事件 | DiagnosticTask | Redis, PostgreSQL |
 | **Reasoning Service** | AI推理和策略生成 | DiagnosticTask | ExecutionPlan | LLM, Vector DB |
 | **Execution Gateway** | 安全执行命令 | ExecutionPlan | ExecutionResult | Vault, K8s API |
 | **Report Service** | 生成和分发报告 | ExecutionResult | DiagnosticReport | SMTP, Slack API |

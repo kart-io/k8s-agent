@@ -4,7 +4,7 @@
 > **最后更新**: 2025年9月28日
 > **读者对象**: 开发工程师、数据库管理员
 
-> **⭐ 权威来源声明**: 本文档是 Aetherius 项目**数据模型的唯一权威来源**。所有Go结构体定义、数据库Schema、API接口定义均以本文档为准。
+> **⭐ 数据模型技术规范**: 本文档提供 Aetherius 项目**数据模型的详细技术实现**。Go结构体定义、数据库Schema、API接口定义以本文档为准。
 >
 > **文档关系**:
 > - [ai_agent.md 第6章](../ai_agent.md#6-核心数据模型-core-data-models): 提供数据模型的概要说明和业务上下文
@@ -27,44 +27,81 @@
 
 ## 1. 数据模型总览
 
-### 1.1 模型关系图
+### 1.1 数据模型关系图
+
+> **阅读指南**: 下图展示核心数据模型之间的关系，使用标准ER图符号：
+> - **1:1** = 一对一关系
+> - **1:N** = 一对多关系
+> - **N:N** = 多对多关系
 
 ```
-DiagnosticTask (诊断任务)
-    ├─ 1:N → DiagnosticStep (诊断步骤)
-    │   ├─ 1:1 → Tool (工具)
-    │   └─ 1:1 → ExecutionResult (执行结果)
-    ├─ 1:1 → DiagnosticReport (诊断报告)
-    └─ 1:N → UserFeedback (用户反馈)
-
-KnowledgeBase (知识库)
-    ├─ 1:N → KnowledgeEntry (知识条目)
-    │   └─ 1:1 → Embedding (向量)
-    └─ 1:N → KnowledgeCategory (分类)
-
-Tool (工具)
-    ├─ 1:1 → ToolCategory (工具分类)
-    └─ N:N → Cluster (集群)
-
-ResourceUsage (资源使用)
-    └─ N:1 → DiagnosticTask (诊断任务)
+┌─────────────────────────────────────────────────────────────────────┐
+│                          核心业务模型                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  DiagnosticTask (诊断任务) ──────── 1:1 ──────── DiagnosticReport   │
+│       │                                              (诊断报告)      │
+│       ├─── 1:N ──── DiagnosticStep (诊断步骤)                       │
+│       │                  │                                          │
+│       │                  ├─── N:1 ──── Tool (工具)                  │
+│       │                  └─── 1:1 ──── ExecutionResult (执行结果)    │
+│       │                                                              │
+│       └─── 1:N ──── UserFeedback (用户反馈)                         │
+│                                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                          知识管理模型                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  KnowledgeBase (知识库)                                              │
+│       ├─── 1:N ──── KnowledgeEntry (知识条目)                       │
+│       │                  └─── 1:1 ──── Embedding (向量)             │
+│       └─── 1:N ──── KnowledgeCategory (知识分类)                    │
+│                                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                          系统管理模型                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Tool (工具注册表)                                                   │
+│       ├─── N:1 ──── ToolCategory (工具分类)                         │
+│       └─── N:N ──── Cluster (集群) [通过ToolClusterMapping]          │
+│                                                                     │
+│  ResourceUsage (资源使用监控)                                        │
+│       └─── N:1 ──── DiagnosticTask (关联诊断任务)                   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 核心模型列表
+### 1.2 核心模型清单
 
-完整定义参见: [ai_agent.md#第6章](../ai_agent.md#6-核心数据模型-core-data-models)
+> **文档层次说明**:
+> - **完整业务定义**: [ai_agent.md#第6章](../ai_agent.md#6-核心数据模型-core-data-models) - 提供业务上下文和需求背景
+> - **技术实现细节**: 本文档各章节 - 提供Go结构体、数据库Schema、API接口
 
-| 模型 | 说明 | 详细文档 |
-|------|------|----------|
-| DiagnosticTask | 诊断任务 | [6.1节](../ai_agent.md#61-诊断任务模型-diagnostic-task-model) |
-| DiagnosticStep | 诊断步骤 | [6.2节](../ai_agent.md#62-诊断步骤模型-diagnostic-step-model) |
-| Tool | 工具注册表 | [6.3节](#3-工具与执行模型) |
-| KnowledgeBase | 知识库 | [6.4节](../ai_agent.md#64-知识库模型-knowledge-base-model) |
-| DiagnosticReport | 诊断报告 | [6.5节](../ai_agent.md#65-诊断报告模型-diagnostic-report-model) |
-| UserFeedback | 用户反馈 | [6.6节](../ai_agent.md#66-用户反馈模型-user-feedback-model) |
-| ResourceUsage | 资源使用 | [6.7节](../ai_agent.md#67-资源使用模型-resource-usage-model) |
-| SystemConfig | 系统配置 | [6.8节](../ai_agent.md#68-配置管理模型-configuration-model) |
-| HistoryRecord | 历史记录 | [6.9节](../ai_agent.md#69-历史记录模型-history-record-model) |
+#### 1.2.1 按业务领域分类
+
+**核心业务模型** (诊断流程核心):
+
+| 模型 | 业务职责 | ai_agent.md | 本文档 |
+|------|----------|-------------|--------|
+| DiagnosticTask | 诊断任务管理和状态跟踪 | [6.1节](../ai_agent.md#61-诊断任务模型-diagnostic-task-model) | [2.1节](#21-diagnostictask-诊断任务模型) |
+| DiagnosticStep | 单步骤执行和结果记录 | [6.2节](../ai_agent.md#62-诊断步骤模型-diagnostic-step-model) | [2.2节](#22-diagnosticstep-诊断步骤模型) |
+| DiagnosticReport | 诊断报告生成和分发 | [6.5节](../ai_agent.md#65-诊断报告模型-diagnostic-report-model) | [5.1节](#51-diagnosticreport-诊断报告模型) |
+
+**支撑服务模型** (系统支撑功能):
+
+| 模型 | 业务职责 | ai_agent.md | 本文档 |
+|------|----------|-------------|--------|
+| Tool | 工具注册和权限管理 | [6.3节](../ai_agent.md#63-工具注册表模型-tool-registry-model) | [3.1节](#31-tool-工具注册表模型) |
+| KnowledgeBase | 知识存储和语义检索 | [6.4节](../ai_agent.md#64-知识库模型-knowledge-base-model) | [4.1节](#41-knowledgebase-知识库模型) |
+| ResourceUsage | 成本监控和预算控制 | [6.7节](../ai_agent.md#67-资源使用模型-resource-usage-model) | [6.1节](#61-resourceusage-资源使用模型) |
+
+**管理和审计模型** (运维和合规):
+
+| 模型 | 业务职责 | ai_agent.md | 本文档 |
+|------|----------|-------------|--------|
+| UserFeedback | 反馈收集和知识更新 | [6.6节](../ai_agent.md#66-用户反馈模型-user-feedback-model) | [5.2节](#52-userfeedback-用户反馈模型) |
+| SystemConfig | 配置管理和环境适配 | [6.8节](../ai_agent.md#68-配置管理模型-configuration-model) | [6.2节](#62-systemconfig-系统配置模型) |
+| HistoryRecord | 审计追踪和合规记录 | [6.9节](../ai_agent.md#69-历史记录模型-history-record-model) | [6.3节](#63-historyrecord-历史记录模型) |
 
 ---
 
@@ -117,6 +154,40 @@ const (
     StatusCancelled TaskStatus = "cancelled"
     StatusTimeout   TaskStatus = "timeout"
 )
+
+// 状态转换规则
+type StateTransition struct {
+    From       TaskStatus
+    To         TaskStatus
+    Condition  string
+}
+
+// 合法的状态转换
+var ValidTransitions = []StateTransition{
+    // 从 Pending 状态
+    {From: StatusPending, To: StatusRunning, Condition: "任务被调度器取出"},
+    {From: StatusPending, To: StatusCancelled, Condition: "用户取消或系统关闭"},
+    {From: StatusPending, To: StatusTimeout, Condition: "等待超时(>30分钟)"},
+
+    // 从 Running 状态
+    {From: StatusRunning, To: StatusCompleted, Condition: "诊断成功完成"},
+    {From: StatusRunning, To: StatusFailed, Condition: "诊断失败或错误"},
+    {From: StatusRunning, To: StatusCancelled, Condition: "用户手动终止"},
+    {From: StatusRunning, To: StatusTimeout, Condition: "执行超时(>10分钟)"},
+
+    // 终态不允许转换
+    // StatusCompleted, StatusFailed, StatusCancelled, StatusTimeout 为终态
+}
+
+// 状态转换验证函数
+func IsValidTransition(from, to TaskStatus) bool {
+    for _, t := range ValidTransitions {
+        if t.From == from && t.To == to {
+            return true
+        }
+    }
+    return false
+}
 
 type TaskContext struct {
     AlertInfo    AlertInfo              `json:"alert_info"`

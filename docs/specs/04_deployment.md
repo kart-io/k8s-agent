@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025-09-28
+- **最后更新**: 2025年9月28日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: 部署配置指南
@@ -20,27 +20,73 @@
 - **多环境支持**: 开发、测试、生产环境的差异化配置
 - **部署验证**: 健康检查、集成测试和监控配置
 
-### 1.2 部署架构
+### 1.2 部署架构概览
 
-Aetherius 采用微服务架构,核心组件包括:
+> **架构说明**: Aetherius 采用Kubernetes原生微服务架构，支持水平扩展和高可用部署
+
+**部署层次结构**:
 
 ```
-Ingress 层 (流量入口)
-    ↓
-应用服务层 (Orchestrator, Reasoning, Execution, Report, Dashboard)
-    ↓
-存储与依赖层 (PostgreSQL, Redis, Vault, Vector DB)
-    ↓
-持久化存储层 (PVC/PV)
+┌─────────────────────────────────────────────────────────┐
+│ 网络层 (Network Layer)                                  │
+│ • Ingress Controller (Kong/Nginx/Traefik)              │
+│ • Load Balancer                                        │
+│ • SSL/TLS Termination                                  │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────┐
+│ 应用服务层 (Application Services)                       │
+│ • Orchestrator Service (编排服务)                       │
+│ • Reasoning Service (推理服务)                          │
+│ • Execution Gateway (执行网关)                          │
+│ • Report Service (报告服务)                             │
+│ • Dashboard Frontend (前端服务)                         │
+│ • Event Gateway (事件网关)                              │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────┐
+│ 中间件层 (Middleware Layer)                             │
+│ • Message Bus (NATS/Kafka)                             │
+│ • Cache Layer (Redis Cluster)                          │
+│ • Service Mesh (Istio - 可选)                          │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────┐
+│ 数据存储层 (Data Storage Layer)                         │
+│ • PostgreSQL Cluster (关系数据)                         │
+│ • Vector Database (Weaviate/Qdrant)                    │
+│ • HashiCorp Vault (密钥管理)                            │
+│ • Time Series DB (Prometheus - 可选)                   │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────┐
+│ 存储层 (Storage Layer)                                  │
+│ • Persistent Volumes (PV)                              │
+│ • Storage Classes (NFS/Ceph/AWS EBS/GCP PD)            │
+│ • Backup Storage (Object Storage)                      │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### 1.3 支持的环境
+### 1.3 支持的部署环境
 
-| 环境 | 用途 | 规模 | 高可用 |
-|------|------|------|--------|
-| **Development** | 本地开发测试 | 单节点 | 否 |
-| **Staging** | 预生产验证 | 2-3节点 | 部分 |
-| **Production** | 生产环境 | 多节点/多可用区 | 是 |
+> **环境选择指南**: 根据业务需求和资源情况选择合适的部署环境
+
+| 环境类型 | 使用场景 | 集群规模 | 高可用性 | 推荐配置 |
+|----------|----------|----------|----------|----------|
+| **Development** | • 本地开发测试<br>• 功能验证<br>• Demo演示 | 单节点<br>(1-3 pods) | 否 | • minikube/kind<br>• 4C8G内存<br>• 本地存储 |
+| **Staging** | • 预生产验证<br>• 集成测试<br>• 性能测试 | 小规模集群<br>(2-3节点) | 部分<br>(数据库HA) | • 2-3个节点<br>• 8C16G内存<br>• 网络存储 |
+| **Production** | • 生产环境<br>• 多集群管理<br>• 高负载场景 | 大规模集群<br>(3+节点多AZ) | 是<br>(全组件HA) | • 3+节点多AZ<br>• 16C32G内存<br>• SSD存储<br>• 自动扩缩容 |
+
+#### 1.3.1 环境间差异对比
+
+| 配置项 | Development | Staging | Production |
+|--------|-------------|---------|------------|
+| **副本数** | 1 | 2 | 3+ |
+| **资源限制** | 最小 | 中等 | 完整 |
+| **监控** | 基础 | 完整 | 完整+告警 |
+| **备份** | 否 | 定期 | 实时+定期 |
+| **安全加固** | 基础 | 中等 | 完整 |
+| **日志保留** | 7天 | 30天 | 90天+ |
 
 ## 2. 前置条件 (Prerequisites)
 
@@ -48,30 +94,70 @@ Ingress 层 (流量入口)
 
 #### 2.1.1 Kubernetes 集群要求
 
+> **重要**: 版本兼容性与系统需求规格说明一致
+
+**版本支持说明**:
+- **兼容版本范围**: v1.20 - v1.28 (系统可运行的版本)
+- **推荐生产版本**: v1.26 - v1.28 (最佳性能和功能支持)
+- **开发测试版本**: v1.20+ (最低版本要求)
+
+**最低系统要求** (开发/测试环境):
+
 ```yaml
-最低要求:
-  kubernetes_version: ">= v1.20"
-  node_count: 3
-  node_spec:
+kubernetes:
+  version: "v1.20+"  # 最低支持版本
+  api_support:
+    - networking.k8s.io/v1      # NetworkPolicy
+    - autoscaling/v2             # HPA
+    - batch/v1                   # CronJob
+    - storage.k8s.io/v1          # StorageClass
+
+cluster:
+  nodes: 1-3
+  node_specification:
     cpu: 4 cores
     memory: 16GB
     storage: 100GB SSD
+    network: 1Gbps
 
-推荐配置:
-  kubernetes_version: ">= v1.26"
-  node_count: 6+
-  node_spec:
-    cpu: 8 cores
-    memory: 32GB
-    storage: 200GB SSD
+system_requirements:
+  container_runtime: containerd/docker
+  cni_plugin: flannel/calico/cilium
+  storage_class: 至少一个可用的StorageClass
+```
+
+**推荐生产配置** (生产环境):
+
+```yaml
+kubernetes:
+  version: "v1.26 - v1.28"  # 推荐使用最新稳定版本
+  features:
+    - Pod Security Standards
+    - Resource Quotas
+    - Network Policies
+    - Admission Controllers
+
+cluster:
+  nodes: 6+ (多可用区)
+  node_specification:
+    cpu: 8-16 cores
+    memory: 32-64GB
+    storage: 500GB+ SSD
+    network: 10Gbps
+
+high_availability:
+  control_plane: 3+ masters
+  etcd: 3+ 实例 (独立部署)
+  load_balancer: 冗余配置
+  multi_az: 跨可用区部署
 ```
 
 #### 2.1.2 依赖服务版本
 
 | 组件 | 最低版本 | 推荐版本 |
 |------|----------|----------|
-| PostgreSQL | v12 | v14+ |
-| Redis | v5 | v7+ |
+| PostgreSQL | v14+ | v14+ |
+| Redis | v6+ | v7+ |
 | HashiCorp Vault | v1.8 | v1.12+ |
 | Vector Database | - | Weaviate v1.20+/Qdrant v1.3+ |
 | Prometheus | v2.30 | v2.45+ |
@@ -477,7 +563,7 @@ spec:
         image: migrate/migrate:latest
         env:
         - name: DATABASE_URL
-          value: "postgres://aetherius:\$(POSTGRES_PASSWORD)@postgresql:5432/aetherius?sslmode=disable"
+          value: "postgres://aetherius:${POSTGRES_PASSWORD}@postgresql:5432/aetherius?sslmode=disable"
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -583,7 +669,7 @@ spec:
         command:
         - redis-server
         - --requirepass
-        - \$(REDIS_PASSWORD)
+        - $(REDIS_PASSWORD)
         - --appendonly
         - "yes"
         - --maxmemory
@@ -614,7 +700,7 @@ spec:
             command:
             - redis-cli
             - -a
-            - \$(REDIS_PASSWORD)
+            - $(REDIS_PASSWORD)
             - ping
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -623,7 +709,7 @@ spec:
             command:
             - redis-cli
             - -a
-            - \$(REDIS_PASSWORD)
+            - $(REDIS_PASSWORD)
             - ping
           initialDelaySeconds: 5
           periodSeconds: 5
@@ -796,6 +882,150 @@ EOF
 ```
 
 ## 4. 核心服务部署
+
+### 资源配置标准
+
+为确保配置一致性，各服务的资源需求如下：
+
+| 服务名称 | CPU Request | CPU Limit | Memory Request | Memory Limit | 说明 |
+|---------|-------------|-----------|----------------|--------------|------|
+| **Event Gateway** | 500m | 1000m | 512Mi | 1Gi | 事件处理入口 |
+| **Orchestrator** | 500m | 1000m | 512Mi | 1Gi | 任务调度核心 |
+| **Reasoning Service** | 1000m | 2000m | 2Gi | 4Gi | AI推理服务(需要更多资源) |
+| **Execution Service** | 500m | 1000m | 512Mi | 1Gi | 命令执行服务 |
+| **Knowledge Service** | 500m | 2000m | 1Gi | 4Gi | 向量数据库(Weaviate) |
+| **Report Service** | 250m | 500m | 256Mi | 512Mi | 报告生成服务 |
+| **Notification Service** | 250m | 500m | 256Mi | 512Mi | 通知服务 |
+
+**说明**:
+- Reasoning Service需要更多资源用于LLM推理计算
+- Knowledge Service需要较多内存用于向量索引
+- 其他服务采用标准配置
+
+### 服务启动顺序依赖
+
+为确保系统正确启动，服务必须按照以下顺序部署并等待就绪：
+
+#### 第一阶段：数据层服务
+必须首先启动，为应用层提供基础支持：
+
+1. **PostgreSQL** (StatefulSet)
+   - 等待就绪：所有Pod Running且通过readiness检查
+   - 验证：`pg_isready`命令返回成功
+
+2. **Redis** (StatefulSet)
+   - 等待就绪：所有Pod Running且通过readiness检查
+   - 验证：`redis-cli ping`返回PONG
+
+3. **HashiCorp Vault** (StatefulSet)
+   - 等待就绪：Pod Running且HTTP端口响应
+   - 验证：`vault status`返回unsealed
+
+4. **Vector Database (Weaviate)** (Deployment)
+   - 等待就绪：所有副本Running
+   - 验证：HTTP端口`/v1/schema`返回200
+
+#### 第二阶段：消息总线
+数据层就绪后启动：
+
+5. **NATS/Kafka** (StatefulSet)
+   - 依赖：无
+   - 等待就绪：集群形成且端口监听
+   - 验证：连接测试成功
+
+#### 第三阶段：核心服务
+数据层和消息总线就绪后启动：
+
+6. **Orchestrator Service**
+   - 依赖：PostgreSQL, Redis, NATS
+   - InitContainer：等待依赖服务就绪
+   - 验证：`/health/ready`返回200
+
+7. **Knowledge Service**
+   - 依赖：Weaviate, PostgreSQL
+   - InitContainer：等待向量数据库就绪
+   - 验证：`/health/ready`返回200
+
+8. **Credential Service**
+   - 依赖：Vault
+   - InitContainer：等待Vault就绪且unsealed
+   - 验证：凭证获取测试成功
+
+#### 第四阶段：业务服务
+核心服务就绪后启动：
+
+9. **Reasoning Service**
+   - 依赖：Knowledge Service, Orchestrator
+   - InitContainer：等待知识库服务就绪
+   - 验证：`/health/ready`返回200
+
+10. **Execution Service**
+    - 依赖：Credential Service, Orchestrator
+    - InitContainer：等待凭证服务就绪
+    - 验证：`/health/ready`返回200
+
+11. **Event Gateway**
+    - 依赖：Orchestrator, NATS
+    - InitContainer：等待编排服务就绪
+    - 验证：Webhook端点可访问
+
+#### 第五阶段：辅助服务
+所有核心服务就绪后启动：
+
+12. **Report Service**
+    - 依赖：PostgreSQL, Orchestrator
+    - 验证：报告生成测试成功
+
+13. **Notification Service**
+    - 依赖：Redis, Report Service
+    - 验证：通知发送测试成功
+
+14. **Dashboard Web**
+    - 依赖：API Service（所有后端服务）
+    - 验证：前端页面可访问
+
+#### InitContainer 示例配置
+
+```yaml
+# 等待PostgreSQL就绪的InitContainer
+initContainers:
+- name: wait-for-postgres
+  image: busybox:1.35
+  command: ['sh', '-c']
+  args:
+  - |
+    until nc -z postgresql.aetherius-system.svc.cluster.local 5432; do
+      echo "Waiting for PostgreSQL to be ready..."
+      sleep 5
+    done
+    echo "PostgreSQL is ready!"
+
+# 等待多个服务就绪的InitContainer
+- name: wait-for-dependencies
+  image: curlimages/curl:8.1.0
+  command: ['sh', '-c']
+  args:
+  - |
+    # 等待Redis
+    until nc -z redis.aetherius-system.svc.cluster.local 6379; do
+      echo "Waiting for Redis..."
+      sleep 5
+    done
+
+    # 等待NATS
+    until nc -z nats.aetherius-system.svc.cluster.local 4222; do
+      echo "Waiting for NATS..."
+      sleep 5
+    done
+
+    # 等待Knowledge Service健康检查
+    until curl -f http://knowledge-service.aetherius-system.svc.cluster.local:8085/health/ready; do
+      echo "Waiting for Knowledge Service..."
+      sleep 5
+    done
+
+    echo "All dependencies are ready!"
+```
 
 ### 4.1 创建配置 ConfigMap
 
@@ -1063,11 +1293,11 @@ spec:
           mountPath: /etc/aetherius
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
-          limits:
             memory: "2Gi"
             cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
       volumes:
       - name: config
         configMap:
@@ -1637,7 +1867,7 @@ helm install aetherius aetherius/aetherius \
 helm upgrade aetherius aetherius/aetherius \
   --namespace aetherius \
   --values values-prod.yaml \
-  --set global.imageTag=v1.7
+  --set global.imageTag=v1.6
 
 # 回滚到上一个版本
 helm rollback aetherius -n aetherius

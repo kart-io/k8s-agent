@@ -10,10 +10,10 @@
 
 ### 5分钟了解 Aetherius
 
-1. 📖 **系统概览**: 阅读 [00_overview.md](./specs/00_overview.md)
-2. 🎯 **核心功能**: 查看 [REQUIREMENTS.md](./REQUIREMENTS.md) 需求索引
-3. 🏗️ **系统架构**: 浏览 [ai_agent.md#系统设计](./ai_agent.md#5-系统设计-system-design)
-4. 🚀 **快速部署**: 参考 [ai_agent.md#部署与配置](./ai_agent.md#7-部署与配置-deployment--configuration)
+1. 📖 **系统概览**: 阅读 [00_overview.md](./specs/00_overview.md) - 了解系统定位和核心能力
+2. 🎯 **核心功能**: 查看 [REQUIREMENTS.md](./REQUIREMENTS.md) - 功能需求和业务价值
+3. 🏗️ **系统架构**: 浏览 [ai_agent.md 第5章](./ai_agent.md#5-系统设计-system-design) - 技术架构细节
+4. 🚀 **快速部署**: 参考 [ai_agent.md 第7章](./ai_agent.md#7-部署与配置-deployment--configuration) - 环境配置指南
 
 ---
 
@@ -49,13 +49,13 @@
 
 | 文档 | 说明 | 适用读者 | 状态 |
 |------|------|----------|------|
-| **[00_index_diagram.md](./specs/00_index_diagram.md)** | 文档结构关系图谱 | 所有角色 | ✅ 已完成 |
-| **[00_deployment_guide.md](./specs/00_deployment_guide.md)** | 快速部署向导 | 运维工程师 | ✅ 已完成 |
+| **[00_index_diagram.md](./specs/00_index_diagram.md)** | 文档结构关系图谱和导航矩阵 | 所有角色 | ✅ 已完成 |
+| **[00_deployment_guide.md](./specs/00_deployment_guide.md)** | 快速部署向导和环境配置 | 运维工程师 | ✅ 已完成 |
 
 ### 🎯 按角色导航
 
 #### 产品经理 / 项目经理
-```
+```text
 START
   ├─ 00_overview.md (系统概述)
   ├─ REQUIREMENTS.md#功能模块索引 (功能需求)
@@ -64,81 +64,81 @@ START
 ```
 
 #### 系统架构师
-```
+```text
 START
   ├─ 00_overview.md (系统概述)
   ├─ REQUIREMENTS.md (需求汇总)
-  ├─ ai_agent.md#系统设计 (架构设计)
+  ├─ ai_agent.md 第5章 系统设计 (架构设计)
   │   ├─ 5.1 高层架构图
   │   ├─ 5.2 系统流程图
   │   ├─ 5.5 多集群管理策略
   │   └─ 5.9 关键决策点
-  ├─ ai_agent.md#核心数据模型 (数据模型)
-  └─ ai_agent.md#安全考量 (安全设计)
+  ├─ ai_agent.md 第6章 核心数据模型 (数据模型)
+  └─ ai_agent.md 第10章 安全考量 (安全设计)
 ```
 
 #### 开发工程师
-```
+```text
 START
   ├─ 00_overview.md (系统概述)
   ├─ 02_architecture.md (系统架构设计)
   ├─ 03_data_models.md (数据模型和Go结构体)
   ├─ 06_microservices.md (微服务架构详细设计)
   ├─ 07_k8s_event_watcher.md (K8s事件监听实现)
-  ├─ ai_agent.md#核心数据模型 (数据模型详细说明)
+  ├─ ai_agent.md 第6章 核心数据模型 (数据模型详细说明)
   │   ├─ 6.1 诊断任务模型
   │   ├─ 6.2 诊断步骤模型
   │   ├─ 6.3 工具注册模型
   │   └─ 6.4 知识库模型
   ├─ REQUIREMENTS.md (功能需求细节)
-  └─ ai_agent.md#测试策略 (测试要求)
+  └─ ai_agent.md 第9章 测试策略 (测试要求)
 ```
 
 #### 运维工程师 / DevOps
-```
+```text
 START
   ├─ 00_overview.md (系统概述)
   ├─ 04_deployment.md (部署与配置完整指南)
   ├─ 05_operations.md (运维监控与安全管理)
   ├─ 08_in_cluster_deployment.md (集群内部署模式)
   ├─ 09_agent_proxy_mode.md (代理模式架构)
-  ├─ ai_agent.md#部署与配置 (详细部署说明)
+  ├─ ai_agent.md 第7章 部署与配置 (详细部署说明)
   │   ├─ 7.1 环境要求
   │   ├─ 7.2 基础设施准备
   │   ├─ 7.3 核心服务部署
   │   └─ 7.4 知识库初始化
-  ├─ ai_agent.md#可观测性与监控 (运维监控)
+  ├─ ai_agent.md 第8章 可观测性与监控 (运维监控)
   │   ├─ 8.1 核心监控指标
   │   ├─ 8.2 日志管理
   │   └─ 8.3 告警配置
-  └─ ai_agent.md#安全考量 (安全配置)
+  └─ ai_agent.md 第10章 安全考量 (安全配置)
 ```
 
 #### 测试工程师
-```
+```text
 START
   ├─ 00_overview.md (系统概述)
   ├─ REQUIREMENTS.md (需求和验收标准)
-  ├─ ai_agent.md#测试策略 (测试方案)
+  ├─ ai_agent.md 第9章 测试策略 (测试方案)
   │   ├─ 9.1 单元测试
   │   ├─ 9.2 集成测试
   │   ├─ 9.3 端到端测试
   │   └─ 9.4 性能测试
-  └─ ai_agent.md#系统设计 (理解架构)
+  └─ ai_agent.md 第5章 系统设计 (理解架构)
 ```
 
 #### 安全工程师
-```
+```text
 START
   ├─ 00_overview.md (系统概述)
-  ├─ ai_agent.md#安全考量 (安全设计)
+  ├─ ai_agent.md 第10章 安全考量 (安全设计)
   │   ├─ 10.1 身份认证与授权
   │   ├─ 10.2 数据安全
   │   ├─ 10.3 审计与合规
   │   ├─ 10.4 网络安全
   │   └─ 10.5 安全测试
-  ├─ REQUIREMENTS.md#安全需求 (安全需求)
-  └─ ai_agent.md#系统设计#安全执行 (安全架构)
+  ├─ REQUIREMENTS.md 安全需求章节 (安全需求)
+  └─ ai_agent.md 第5章 系统设计 安全执行部分 (安全架构)
 ```
 
 ---
@@ -359,12 +359,12 @@ START
 
 ### 系统架构
 
-```
+```text
 事件输入层 (Alertmanager/K8s Events)
     ↓
 事件网关 (Event Gateway) - 验证、过滤、标准化
     ↓
-编排层 (Orchestrator) - 任务调度、优先级管理
+编排器 (Orchestrator) - 任务调度、优先级管理
     ↓
 智能分析层 (Reasoning Service) - AI推理、知识库检索
     ↓
@@ -375,15 +375,17 @@ START
 反馈闭环 (Feedback Loop) - 用户反馈、知识更新
 ```
 
-**术语说明**:
-- **MCP协议** [(详细定义)](./ai_agent.md#附录-a-术语表-glossary): AI模型与外部工具的安全交互协议
-- **知识库检索** [(RAG技术)](./ai_agent.md#附录-a-术语表-glossary): 检索增强生成技术
+> **关键概念解释**:
+> - **MCP协议** [(详细定义)](./ai_agent.md#附录-a-术语表-glossary): Model Context Protocol，AI模型与外部工具的安全交互标准
+> - **RAG技术** [(详细定义)](./ai_agent.md#附录-a-术语表-glossary): Retrieval-Augmented Generation，检索增强生成技术
+> - **事件网关**: 系统入口组件，负责接收和预处理各种输入信号
+> - **编排器**: 核心调度引擎，管理诊断任务的生命周期
 
 详见: [ai_agent.md#5.1](./ai_agent.md#51-高层架构图)
 
 ### 诊断流程
 
-```
+```text
 1. 告警触发 (Alertmanager/Event)
 2. 事件分析 (过滤、分类、路由)
 3. 任务创建 (优先级队列)
@@ -440,9 +442,11 @@ START
 
 ### 反馈渠道
 
-- 📧 邮件: [待补充]
-- 💬 Slack: [待补充]
-- 🐛 Issues: [GitHub仓库待补充]
+以下反馈渠道正在建设中：
+
+- 📧 邮件: support@aetherius.dev (计划中)
+- 💬 Slack: #aetherius-support (计划中)
+- 🐛 Issues: GitHub仓库 (发布后开通)
 
 ---
 
@@ -472,14 +476,14 @@ START
 
 - **系统版本**: v1.6 (最终版)
 - **文档版本**: v1.6
-- **发布日期**: 2025年9月27日
+- **发布日期**: 2025年9月28日
 - **文档更新**: 2025年9月28日
 
 ### 版本历史
 
 | 版本 | 日期 | 主要变更 |
 |------|------|----------|
-| v1.6 | 2025-09-27 | 增加多集群管理和主动成本控制机制 |
+| v1.6 | 2025-09-28 | 增加多集群管理和主动成本控制机制 |
 | v1.5 | 2025-09-27 | 增加工具注册表、核心数据模型、部署策略 |
 | v1.0-1.4 | 2025-09-27 | 核心功能、混合触发、知识闭环 |
 
@@ -495,15 +499,15 @@ START
 
 1. **查找文档**: 使用本页面的快速查找表
 2. **查看FAQ**: [ai_agent.md#12章](./ai_agent.md#12-常见问题解答-faq)
-3. **提交Issue**: 在项目仓库描述问题
-4. **联系团队**: 通过邮件或Slack
+3. **提交Issue**: 项目正式发布后可在GitHub仓库提交
+4. **联系团队**: 反馈渠道将在正式发布后开通
 
 ### 学习资源
 
 - 📖 官方文档 (本文档库)
-- 🎥 视频教程 [待补充]
-- 💬 社区论坛 [待补充]
-- 📧 邮件列表 [待补充]
+- 🎥 视频教程 (计划在v2.0版本发布)
+- 💬 社区论坛 (计划在正式发布后开放)
+- 📧 邮件列表 (计划在正式发布后开放)
 
 ---
 

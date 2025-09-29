@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025-09-28
+- **最后更新**: 2025年9月28日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: 微服务架构设计
@@ -33,51 +33,71 @@
 
 ### 1.2 微服务全景图
 
+> **架构说明**: 下图展示完整的微服务组件关系和数据流向
+>
+> **图例**:
+> - **实线箭头**: 同步调用
+> - **虚线箭头**: 异步消息
+> - **双向箭头**: 双向通信
+
 ```
-                          ┌─────────────────────────────────────┐
-                          │      Ingress / API Gateway          │
-                          │    (Kong / Nginx / Traefik)         │
-                          └──────────────┬──────────────────────┘
-                                         │
-            ┌────────────────────────────┼────────────────────────────┐
-            │                            │                            │
-            ▼                            ▼                            ▼
-┌───────────────────┐       ┌────────────────────┐      ┌────────────────────┐
-│  Event Gateway    │       │   API Service      │      │  Dashboard Web     │
-│  (事件网关服务)    │       │  (API聚合服务)      │      │  (前端Web服务)      │
-│  - Webhook接收    │       │  - REST API        │      │  - React前端       │
-│  - 事件验证       │       │  - GraphQL         │      │  - WebSocket       │
-│  - 事件标准化     │       │  - 请求路由        │      │  - 实时更新        │
-└─────────┬─────────┘       └──────────┬─────────┘      └────────────────────┘
-          │                            │
-          │  发布事件                  │  查询/命令
-          ▼                            ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                         Message Bus (NATS/Kafka)                     │
-│                   - 事件总线  - 发布/订阅  - 流处理                   │
-└──────────────────────────────────────────────────────────────────────┘
-          │                            │                            │
-          ▼                            ▼                            ▼
-┌───────────────────┐       ┌────────────────────┐      ┌────────────────────┐
-│  Orchestrator     │       │  Reasoning Service │      │  Execution Service │
-│  (编排服务)        │       │  (推理服务)         │      │  (执行服务)         │
-│  - 任务调度       │       │  - AI推理          │      │  - 命令执行        │
-│  - 优先级管理     │◄──────┤  - 知识库检索      │◄─────┤  - MCP协议         │
-│  - 工作流控制     │       │  - 策略生成        │      │  - 安全验证        │
-│  - 状态机管理     │       │  - 置信度评估      │      │  - 结果收集        │
-└─────────┬─────────┘       └──────────┬─────────┘      └──────────┬─────────┘
-          │                            │                            │
-          │                            ▼                            │
-          │                 ┌────────────────────┐                 │
-          │                 │  Knowledge Service │                 │
-          │                 │  (知识库服务)       │                 │
-          │                 │  - 知识存储        │                 │
-          │                 │  - 语义检索        │                 │
-          │                 │  - 向量搜索        │                 │
-          │                 │  - 知识更新        │                 │
-          │                 └────────────────────┘                 │
-          │                                                         │
-          ▼                                                         ▼
+                    ┌───────────────────────────────────────┐
+                    │       Ingress Layer                   │
+                    │   Kong/Nginx/Traefik + Load Balancer │
+                    └──────────────┬────────────────────────┘
+                                   │ HTTP/HTTPS Traffic
+                    ┌──────────────┼────────────────────────┐
+                    │              │                        │
+                    ▼              ▼                        ▼
+        ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+        │  Event Gateway  │ │   API Gateway   │ │ Dashboard Web   │
+        │  (事件入口)      │ │  (API聚合)      │ │ (前端界面)      │
+        │  - Webhook接收  │ │  - REST API     │ │  - React SPA    │
+        │  - 事件过滤     │ │  - GraphQL      │ │  - WebSocket    │
+        │  - 格式标准化   │ │  - 身份认证     │ │  - 实时推送     │
+        └────────┬────────┘ └─────────────────┘ └─────────────────┘
+                 │                    ▲                    ▲
+                 │ 发布事件           │ API调用            │ UI更新
+                 ▼                    │                    │
+    ┌────────────────────────────────────────────────────────────────┐
+    │              Message Bus (NATS Streaming)                      │
+    │        事件总线 • 发布/订阅 • 流处理 • 消息持久化                │
+    └──────┬─────────────────────────┬─────────────────────────┬──────┘
+           │                         │                         │
+           │ 订阅事件                │ 订阅事件                │ 订阅事件
+           ▼                         ▼                         ▼
+┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+│  Orchestrator   │      │ Reasoning       │      │ Execution       │
+│  (任务编排)      │      │ Service         │      │ Gateway         │
+│  - 任务调度     │◄────►│ (AI推理)        │◄────►│ (安全执行)      │
+│  - 优先级队列   │      │  - LLM调用      │      │  - MCP协议      │
+│  - 工作流引擎   │      │  - 策略生成     │      │  - 命令验证     │
+│  - 状态管理     │      │  - 置信度评估   │      │  - 结果收集     │
+└─────────┬───────┘      └─────────┬───────┘      └─────────┬───────┘
+          │                        │                        │
+          │                        │ 知识检索               │
+          │                        ▼                        │
+          │              ┌─────────────────┐                │
+          │              │ Knowledge       │                │
+          │              │ Service         │                │
+          │              │ (知识管理)       │                │
+          │              │  - 向量存储     │                │
+          │              │  - 语义检索     │                │
+          │              │  - 知识更新     │                │
+          │              │  - RAG引擎      │                │
+          │              └─────────────────┘                │
+          │                                                 │
+          │ 报告请求                                        │ 执行结果
+          ▼                                                 ▼
+┌─────────────────┐                              ┌─────────────────┐
+│  Report Service │                              │ Notification    │
+│  (报告生成)      │◄────────────────────────────►│ Service         │
+│  - 报告模板     │            通知分发          │ (多渠道通知)     │
+│  - 多格式输出   │                              │  - Slack        │
+│  - 历史记录     │                              │  - Email        │
+│  - 文件生成     │                              │  - Webhook      │
+└─────────────────┘                              └─────────────────┘
+```
 ┌───────────────────┐                                   ┌────────────────────┐
 │  Report Service   │                                   │  Credential Service│
 │  (报告服务)        │                                   │  (凭证服务)         │
@@ -121,7 +141,7 @@
 | **Report Service** | 8087 | 报告生成、历史管理 | PostgreSQL, S3 | - |
 | **Notification Service** | 8088 | 多渠道通知 | Redis | Slack, Email SMTP |
 | **Audit Service** | 8089 | 审计日志、合规检查 | PostgreSQL | - |
-| **Monitoring Service** | 9090 | 指标收集、健康检查 | Prometheus | - |
+| **Monitoring Service** | 9100 | 指标收集、健康检查 | Prometheus | - |
 
 ## 2. 核心微服务设计
 
@@ -129,10 +149,16 @@
 
 #### 职责范围
 
-- **核心功能**: 统一接收和处理所有外部事件源
-- **业务边界**: 事件入口 → 标准化 → 发布到消息总线
-- **适用场景**: 单集群In-Cluster部署,接收Alertmanager等外部Webhook
-- **多集群场景**: 在Agent代理模式下,K8s事件由Agent直接上报,Event Gateway仅处理非K8s事件源
+- **核心功能**: 统一接收和处理外部事件源（Alertmanager Webhook等）
+- **业务边界**: 事件入口 → 验证 → 标准化 → 发布到消息总线
+
+**部署模式差异**：
+- **单集群In-Cluster模式**:
+  - Event Gateway接收Alertmanager告警
+  - K8s事件由独立的Event Watcher组件处理并直接发布到消息总线
+- **Agent代理模式**:
+  - Event Gateway仅处理非K8s事件源（Alertmanager等）
+  - K8s事件由各Agent采集并通过Agent Manager转发
 
 #### 技术规格
 
@@ -186,8 +212,8 @@ type StandardEvent struct {
 #### API端点
 
 ```
-POST   /webhook/alertmanager     # Alertmanager webhook
-POST   /webhook/custom/:source   # 自定义webhook
+POST   /api/v1/webhook/alertmanager     # Alertmanager webhook
+POST   /api/v1/webhook/custom/:source   # 自定义webhook
 GET    /health                   # 健康检查
 GET    /metrics                  # Prometheus指标
 ```
@@ -823,12 +849,16 @@ type AuditService interface {
 
 ### 3.2 消息总线架构
 
-```
+**重要说明**: 在多集群Agent代理模式下，系统使用两个独立的NATS集群：
+1. **内部NATS**: 用于微服务间的事件通信（本节描述）
+2. **Agent NATS**: 用于Central与Agent间的通信（参见 09_agent_proxy_mode.md）
+
+```text
 Event Gateway
       │
       ▼ publish(event.received)
 ┌──────────────────────────────┐
-│      Message Bus (NATS)      │
+│   内部Message Bus (NATS)     │
 │                              │
 │  Topics:                     │
 │  - event.received            │
@@ -1048,7 +1078,24 @@ readinessProbe:
 
 ### 5.2 熔断与限流
 
+#### 重试策略
+系统采用指数退避重试策略，避免级联故障：
+- **默认重试次数**: 3次
+- **初始重试延迟**: 30秒
+- **退避因子**: 2.0（每次重试延迟翻倍）
+- **最大重试延迟**: 5分钟
+- **可重试错误类型**: 网络超时、服务暂时不可用(503)、限流(429)
+
 ```go
+// 重试配置
+type RetryConfig struct {
+    MaxAttempts     int           `yaml:"max_attempts" default:"3"`
+    InitialDelay    time.Duration `yaml:"initial_delay" default:"30s"`
+    BackoffFactor   float64       `yaml:"backoff_factor" default:"2.0"`
+    MaxDelay        time.Duration `yaml:"max_delay" default:"5m"`
+    RetryableErrors []int         `yaml:"retryable_errors"` // HTTP状态码
+}
+
 // 熔断器配置
 type CircuitBreakerConfig struct {
     MaxRequests       uint32        `yaml:"max_requests"`
@@ -1121,6 +1168,277 @@ spec:
   - port: metrics
     interval: 30s
     path: /metrics
+```
+
+### 5.5 边界条件处理
+
+#### 5.5.1 队列溢出处理
+
+```go
+// 事件队列溢出保护
+type BoundedQueue struct {
+    maxSize   int
+    queue     chan interface{}
+    droppedCounter prometheus.Counter
+}
+
+func (q *BoundedQueue) Push(item interface{}) error {
+    select {
+    case q.queue <- item:
+        return nil
+    default:
+        // 队列已满，执行降级策略
+        q.droppedCounter.Inc()
+
+        // 策略1：丢弃最旧的事件
+        select {
+        case <-q.queue:
+            q.queue <- item
+            return nil
+        default:
+            return ErrQueueFull
+        }
+    }
+}
+
+// 任务队列优先级管理
+func (o *Orchestrator) HandleQueueOverflow() {
+    if o.queue.Size() > o.maxQueueSize*0.8 {
+        // 80%容量时开始清理低优先级任务
+        o.purgeLowPriorityTasks()
+
+        // 提高准入门槛
+        o.minAcceptPriority = PriorityHigh
+    }
+}
+```
+
+#### 5.5.2 并发限制处理
+
+```go
+// 并发执行限制
+type ConcurrencyLimiter struct {
+    semaphore chan struct{}
+    timeout   time.Duration
+}
+
+func (c *ConcurrencyLimiter) Acquire(ctx context.Context) error {
+    select {
+    case c.semaphore <- struct{}{}:
+        return nil
+    case <-time.After(c.timeout):
+        return ErrConcurrencyLimitExceeded
+    case <-ctx.Done():
+        return ctx.Err()
+    }
+}
+
+// 服务级并发控制
+func (e *ExecutionService) ExecuteWithLimit(ctx context.Context, task Task) error {
+    if err := e.limiter.Acquire(ctx); err != nil {
+        // 记录被拒绝的任务
+        e.metrics.RejectedTasks.Inc()
+        return fmt.Errorf("concurrency limit exceeded: %w", err)
+    }
+    defer e.limiter.Release()
+
+    return e.execute(ctx, task)
+}
+```
+
+#### 5.5.3 内存压力处理
+
+```go
+// 内存压力检测和响应
+type MemoryMonitor struct {
+    threshold   uint64  // 内存使用阈值
+    checkPeriod time.Duration
+}
+
+func (m *MemoryMonitor) Start(ctx context.Context) {
+    ticker := time.NewTicker(m.checkPeriod)
+    defer ticker.Stop()
+
+    for {
+        select {
+        case <-ticker.C:
+            var memStats runtime.MemStats
+            runtime.ReadMemStats(&memStats)
+
+            if memStats.Alloc > m.threshold {
+                // 触发内存清理
+                m.handleMemoryPressure(&memStats)
+            }
+        case <-ctx.Done():
+            return
+        }
+    }
+}
+
+func (m *MemoryMonitor) handleMemoryPressure(stats *runtime.MemStats) {
+    // 1. 强制GC
+    runtime.GC()
+
+    // 2. 清理缓存
+    if cache != nil {
+        cache.Purge()
+    }
+
+    // 3. 缩减工作池
+    workerPool.Shrink(0.5)
+
+    // 4. 拒绝新请求
+    circuitBreaker.Open()
+}
+```
+
+#### 5.5.4 超时和死锁处理
+
+```go
+// 超时控制包装器
+func WithTimeout(timeout time.Duration, fn func() error) error {
+    done := make(chan error, 1)
+
+    go func() {
+        done <- fn()
+    }()
+
+    select {
+    case err := <-done:
+        return err
+    case <-time.After(timeout):
+        // 记录超时位置用于调试
+        stack := make([]byte, 4096)
+        runtime.Stack(stack, false)
+        log.Error("Operation timeout",
+            zap.Duration("timeout", timeout),
+            zap.String("stack", string(stack)))
+        return ErrTimeout
+    }
+}
+
+// 死锁检测
+type DeadlockDetector struct {
+    locks    map[string]*LockInfo
+    mu       sync.RWMutex
+    timeout  time.Duration
+}
+
+func (d *DeadlockDetector) AcquireLock(id string) {
+    d.mu.Lock()
+    d.locks[id] = &LockInfo{
+        AcquiredAt: time.Now(),
+        Goroutine:  getGoroutineID(),
+    }
+    d.mu.Unlock()
+
+    // 设置超时检查
+    time.AfterFunc(d.timeout, func() {
+        d.checkDeadlock(id)
+    })
+}
+```
+
+#### 5.5.5 级联故障防护
+
+```go
+// 级联故障断路器
+type CascadeProtection struct {
+    services    map[string]*ServiceHealth
+    threshold   float64  // 故障服务比例阈值
+}
+
+func (c *CascadeProtection) CheckCascade() bool {
+    failedCount := 0
+    for _, health := range c.services {
+        if !health.IsHealthy() {
+            failedCount++
+        }
+    }
+
+    failureRate := float64(failedCount) / float64(len(c.services))
+    if failureRate > c.threshold {
+        // 触发降级模式
+        c.enableDegradedMode()
+        return true
+    }
+    return false
+}
+
+func (c *CascadeProtection) enableDegradedMode() {
+    // 1. 停止非关键服务
+    c.stopNonCriticalServices()
+
+    // 2. 降低请求接收率
+    rateLimiter.SetRate(rateLimiter.GetRate() * 0.5)
+
+    // 3. 启用快速失败模式
+    for _, service := range c.services {
+        service.EnableFastFail()
+    }
+}
+```
+
+#### 5.5.6 数据一致性边界处理
+
+```go
+// 分布式锁超时处理
+func (l *DistributedLock) AcquireWithRetry(ctx context.Context, key string) error {
+    maxRetries := 3
+    backoff := time.Second
+
+    for i := 0; i < maxRetries; i++ {
+        err := l.tryAcquire(ctx, key)
+        if err == nil {
+            return nil
+        }
+
+        if errors.Is(err, ErrLockTimeout) {
+            // 检查锁的持有者是否还活着
+            if !l.isHolderAlive(key) {
+                // 强制释放死锁
+                l.forceRelease(key)
+                continue
+            }
+        }
+
+        select {
+        case <-time.After(backoff):
+            backoff *= 2
+        case <-ctx.Done():
+            return ctx.Err()
+        }
+    }
+
+    return ErrLockAcquisitionFailed
+}
+
+// 最终一致性补偿机制
+type EventualConsistency struct {
+    reconciler *Reconciler
+}
+
+func (e *EventualConsistency) ReconcileData(ctx context.Context) {
+    // 定期扫描数据不一致
+    ticker := time.NewTicker(5 * time.Minute)
+    defer ticker.Stop()
+
+    for {
+        select {
+        case <-ticker.C:
+            inconsistencies := e.detectInconsistencies()
+            for _, item := range inconsistencies {
+                if err := e.reconciler.Reconcile(item); err != nil {
+                    log.Error("Failed to reconcile",
+                        zap.Error(err),
+                        zap.Any("item", item))
+                }
+            }
+        case <-ctx.Done():
+            return
+        }
+    }
+}
 ```
 
 ## 6. 部署架构
@@ -1302,7 +1620,253 @@ service-template/
 └── README.md
 ```
 
-### 7.2 服务开发检查清单
+### 7.2 统一配置参数规范
+
+为确保所有服务配置的一致性，所有配置参数必须遵循以下规范：
+
+#### 7.2.1 配置参数命名规范
+
+```yaml
+# 配置参数命名规则
+# 1. 使用snake_case（下划线分隔）
+# 2. 层级结构清晰
+# 3. 参数名称见名知意
+
+# 正确示例
+server:
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  shutdown_timeout: 10s
+
+database:
+  max_connections: 50
+  connection_timeout: 5s
+
+# 错误示例（不要使用）
+serverPort: 8080              # 应该使用 server.port
+readTimeout: 30s               # 应该使用 server.read_timeout
+MaxConnections: 50             # 应该使用 database.max_connections
+```
+
+#### 7.2.2 时间参数格式
+
+```yaml
+# 时间参数必须包含单位
+# 支持的单位: ns, us(µs), ms, s, m, h
+
+timeout: 30s                   # 正确：30秒
+retry_delay: 100ms             # 正确：100毫秒
+max_idle_time: 5m              # 正确：5分钟
+session_timeout: 24h           # 正确：24小时
+
+# 错误示例
+timeout: 30                    # 错误：缺少单位
+retry_delay: "100"             # 错误：缺少单位
+```
+
+#### 7.2.3 资源配置格式
+
+```yaml
+# Kubernetes资源配置格式
+resources:
+  requests:
+    memory: "256Mi"            # 必须使用引号包裹
+    cpu: "250m"                # 必须使用引号包裹
+  limits:
+    memory: "1Gi"              # 必须使用引号包裹
+    cpu: "1000m"               # 必须使用引号包裹
+
+# 错误示例
+resources:
+  requests:
+    memory: 256Mi              # 错误：缺少引号
+    cpu: 0.25                  # 错误：应该使用250m
+```
+
+#### 7.2.4 默认值规范
+
+```go
+// Go 结构体默认值定义
+type ServerConfig struct {
+    Port            int           `yaml:"port" default:"8080"`
+    ReadTimeout     time.Duration `yaml:"read_timeout" default:"30s"`
+    WriteTimeout    time.Duration `yaml:"write_timeout" default:"30s"`
+    ShutdownTimeout time.Duration `yaml:"shutdown_timeout" default:"10s"`
+}
+
+type DatabaseConfig struct {
+    Host              string        `yaml:"host" default:"localhost"`
+    Port              int           `yaml:"port" default:"5432"`
+    MaxConnections    int           `yaml:"max_connections" default:"50"`
+    IdleConnections   int           `yaml:"idle_connections" default:"10"`
+    ConnectionTimeout time.Duration `yaml:"connection_timeout" default:"5s"`
+}
+
+type RetryConfig struct {
+    MaxAttempts   int           `yaml:"max_attempts" default:"3"`
+    InitialDelay  time.Duration `yaml:"initial_delay" default:"30s"`
+    BackoffFactor float64       `yaml:"backoff_factor" default:"2.0"`
+    MaxDelay      time.Duration `yaml:"max_delay" default:"5m"`
+}
+```
+
+#### 7.2.5 环境变量映射
+
+```yaml
+# 环境变量命名规范
+# 格式: {SERVICE_NAME}_{PARAMETER_PATH}
+# 使用大写字母和下划线
+
+# 配置文件参数 -> 环境变量映射
+server.port           -> AETHERIUS_SERVER_PORT
+database.host         -> AETHERIUS_DATABASE_HOST
+redis.password        -> AETHERIUS_REDIS_PASSWORD
+ai_service.api_key    -> AETHERIUS_AI_SERVICE_API_KEY
+
+# Kubernetes Deployment 示例
+env:
+- name: AETHERIUS_SERVER_PORT
+  value: "8080"
+- name: AETHERIUS_DATABASE_HOST
+  value: "postgresql"
+- name: AETHERIUS_REDIS_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: redis-secret
+      key: password
+```
+
+#### 7.2.6 配置文件模板
+
+```yaml
+# config.yaml - 标准配置文件模板
+# 所有服务必须遵循此结构
+
+# 服务器配置
+server:
+  port: 8080
+  host: "0.0.0.0"
+  read_timeout: 30s
+  write_timeout: 30s
+  shutdown_timeout: 10s
+
+# 数据库配置
+database:
+  host: localhost
+  port: 5432
+  database: aetherius
+  username: aetherius
+  password: ""  # 从环境变量或密钥管理系统获取
+  max_connections: 50
+  idle_connections: 10
+  connection_lifetime: 1h
+  connection_timeout: 5s
+
+# Redis配置
+redis:
+  host: localhost
+  port: 6379
+  password: ""  # 从环境变量或密钥管理系统获取
+  db: 0
+  pool_size: 20
+  idle_timeout: 5m
+  dial_timeout: 5s
+
+# 消息总线配置
+message_bus:
+  type: nats  # nats, kafka
+  endpoints:
+    - "nats://localhost:4222"
+  reconnect_delay: 2s
+  max_reconnect_attempts: 10
+
+# 日志配置
+logging:
+  level: info  # debug, info, warn, error
+  format: json  # json, text
+  output: stdout  # stdout, file
+  file_path: "/var/log/aetherius/service.log"
+  max_size: 100  # MB
+  max_backups: 10
+  max_age: 30  # days
+
+# 监控配置
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  metrics_path: "/metrics"
+  health_check_port: 8080
+  health_check_path: "/health"
+
+# 安全配置
+security:
+  enable_tls: false
+  cert_file: "/etc/aetherius/certs/tls.crt"
+  key_file: "/etc/aetherius/certs/tls.key"
+  enable_auth: true
+  auth_type: jwt  # jwt, oauth2, basic
+
+# 服务发现配置
+discovery:
+  type: kubernetes  # kubernetes, consul, etcd
+  namespace: aetherius-system
+  service_name: ""  # 自动从POD_NAME获取
+
+# 限流配置
+rate_limiting:
+  enabled: true
+  requests_per_second: 100
+  burst: 200
+
+# 重试配置
+retry:
+  max_attempts: 3
+  initial_delay: 30s
+  backoff_factor: 2.0
+  max_delay: 5m
+  retryable_errors:
+    - 503  # Service Unavailable
+    - 504  # Gateway Timeout
+    - 429  # Too Many Requests
+```
+
+#### 7.2.7 配置验证规则
+
+```go
+// 配置验证函数
+func ValidateConfig(cfg *Config) error {
+    var errs []error
+
+    // 端口范围验证
+    if cfg.Server.Port < 1 || cfg.Server.Port > 65535 {
+        errs = append(errs, fmt.Errorf("invalid port: %d", cfg.Server.Port))
+    }
+
+    // 超时时间验证
+    if cfg.Server.ReadTimeout < time.Second {
+        errs = append(errs, fmt.Errorf("read_timeout too short: %v", cfg.Server.ReadTimeout))
+    }
+
+    // 数据库连接池验证
+    if cfg.Database.MaxConnections < cfg.Database.IdleConnections {
+        errs = append(errs, fmt.Errorf("max_connections must be >= idle_connections"))
+    }
+
+    // 重试配置验证
+    if cfg.Retry.BackoffFactor < 1.0 {
+        errs = append(errs, fmt.Errorf("backoff_factor must be >= 1.0"))
+    }
+
+    if len(errs) > 0 {
+        return fmt.Errorf("config validation failed: %v", errs)
+    }
+
+    return nil
+}
+```
+
+### 7.3 服务开发检查清单
 
 ```markdown
 ## 功能开发

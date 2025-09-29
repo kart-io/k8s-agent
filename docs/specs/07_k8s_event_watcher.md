@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025-09-28
+- **最后更新**: 2025年9月28日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: 技术实现指南
@@ -19,9 +19,13 @@
 
 ## 1. Kubernetes 事件概述
 
-**文档说明**: 本文档描述K8s事件监听的技术实现,适用于:
-- 单集群In-Cluster部署(直接集成到Event Gateway)
-- Agent代理模式(集成到Agent组件中)
+**文档适用范围**: 本文档描述Kubernetes事件监听的技术实现，支持以下部署模式：
+
+- **In-Cluster模式**: 直接集成到Event Gateway服务，获得集群内部署的性能优势
+- **Agent代理模式**: 集成到独立的Agent组件，适用于多集群统一管理场景
+- **Hybrid混合模式**: 同时支持告警和事件触发，实现完整的监控覆盖
+
+> **架构关联**: 与 [02_architecture.md](./02_architecture.md) 和 [06_microservices.md](./06_microservices.md) 保持一致
 
 ### 1.1 什么是 Kubernetes 事件
 
@@ -909,7 +913,7 @@ spec:
       serviceAccountName: aetherius-event-watcher
       containers:
       - name: watcher
-        image: aetherius/k8s-event-watcher:v1.0
+        image: aetherius/k8s-event-watcher:v1.6
         args:
         - --cluster-id=$(CLUSTER_ID)
         - --config=/etc/aetherius/watcher-config.yaml
