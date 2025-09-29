@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aetherius-agent
+  namespace: aetherius-agent
+  labels:
+    app.kubernetes.io/name: aetherius-agent
+    app.kubernetes.io/component: agent
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app.kubernetes.io/name: aetherius-agent
+    app.kubernetes.io/component: agent
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  type: ClusterIP

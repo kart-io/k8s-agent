@@ -579,7 +579,7 @@ Data Stores
 - [需求规格](../REQUIREMENTS.md) - 功能和非功能需求
 - [数据模型](./03_data_models.md) - 核心数据结构
 - [部署指南](./04_deployment.md) - 部署和配置
-- [安全设计](./06_security.md) - 详细安全设计
+- [安全设计](../ai_agent.md#10-安全考量) - 详细安全设计
 
 ---
 

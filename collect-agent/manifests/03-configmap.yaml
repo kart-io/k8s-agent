@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-config
+  namespace: aetherius-agent
+  labels:
+    app.kubernetes.io/name: aetherius-agent
+    app.kubernetes.io/component: agent
+data:
+  config.yaml: |
+    # Cluster ID - leave empty for auto-detection
+    cluster_id: ""
+
+    # Central control plane endpoint
+    central_endpoint: "nats://central.aetherius.io:4222"
+
+    # Connection settings
+    reconnect_delay: 5s
+    heartbeat_interval: 30s
+    metrics_interval: 60s
+    buffer_size: 1000
+    max_retries: 10
+
+    # Logging
+    log_level: "info"
+
+    # Feature flags
+    enable_metrics: true
+    enable_events: true
