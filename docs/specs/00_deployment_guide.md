@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025年9月28日
+- **最后更新**: 2025年9月27日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: 部署架构选择指南
@@ -19,11 +19,11 @@
 
 根据您的集群规模,选择合适的部署架构:
 
-| 集群数量 | 推荐架构 | 参考文档 | 主要优势 |
-|---------|---------|---------|----------|
-| **1个集群** | 单集群In-Cluster | [08_in_cluster_deployment.md](./08_in_cluster_deployment.md) | 简单可靠,全功能 |
-| **2-10个集群** | Agent代理模式 | [09_agent_proxy_mode.md](./09_agent_proxy_mode.md) | 轻量Agent,统一管理 |
-| **10+个集群** | 分层Agent架构 | 待规划 | 分层管理,可扩展 |
+| 集群数量 | 推荐架构 | 参考文档 | 主要优势 | 适用场景说明 |
+|---------|---------|---------|----------|--------------|
+| **1个集群** | 单集群In-Cluster | [08_in_cluster_deployment.md](./08_in_cluster_deployment.md) | 简单可靠,全功能 | 独立的生产/开发/测试集群 |
+| **2-10个集群** | Agent代理模式 | [09_agent_proxy_mode.md](./09_agent_proxy_mode.md) | 轻量Agent,统一管理 | 多集群统一监控和诊断 |
+| **10+个集群** | 分层Agent架构 | 待规划 | 分层管理,可扩展 | 超大规模多集群环境 |
 
 ## 2. 架构模式对比
 
@@ -189,11 +189,16 @@
 
 ### Q3: Event Gateway 在Agent代理模式下还需要吗?
 
-**A**: 需要,但职责不同:
-- **单集群模式**: Event Gateway接收所有事件(包括K8s事件)
-- **Agent代理模式**:
-  - K8s事件由Agent直接上报
-  - Event Gateway仅处理非K8s事件源(如Alertmanager Webhook)
+**A**: 需要,但职责保持一致(仅处理外部告警源):
+
+| 部署模式 | Event Gateway职责 | K8s事件处理 |
+|---------|------------------|-------------|
+| **单集群模式** | 接收外部告警源<br>(Alertmanager Webhook) | 由Event Watcher组件<br>独立处理 |
+| **Agent代理模式** | 接收外部告警源<br>(Alertmanager Webhook) | 由各Agent组件<br>独立处理和上报 |
+
+**关键点**: Event Gateway在两种模式下都**不直接处理K8s事件**,始终专注于外部告警源。
+
+参考: [06_microservices.md 第2.1节](./06_microservices.md#21-event-gateway-service-事件网关服务) 了解详细职责说明
 
 ### Q4: NATS消息总线是同一个吗?
 

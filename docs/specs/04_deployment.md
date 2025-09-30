@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025年9月28日
+- **最后更新**: 2025年9月27日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: 部署配置指南
@@ -887,102 +887,72 @@ EOF
 
 为确保配置一致性，各服务的资源需求如下：
 
+#### 应用服务资源配置
+
 | 服务名称 | CPU Request | CPU Limit | Memory Request | Memory Limit | 说明 |
 |---------|-------------|-----------|----------------|--------------|------|
-| **Event Gateway** | 500m | 1000m | 512Mi | 1Gi | 事件处理入口 |
+| **Event Gateway** | 250m | 500m | 256Mi | 512Mi | 外部事件接收(Webhook) |
 | **Orchestrator** | 500m | 1000m | 512Mi | 1Gi | 任务调度核心 |
-| **Reasoning Service** | 1000m | 2000m | 2Gi | 4Gi | AI推理服务(需要更多资源) |
+| **Reasoning Service** | 1000m | 2000m | 2Gi | 4Gi | AI推理服务(LLM调用) |
 | **Execution Service** | 500m | 1000m | 512Mi | 1Gi | 命令执行服务 |
-| **Knowledge Service** | 500m | 2000m | 1Gi | 4Gi | 向量数据库(Weaviate) |
+| **Knowledge Service** | 250m | 500m | 512Mi | 1Gi | 知识库API服务 |
 | **Report Service** | 250m | 500m | 256Mi | 512Mi | 报告生成服务 |
 | **Notification Service** | 250m | 500m | 256Mi | 512Mi | 通知服务 |
+| **Dashboard Web** | 100m | 250m | 256Mi | 512Mi | 前端服务 |
 
-**说明**:
-- Reasoning Service需要更多资源用于LLM推理计算
-- Knowledge Service需要较多内存用于向量索引
-- 其他服务采用标准配置
+#### 数据层服务资源配置
+
+| 服务名称 | CPU Request | CPU Limit | Memory Request | Memory Limit | 说明 |
+|---------|-------------|-----------|----------------|--------------|------|
+| **PostgreSQL** | 250m | 1000m | 512Mi | 2Gi | 关系数据库 |
+| **Redis** | 100m | 500m | 256Mi | 512Mi | 缓存队列 |
+| **Weaviate** | 500m | 2000m | 1Gi | 4Gi | 向量数据库 |
+| **HashiCorp Vault** | 100m | 500m | 256Mi | 512Mi | 密钥管理 |
+
+**配置说明**:
+- **Reasoning Service**: 需要更多资源用于LLM推理计算和上下文处理
+- **Weaviate**: 需要较多内存用于向量索引和相似度搜索
+- **Event Gateway**: 轻量级服务,仅处理外部Webhook
+- **Knowledge Service**: API服务层,实际向量计算由Weaviate完成
+- 其他应用服务采用标准配置
 
 ### 服务启动顺序依赖
 
 为确保系统正确启动，服务必须按照以下顺序部署并等待就绪：
 
-#### 第一阶段：数据层服务
-必须首先启动，为应用层提供基础支持：
+#### 启动阶段概览
 
-1. **PostgreSQL** (StatefulSet)
-   - 等待就绪：所有Pod Running且通过readiness检查
-   - 验证：`pg_isready`命令返回成功
+```
+阶段1: 数据层        → PostgreSQL, Redis, Vault, Weaviate
+阶段2: 消息总线      → NATS
+阶段3: 核心服务      → Orchestrator, Knowledge Service, Credential Service
+阶段4: 业务服务      → Reasoning, Execution, Event Gateway
+阶段5: 辅助服务      → Report, Notification, Dashboard
+```
 
-2. **Redis** (StatefulSet)
-   - 等待就绪：所有Pod Running且通过readiness检查
-   - 验证：`redis-cli ping`返回PONG
+#### 详细依赖关系
 
-3. **HashiCorp Vault** (StatefulSet)
-   - 等待就绪：Pod Running且HTTP端口响应
-   - 验证：`vault status`返回unsealed
+| 阶段 | 服务 | 依赖服务 | 验证方法 |
+|-----|------|---------|---------|
+| **1** | PostgreSQL | 无 | `pg_isready` |
+| **1** | Redis | 无 | `redis-cli ping` |
+| **1** | Vault | 无 | `vault status` |
+| **1** | Weaviate | 无 | HTTP `/v1/schema` |
+| **2** | NATS | 无 | 连接测试 |
+| **3** | Orchestrator | PostgreSQL, Redis, NATS | `/health/ready` |
+| **3** | Knowledge Service | Weaviate, PostgreSQL | `/health/ready` |
+| **3** | Credential Service | Vault | 凭证获取测试 |
+| **4** | Reasoning Service | Knowledge Service, Orchestrator | `/health/ready` |
+| **4** | Execution Service | Credential Service, Orchestrator | `/health/ready` |
+| **4** | Event Gateway | Orchestrator, NATS | Webhook端点测试 |
+| **5** | Report Service | PostgreSQL, Orchestrator | `/health/ready` |
+| **5** | Notification Service | Redis, Report Service | `/health/ready` |
+| **5** | Dashboard Web | 所有后端服务 | HTTP 200 |
 
-4. **Vector Database (Weaviate)** (Deployment)
-   - 等待就绪：所有副本Running
-   - 验证：HTTP端口`/v1/schema`返回200
-
-#### 第二阶段：消息总线
-数据层就绪后启动：
-
-5. **NATS/Kafka** (StatefulSet)
-   - 依赖：无
-   - 等待就绪：集群形成且端口监听
-   - 验证：连接测试成功
-
-#### 第三阶段：核心服务
-数据层和消息总线就绪后启动：
-
-6. **Orchestrator Service**
-   - 依赖：PostgreSQL, Redis, NATS
-   - InitContainer：等待依赖服务就绪
-   - 验证：`/health/ready`返回200
-
-7. **Knowledge Service**
-   - 依赖：Weaviate, PostgreSQL
-   - InitContainer：等待向量数据库就绪
-   - 验证：`/health/ready`返回200
-
-8. **Credential Service**
-   - 依赖：Vault
-   - InitContainer：等待Vault就绪且unsealed
-   - 验证：凭证获取测试成功
-
-#### 第四阶段：业务服务
-核心服务就绪后启动：
-
-9. **Reasoning Service**
-   - 依赖：Knowledge Service, Orchestrator
-   - InitContainer：等待知识库服务就绪
-   - 验证：`/health/ready`返回200
-
-10. **Execution Service**
-    - 依赖：Credential Service, Orchestrator
-    - InitContainer：等待凭证服务就绪
-    - 验证：`/health/ready`返回200
-
-11. **Event Gateway**
-    - 依赖：Orchestrator, NATS
-    - InitContainer：等待编排服务就绪
-    - 验证：Webhook端点可访问
-
-#### 第五阶段：辅助服务
-所有核心服务就绪后启动：
-
-12. **Report Service**
-    - 依赖：PostgreSQL, Orchestrator
-    - 验证：报告生成测试成功
-
-13. **Notification Service**
-    - 依赖：Redis, Report Service
-    - 验证：通知发送测试成功
-
-14. **Dashboard Web**
-    - 依赖：API Service（所有后端服务）
-    - 验证：前端页面可访问
+**实现建议**:
+- 使用InitContainer等待依赖服务(见下方示例)
+- 配置合理的readinessProbe和livenessProbe
+- 设置足够的initialDelaySeconds避免启动竞争
 
 #### InitContainer 示例配置
 
@@ -2236,4 +2206,4 @@ echo "查看服务日志: kubectl logs -f deployment/aetherius-orchestrator -n $
 - [架构设计文档](./02_architecture.md) - 系统架构详细设计
 - [数据模型文档](./03_data_models.md) - 核心数据模型定义
 - [需求规格说明](../REQUIREMENTS.md) - 完整需求索引
-- [运维安全文档](./05_operations.md) - 运维和安全指南 (待创建)
+- [运维安全文档](./05_operations.md) - 运维和安全指南

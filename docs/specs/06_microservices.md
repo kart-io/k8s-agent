@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025年9月28日
+- **最后更新**: 2025年9月27日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: 微服务架构设计
@@ -36,11 +36,12 @@
 > **架构说明**: 下图展示完整的微服务组件关系和数据流向
 >
 > **图例**:
+>
 > - **实线箭头**: 同步调用
 > - **虚线箭头**: 异步消息
 > - **双向箭头**: 双向通信
 
-```
+```text
                     ┌───────────────────────────────────────┐
                     │       Ingress Layer                   │
                     │   Kong/Nginx/Traefik + Load Balancer │
@@ -98,6 +99,8 @@
 │  - 文件生成     │                              │  - Webhook      │
 └─────────────────┘                              └─────────────────┘
 ```
+
+```text
 ┌───────────────────┐                                   ┌────────────────────┐
 │  Report Service   │                                   │  Credential Service│
 │  (报告服务)        │                                   │  (凭证服务)         │
@@ -131,6 +134,7 @@
 | 服务名称 | 端口 | 主要职责 | 数据存储 | 外部依赖 |
 |---------|------|----------|----------|----------|
 | **Event Gateway** | 8080 | 事件接收、验证、标准化 | Redis(缓存) | Alertmanager |
+| **Event Watcher** | - | K8s事件监听、过滤、转发 | Redis(去重) | Kubernetes API |
 | **API Service** | 8081 | REST/GraphQL API、请求路由 | 无状态 | 所有服务 |
 | **Dashboard Web** | 3000 | 前端UI、实时更新 | 无状态 | API Service |
 | **Orchestrator** | 8082 | 任务调度、工作流控制 | PostgreSQL, Redis | Message Bus |
@@ -149,16 +153,25 @@
 
 #### 职责范围
 
-- **核心功能**: 统一接收和处理外部事件源（Alertmanager Webhook等）
+- **核心功能**: 统一接收和处理外部事件源（Alertmanager Webhook等非K8s事件）
 - **业务边界**: 事件入口 → 验证 → 标准化 → 发布到消息总线
 
-**部署模式差异**：
-- **单集群In-Cluster模式**:
-  - Event Gateway接收Alertmanager告警
-  - K8s事件由独立的Event Watcher组件处理并直接发布到消息总线
-- **Agent代理模式**:
-  - Event Gateway仅处理非K8s事件源（Alertmanager等）
-  - K8s事件由各Agent采集并通过Agent Manager转发
+**重要架构说明**：
+
+> **Event Gateway专注于外部事件源,不直接处理K8s事件**
+>
+> K8s事件的处理由专门的组件负责:
+> - **单集群模式**: 由Event Watcher组件监听和处理
+> - **Agent模式**: 由各Agent组件监听和上报
+>
+> 参考: [07_k8s_event_watcher.md](./07_k8s_event_watcher.md) 了解K8s事件监听实现
+
+**不同部署模式下的职责**:
+
+| 部署模式 | Event Gateway职责 | K8s事件处理 | 说明 |
+|---------|------------------|-------------|------|
+| **单集群In-Cluster** | 接收外部告警源<br>(Alertmanager Webhook) | Event Watcher组件<br>直接发布到内部NATS | Event Gateway与Event Watcher<br>是平级的事件入口 |
+| **Agent代理模式** | 接收外部告警源<br>(Alertmanager Webhook) | Agent组件采集<br>→ Agent NATS<br>→ Agent Manager<br>→ 内部NATS | Event Gateway不涉及<br>K8s事件处理 |
 
 #### 技术规格
 
@@ -173,13 +186,11 @@ type EventGatewayConfig struct {
 }
 
 // 核心接口
+// 注意: Event Gateway仅处理外部事件源,不包含K8s事件监听
 type EventGatewayService interface {
-    // Webhook处理
+    // Webhook处理 - 核心功能
     HandleAlertmanagerWebhook(ctx context.Context, payload []byte) error
     HandleCustomWebhook(ctx context.Context, source string, payload []byte) error
-
-    // Kubernetes事件监听
-    WatchK8sEvents(ctx context.Context, clusterID string) error
 
     // 事件验证和标准化
     ValidateEvent(event RawEvent) error
@@ -192,6 +203,9 @@ type EventGatewayService interface {
     // 事件发布
     PublishEvent(ctx context.Context, event StandardEvent) error
 }
+
+// 注意: K8s事件监听由独立的Event Watcher组件实现
+// 参考: 07_k8s_event_watcher.md 第3节"实现方案"
 
 // 数据模型
 type StandardEvent struct {
@@ -626,6 +640,7 @@ func (m *MCPServer) ExecuteCommand(ctx context.Context, cmd Command) (*Result, e
     }
 
     // 4. 执行命令
+    start := time.Now()
     output, err := m.executeWithTimeout(ctx, client, cmd)
     if err != nil {
         return nil, err
@@ -849,30 +864,75 @@ type AuditService interface {
 
 ### 3.2 消息总线架构
 
-**重要说明**: 在多集群Agent代理模式下，系统使用两个独立的NATS集群：
-1. **内部NATS**: 用于微服务间的事件通信（本节描述）
-2. **Agent NATS**: 用于Central与Agent间的通信（参见 09_agent_proxy_mode.md）
+**重要说明**: 本节描述**微服务内部**的消息总线架构,与Agent代理模式中的跨集群通信是独立的。
+
+#### 单集群In-Cluster模式的消息流
+
+- 只使用**内部NATS** (Internal Message Bus)
+- 所有组件(Event Gateway, Event Watcher, Orchestrator等)都在同一集群内
+- 事件来源:
+  - **外部告警**: Event Gateway接收 → 发布到内部NATS
+  - **K8s事件**: Event Watcher监听 → 发布到内部NATS
 
 ```text
-Event Gateway
-      │
-      ▼ publish(event.received)
-┌──────────────────────────────┐
-│   内部Message Bus (NATS)     │
-│                              │
-│  Topics:                     │
-│  - event.received            │
-│  - task.created              │
-│  - task.completed            │
-│  - step.executed             │
-│  - notification.send         │
-└──────────────────────────────┘
-      │
-      ├─ subscribe(event.received) ──→ Orchestrator
-      ├─ subscribe(task.created) ────→ Reasoning Service
-      ├─ subscribe(step.executed) ───→ Report Service
-      └─ subscribe(notification.send) → Notification Service
+┌────────────────┐         ┌────────────────┐
+│ Event Gateway  │         │ Event Watcher  │
+│ (外部告警源)    │         │ (K8s事件监听)   │
+└───────┬────────┘         └───────┬────────┘
+        │                          │
+        │ publish(event.received)  │ publish(event.received)
+        ▼                          ▼
+┌────────────────────────────────────────────┐
+│      内部Message Bus (NATS)                │
+│                                            │
+│  Topics:                                   │
+│  - event.received   (事件入口)              │
+│  - task.created     (任务创建)              │
+│  - task.completed   (任务完成)              │
+│  - step.executed    (步骤执行)              │
+│  - notification.send (通知发送)            │
+└──────────────┬─────────────────────────────┘
+               │
+               ├─ subscribe(event.received) ──→ Orchestrator
+               ├─ subscribe(task.created) ────→ Reasoning Service
+               ├─ subscribe(step.executed) ───→ Report Service
+               └─ subscribe(notification.send) → Notification Service
 ```
+
+#### 多集群Agent代理模式的消息流
+
+使用**两个独立的NATS集群**:
+
+1. **内部NATS** (Internal Message Bus): 微服务间通信(上图所示)
+2. **Agent NATS** (Agent Message Bus): 跨集群通信(见下文)
+
+**事件流向**:
+
+```text
+各Agent集群                     Central集群
+┌────────────┐
+│   Agent    │                ┌─────────────────┐
+│ (K8s监听)  │  Agent NATS    │ Agent Manager   │
+│            ├───────────────►│ (事件聚合)       │
+└────────────┘  跨集群通信      └────────┬────────┘
+                                        │
+                                        │ publish(event.received)
+                                        ▼
+                            ┌──────────────────────────┐
+                            │  内部Message Bus (NATS)  │
+                            │  (微服务间通信)           │
+                            └──────────────────────────┘
+                                        │
+                                        ├─→ Orchestrator
+                                        ├─→ Reasoning Service
+                                        └─→ ...其他服务
+```
+
+**架构分离说明**:
+
+- **Agent NATS**: 负责Agent→Central的跨集群事件上报(详见 [09_agent_proxy_mode.md](./09_agent_proxy_mode.md))
+- **内部NATS**: 负责Central集群内部微服务间的事件分发(本文档描述)
+- 两个NATS集群物理隔离,职责明确,互不干扰
 
 ### 3.3 API Gateway配置
 
@@ -1079,21 +1139,31 @@ readinessProbe:
 ### 5.2 熔断与限流
 
 #### 重试策略
-系统采用指数退避重试策略，避免级联故障：
+
+系统采用指数退避重试策略,避免级联故障。以下是系统级默认配置:
+
+**系统默认重试参数**:
+
 - **默认重试次数**: 3次
 - **初始重试延迟**: 30秒
-- **退避因子**: 2.0（每次重试延迟翻倍）
+- **退避因子**: 2.0(每次重试延迟翻倍)
 - **最大重试延迟**: 5分钟
 - **可重试错误类型**: 网络超时、服务暂时不可用(503)、限流(429)
 
+**配置层级说明**:
+
+1. **系统默认值**: 下方代码中定义的default tag值
+2. **服务级配置**: 各服务在配置文件中可覆盖默认值(参见[第7.2.6节](#726-配置文件模板)的retry配置块)
+3. **运行时覆盖**: 通过环境变量动态调整(参见 [05_operations.md](./05_operations.md) 运维配置)
+
 ```go
-// 重试配置
+// 重试配置(系统默认值)
 type RetryConfig struct {
     MaxAttempts     int           `yaml:"max_attempts" default:"3"`
     InitialDelay    time.Duration `yaml:"initial_delay" default:"30s"`
     BackoffFactor   float64       `yaml:"backoff_factor" default:"2.0"`
     MaxDelay        time.Duration `yaml:"max_delay" default:"5m"`
-    RetryableErrors []int         `yaml:"retryable_errors"` // HTTP状态码
+    RetryableErrors []int         `yaml:"retryable_errors"` // HTTP状态码: 503, 429, 504
 }
 
 // 熔断器配置
@@ -1173,6 +1243,12 @@ spec:
 ### 5.5 边界条件处理
 
 #### 5.5.1 队列溢出处理
+
+**场景说明**: 当任务队列接近满载时的降级保护策略
+
+> **注意**: 队列溢出保护与重试策略是两个独立的机制:
+> - **队列溢出保护**(本节): 处理队列满载时的准入控制和降级
+> - **重试策略**([第5.2节](#52-熔断与限流)): 处理服务调用失败时的重试逻辑
 
 ```go
 // 事件队列溢出保护
@@ -1520,18 +1596,22 @@ Namespace: aetherius-system
 
 ### 6.3 资源配置建议
 
-| 服务 | 副本数 | CPU Request | Memory Request | CPU Limit | Memory Limit |
-|------|--------|-------------|----------------|-----------|--------------|
-| **event-gateway** | 3 | 250m | 256Mi | 500m | 512Mi |
-| **api-service** | 2 | 250m | 256Mi | 500m | 512Mi |
-| **orchestrator** | 3 | 250m | 512Mi | 500m | 1Gi |
-| **reasoning-service** | 2 | 500m | 1Gi | 1000m | 2Gi |
-| **execution-service** | 2 | 250m | 512Mi | 500m | 1Gi |
-| **knowledge-service** | 2 | 500m | 1Gi | 1000m | 2Gi |
-| **credential-service** | 2 | 100m | 256Mi | 250m | 512Mi |
-| **report-service** | 2 | 250m | 512Mi | 500m | 1Gi |
-| **notification-service** | 2 | 100m | 256Mi | 250m | 512Mi |
-| **audit-service** | 2 | 250m | 512Mi | 500m | 1Gi |
+> **配置标准**: 资源配置建议与 [04_deployment.md 第4节](./04_deployment.md#4-核心服务部署) 保持一致
+
+| 服务 | 副本数 | CPU Request | Memory Request | CPU Limit | Memory Limit | 说明 |
+|------|--------|-------------|----------------|-----------|--------------|------|
+| **event-gateway** | 3 | 250m | 256Mi | 500m | 512Mi | 外部事件接收(Webhook) |
+| **orchestrator** | 3 | 500m | 512Mi | 1000m | 1Gi | 任务调度核心 |
+| **reasoning-service** | 2 | 1000m | 2Gi | 2000m | 4Gi | AI推理服务(LLM调用) |
+| **execution-service** | 2 | 500m | 512Mi | 1000m | 1Gi | 命令执行服务 |
+| **knowledge-service** | 2 | 250m | 512Mi | 500m | 1Gi | 知识库API服务 |
+| **report-service** | 2 | 250m | 256Mi | 500m | 512Mi | 报告生成服务 |
+| **notification-service** | 2 | 250m | 256Mi | 500m | 512Mi | 通知服务 |
+
+**说明**:
+- 副本数为生产环境推荐配置，开发环境可适当降低
+- Reasoning Service需要更多资源用于LLM推理计算
+- 资源限制(Limit)设置为请求(Request)的2倍，留有弹性空间
 
 ### 6.4 自动扩缩容
 
@@ -1626,11 +1706,18 @@ service-template/
 
 #### 7.2.1 配置参数命名规范
 
+> **重要说明**: Go结构体字段使用大写驼峰(PascalCase)以符合Go导出规则,
+> 但YAML配置文件中必须使用snake_case命名,通过struct tag映射
+
+**命名规则**:
+
+1. **YAML配置文件**: 使用snake_case(下划线分隔)
+2. **Go结构体字段**: 使用PascalCase(大写驼峰)
+3. **struct tag映射**: 使用`yaml:"snake_case_name"`建立映射关系
+
 ```yaml
 # 配置参数命名规则
-# 1. 使用snake_case（下划线分隔）
-# 2. 层级结构清晰
-# 3. 参数名称见名知意
+# YAML文件中必须使用snake_case
 
 # 正确示例
 server:
@@ -1643,10 +1730,27 @@ database:
   max_connections: 50
   connection_timeout: 5s
 
-# 错误示例（不要使用）
+# 错误示例(不要使用)
 serverPort: 8080              # 应该使用 server.port
 readTimeout: 30s               # 应该使用 server.read_timeout
 MaxConnections: 50             # 应该使用 database.max_connections
+```
+
+**Go代码映射示例**:
+
+```go
+// Go结构体定义(使用PascalCase字段名)
+type ServerConfig struct {
+    Port            int           `yaml:"port" default:"8080"`
+    ReadTimeout     time.Duration `yaml:"read_timeout" default:"30s"`
+    WriteTimeout    time.Duration `yaml:"write_timeout" default:"30s"`
+    ShutdownTimeout time.Duration `yaml:"shutdown_timeout" default:"10s"`
+}
+
+type DatabaseConfig struct {
+    MaxConnections    int           `yaml:"max_connections" default:"50"`
+    ConnectionTimeout time.Duration `yaml:"connection_timeout" default:"5s"`
+}
 ```
 
 #### 7.2.2 时间参数格式

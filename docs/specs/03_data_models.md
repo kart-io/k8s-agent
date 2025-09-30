@@ -1,7 +1,7 @@
 # Aetherius AI Agent - 核心数据模型
 
 > **文档版本**: v1.6
-> **最后更新**: 2025年9月28日
+> **最后更新**: 2025年9月27日
 > **读者对象**: 开发工程师、数据库管理员
 
 > **⭐ 数据模型技术规范**: 本文档提供 Aetherius 项目**数据模型的详细技术实现**。Go结构体定义、数据库Schema、API接口定义以本文档为准。
@@ -163,17 +163,19 @@ type StateTransition struct {
 }
 
 // 合法的状态转换
+// 注意: 超时时间为系统默认值,可通过配置文件调整
+// 配置参考: 04_deployment.md 第4.1节 ConfigMap配置 (task_queue.task_timeout)
 var ValidTransitions = []StateTransition{
     // 从 Pending 状态
     {From: StatusPending, To: StatusRunning, Condition: "任务被调度器取出"},
     {From: StatusPending, To: StatusCancelled, Condition: "用户取消或系统关闭"},
-    {From: StatusPending, To: StatusTimeout, Condition: "等待超时(>30分钟)"},
+    {From: StatusPending, To: StatusTimeout, Condition: "等待超时(默认30分钟,可通过task_queue.task_timeout配置)"},
 
     // 从 Running 状态
     {From: StatusRunning, To: StatusCompleted, Condition: "诊断成功完成"},
     {From: StatusRunning, To: StatusFailed, Condition: "诊断失败或错误"},
     {From: StatusRunning, To: StatusCancelled, Condition: "用户手动终止"},
-    {From: StatusRunning, To: StatusTimeout, Condition: "执行超时(>10分钟)"},
+    {From: StatusRunning, To: StatusTimeout, Condition: "执行超时(默认10分钟,可通过task_queue.task_timeout配置)"},
 
     // 终态不允许转换
     // StatusCompleted, StatusFailed, StatusCancelled, StatusTimeout 为终态
@@ -745,4 +747,4 @@ type Subscription {
 ---
 
 **文档维护**: Aetherius开发团队
-**最后更新**: 2025年9月28日
+**最后更新**: 2025年9月27日

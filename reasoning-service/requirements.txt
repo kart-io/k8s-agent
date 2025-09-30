@@ -1,0 +1,43 @@
+# Aetherius Reasoning Service Dependencies
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+
+# AI/ML Libraries
+torch==2.1.2
+transformers==4.37.0
+sentence-transformers==2.3.1
+scikit-learn==1.4.0
+numpy==1.26.3
+pandas==2.1.4
+
+# Graph Database
+neo4j==5.16.0
+py2neo==2021.2.3
+
+# Time Series
+statsmodels==0.14.1
+
+# NLP
+nltk==3.8.1
+spacy==3.7.2
+
+# Data Processing
+jsonschema==4.20.0
+python-dateutil==2.8.2
+
+# Utilities
+pyyaml==6.0.1
+python-dotenv==1.0.0
+loguru==0.7.2
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+
+# Optional: GPU support
+# torch==2.1.2+cu121  # CUDA 12.1
+# -f https://download.pytorch.org/whl/torch_stable.html

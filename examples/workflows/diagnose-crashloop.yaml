@@ -1,0 +1,286 @@
+# 诊断 CrashLoopBackOff 工作流示例
+# 此工作流自动诊断导致 Pod 崩溃循环的问题
+
+id: "diagnose_crashloop"
+name: "Diagnose CrashLoopBackOff"
+description: "Automatically diagnose and provide recommendations for pods in CrashLoopBackOff"
+
+trigger_type: "event"
+trigger_config:
+  event_reason: "CrashLoopBackOff"
+  severity: "high"
+
+status: "active"
+priority: 9
+timeout: "10m"
+
+steps:
+  # 步骤 1: 收集最近日志
+  - id: "collect_logs"
+    type: "command"
+    name: "Collect recent logs"
+    config:
+      tool: "kubectl"
+      action: "logs"
+      args:
+        - "--tail=200"
+        - "--previous"
+      namespace: "{{.event.namespace}}"
+      target: "{{.event.pod_name}}"
+    timeout: "30s"
+    on_success: ["check_pod_status"]
+
+  # 步骤 2: 检查 Pod 状态
+  - id: "check_pod_status"
+    type: "command"
+    name: "Check pod status details"
+    config:
+      tool: "kubectl"
+      action: "describe"
+      target: "pod/{{.event.pod_name}}"
+      namespace: "{{.event.namespace}}"
+    timeout: "30s"
+    on_success: ["check_events"]
+
+  # 步骤 3: 获取相关事件
+  - id: "check_events"
+    type: "command"
+    name: "Get related events"
+    config:
+      tool: "kubectl"
+      action: "get"
+      target: "events"
+      namespace: "{{.event.namespace}}"
+      selector: "involvedObject.name={{.event.pod_name}}"
+      sort_by: ".lastTimestamp"
+    timeout: "30s"
+    on_success: ["check_configmap"]
+
+  # 步骤 4: 检查 ConfigMap
+  - id: "check_configmap"
+    type: "command"
+    name: "Check ConfigMap"
+    config:
+      tool: "kubectl"
+      action: "get"
+      target: "configmap"
+      namespace: "{{.event.namespace}}"
+    timeout: "30s"
+    continue_on_error: true
+    on_success: ["check_secrets"]
+
+  # 步骤 5: 检查 Secrets (不输出内容)
+  - id: "check_secrets"
+    type: "command"
+    name: "Check Secrets existence"
+    config:
+      tool: "kubectl"
+      action: "get"
+      target: "secrets"
+      namespace: "{{.event.namespace}}"
+    timeout: "30s"
+    continue_on_error: true
+    on_success: ["ai_analysis"]
+
+  # 步骤 6: AI 分析
+  - id: "ai_analysis"
+    type: "ai_analysis"
+    name: "Analyze crash cause"
+    config:
+      analysis_type: "root_cause"
+      context:
+        event: "{{.trigger_event}}"
+        logs: "{{.steps.collect_logs.output}}"
+        pod_status: "{{.steps.check_pod_status.output}}"
+        events: "{{.steps.check_events.output}}"
+      options:
+        min_confidence: 0.6
+    timeout: "60s"
+    on_success: ["categorize_issue"]
+
+  # 步骤 7: 问题分类
+  - id: "categorize_issue"
+    type: "decision"
+    name: "Categorize the issue"
+    config:
+      conditions:
+        - condition: |
+            {{contains .steps.collect_logs.output "connection refused"}} ||
+            {{contains .steps.collect_logs.output "dial tcp"}}
+          then: "network_issue"
+
+        - condition: |
+            {{contains .steps.collect_logs.output "config"}} ||
+            {{contains .steps.collect_logs.output "missing"}} ||
+            {{contains .steps.ai_analysis.result.root_cause.type "ConfigError"}}
+          then: "config_issue"
+
+        - condition: |
+            {{contains .steps.collect_logs.output "permission denied"}} ||
+            {{contains .steps.collect_logs.output "forbidden"}}
+          then: "permission_issue"
+
+        - condition: |
+            {{contains .steps.collect_logs.output "panic"}} ||
+            {{contains .steps.collect_logs.output "fatal"}}
+          then: "application_error"
+
+        - condition: "true"
+          then: "generic_issue"
+    on_success: ["provide_recommendations"]
+
+  # 步骤 8: 网络问题处理
+  - id: "diagnose_network"
+    type: "command"
+    name: "Diagnose network connectivity"
+    condition: |
+      {{.steps.categorize_issue.chosen}} == "network_issue"
+    config:
+      tool: "kubectl"
+      action: "exec"
+      target: "{{.event.pod_name}}"
+      namespace: "{{.event.namespace}}"
+      command: ["sh", "-c", "nc -zv service-name 80"]
+    timeout: "30s"
+    continue_on_error: true
+    on_success: ["check_service"]
+
+  # 步骤 9: 检查服务配置
+  - id: "check_service"
+    type: "command"
+    name: "Check service configuration"
+    condition: |
+      {{.steps.categorize_issue.chosen}} == "network_issue"
+    config:
+      tool: "kubectl"
+      action: "get"
+      target: "service"
+      namespace: "{{.event.namespace}}"
+    timeout: "30s"
+    on_success: ["provide_recommendations"]
+
+  # 步骤 10: 配置问题检查
+  - id: "check_config_issues"
+    type: "command"
+    name: "Analyze configuration"
+    condition: |
+      {{.steps.categorize_issue.chosen}} == "config_issue"
+    config:
+      tool: "custom"
+      script: |
+        # 分析配置文件是否存在、格式是否正确
+        kubectl get configmap -n {{.event.namespace}} -o yaml | grep -E "error|missing"
+    timeout: "30s"
+    continue_on_error: true
+    on_success: ["provide_recommendations"]
+
+  # 步骤 11: 提供修复建议
+  - id: "provide_recommendations"
+    type: "notification"
+    name: "Provide remediation recommendations"
+    config:
+      channel: "slack"
+      severity: "warning"
+      message: |
+        🔍 CrashLoopBackOff Diagnosis Complete
+
+        **Pod**: {{.event.pod_name}}
+        **Namespace**: {{.event.namespace}}
+        **Cluster**: {{.event.cluster_id}}
+
+        **Root Cause**: {{.steps.ai_analysis.result.root_cause.description}}
+        **Confidence**: {{.steps.ai_analysis.result.confidence}}
+        **Category**: {{.steps.categorize_issue.chosen}}
+
+        **Evidence**:
+        {{range .steps.ai_analysis.result.evidence}}
+        - {{.}}
+        {{end}}
+
+        **Recommendations**:
+        {{range .steps.ai_analysis.result.recommendations}}
+        {{.index}}. **{{.action}}** (Confidence: {{.confidence}})
+           {{.description}}
+
+           Risk Level: {{.risk}}
+           Estimated Time: {{.estimated_duration}}
+
+           Steps:
+           {{range .steps}}
+           - {{.}}
+           {{end}}
+
+        {{end}}
+
+        **Similar Cases**: {{len .steps.ai_analysis.result.similar_cases}} found
+
+        **Next Actions**:
+        - Review the recommendations above
+        - Click "Execute Fix" to apply the first recommendation
+        - Click "Manual Fix" if you prefer to fix manually
+      actions:
+        - label: "Execute Fix"
+          action: "execute_top_recommendation"
+          style: "primary"
+        - label: "Manual Fix"
+          action: "mark_manual"
+          style: "default"
+        - label: "Ignore"
+          action: "mark_ignored"
+          style: "danger"
+    on_success: ["wait_for_action"]
+
+  # 步骤 12: 等待用户选择
+  - id: "wait_for_action"
+    type: "wait"
+    name: "Wait for user action"
+    config:
+      timeout: "30m"
+      cancel_on_timeout: false
+    on_success: ["execute_chosen_action"]
+    on_timeout: ["escalate"]
+
+  # 步骤 13: 执行选定的修复
+  - id: "execute_chosen_action"
+    type: "decision"
+    name: "Execute chosen action"
+    config:
+      conditions:
+        - condition: |
+            {{.user_action}} == "execute_top_recommendation"
+          then: "apply_fix"
+        - condition: |
+            {{.user_action}} == "manual_fix"
+          then: "record_manual"
+        - condition: |
+            {{.user_action}} == "mark_ignored"
+          then: "record_ignored"
+
+  # 步骤 14: 记录案例
+  - id: "record_case"
+    type: "ai_feedback"
+    name: "Record to knowledge base"
+    config:
+      case_study:
+        title: "CrashLoopBackOff - {{.event.pod_name}}"
+        description: "{{.steps.categorize_issue.chosen}} causing crash loop"
+        symptoms:
+          - "CrashLoopBackOff"
+          - "{{.steps.categorize_issue.chosen}}"
+        root_cause: "{{.steps.ai_analysis.result.root_cause.type}}"
+        solution: "{{.user_action}}"
+        outcome: "{{.resolution_status}}"
+
+# 重试配置
+retry_policy:
+  max_retries: 2
+  retry_on: ["timeout"]
+
+# 元数据
+metadata:
+  author: "Aetherius Team"
+  version: "1.0.0"
+  tags:
+    - "crashloop"
+    - "diagnosis"
+    - "troubleshooting"

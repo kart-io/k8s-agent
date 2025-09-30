@@ -1,0 +1,25 @@
+# Aetherius Collect Agent - Development Configuration
+
+# Cluster identification (leave empty for auto-detection)
+cluster_id: ""
+
+# NATS local endpoint
+central_endpoint: "nats://localhost:4222"
+
+# Connection settings (faster for development)
+reconnect_delay: 2s
+max_retries: 5
+
+# Heartbeat and metrics intervals (faster for testing)
+heartbeat_interval: 15s
+metrics_interval: 30s
+
+# Buffer settings (smaller for development)
+buffer_size: 100
+
+# Feature flags
+enable_metrics: true
+enable_events: true
+
+# Logging (debug level for development)
+log_level: "debug"

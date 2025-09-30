@@ -1,0 +1,20 @@
+# Aetherius Collect Agent - High Load Configuration
+# For large-scale clusters (1000+ nodes)
+
+cluster_id: "prod-large-cluster"
+central_endpoint: "nats://nats.production.company.com:4222"
+
+# Increased buffer for high event volume
+buffer_size: 5000
+
+# Reduced frequency to lower CPU usage
+heartbeat_interval: 60s
+metrics_interval: 120s
+
+# More retries for stability
+reconnect_delay: 10s
+max_retries: 30
+
+enable_metrics: true
+enable_events: true
+log_level: "warn"  # Reduce log volume

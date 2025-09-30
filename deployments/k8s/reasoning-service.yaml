@@ -1,0 +1,195 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reasoning-config
+  namespace: aetherius
+data:
+  config.yaml: |
+    server:
+      host: "0.0.0.0"
+      port: 8082
+      log_level: "INFO"
+
+    neo4j:
+      uri: "bolt://aetherius-neo4j:7687"
+      user: "neo4j"
+      max_connections: 50
+
+    models:
+      path: "/app/models"
+      enable_gpu: false
+      cache_size: 1000
+
+    knowledge_base:
+      path: "/app/data/knowledge"
+      auto_backup: true
+      backup_interval: "24h"
+
+    analysis:
+      min_confidence: 0.7
+      max_recommendations: 5
+      include_similar_cases: true
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: reasoning-secrets
+  namespace: aetherius
+type: Opaque
+stringData:
+  neo4j-password: "neo4j_pass"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reasoning-service
+  namespace: aetherius
+  labels:
+    app: reasoning-service
+    component: ai
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reasoning-service
+  template:
+    metadata:
+      labels:
+        app: reasoning-service
+        component: ai
+    spec:
+      containers:
+      - name: reasoning
+        image: aetherius/reasoning-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8082
+          protocol: TCP
+        env:
+        - name: NEO4J_URI
+          value: "bolt://aetherius-neo4j:7687"
+        - name: NEO4J_USER
+          value: "neo4j"
+        - name: NEO4J_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: reasoning-secrets
+              key: neo4j-password
+        - name: SERVER_HOST
+          value: "0.0.0.0"
+        - name: SERVER_PORT
+          value: "8082"
+        - name: LOG_LEVEL
+          value: "INFO"
+        volumeMounts:
+        - name: config
+          mountPath: /app/configs
+          readOnly: true
+        - name: models
+          mountPath: /app/models
+        - name: knowledge
+          mountPath: /app/data/knowledge
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 4Gi
+          limits:
+            cpu: 8000m
+            memory: 16Gi
+      volumes:
+      - name: config
+        configMap:
+          name: reasoning-config
+      - name: models
+        emptyDir: {}
+      - name: knowledge
+        persistentVolumeClaim:
+          claimName: reasoning-knowledge-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reasoning-service
+  namespace: aetherius
+  labels:
+    app: reasoning-service
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8082
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: reasoning-service
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: reasoning-knowledge-pvc
+  namespace: aetherius
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: reasoning-service
+  namespace: aetherius
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: reasoning-service
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: reasoning-service
+  namespace: aetherius
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: reasoning-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

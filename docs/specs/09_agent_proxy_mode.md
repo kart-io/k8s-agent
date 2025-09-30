@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025年9月28日
+- **最后更新**: 2025年9月27日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: Agent 代理架构设计
@@ -232,21 +232,36 @@ Agent                              Central
   │                                   │
 ```
 
-#### 命令下发模式 (Central → Agent)
+#### 命令下发模式 (Central → Agent 通过订阅实现)
 
-注意: 虽然Agent通过NATS订阅命令主题,但从整体视角看,这是Central主动下发命令给Agent。
+**通信机制说明**: Agent通过NATS订阅`agent.command.<cluster_id>`主题实现命令接收。虽然底层是订阅机制（类似Pull），但从业务视角看，这是Central主动下发命令到指定Agent的Push模式。
+
+**工作流程**:
 
 ```
 Central                            Agent
   │                                   │
-  │  1. Send Command (Publish)       │
-  ├──────────────────────────────────►│
-  │                                   │ Execute
+  │                              (持续订阅)
+  │                          agent.command.<id>
   │                                   │
-  │  2. Command Result (Publish)     │
+  │  1. Publish Command              │
+  │     to agent.command.<id>        │
+  ├──────────────────────────────────►│
+  │                                   │
+  │                              (收到消息)
+  │                                   │ Execute Command
+  │                                   │
+  │  2. Publish Result               │
+  │     to agent.result.<id>         │
   │◄──────────────────────────────────┤
   │                                   │
 ```
+
+**技术特点**:
+- Agent通过NATS订阅建立长连接，无需轮询
+- Central通过Publish将命令发送到指定主题
+- NATS消息总线保证消息可靠传递
+- 实现了类似RPC的同步调用效果
 
 ## 3. 核心实现
 
@@ -269,6 +284,9 @@ import (
 
     "github.com/aetherius/k8s-agent/pkg/version"
 )
+
+// 全局日志实例(实际使用时应通过依赖注入)
+var log *zap.Logger
 
 type AgentConfig struct {
     ClusterID        string        `yaml:"cluster_id"`
@@ -669,6 +687,9 @@ import (
     "github.com/nats-io/nats.go"
     "go.uber.org/zap"
 )
+
+// 全局日志实例(实际使用时应通过依赖注入)
+var log *zap.Logger
 
 type AgentManagerConfig struct {
     NATSEndpoint     string        `yaml:"nats_endpoint"`
@@ -1332,13 +1353,32 @@ spec:
     targetPort: 9090
 ```
 
-### 5.3 NATS 部署
+### 5.3 NATS 部署 (Agent通信专用)
 
-**重要说明**: 此NATS集群专用于Agent与Central之间的通信,与微服务内部的消息总线是独立的。
+#### 双NATS架构说明
 
-**网络要求**:
-- NATS服务需要对外暴露(LoadBalancer或NodePort)
-- 所有Agent集群需要能访问Central的NATS服务
+**重要**: Aetherius系统采用**双NATS集群架构**，分别服务不同的通信场景：
+
+| NATS集群 | 部署位置 | 网络暴露 | 服务对象 | 主要用途 | 参考文档 |
+|---------|---------|---------|---------|---------|---------|
+| **微服务内部NATS** | Central集群内 | ClusterIP<br>(仅内网) | 中央控制平面各服务 | • Orchestrator ↔ Reasoning<br>• Orchestrator ↔ Execution<br>• 服务间消息传递 | [06_microservices.md](./06_microservices.md) |
+| **Agent通信NATS**<br>(本节部署) | Central集群<br>或独立部署 | LoadBalancer<br>(公网暴露) | 边缘Agent集群 | • Agent注册管理<br>• 事件数据上报<br>• 命令下发接收 | 本文档 |
+
+#### 架构设计原因
+
+1. **安全隔离**: 微服务内部通信不对外暴露，避免安全风险
+2. **性能优化**: 内部NATS优化低延迟，Agent NATS优化广域网通信
+3. **独立扩展**: 两个集群可根据各自负载独立扩展
+4. **故障隔离**: Agent通信故障不影响中央控制平面内部服务
+
+#### Agent通信NATS部署要求
+
+**网络配置**:
+- 必须对外暴露（LoadBalancer或NodePort）
+- 所有边缘Agent集群需能访问此NATS服务
+- 建议配置TLS加密和身份认证
+
+**部署配置**:
 
 ```yaml
 apiVersion: v1

@@ -1,0 +1,366 @@
+# Reasoning Service 示例配置
+# 用于 AI 驱动的根因分析和故障预测
+
+# 服务配置
+server:
+  # HTTP 服务器主机
+  host: 0.0.0.0
+  # HTTP 服务器端口
+  port: 8082
+  # 工作进程数 (0 表示自动检测)
+  workers: 0
+  # 是否启用访问日志
+  access_log: true
+  # 是否在响应中包含服务器头
+  server_header: false
+  # 请求超时(秒)
+  timeout_keep_alive: 30
+
+# 根因分析器配置
+analyzer:
+  # 分析超时(秒)
+  timeout: 60
+  # 最小置信度阈值
+  min_confidence: 0.7
+  # 是否启用多模态分析
+  multimodal_enabled: true
+  # 日志分析配置
+  log_analysis:
+    # 是否启用日志分析
+    enabled: true
+    # 最大日志行数
+    max_lines: 10000
+    # 日志分析超时(秒)
+    timeout: 30
+    # 关键词权重
+    keyword_weights:
+      error: 3.0
+      fatal: 3.0
+      panic: 3.0
+      fail: 2.5
+      timeout: 2.0
+      refused: 2.0
+      killed: 2.5
+      crash: 2.5
+    # 模式匹配置信度
+    pattern_confidence: 0.9
+  # 事件分析配置
+  event_analysis:
+    # 是否启用事件分析
+    enabled: true
+    # 事件关联窗口(秒)
+    correlation_window: 300
+    # 事件聚合窗口(秒)
+    aggregation_window: 60
+  # 指标分析配置
+  metrics_analysis:
+    # 是否启用指标分析
+    enabled: true
+    # 异常检测阈值
+    anomaly_threshold: 0.8
+    # 时间窗口(秒)
+    time_window: 3600
+
+# 推荐引擎配置
+recommender:
+  # 推荐超时(秒)
+  timeout: 30
+  # 最小推荐置信度
+  min_confidence: 0.6
+  # 最大推荐数量
+  max_recommendations: 5
+  # 是否启用风险评估
+  risk_assessment_enabled: true
+  # 风险权重
+  risk_weights:
+    low: 1.0
+    medium: 0.8
+    high: 0.5
+    critical: 0.3
+  # 是否启用步骤生成
+  generate_steps: true
+  # 是否生成回滚步骤
+  generate_rollback_steps: true
+  # 推荐排序策略: confidence, risk, estimated_duration
+  sort_by: confidence
+
+# 知识图谱配置
+knowledge_graph:
+  # 存储后端: neo4j, memory
+  backend: neo4j
+  # Neo4j 配置
+  neo4j:
+    # Neo4j URI
+    uri: bolt://localhost:7687
+    # 用户名
+    username: neo4j
+    # 密码
+    password: neo4j_pass
+    # 连接超时(秒)
+    timeout: 30
+    # 最大重试次数
+    max_retries: 3
+    # 连接池大小
+    pool_size: 50
+    # 是否加密连接
+    encrypted: false
+  # 相似度配置
+  similarity:
+    # 相似度计算方法: cosine, jaccard
+    method: cosine
+    # 最小相似度阈值
+    threshold: 0.6
+    # 最大返回案例数
+    max_results: 5
+  # 案例管理配置
+  case_management:
+    # 案例保留时间(天)
+    retention_days: 90
+    # 成功案例保留时间(天)
+    successful_retention_days: 180
+    # 是否自动清理
+    auto_cleanup: true
+    # 清理间隔(小时)
+    cleanup_interval: 24
+
+# 故障预测配置
+predictor:
+  # 预测超时(秒)
+  timeout: 30
+  # 最小预测置信度
+  min_confidence: 0.7
+  # 预测时间窗口(秒)
+  time_window: 86400  # 24 hours
+  # 预测方法
+  methods:
+    # 阈值预测
+    threshold:
+      enabled: true
+      # 阈值配置
+      thresholds:
+        cpu_usage: 90
+        memory_usage: 95
+        disk_usage: 90
+        error_rate: 10
+    # 趋势预测
+    trend:
+      enabled: true
+      # 最小历史数据点数
+      min_data_points: 10
+      # 预测窗口(秒)
+      forecast_window: 3600
+    # 异常检测
+    anomaly:
+      enabled: true
+      # 异常检测算法: isolation_forest, one_class_svm
+      algorithm: isolation_forest
+      # 污染率
+      contamination: 0.1
+      # 训练数据窗口(秒)
+      training_window: 604800  # 7 days
+
+# 学习系统配置
+learning:
+  # 是否启用学习系统
+  enabled: true
+  # 学习模式: online, offline
+  mode: online
+  # 反馈处理配置
+  feedback:
+    # 反馈缓冲区大小
+    buffer_size: 1000
+    # 批处理大小
+    batch_size: 100
+    # 处理间隔(秒)
+    processing_interval: 300
+  # 模型更新配置
+  model_update:
+    # 是否启用自动模型更新
+    auto_update: true
+    # 更新阈值(准确率下降)
+    accuracy_threshold: 0.05
+    # 更新间隔(小时)
+    update_interval: 24
+    # 最小样本数
+    min_samples: 100
+  # 准确率跟踪配置
+  accuracy:
+    # 是否启用准确率跟踪
+    enabled: true
+    # 计算窗口(天)
+    window_days: 7
+    # 按根因类型分组
+    group_by_type: true
+
+# 数据配置
+data:
+  # 数据保留时间(天)
+  retention_days: 30
+  # 分析结果保留时间(天)
+  result_retention_days: 90
+  # 反馈数据保留时间(天)
+  feedback_retention_days: 180
+  # 是否启用数据压缩
+  compression_enabled: true
+
+# 缓存配置
+cache:
+  # 是否启用缓存
+  enabled: true
+  # 缓存后端: memory, redis
+  backend: redis
+  # Redis 配置
+  redis:
+    # Redis 地址
+    addr: localhost:6379
+    # 密码
+    password: redis_pass
+    # 数据库编号
+    db: 2
+    # 连接池大小
+    pool_size: 10
+  # 缓存配置
+  ttl:
+    # 分析结果缓存过期时间(秒)
+    analysis_result: 300
+    # 相似案例缓存过期时间(秒)
+    similar_cases: 600
+    # 预测结果缓存过期时间(秒)
+    prediction_result: 180
+  # 缓存大小限制
+  max_size: 10000
+
+# 日志配置
+logging:
+  # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  # 日志格式: json, text
+  format: json
+  # 日志输出
+  handlers:
+    # 控制台输出
+    console:
+      enabled: true
+      level: INFO
+    # 文件输出
+    file:
+      enabled: false
+      path: /var/log/reasoning/app.log
+      max_bytes: 104857600  # 100MB
+      backup_count: 10
+      level: INFO
+  # 日志配置
+  loggers:
+    # 应用日志
+    app:
+      level: INFO
+    # 外部库日志
+    uvicorn:
+      level: WARNING
+    sqlalchemy:
+      level: WARNING
+
+# 指标配置
+metrics:
+  # 是否启用 Prometheus 指标
+  enabled: true
+  # 指标路径
+  path: /metrics
+  # 指标前缀
+  prefix: reasoning
+  # 自定义指标
+  custom_metrics:
+    # 是否启用分析指标
+    analysis_metrics: true
+    # 是否启用预测指标
+    prediction_metrics: true
+    # 是否启用学习指标
+    learning_metrics: true
+
+# 健康检查配置
+health:
+  # 健康检查路径
+  path: /health
+  # 就绪检查路径
+  readiness_path: /ready
+  # 存活检查路径
+  liveness_path: /live
+  # 检查项配置
+  checks:
+    # 数据库检查
+    database: true
+    # 缓存检查
+    cache: true
+    # 知识图谱检查
+    knowledge_graph: true
+
+# API 配置
+api:
+  # API 版本
+  version: v1
+  # API 前缀
+  prefix: /api
+  # 是否启用 API 文档
+  docs_enabled: true
+  # API 文档路径
+  docs_url: /docs
+  # ReDoc 路径
+  redoc_url: /redoc
+  # OpenAPI URL
+  openapi_url: /openapi.json
+  # 是否启用 CORS
+  cors_enabled: true
+  # CORS 配置
+  cors:
+    # 允许的来源
+    allow_origins:
+      - "*"
+    # 允许的方法
+    allow_methods:
+      - "*"
+    # 允许的头部
+    allow_headers:
+      - "*"
+    # 是否允许凭证
+    allow_credentials: true
+
+# 限流配置
+rate_limit:
+  # 是否启用限流
+  enabled: true
+  # 全局限流 (请求/秒)
+  global_rps: 100
+  # 每个 IP 限流 (请求/秒)
+  per_ip_rps: 10
+  # 分析端点限流 (请求/秒)
+  analysis_rps: 50
+
+# 安全配置
+security:
+  # 是否启用认证
+  auth_enabled: false
+  # API 密钥
+  api_keys: []
+  # 是否启用 TLS
+  tls_enabled: false
+  # TLS 配置
+  tls:
+    cert_file: /etc/aetherius/certs/server.crt
+    key_file: /etc/aetherius/certs/server.key
+
+# 特性开关
+features:
+  # 是否启用故障预测
+  failure_prediction: true
+  # 是否启用持续学习
+  continuous_learning: true
+  # 是否启用实验性功能
+  experimental: false
+  # 实验性功能配置
+  experimental_features:
+    # 深度学习模型
+    deep_learning: false
+    # 多模型集成
+    ensemble_learning: false
+    # 自动特征工程
+    auto_feature_engineering: false

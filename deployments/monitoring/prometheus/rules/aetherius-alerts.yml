@@ -1,0 +1,301 @@
+# Aetherius 告警规则
+# 监控平台核心服务和业务指标
+
+groups:
+  # 服务可用性告警
+  - name: service_availability
+    interval: 30s
+    rules:
+      # Agent Manager 不可用
+      - alert: AgentManagerDown
+        expr: up{job="agent-manager"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: agent-manager
+        annotations:
+          summary: "Agent Manager 服务不可用"
+          description: "Agent Manager 服务 {{ $labels.pod }} 已停止响应超过 1 分钟"
+
+      # Orchestrator Service 不可用
+      - alert: OrchestratorServiceDown
+        expr: up{job="orchestrator-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: orchestrator-service
+        annotations:
+          summary: "Orchestrator Service 服务不可用"
+          description: "Orchestrator Service {{ $labels.pod }} 已停止响应超过 1 分钟"
+
+      # Reasoning Service 不可用
+      - alert: ReasoningServiceDown
+        expr: up{job="reasoning-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: reasoning-service
+        annotations:
+          summary: "Reasoning Service 服务不可用"
+          description: "Reasoning Service {{ $labels.pod }} 已停止响应超过 1 分钟"
+
+      # Collect Agent 不可用
+      - alert: CollectAgentDown
+        expr: up{job="collect-agent"} == 0
+        for: 5m
+        labels:
+          severity: high
+          service: collect-agent
+        annotations:
+          summary: "Collect Agent 不可用"
+          description: "Collect Agent {{ $labels.pod }} 在节点 {{ $labels.node }} 上已停止响应超过 5 分钟"
+
+  # 性能指标告警
+  - name: performance
+    interval: 30s
+    rules:
+      # API 响应时间过长
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API 响应时间过长"
+          description: "服务 {{ $labels.job }} 的 95 分位响应时间超过 1 秒: {{ $value }}s"
+
+      # 请求错误率过高
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 错误率过高"
+          description: "服务 {{ $labels.job }} 的 5xx 错误率超过 5%: {{ $value | humanizePercentage }}"
+
+      # CPU 使用率过高
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "服务 {{ $labels.job }} Pod {{ $labels.pod }} CPU 使用率超过 80%: {{ $value | humanize }}%"
+
+      # 内存使用率过高
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 / 1024 > 3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "服务 {{ $labels.job }} Pod {{ $labels.pod }} 内存使用超过 3GB: {{ $value | humanize }}GB"
+
+      # Goroutine 数量异常
+      - alert: HighGoroutineCount
+        expr: go_goroutines > 10000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Goroutine 数量异常"
+          description: "服务 {{ $labels.job }} Pod {{ $labels.pod }} Goroutine 数量超过 10000: {{ $value }}"
+
+  # 业务指标告警
+  - name: business_metrics
+    interval: 1m
+    rules:
+      # Agent 注册失败率过高
+      - alert: HighAgentRegistrationFailureRate
+        expr: rate(agent_registration_failures_total[5m]) / rate(agent_registration_attempts_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent 注册失败率过高"
+          description: "Agent 注册失败率超过 10%: {{ $value | humanizePercentage }}"
+
+      # 事件处理延迟过高
+      - alert: HighEventProcessingDelay
+        expr: histogram_quantile(0.95, rate(event_processing_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "事件处理延迟过高"
+          description: "事件处理 95 分位延迟超过 5 秒: {{ $value }}s"
+
+      # 工作流执行失败率过高
+      - alert: HighWorkflowFailureRate
+        expr: rate(workflow_executions_total{status="failed"}[10m]) / rate(workflow_executions_total[10m]) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "工作流执行失败率过高"
+          description: "工作流失败率超过 20%: {{ $value | humanizePercentage }}"
+
+      # 根因分析准确率低
+      - alert: LowRootCauseAccuracy
+        expr: analysis_accuracy_ratio < 0.7
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "根因分析准确率偏低"
+          description: "根因分析准确率低于 70%: {{ $value | humanizePercentage }}"
+
+      # 推荐采纳率低
+      - alert: LowRecommendationAdoptionRate
+        expr: recommendation_adoption_ratio < 0.3
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "推荐采纳率偏低"
+          description: "推荐采纳率低于 30%: {{ $value | humanizePercentage }}"
+
+  # 依赖服务告警
+  - name: dependencies
+    interval: 30s
+    rules:
+      # PostgreSQL 不可用
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL 数据库不可用"
+          description: "PostgreSQL 已停止响应超过 1 分钟"
+
+      # PostgreSQL 连接数过高
+      - alert: PostgreSQLHighConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL 连接数过高"
+          description: "PostgreSQL 连接数超过最大值的 80%: {{ $value | humanizePercentage }}"
+
+      # Redis 不可用
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis 缓存不可用"
+          description: "Redis 已停止响应超过 1 分钟"
+
+      # Redis 内存使用过高
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 内存使用过高"
+          description: "Redis 内存使用超过最大值的 90%: {{ $value | humanizePercentage }}"
+
+      # NATS 不可用
+      - alert: NATSDown
+        expr: up{job="nats"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NATS 消息总线不可用"
+          description: "NATS 已停止响应超过 1 分钟"
+
+      # NATS 消息堆积
+      - alert: NATSMessageBacklog
+        expr: nats_server_slow_consumers > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NATS 消息堆积"
+          description: "NATS 存在慢消费者,消息可能堆积: {{ $value }} 个慢消费者"
+
+      # Neo4j 不可用
+      - alert: Neo4jDown
+        expr: up{job="neo4j"} == 0
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "Neo4j 知识图谱不可用"
+          description: "Neo4j 已停止响应超过 5 分钟"
+
+  # 资源使用告警
+  - name: resource_usage
+    interval: 1m
+    rules:
+      # Pod 重启频繁
+      - alert: PodRestartingFrequently
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0.05
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod 重启频繁"
+          description: "Pod {{ $labels.pod }} 在最近 15 分钟内重启超过 3 次"
+
+      # 节点磁盘空间不足
+      - alert: NodeDiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "节点磁盘空间不足"
+          description: "节点 {{ $labels.node }} 磁盘 {{ $labels.device }} 可用空间低于 15%: {{ $value | humanize }}%"
+
+      # 节点内存不足
+      - alert: NodeMemoryLow
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "节点内存不足"
+          description: "节点 {{ $labels.node }} 可用内存低于 15%: {{ $value | humanize }}%"
+
+  # 数据质量告警
+  - name: data_quality
+    interval: 5m
+    rules:
+      # 事件丢失率过高
+      - alert: HighEventLossRate
+        expr: rate(events_dropped_total[10m]) / rate(events_received_total[10m]) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "事件丢失率过高"
+          description: "事件丢失率超过 1%: {{ $value | humanizePercentage }}"
+
+      # 指标采集失败
+      - alert: MetricsCollectionFailed
+        expr: rate(metrics_collection_errors_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "指标采集失败"
+          description: "指标采集错误率过高: {{ $value }} 次/秒"
+
+      # 知识图谱更新延迟
+      - alert: KnowledgeGraphUpdateDelay
+        expr: time() - knowledge_graph_last_update_timestamp > 3600
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "知识图谱更新延迟"
+          description: "知识图谱已超过 1 小时未更新"

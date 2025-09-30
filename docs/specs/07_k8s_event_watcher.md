@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025年9月28日
+- **最后更新**: 2025年9月27日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: 技术实现指南
@@ -21,10 +21,15 @@
 
 **文档适用范围**: 本文档描述Kubernetes事件监听的技术实现，支持以下部署模式：
 
-- **In-Cluster模式**: 直接集成到Event Gateway服务，获得集群内部署的性能优势
-- **Agent代理模式**: 集成到独立的Agent组件，适用于多集群统一管理场景
-- **Hybrid混合模式**: 同时支持告警和事件触发，实现完整的监控覆盖
+- **In-Cluster模式**: 作为独立的Event Watcher组件部署，直接发布事件到内部NATS
+- **Agent代理模式**: 集成到Agent组件中，通过Agent NATS上报到Central
+- **混合触发模式**: 与外部告警源(Alertmanager)互补，实现完整的监控覆盖
 
+> **重要区分**:
+> - **Event Watcher**: 专门负责K8s事件监听(本文档)
+> - **Event Gateway**: 仅处理外部告警源Webhook(详见 [06_microservices.md#2.1](./06_microservices.md#21-event-gateway-service-事件网关服务))
+> - 两者是独立的事件入口组件，职责互不重叠
+>
 > **架构关联**: 与 [02_architecture.md](./02_architecture.md) 和 [06_microservices.md](./06_microservices.md) 保持一致
 
 ### 1.1 什么是 Kubernetes 事件
@@ -76,7 +81,16 @@ type Event struct {
 
 ### 2.1 整体架构
 
-```
+> **架构关联**: 本文档描述的事件监听器可部署在以下位置:
+>
+> - **In-Cluster模式**: 作为独立的Event Watcher服务部署,直接发布到内部NATS
+> - **Agent模式**: 集成到Agent组件中,通过Agent NATS转发到Central
+> - 详见 [06_microservices.md 第3.2节](./06_microservices.md#32-消息总线架构)
+>   了解消息总线架构差异
+
+**In-Cluster模式架构图**:
+
+```text
 ┌─────────────────────────────────────────────────────────┐
 │              Kubernetes API Server                      │
 │                                                         │
@@ -90,15 +104,8 @@ type Event struct {
                  ▼
 ┌─────────────────────────────────────────────────────────┐
 │         Event Watcher Service (Aetherius)               │
+│         (部署在集群内部,直接访问K8s API)                  │
 │                                                         │
-│  ┌───────────────────────────────────────────────┐     │
-│  │  Multi-Cluster Event Watcher Manager          │     │
-│  │  ┌─────────────┐  ┌─────────────┐            │     │
-│  │  │ Cluster A   │  │ Cluster B   │   ...      │     │
-│  │  │ Watcher     │  │ Watcher     │            │     │
-│  │  └─────────────┘  └─────────────┘            │     │
-│  └───────────────────────────────────────────────┘     │
-│                       │                                │
 │  ┌────────────────────▼──────────────────────────┐     │
 │  │       Event Filter & Processor                │     │
 │  │  - 事件过滤 (Severity, Type)                   │     │
@@ -110,7 +117,7 @@ type Event struct {
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Message Bus (NATS/Kafka)                   │
+│         Internal Message Bus (NATS)                     │
 │                 event.k8s.received                      │
 └────────────────┬────────────────────────────────────────┘
                  │
@@ -118,6 +125,48 @@ type Event struct {
 ┌─────────────────────────────────────────────────────────┐
 │              Orchestrator Service                       │
 │           (创建诊断任务并处理)                            │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Agent代理模式架构图**:
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│              Kubernetes API Server (Agent集群)          │
+│                                                         │
+│  /api/v1/events                                         │
+└────────────────┬────────────────────────────────────────┘
+                 │ Watch API
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│         Agent组件(包含Event Watcher功能)                 │
+│                                                         │
+│  ┌────────────────────▼──────────────────────────┐     │
+│  │       Event Filter & Processor                │     │
+│  │  - 事件过滤、去重、标准化                        │     │
+│  └────────────────────┬──────────────────────────┘     │
+└─────────────────────────┼──────────────────────────────┘
+                         │
+                         ▼ 跨集群通信
+┌─────────────────────────────────────────────────────────┐
+│              Agent NATS (跨集群消息总线)                 │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│         Agent Manager (Central集群)                     │
+│           接收并转发到内部NATS                            │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│         Internal Message Bus (Central集群)              │
+│                 event.k8s.received                      │
+└────────────────┬────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────┐
+│              Orchestrator Service                       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -139,6 +188,12 @@ type Event struct {
 
 ```go
 // 事件监听服务
+// 注意: 需要导入以下包:
+//   "sync/atomic"
+//   "time"
+//   corev1 "k8s.io/api/core/v1"
+//   "k8s.io/client-go/kubernetes"
+//   "k8s.io/client-go/informers"
 type K8sEventWatcher struct {
     // 配置
     config WatcherConfig
@@ -365,35 +420,41 @@ func (w *K8sEventWatcher) handleEventDelete(event *corev1.Event) {
 }
 
 // 过滤检查
+// 过滤器链执行逻辑说明:
+// 1. 逻辑关系: 所有过滤器采用AND逻辑,必须全部通过才处理事件
+// 2. 短路优化: 任一过滤器返回false即停止后续检查,提高性能
+// 3. 执行顺序: 按过滤器添加顺序依次执行
+// 4. 性能优化: 建议将计算成本低的过滤器(如时间过滤)放在前面,
+//             将复杂逻辑(如业务规则匹配)放在后面
 func (w *K8sEventWatcher) shouldProcess(event *corev1.Event) bool {
     for _, filter := range w.filters {
         if !filter.ShouldProcess(event) {
-            return false
+            return false  // 短路返回: 任一过滤器拒绝,即不处理此事件
         }
     }
-    return true
+    return true  // 所有过滤器都通过,允许处理此事件
 }
 
 // 添加默认过滤器
 func (w *K8sEventWatcher) addDefaultFilters() {
-    // 1. 事件类型过滤器 (只处理 Warning)
+    // 时间过滤器 (最先执行,快速排除过期事件)
+    w.filters = append(w.filters, &TimeFilter{
+        MaxAge: 5 * time.Minute,
+    })
+
+    // 事件类型过滤器 (只处理 Warning)
     if len(w.config.EventTypes) > 0 {
         w.filters = append(w.filters, &EventTypeFilter{
             AllowedTypes: w.config.EventTypes,
         })
     }
 
-    // 2. Reason 过滤器
+    // Reason 过滤器 (最后执行,业务逻辑较复杂)
     if len(w.config.ReasonFilters) > 0 {
         w.filters = append(w.filters, &ReasonFilter{
             AllowedReasons: w.config.ReasonFilters,
         })
     }
-
-    // 3. 时间过滤器 (忽略太旧的事件)
-    w.filters = append(w.filters, &TimeFilter{
-        MaxAge: 5 * time.Minute,
-    })
 }
 ```
 

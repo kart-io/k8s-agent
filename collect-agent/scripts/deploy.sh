@@ -1,109 +1,33 @@
 #!/bin/bash
-
 # Aetherius Collect Agent Deployment Script
-# Usage: ./deploy.sh [cluster-id] [central-endpoint]
-
 set -e
 
-CLUSTER_ID=${1:-""}
-CENTRAL_ENDPOINT=${2:-"nats://central.aetherius.io:4222"}
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MANIFESTS_DIR="$SCRIPT_DIR/../manifests"
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-echo "=== Deploying Aetherius Collect Agent ==="
-echo "Cluster ID: ${CLUSTER_ID:-"auto-detect"}"
-echo "Central Endpoint: $CENTRAL_ENDPOINT"
+# Configuration
+NAMESPACE="aetherius-agent"
+CLUSTER_ID="${CLUSTER_ID:-}"
+CENTRAL_ENDPOINT="${CENTRAL_ENDPOINT:-nats://central.aetherius.io:4222}"
+IMAGE_TAG="${IMAGE_TAG:-v1.0.0}"
 
-# Check if kubectl is available
-if ! command -v kubectl &> /dev/null; then
-    echo "Error: kubectl is not installed or not in PATH"
-    exit 1
-fi
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# Check if we can access the cluster
-if ! kubectl cluster-info &> /dev/null; then
-    echo "Error: Cannot access Kubernetes cluster. Please check your kubeconfig."
-    exit 1
-fi
+log_info "Deploying Aetherius Collect Agent..."
+log_info "Cluster ID: ${CLUSTER_ID:-auto-detect}"
+log_info "Central Endpoint: $CENTRAL_ENDPOINT"
+log_info "Image Tag: $IMAGE_TAG"
 
-echo ""
-echo "Current cluster context:"
-kubectl config current-context
+# Apply manifests
+kubectl apply -f manifests/
 
-read -p "Continue with deployment? (y/N) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Deployment cancelled."
-    exit 0
-fi
+log_info "Waiting for deployment..."
+kubectl -n $NAMESPACE rollout status deployment/aetherius-agent --timeout=300s
 
-# Deploy namespace and RBAC first
-echo ""
-echo "=== Creating namespace and RBAC ==="
-kubectl apply -f "$MANIFESTS_DIR/01-namespace.yaml"
-kubectl apply -f "$MANIFESTS_DIR/02-rbac.yaml"
-
-# Create or update ConfigMap with custom values
-echo ""
-echo "=== Creating ConfigMap ==="
-TEMP_CONFIGMAP="/tmp/agent-configmap.yaml"
-cp "$MANIFESTS_DIR/03-configmap.yaml" "$TEMP_CONFIGMAP"
-
-# Update cluster_id if provided
-if [ -n "$CLUSTER_ID" ]; then
-    sed -i.bak "s|cluster_id: \"\"|cluster_id: \"$CLUSTER_ID\"|g" "$TEMP_CONFIGMAP"
-fi
-
-# Update central_endpoint
-sed -i.bak "s|central_endpoint: \".*\"|central_endpoint: \"$CENTRAL_ENDPOINT\"|g" "$TEMP_CONFIGMAP"
-
-kubectl apply -f "$TEMP_CONFIGMAP"
-rm -f "$TEMP_CONFIGMAP" "$TEMP_CONFIGMAP.bak" 2>/dev/null || true
-
-# Deploy the agent
-echo ""
-echo "=== Deploying agent ==="
-kubectl apply -f "$MANIFESTS_DIR/04-deployment.yaml"
-kubectl apply -f "$MANIFESTS_DIR/05-service.yaml"
-
-# Wait for deployment
-echo ""
-echo "=== Waiting for deployment to be ready ==="
-kubectl -n aetherius-agent rollout status deployment/aetherius-agent --timeout=300s
-
-# Show status
-echo ""
-echo "=== Deployment Status ==="
-kubectl -n aetherius-agent get pods -l app.kubernetes.io/name=aetherius-agent
-kubectl -n aetherius-agent get svc aetherius-agent
-
-# Show recent logs
-echo ""
-echo "=== Recent Logs ==="
-kubectl -n aetherius-agent logs deployment/aetherius-agent --tail=20
-
-# Health check
-echo ""
-echo "=== Health Check ==="
-AGENT_POD=$(kubectl -n aetherius-agent get pods -l app.kubernetes.io/name=aetherius-agent -o jsonpath='{.items[0].metadata.name}')
-if [ -n "$AGENT_POD" ]; then
-    echo "Agent Pod: $AGENT_POD"
-    kubectl -n aetherius-agent exec "$AGENT_POD" -- wget -q -O- http://localhost:8080/health/status | jq '.' 2>/dev/null || kubectl -n aetherius-agent exec "$AGENT_POD" -- wget -q -O- http://localhost:8080/health/status
-else
-    echo "Warning: Could not find agent pod for health check"
-fi
-
-echo ""
-echo "=== Deployment Complete ==="
-echo ""
-echo "Useful commands:"
-echo "  View logs:    kubectl -n aetherius-agent logs deployment/aetherius-agent --follow"
-echo "  Check status: kubectl -n aetherius-agent get pods"
-echo "  Port forward: kubectl -n aetherius-agent port-forward service/aetherius-agent 8080:8080"
-echo "  Delete:       kubectl delete namespace aetherius-agent"
-echo ""
-echo "Health endpoints (after port-forward):"
-echo "  http://localhost:8080/health/live"
-echo "  http://localhost:8080/health/ready"
-echo "  http://localhost:8080/health/status"
-echo "  http://localhost:8080/metrics"
+log_info "Deployment complete ✓"
+kubectl -n $NAMESPACE get pods

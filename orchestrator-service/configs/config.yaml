@@ -1,0 +1,54 @@
+# Aetherius Orchestrator Service Configuration
+
+# HTTP server
+server:
+  host: "0.0.0.0"
+  port: 8081
+  read_timeout: 30s
+  write_timeout: 30s
+  graceful_stop: 10s
+
+# NATS
+nats:
+  url: "nats://localhost:4222"
+  max_reconnect: -1
+  reconnect_wait: 2s
+
+# Temporal workflow engine (optional)
+temporal:
+  host_port: "localhost:7233"
+  namespace: "default"
+  task_queue: "aetherius-orchestrator"
+
+# PostgreSQL
+database:
+  host: "localhost"
+  port: 5432
+  user: "aetherius"
+  password: "aetherius123"
+  database: "aetherius_orchestrator"
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300s
+
+# Redis
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 1
+  pool_size: 10
+  min_idle_conns: 3
+  dial_timeout: 5s
+
+# AI service
+ai:
+  reasoning_service_url: "http://localhost:8082"
+  timeout: 30s
+  max_retries: 3
+
+# Logging
+logging:
+  level: "info"
+  format: "json"
+  output_path: "stdout"

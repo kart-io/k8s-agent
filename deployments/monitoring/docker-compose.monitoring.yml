@@ -1,0 +1,167 @@
+# Aetherius 监控栈 Docker Compose 配置
+# 包含 Prometheus, Grafana, Alertmanager
+
+version: '3.8'
+
+networks:
+  aetherius-monitoring:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+
+services:
+  # Prometheus - 指标采集和存储
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: aetherius-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    networks:
+      - aetherius-monitoring
+    depends_on:
+      - alertmanager
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana - 可视化和仪表板
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: aetherius-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/aetherius-overview.json
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - aetherius-monitoring
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Alertmanager - 告警管理
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: aetherius-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - aetherius-monitoring
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Node Exporter - 系统指标采集
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: aetherius-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - aetherius-monitoring
+
+  # Postgres Exporter - PostgreSQL 指标采集
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.13.2
+    container_name: aetherius-postgres-exporter
+    restart: unless-stopped
+    environment:
+      - DATA_SOURCE_NAME=postgresql://aetherius:aetherius_pass@postgres:5432/agent_manager?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - aetherius-monitoring
+    depends_on:
+      - postgres
+
+  # Redis Exporter - Redis 指标采集
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.52.0
+    container_name: aetherius-redis-exporter
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=redis_pass
+    ports:
+      - "9121:9121"
+    networks:
+      - aetherius-monitoring
+    depends_on:
+      - redis
+
+  # cAdvisor - 容器指标采集
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: aetherius-cadvisor
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - aetherius-monitoring
+    devices:
+      - /dev/kmsg
+
+  # 依赖服务引用 (来自主 docker-compose.yml)
+  postgres:
+    external: true
+    container_name: aetherius-postgres
+
+  redis:
+    external: true
+    container_name: aetherius-redis

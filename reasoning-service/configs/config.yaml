@@ -1,0 +1,80 @@
+# Aetherius Reasoning Service Configuration
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8082
+  log_level: "INFO"
+
+# Neo4j Knowledge Graph
+neo4j:
+  uri: "bolt://localhost:7687"
+  user: "neo4j"
+  password: "password"
+  max_connections: 50
+
+# AI/ML Models
+models:
+  path: "./models"
+  enable_gpu: false
+  cache_size: 1000  # Number of cached predictions
+
+# Knowledge Base
+knowledge_base:
+  path: "./data/knowledge"
+  auto_backup: true
+  backup_interval: "24h"
+
+# Analysis Settings
+analysis:
+  min_confidence: 0.7
+  max_recommendations: 5
+  include_similar_cases: true
+  similarity_threshold: 0.6
+
+# Prediction Settings
+prediction:
+  time_windows:
+    - "1h"
+    - "6h"
+    - "24h"
+    - "7d"
+  anomaly_detection:
+    contamination: 0.1
+    n_estimators: 100
+
+# Learning Settings
+learning:
+  enable_feedback: true
+  min_samples_for_accuracy: 5
+  accuracy_update_interval: "1h"
+  export_learning_data: true
+  export_path: "./data/learning"
+
+# Performance Settings
+performance:
+  max_workers: 4
+  request_timeout: "30s"
+  max_context_size: 10000  # Max characters in logs/context
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"
+  output:
+    - "stdout"
+    - "file"
+  file:
+    path: "./logs/reasoning-service.log"
+    max_size: "500MB"
+    max_age: "10d"
+    max_backups: 10
+    compress: true
+
+# Feature Flags
+features:
+  enable_prediction: true
+  enable_learning: true
+  enable_knowledge_graph: true
+  enable_anomaly_detection: true
+  enable_case_similarity: true

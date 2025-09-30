@@ -1,0 +1,325 @@
+# Agent Manager 示例配置
+# 用于中央控制平面的 Agent 管理服务
+
+# 服务配置
+server:
+  # HTTP 服务器端口
+  port: 8080
+  # 服务器模式: debug, release
+  mode: release
+  # 读取超时(秒)
+  read_timeout: 30
+  # 写入超时(秒)
+  write_timeout: 30
+  # 空闲超时(秒)
+  idle_timeout: 60
+  # 最大请求体大小(MB)
+  max_body_size: 10
+
+# 数据库配置
+database:
+  # 数据库类型: postgres, mysql
+  type: postgres
+  # 连接地址
+  host: localhost
+  # 端口
+  port: 5432
+  # 数据库名
+  database: agent_manager
+  # 用户名
+  username: aetherius
+  # 密码 (生产环境使用环境变量或密钥管理)
+  password: aetherius_pass
+  # SSL 模式: disable, require, verify-ca, verify-full
+  sslmode: disable
+  # 最大空闲连接数
+  max_idle_conns: 10
+  # 最大打开连接数
+  max_open_conns: 100
+  # 连接最大生命周期(分钟)
+  conn_max_lifetime: 60
+  # 连接最大空闲时间(分钟)
+  conn_max_idle_time: 10
+  # 慢查询阈值(毫秒)
+  slow_threshold: 200
+  # 是否启用日志
+  log_level: info
+
+# Redis 配置
+redis:
+  # Redis 地址
+  addr: localhost:6379
+  # 密码
+  password: redis_pass
+  # 数据库编号
+  db: 0
+  # 连接池大小
+  pool_size: 10
+  # 最小空闲连接数
+  min_idle_conns: 5
+  # 连接超时(秒)
+  dial_timeout: 5
+  # 读取超时(秒)
+  read_timeout: 3
+  # 写入超时(秒)
+  write_timeout: 3
+  # 连接池超时(秒)
+  pool_timeout: 4
+  # 最大重试次数
+  max_retries: 3
+
+# NATS 配置
+nats:
+  # NATS 服务器地址
+  url: nats://localhost:4222
+  # 客户端名称
+  name: agent-manager
+  # 最大重连次数 (-1 表示无限重连)
+  max_reconnects: -1
+  # 重连等待时间(秒)
+  reconnect_wait: 2
+  # 连接超时(秒)
+  timeout: 10
+  # Ping 间隔(秒)
+  ping_interval: 20
+  # 最大 Ping 未响应次数
+  max_pings_out: 2
+  # 是否启用 TLS
+  tls:
+    enabled: false
+    # 证书文件路径
+    cert_file: ""
+    # 密钥文件路径
+    key_file: ""
+    # CA 证书文件路径
+    ca_file: ""
+    # 是否跳过服务器证书验证
+    insecure_skip_verify: false
+  # 认证配置
+  auth:
+    # 用户名
+    username: ""
+    # 密码
+    password: ""
+    # Token
+    token: ""
+
+# Agent 配置
+agent:
+  # Agent 注册配置
+  registration:
+    # 注册超时(秒)
+    timeout: 30
+    # 自动批准 Agent 注册
+    auto_approve: false
+    # 需要的标签
+    required_labels:
+      - environment
+      - region
+  # Agent 心跳配置
+  heartbeat:
+    # 心跳间隔(秒)
+    interval: 30
+    # 心跳超时(秒)
+    timeout: 90
+    # 最大失败次数(超过后标记为离线)
+    max_failures: 3
+  # Agent 命令配置
+  command:
+    # 命令超时(秒)
+    default_timeout: 300
+    # 最大并发命令数
+    max_concurrent: 100
+    # 命令结果保留时间(小时)
+    result_retention: 24
+  # Agent 指标配置
+  metrics:
+    # 是否启用指标收集
+    enabled: true
+    # 指标收集间隔(秒)
+    interval: 60
+    # 指标保留时间(天)
+    retention_days: 7
+
+# 事件处理配置
+event:
+  # 事件缓冲区大小
+  buffer_size: 1000
+  # 批处理大小
+  batch_size: 100
+  # 批处理超时(毫秒)
+  batch_timeout: 1000
+  # 工作协程数
+  workers: 10
+  # 事件保留时间(天)
+  retention_days: 30
+  # 严重事件保留时间(天)
+  critical_retention_days: 90
+  # 事件过滤规则
+  filters:
+    # 忽略的事件类型
+    ignore_types:
+      - Normal
+    # 忽略的原因
+    ignore_reasons:
+      - Scheduled
+      - Started
+      - Pulled
+    # 最小严重级别 (low, medium, high, critical)
+    min_severity: medium
+
+# 策略配置
+strategy:
+  # 是否启用自动策略
+  auto_enabled: true
+  # 策略评估间隔(秒)
+  evaluation_interval: 60
+  # 默认冷却时间(秒)
+  default_cooldown: 300
+  # 最大并发策略执行数
+  max_concurrent: 50
+
+# 日志配置
+logging:
+  # 日志级别: debug, info, warn, error
+  level: info
+  # 日志格式: json, text
+  format: json
+  # 日志输出: stdout, stderr, file
+  output: stdout
+  # 日志文件路径(当 output 为 file 时)
+  file:
+    path: /var/log/agent-manager/app.log
+    # 最大文件大小(MB)
+    max_size: 100
+    # 最大备份数量
+    max_backups: 10
+    # 最大保留天数
+    max_age: 30
+    # 是否压缩
+    compress: true
+  # 是否启用调用栈
+  enable_caller: true
+  # 是否启用堆栈跟踪
+  enable_stacktrace: false
+
+# 指标配置
+metrics:
+  # 是否启用 Prometheus 指标
+  enabled: true
+  # 指标路径
+  path: /metrics
+  # 是否包含 Go 运行时指标
+  include_go_metrics: true
+  # 是否包含进程指标
+  include_process_metrics: true
+
+# 健康检查配置
+health:
+  # 健康检查路径
+  path: /health
+  # 就绪检查路径
+  readiness_path: /ready
+  # 存活检查路径
+  liveness_path: /live
+
+# 链路追踪配置
+tracing:
+  # 是否启用链路追踪
+  enabled: false
+  # 追踪采样率 (0.0-1.0)
+  sampling_rate: 0.1
+  # Jaeger 配置
+  jaeger:
+    # Agent 地址
+    agent_host: localhost
+    agent_port: 6831
+    # Collector 地址
+    collector_endpoint: http://localhost:14268/api/traces
+  # OTLP 配置
+  otlp:
+    # OTLP Endpoint
+    endpoint: localhost:4317
+    # 是否使用 TLS
+    insecure: true
+
+# 安全配置
+security:
+  # 是否启用 TLS
+  tls:
+    enabled: false
+    # 证书文件路径
+    cert_file: /etc/aetherius/certs/server.crt
+    # 密钥文件路径
+    key_file: /etc/aetherius/certs/server.key
+    # CA 证书文件路径
+    ca_file: /etc/aetherius/certs/ca.crt
+    # 最小 TLS 版本: 1.2, 1.3
+    min_version: "1.2"
+  # 认证配置
+  auth:
+    # 是否启用认证
+    enabled: false
+    # JWT 密钥
+    jwt_secret: your-secret-key-change-in-production
+    # Token 过期时间(小时)
+    token_expiry: 24
+  # CORS 配置
+  cors:
+    # 是否启用 CORS
+    enabled: true
+    # 允许的来源
+    allowed_origins:
+      - "*"
+    # 允许的方法
+    allowed_methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    # 允许的头部
+    allowed_headers:
+      - "*"
+    # 暴露的头部
+    exposed_headers:
+      - Content-Length
+    # 是否允许凭证
+    allow_credentials: true
+    # 预检请求缓存时间(秒)
+    max_age: 3600
+
+# 限流配置
+rate_limit:
+  # 是否启用限流
+  enabled: true
+  # 全局限流 (请求/秒)
+  global_rps: 1000
+  # 每个 IP 限流 (请求/秒)
+  per_ip_rps: 100
+  # 每个 Agent 限流 (请求/秒)
+  per_agent_rps: 50
+
+# 缓存配置
+cache:
+  # 是否启用缓存
+  enabled: true
+  # 默认过期时间(秒)
+  default_ttl: 300
+  # Agent 信息缓存过期时间(秒)
+  agent_ttl: 600
+  # 集群信息缓存过期时间(秒)
+  cluster_ttl: 300
+  # 事件缓存过期时间(秒)
+  event_ttl: 60
+
+# 特性开关
+features:
+  # 是否启用工作流集成
+  workflow_integration: true
+  # 是否启用 AI 分析集成
+  ai_analysis_integration: true
+  # 是否启用自动修复
+  auto_remediation: false
+  # 是否启用实验性功能
+  experimental: false

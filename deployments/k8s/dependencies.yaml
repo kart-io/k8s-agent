@@ -1,0 +1,329 @@
+# PostgreSQL
+apiVersion: v1
+kind: Service
+metadata:
+  name: aetherius-postgres
+  namespace: aetherius
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: postgres
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: aetherius
+spec:
+  serviceName: aetherius-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: "aetherius"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-manager-secrets
+              key: database-password
+        - name: POSTGRES_DB
+          value: "aetherius"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - aetherius
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi
+
+---
+# Redis
+apiVersion: v1
+kind: Service
+metadata:
+  name: aetherius-redis
+  namespace: aetherius
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: redis
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: aetherius
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        command:
+        - redis-server
+        - --requirepass
+        - $(REDIS_PASSWORD)
+        - --appendonly
+        - "yes"
+        ports:
+        - containerPort: 6379
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-manager-secrets
+              key: redis-password
+        volumeMounts:
+        - name: redis-storage
+          mountPath: /data
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+      volumes:
+      - name: redis-storage
+        persistentVolumeClaim:
+          claimName: redis-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: aetherius
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# NATS
+apiVersion: v1
+kind: Service
+metadata:
+  name: aetherius-nats
+  namespace: aetherius
+spec:
+  type: LoadBalancer
+  ports:
+  - name: client
+    port: 4222
+    targetPort: 4222
+  - name: monitoring
+    port: 8222
+    targetPort: 8222
+  - name: cluster
+    port: 6222
+    targetPort: 6222
+  selector:
+    app: nats
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nats
+  namespace: aetherius
+spec:
+  serviceName: aetherius-nats
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+      - name: nats
+        image: nats:2.10-alpine
+        ports:
+        - containerPort: 4222
+          name: client
+        - containerPort: 8222
+          name: monitoring
+        - containerPort: 6222
+          name: cluster
+        command:
+        - nats-server
+        - --cluster
+        - nats://0.0.0.0:6222
+        - --http_port
+        - "8222"
+        - --js
+        - --sd
+        - /data
+        volumeMounts:
+        - name: nats-storage
+          mountPath: /data
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8222
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: nats-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# Neo4j
+apiVersion: v1
+kind: Service
+metadata:
+  name: aetherius-neo4j
+  namespace: aetherius
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 7474
+    targetPort: 7474
+  - name: bolt
+    port: 7687
+    targetPort: 7687
+  selector:
+    app: neo4j
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j
+  namespace: aetherius
+spec:
+  serviceName: aetherius-neo4j
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
+  template:
+    metadata:
+      labels:
+        app: neo4j
+    spec:
+      containers:
+      - name: neo4j
+        image: neo4j:5-community
+        ports:
+        - containerPort: 7474
+          name: http
+        - containerPort: 7687
+          name: bolt
+        env:
+        - name: NEO4J_AUTH
+          value: "neo4j/$(NEO4J_PASSWORD)"
+        - name: NEO4J_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: reasoning-secrets
+              key: neo4j-password
+        - name: NEO4J_PLUGINS
+          value: '["apoc"]'
+        - name: NEO4J_dbms_memory_heap_max__size
+          value: "2G"
+        volumeMounts:
+        - name: neo4j-data
+          mountPath: /data
+        - name: neo4j-logs
+          mountPath: /logs
+        livenessProbe:
+          tcpSocket:
+            port: 7687
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+          limits:
+            cpu: 4000m
+            memory: 4Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: neo4j-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi
+  - metadata:
+      name: neo4j-logs
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi

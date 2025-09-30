@@ -1,0 +1,125 @@
+# Prometheus Recording Rules for Aetherius Collect Agent
+# 用于提升查询性能和创建预聚合指标
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aetherius-agent-rules
+  namespace: aetherius-agent
+data:
+  agent.rules: |
+    groups:
+    - name: aetherius_agent_recording_rules
+      interval: 30s
+      rules:
+      # 事件处理速率 (每分钟)
+      - record: aetherius:agent:events_rate_1m
+        expr: rate(aetherius_agent_events_sent_total[1m]) * 60
+
+      # 指标收集速率 (每分钟)
+      - record: aetherius:agent:metrics_rate_1m
+        expr: rate(aetherius_agent_metrics_sent_total[1m]) * 60
+
+      # 命令执行成功率
+      - record: aetherius:agent:command_success_rate_5m
+        expr: |
+          sum(rate(aetherius_agent_commands_executed_total{status="success"}[5m]))
+          /
+          sum(rate(aetherius_agent_commands_executed_total[5m]))
+
+      # NATS 连接状态 (0=断开, 1=连接)
+      - record: aetherius:agent:nats_connected
+        expr: aetherius_agent_nats_connected
+
+      # 平均队列大小
+      - record: aetherius:agent:avg_queue_size_5m
+        expr: avg_over_time(aetherius_agent_event_queue_size[5m])
+
+    - name: aetherius_agent_alerts
+      interval: 30s
+      rules:
+      # 告警: NATS 连接断开
+      - alert: AetheriusAgentNATSDisconnected
+        expr: aetherius_agent_nats_connected == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: aetherius-agent
+        annotations:
+          summary: "Aetherius Agent NATS 连接断开"
+          description: "集群 {{ $labels.cluster_id }} 的 Agent 无法连接到 NATS 服务器超过 1 分钟"
+
+      # 告警: 事件队列堆积
+      - alert: AetheriusAgentEventQueueHigh
+        expr: aetherius_agent_event_queue_size > 800
+        for: 5m
+        labels:
+          severity: warning
+          component: aetherius-agent
+        annotations:
+          summary: "事件队列堆积严重"
+          description: "集群 {{ $labels.cluster_id }} 的事件队列大小为 {{ $value }},超过阈值 800"
+
+      # 告警: 命令执行失败率高
+      - alert: AetheriusAgentCommandFailureRateHigh
+        expr: |
+          (
+            sum(rate(aetherius_agent_commands_executed_total{status="failure"}[5m]))
+            /
+            sum(rate(aetherius_agent_commands_executed_total[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: aetherius-agent
+        annotations:
+          summary: "命令执行失败率过高"
+          description: "集群 {{ $labels.cluster_id }} 命令执行失败率为 {{ $value | humanizePercentage }},超过 10%"
+
+      # 告警: Agent 长时间未发送心跳
+      - alert: AetheriusAgentHeartbeatMissing
+        expr: |
+          time() - aetherius_agent_last_heartbeat_timestamp > 120
+        for: 2m
+        labels:
+          severity: critical
+          component: aetherius-agent
+        annotations:
+          summary: "Agent 心跳丢失"
+          description: "集群 {{ $labels.cluster_id }} 的 Agent 超过 2 分钟未发送心跳"
+
+      # 告警: 事件发送失败率高
+      - alert: AetheriusAgentEventSendFailureHigh
+        expr: |
+          rate(aetherius_agent_events_sent_total{status="failure"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: aetherius-agent
+        annotations:
+          summary: "事件发送失败率高"
+          description: "集群 {{ $labels.cluster_id }} 每分钟有 {{ $value }} 个事件发送失败"
+
+      # 告警: Agent 重启频繁
+      - alert: AetheriusAgentFrequentRestarts
+        expr: |
+          rate(aetherius_agent_start_timestamp[30m]) > 0.1
+        for: 30m
+        labels:
+          severity: warning
+          component: aetherius-agent
+        annotations:
+          summary: "Agent 重启频繁"
+          description: "集群 {{ $labels.cluster_id }} 的 Agent 在过去 30 分钟内重启 {{ $value }} 次"
+
+      # 告警: 指标收集延迟
+      - alert: AetheriusAgentMetricsCollectionSlow
+        expr: |
+          time() - aetherius_agent_last_metrics_timestamp > 180
+        for: 3m
+        labels:
+          severity: warning
+          component: aetherius-agent
+        annotations:
+          summary: "指标收集延迟"
+          description: "集群 {{ $labels.cluster_id }} 超过 3 分钟未收集指标"

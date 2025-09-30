@@ -3,7 +3,7 @@
 ## 文档信息
 
 - **版本**: v1.6
-- **最后更新**: 2025年9月28日
+- **最后更新**: 2025年9月27日
 - **状态**: 正式版
 - **所属系统**: Aetherius AI Agent
 - **文档类型**: In-Cluster 部署实现指南
@@ -177,6 +177,8 @@
 
 ### 2.3 推荐架构选择
 
+> **提示**: 详细的部署模式对比请参考[第1.2节](#12-部署模式对比)
+
 | 场景 | 推荐架构 | 说明 | 参考文档 |
 |------|---------|------|----------|
 | **单一生产集群** | 单集群In-Cluster | 简单可靠,全功能部署 | 本文档 |
@@ -195,10 +197,14 @@ import (
     "fmt"
     "os"
 
+    "go.uber.org/zap"
     "k8s.io/client-go/kubernetes"
     "k8s.io/client-go/rest"
     "k8s.io/client-go/tools/clientcmd"
 )
+
+// 全局日志实例(实际使用时应通过依赖注入)
+var log *zap.Logger
 
 // ClientFactory 客户端工厂
 type ClientFactory struct {
@@ -265,6 +271,7 @@ func isInCluster() bool {
 
 ```go
 // ClusterIDDetector 集群ID检测器
+// 注意: 本代码段与3.1节共享相同的import声明
 type ClusterIDDetector struct {
     clientset kubernetes.Interface
 }
@@ -358,6 +365,14 @@ func (d *ClusterIDDetector) getClusterIDFromCloudProvider(ctx context.Context) (
 
 ```go
 // InClusterEventWatcher In-Cluster事件监听器
+// 注意: 需要额外导入以下包:
+//   "context"
+//   "sync/atomic"
+//   "time"
+//   corev1 "k8s.io/api/core/v1"
+//   "k8s.io/client-go/informers"
+//   "k8s.io/client-go/tools/cache"
+//   metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 type InClusterEventWatcher struct {
     config      WatcherConfig
     clientset   kubernetes.Interface
@@ -1167,10 +1182,19 @@ echo "Check logs: kubectl -n aetherius-system logs -l app.kubernetes.io/componen
 
 ### 6.1 最小权限原则
 
-**重要说明**: 系统遵循最小权限原则，仅请求诊断所需的只读权限。虽然某些权限（如 pods/log）在技术上允许读取敏感信息，但系统设计保证：
-1. 仅在诊断流程中按需读取
-2. 所有操作都有完整审计日志
-3. 绝不执行任何写操作（create, update, patch, delete）
+**安全承诺与权限说明**:
+
+Aetherius系统遵循最小权限原则，仅请求AI诊断所需的**只读权限**。虽然某些权限在技术上可访问敏感数据，但系统在设计和实现上提供多层安全保证：
+
+#### 系统安全保证
+
+1. **严格只读**: 系统架构设计上不包含任何写操作（create、update、patch、delete），从根本上避免对集群的修改风险
+2. **按需访问**: 仅在诊断任务执行时按需读取相关资源，而非持续收集所有数据
+3. **完整审计**: 所有读取操作都记录在审计日志中，包括访问时间、资源类型、诊断上下文
+4. **范围限制**: 通过resourceNames限制配置访问范围，避免读取应用敏感配置
+5. **本地处理**: 敏感数据（如日志）仅在诊断分析时临时读取，不进行长期存储
+
+#### 权限用途说明
 
 ```yaml
 # 诊断只读权限 - 推荐配置
@@ -1179,29 +1203,51 @@ kind: ClusterRole
 metadata:
   name: aetherius-diagnostic-readonly
 rules:
-# 事件监听（核心功能）
+# 事件监听 - 核心功能，监听集群事件触发诊断
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["get", "list", "watch"]
 
-# Pod诊断信息（包括日志读取用于故障分析）
+# Pod诊断信息 - 故障分析必需
+# pods: 获取Pod状态、资源使用、重启次数等诊断信息
+# pods/log: 读取日志用于错误分析（仅在诊断任务中按需读取）
 - apiGroups: [""]
   resources: ["pods", "pods/status", "pods/log"]
   verbs: ["get", "list"]
 
-# 集群上下文信息
+# 集群上下文信息 - 提供诊断背景
+# 用于了解集群拓扑、资源分布、服务关系等
 - apiGroups: [""]
   resources: ["nodes", "namespaces", "services", "endpoints"]
   verbs: ["get", "list"]
 
-# 配置读取
+# 系统配置读取 - 仅限Aetherius自身配置
+# resourceNames限制确保只能读取系统自身配置，不涉及业务应用配置
 - apiGroups: [""]
-  resources: ["configmaps", "secrets"]  # secrets仅用于读取诊断配置，不包含应用密钥
+  resources: ["configmaps", "secrets"]
   verbs: ["get", "list"]
-  resourceNames: ["aetherius-*"]  # 限制只能读取系统自身配置
+  resourceNames: ["aetherius-*"]  # 严格限制只能访问系统自身配置
 
 # 明确禁止所有写操作
-# 不包含: create, update, patch, delete, deletecollection
+# 不授予以下权限: create, update, patch, delete, deletecollection
+# 系统架构设计上不支持任何修改集群状态的操作
+```
+
+#### 额外安全建议
+
+对于高安全要求的生产环境，可以进一步限制权限：
+
+```yaml
+# 更严格的权限配置示例
+rules:
+# 限制Pod日志读取的namespace范围
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+  namespaces: ["app-namespace-1", "app-namespace-2"]  # 仅允许特定namespace
+
+# 或使用labelSelector进一步限制
+# 在实际部署中，可通过admission webhook实现细粒度控制
 ```
 
 ### 6.2 网络策略

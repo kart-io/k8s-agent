@@ -1,0 +1,427 @@
+# Collect Agent 示例配置
+# 用于边缘数据采集和事件收集
+
+# Agent 配置
+agent:
+  # Agent ID (如果为空,自动生成)
+  id: ""
+  # Agent 名称
+  name: collect-agent
+  # 集群 ID (如果为空,使用 Kubernetes 集群 UID)
+  cluster_id: ""
+  # 集群名称
+  cluster_name: production-cluster
+  # 标签
+  labels:
+    environment: production
+    region: us-west-2
+    zone: us-west-2a
+  # 注释
+  annotations:
+    description: "Production cluster data collection agent"
+    owner: "ops-team"
+
+# Kubernetes 配置
+kubernetes:
+  # Kubeconfig 文件路径 (空表示使用 in-cluster 配置)
+  kubeconfig: ""
+  # API Server 地址 (空表示使用默认)
+  api_server: ""
+  # 命名空间过滤
+  namespaces:
+    # 包含的命名空间 (空表示所有)
+    include: []
+    # 排除的命名空间
+    exclude:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+  # 资源类型过滤
+  resources:
+    # 监控的资源类型
+    watch_types:
+      - pods
+      - deployments
+      - statefulsets
+      - daemonsets
+      - services
+      - nodes
+      - persistentvolumeclaims
+      - configmaps
+      - secrets
+    # 排除的资源
+    exclude_resources: []
+
+# 事件监控配置
+event_watcher:
+  # 是否启用事件监控
+  enabled: true
+  # 事件重同步间隔(秒)
+  resync_period: 300
+  # 事件缓冲区大小
+  buffer_size: 500
+  # 事件批处理配置
+  batch:
+    # 批处理大小
+    size: 50
+    # 批处理超时(毫秒)
+    timeout: 1000
+  # 事件过滤配置
+  filters:
+    # 是否启用过滤
+    enabled: true
+    # 忽略的事件类型
+    ignore_types:
+      - Normal
+    # 忽略的原因
+    ignore_reasons:
+      - Scheduled
+      - Started
+      - Pulled
+      - Created
+    # 忽略的来源
+    ignore_sources: []
+    # 最小严重级别 (low, medium, high, critical)
+    min_severity: medium
+  # 事件增强配置
+  enrichment:
+    # 是否启用事件增强
+    enabled: true
+    # 收集 Pod 日志
+    collect_logs: true
+    # 日志行数限制
+    log_lines: 100
+    # 收集 Pod 事件
+    collect_pod_events: true
+    # 收集资源指标
+    collect_metrics: true
+
+# 指标收集配置
+metrics_collector:
+  # 是否启用指标收集
+  enabled: true
+  # 收集间隔(秒)
+  interval: 60
+  # 收集超时(秒)
+  timeout: 30
+  # 指标类型
+  metrics:
+    # Pod 指标
+    pod:
+      enabled: true
+      # CPU 使用率
+      cpu_usage: true
+      # 内存使用
+      memory_usage: true
+      # 网络 I/O
+      network_io: true
+      # 磁盘 I/O
+      disk_io: true
+      # 重启次数
+      restart_count: true
+    # 节点指标
+    node:
+      enabled: true
+      # CPU 使用率
+      cpu_usage: true
+      # 内存使用
+      memory_usage: true
+      # 磁盘使用
+      disk_usage: true
+      # 网络 I/O
+      network_io: true
+      # Pod 数量
+      pod_count: true
+    # 容器指标
+    container:
+      enabled: true
+      # CPU 使用率
+      cpu_usage: true
+      # 内存使用
+      memory_usage: true
+      # 重启次数
+      restart_count: true
+
+# 日志收集配置
+log_collector:
+  # 是否启用日志收集
+  enabled: false
+  # 收集策略: on_demand, continuous
+  strategy: on_demand
+  # 连续收集配置
+  continuous:
+    # 收集间隔(秒)
+    interval: 300
+    # 日志行数限制
+    max_lines: 1000
+    # 尾部行数
+    tail_lines: 100
+  # 按需收集配置
+  on_demand:
+    # 最大日志行数
+    max_lines: 1000
+    # 超时(秒)
+    timeout: 30
+
+# NATS 配置
+nats:
+  # NATS 服务器地址
+  url: nats://nats.aetherius.svc.cluster.local:4222
+  # 客户端名称
+  name: collect-agent
+  # 最大重连次数 (-1 表示无限重连)
+  max_reconnects: -1
+  # 重连等待时间(秒)
+  reconnect_wait: 2
+  # 连接超时(秒)
+  timeout: 10
+  # Ping 间隔(秒)
+  ping_interval: 20
+  # 最大 Ping 未响应次数
+  max_pings_out: 2
+  # 发布配置
+  publish:
+    # 发布超时(秒)
+    timeout: 5
+    # 最大重试次数
+    max_retries: 3
+    # 重试间隔(毫秒)
+    retry_interval: 100
+  # 消息主题配置
+  subjects:
+    # 事件主题前缀
+    event_prefix: "aetherius.agent"
+    # 心跳主题
+    heartbeat: "aetherius.agent.{cluster_id}.heartbeat"
+    # 注册主题
+    registration: "aetherius.agent.{cluster_id}.register"
+    # 命令主题
+    command: "aetherius.agent.{cluster_id}.{agent_id}.command"
+  # TLS 配置
+  tls:
+    enabled: false
+    cert_file: ""
+    key_file: ""
+    ca_file: ""
+    insecure_skip_verify: false
+
+# 心跳配置
+heartbeat:
+  # 心跳间隔(秒)
+  interval: 30
+  # 心跳超时(秒)
+  timeout: 10
+  # 包含的信息
+  include:
+    # 集群信息
+    cluster_info: true
+    # Agent 健康状态
+    health_status: true
+    # 资源统计
+    resource_stats: true
+    # 事件统计
+    event_stats: true
+
+# 命令执行器配置
+command_executor:
+  # 是否启用命令执行
+  enabled: true
+  # 命令超时(秒)
+  default_timeout: 300
+  # 最大并发命令数
+  max_concurrent: 10
+  # 命令结果保留时间(小时)
+  result_retention: 24
+  # 允许的工具
+  allowed_tools:
+    - kubectl
+    - logs
+    - describe
+    - top
+    - exec
+  # 工具配置
+  tools:
+    kubectl:
+      # kubectl 路径
+      path: /usr/local/bin/kubectl
+      # 默认超时(秒)
+      timeout: 120
+    logs:
+      # 默认行数
+      default_lines: 100
+      # 最大行数
+      max_lines: 10000
+      # 超时(秒)
+      timeout: 60
+    describe:
+      # 超时(秒)
+      timeout: 30
+    top:
+      # 超时(秒)
+      timeout: 30
+    exec:
+      # 是否启用
+      enabled: false
+      # 超时(秒)
+      timeout: 60
+
+# 缓存配置
+cache:
+  # 是否启用缓存
+  enabled: true
+  # 缓存类型: memory, redis
+  type: memory
+  # 内存缓存配置
+  memory:
+    # 最大条目数
+    max_entries: 10000
+    # 默认过期时间(秒)
+    default_ttl: 300
+  # Redis 缓存配置 (如果使用)
+  redis:
+    addr: localhost:6379
+    password: ""
+    db: 0
+  # 缓存配置
+  ttl:
+    # 事件缓存过期时间(秒)
+    event: 60
+    # 指标缓存过期时间(秒)
+    metric: 120
+    # Pod 信息缓存过期时间(秒)
+    pod_info: 300
+
+# 重试配置
+retry:
+  # 默认重试次数
+  default_attempts: 3
+  # 重试间隔(秒)
+  initial_interval: 1
+  # 最大重试间隔(秒)
+  max_interval: 30
+  # 退避倍数
+  multiplier: 2.0
+  # 事件发送重试
+  event_publish:
+    attempts: 5
+    initial_interval: 1
+  # 指标发送重试
+  metric_publish:
+    attempts: 3
+    initial_interval: 2
+  # 命令执行重试
+  command_execution:
+    attempts: 2
+    initial_interval: 5
+
+# 日志配置
+logging:
+  # 日志级别: debug, info, warn, error
+  level: info
+  # 日志格式: json, text
+  format: json
+  # 日志输出: stdout, stderr, file
+  output: stdout
+  # 日志文件配置
+  file:
+    path: /var/log/collect-agent/app.log
+    max_size: 100
+    max_backups: 10
+    max_age: 30
+    compress: true
+  # 是否启用调用栈
+  enable_caller: true
+  # 是否启用堆栈跟踪
+  enable_stacktrace: false
+
+# 指标配置
+metrics:
+  # 是否启用 Prometheus 指标
+  enabled: true
+  # 指标服务器端口
+  port: 9090
+  # 指标路径
+  path: /metrics
+  # 是否包含 Go 运行时指标
+  include_go_metrics: true
+  # 是否包含进程指标
+  include_process_metrics: true
+
+# 健康检查配置
+health:
+  # 是否启用健康检查服务器
+  enabled: true
+  # 健康检查端口
+  port: 8080
+  # 健康检查路径
+  path: /health
+  # 就绪检查路径
+  readiness_path: /ready
+  # 存活检查路径
+  liveness_path: /live
+
+# 性能配置
+performance:
+  # 工作协程数
+  workers: 10
+  # 队列大小
+  queue_size: 1000
+  # 批处理配置
+  batch:
+    # 是否启用批处理
+    enabled: true
+    # 批处理大小
+    size: 50
+    # 批处理超时(毫秒)
+    timeout: 1000
+  # 是否启用压缩
+  compression:
+    enabled: false
+    # 压缩算法: gzip, snappy
+    algorithm: gzip
+
+# 安全配置
+security:
+  # 是否启用 TLS
+  tls:
+    enabled: false
+    cert_file: /etc/aetherius/certs/agent.crt
+    key_file: /etc/aetherius/certs/agent.key
+    ca_file: /etc/aetherius/certs/ca.crt
+  # 认证配置
+  auth:
+    # 认证类型: token, certificate
+    type: token
+    # Token (如果使用 token 认证)
+    token: ""
+    # 证书路径 (如果使用证书认证)
+    cert_file: ""
+    key_file: ""
+
+# 资源限制
+resources:
+  # 内存限制(MB)
+  memory_limit: 256
+  # CPU 限制(核心数)
+  cpu_limit: 1.0
+  # 是否启用资源监控
+  monitoring_enabled: true
+  # 内存告警阈值(%)
+  memory_threshold: 80
+  # CPU 告警阈值(%)
+  cpu_threshold: 80
+
+# 特性开关
+features:
+  # 是否启用事件监控
+  event_watching: true
+  # 是否启用指标收集
+  metrics_collection: true
+  # 是否启用日志收集
+  log_collection: false
+  # 是否启用命令执行
+  command_execution: true
+  # 是否启用自动注册
+  auto_registration: true
+  # 是否启用实验性功能
+  experimental: false

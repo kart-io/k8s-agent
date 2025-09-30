@@ -1,0 +1,185 @@
+# Prometheus 配置文件
+# 用于 Aetherius 智能 Kubernetes 运维平台
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'aetherius-main'
+    environment: 'production'
+
+# Alertmanager 配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# 告警规则文件
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+# 抓取配置
+scrape_configs:
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Agent Manager 监控
+  - job_name: 'agent-manager'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - aetherius
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: agent-manager
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: $1:8080
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'go_.*|process_.*|http_.*|agent_.*'
+        action: keep
+
+  # Orchestrator Service 监控
+  - job_name: 'orchestrator-service'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - aetherius
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: orchestrator-service
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: $1:8081
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'go_.*|process_.*|http_.*|workflow_.*|orchestrator_.*'
+        action: keep
+
+  # Reasoning Service 监控
+  - job_name: 'reasoning-service'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - aetherius
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: reasoning-service
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: $1:8082
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'python_.*|http_.*|analysis_.*|prediction_.*|recommendation_.*'
+        action: keep
+
+  # PostgreSQL 监控 (使用 postgres_exporter)
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+
+  # Redis 监控 (使用 redis_exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+
+  # NATS 监控
+  - job_name: 'nats'
+    static_configs:
+      - targets: ['nats:7777']
+        labels:
+          service: 'nats'
+
+  # Neo4j 监控
+  - job_name: 'neo4j'
+    static_configs:
+      - targets: ['neo4j:2004']
+        labels:
+          service: 'neo4j'
+
+  # Kubernetes 节点监控 (使用 node_exporter)
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics
+
+  # Kubernetes Pods 监控
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+  # Collect Agent 监控 (部署在目标集群)
+  - job_name: 'collect-agent'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - kube-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: collect-agent
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        target_label: node

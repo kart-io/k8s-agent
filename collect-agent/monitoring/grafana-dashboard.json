@@ -1,0 +1,499 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "aetherius-agent",
+    "title": "Aetherius Collect Agent Dashboard",
+    "tags": ["aetherius", "kubernetes", "agent"],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Agent 状态概览",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "aetherius_agent_nats_connected",
+            "legendFormat": "NATS 连接状态",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "0", "text": "断开", "color": "red"},
+              {"type": "value", "value": "1", "text": "已连接", "color": "green"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "运行时长",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "time() - aetherius_agent_start_timestamp",
+            "legendFormat": "运行时长 (秒)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 300, "color": "yellow"},
+                {"value": 3600, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "事件队列大小",
+        "type": "gauge",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "aetherius_agent_event_queue_size",
+            "legendFormat": "队列大小",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "max": 1000,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 500, "color": "yellow"},
+                {"value": 800, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "命令执行成功率",
+        "type": "gauge",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "aetherius:agent:command_success_rate_5m",
+            "legendFormat": "成功率",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "max": 1,
+            "min": 0,
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 0.9, "color": "yellow"},
+                {"value": 0.95, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "事件发送速率",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "rate(aetherius_agent_events_sent_total[5m]) * 60",
+            "legendFormat": "事件/分钟",
+            "refId": "A"
+          }
+        ],
+        "xaxis": {"mode": "time"},
+        "yaxes": [
+          {"format": "short", "label": "事件/分钟"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "pointradius": 5,
+        "legend": {
+          "show": true,
+          "values": true,
+          "avg": true,
+          "current": true,
+          "max": true
+        }
+      },
+      {
+        "id": 6,
+        "title": "指标发送速率",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "rate(aetherius_agent_metrics_sent_total[5m]) * 60",
+            "legendFormat": "指标/分钟",
+            "refId": "A"
+          }
+        ],
+        "xaxis": {"mode": "time"},
+        "yaxes": [
+          {"format": "short", "label": "指标/分钟"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "pointradius": 5,
+        "legend": {
+          "show": true,
+          "values": true,
+          "avg": true,
+          "current": true,
+          "max": true
+        }
+      },
+      {
+        "id": 7,
+        "title": "命令执行统计",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "rate(aetherius_agent_commands_executed_total{status=\"success\"}[5m]) * 60",
+            "legendFormat": "成功 - {{command_type}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(aetherius_agent_commands_executed_total{status=\"failure\"}[5m]) * 60",
+            "legendFormat": "失败 - {{command_type}}",
+            "refId": "B"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom",
+            "calcs": ["lastNotNull", "mean"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            },
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "NATS 连接历史",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {
+            "expr": "aetherius_agent_nats_connected",
+            "legendFormat": "连接状态",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom"
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "stepAfter",
+              "fillOpacity": 50
+            },
+            "mappings": [
+              {"type": "value", "value": "0", "text": "断开"},
+              {"type": "value", "value": "1", "text": "连接"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "最近心跳时间",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "time() - aetherius_agent_last_heartbeat_timestamp",
+            "legendFormat": "心跳延迟",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 60, "color": "yellow"},
+                {"value": 120, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "最近指标收集时间",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 8, "y": 20},
+        "targets": [
+          {
+            "expr": "time() - aetherius_agent_last_metrics_timestamp",
+            "legendFormat": "指标延迟",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 120, "color": "yellow"},
+                {"value": 180, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "平均队列大小 (5分钟)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 16, "y": 20},
+        "targets": [
+          {
+            "expr": "aetherius:agent:avg_queue_size_5m",
+            "legendFormat": "平均队列",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 300, "color": "yellow"},
+                {"value": 600, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "事件发送总数",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "aetherius_agent_events_sent_total",
+            "legendFormat": "",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Value"},
+              "properties": [
+                {"id": "displayName", "value": "总计"}
+              ]
+            }
+          ]
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "indexByName": {},
+              "renameByName": {
+                "cluster_id": "集群ID",
+                "status": "状态",
+                "Value": "总计"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "命令执行总数",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "aetherius_agent_commands_executed_total",
+            "legendFormat": "",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Value"},
+              "properties": [
+                {"id": "displayName", "value": "总计"}
+              ]
+            }
+          ]
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "indexByName": {},
+              "renameByName": {
+                "cluster_id": "集群ID",
+                "command_type": "命令类型",
+                "status": "状态",
+                "Value": "总计"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "cluster_id",
+          "type": "query",
+          "datasource": "Prometheus",
+          "query": "label_values(aetherius_agent_nats_connected, cluster_id)",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertname=~\"AetheriusAgent.*\"}",
+          "name": "Agent 告警",
+          "tagKeys": "alertname,severity",
+          "titleFormat": "{{ alertname }}"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h"]
+    }
+  }
+}

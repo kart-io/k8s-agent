@@ -1,7 +1,7 @@
 # Aetherius AI Agent - 系统架构设计
 
 > **文档版本**: v1.6
-> **最后更新**: 2025年9月28日
+> **最后更新**: 2025年9月27日
 > **读者对象**: 系统架构师、开发工程师
 
 ---
@@ -97,16 +97,19 @@
 
 | 组件 | 职责 | 输入 | 输出 | 依赖 |
 |------|------|------|------|------|
-| **Event Gateway** | 接收和验证事件 | Webhook/Event | 标准化事件 | None |
+| **Event Gateway** | 接收和验证外部事件 | Webhook(外部告警) | 标准化事件 | None |
+| **Event Watcher** | 监听K8s事件 | K8s Event Stream | 标准化事件 | K8s API |
 | **Orchestrator** | 任务调度和编排 | 标准化事件 | DiagnosticTask | Redis, PostgreSQL |
 | **Reasoning Service** | AI推理和策略生成 | DiagnosticTask | ExecutionPlan | LLM, Vector DB |
 | **Execution Gateway** | 安全执行命令 | ExecutionPlan | ExecutionResult | Vault, K8s API |
 | **Report Service** | 生成和分发报告 | ExecutionResult | DiagnosticReport | SMTP, Slack API |
 | **Knowledge Base** | 存储和检索知识 | Query | RelevantDocs | Vector DB |
 
+**说明**: Event Gateway和Event Watcher是两个独立的事件入口组件,分别处理外部告警和K8s事件。
+
 ### 2.2 Event Gateway (事件网关)
 
-**功能**: 统一接收和处理各类输入事件
+**功能**: 接收和处理外部事件源(Alertmanager Webhook等)
 
 **子组件**:
 - Webhook Handler: 处理HTTP webhook请求
@@ -118,17 +121,24 @@
 
 ```go
 type EventGateway interface {
+    // Webhook处理 - 核心功能
     ReceiveWebhook(ctx context.Context, payload []byte) error
-    ReceiveK8sEvent(ctx context.Context, event K8sEvent) error
+    // 事件验证和标准化
     ValidateEvent(event Event) error
+    // 发布到消息总线
     PublishEvent(event StandardizedEvent) error
 }
+
+// 注意: K8s事件由Event Watcher组件独立处理
+// 详见: 07_k8s_event_watcher.md
 ```
 
 **配置参数**:
 - `webhook_timeout`: webhook处理超时时间 (默认: 30s)
 - `max_payload_size`: 最大载荷大小 (默认: 10MB)
 - `deduplication_window`: 去重时间窗口 (默认: 5分钟)
+
+**详细设计**: 参见 [06_microservices.md#2.1](./06_microservices.md#21-event-gateway-service-事件网关服务)
 
 ### 2.3 Orchestrator (编排器)
 
@@ -584,4 +594,4 @@ Data Stores
 ---
 
 **文档维护**: Aetherius架构团队
-**最后更新**: 2025年9月28日
+**最后更新**: 2025年9月27日

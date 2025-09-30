@@ -1,0 +1,54 @@
+# Aetherius Agent Manager Configuration
+
+# HTTP server configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  graceful_stop: 10s
+
+# NATS configuration
+nats:
+  url: "nats://localhost:4222"
+  cluster_id: "agent-manager"
+  max_reconnect: -1  # Unlimited retries
+  reconnect_wait: 2s
+  ping_interval: 20s
+  max_pings_out: 3
+  enable_jetstream: false
+
+# PostgreSQL configuration
+database:
+  host: "localhost"
+  port: 5432
+  user: "aetherius"
+  password: "aetherius123"
+  database: "aetherius"
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300s
+
+# Redis configuration
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 3
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+
+# Logging configuration
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"  # json, console
+  output_path: "stdout"  # stdout, stderr, or file path
+
+# Metrics configuration
+metrics:
+  enabled: true
+  path: "/metrics"
+  port: 8080

@@ -1,0 +1,331 @@
+# 诊断 OOM Killed Pod 工作流示例
+# 此工作流自动诊断和修复因 OOM 被杀死的 Pod
+
+id: "diagnose_oom_killed"
+name: "Diagnose OOM Killed Pod"
+description: "Automatically diagnose and fix pods killed due to out of memory"
+
+# 触发器配置
+trigger_type: "event"
+trigger_config:
+  event_reason: "OOMKilled"
+  severity: "high"
+
+# 工作流状态
+status: "active"
+priority: 10
+timeout: "5m"
+
+# 工作流步骤
+steps:
+  # 步骤 1: 收集 Pod 日志
+  - id: "collect_logs"
+    type: "command"
+    name: "Collect container logs"
+    description: "Collect logs from the killed container"
+    config:
+      tool: "kubectl"
+      action: "logs"
+      args:
+        - "--tail=100"
+        - "--previous"  # 获取上一个容器的日志
+      namespace: "{{.event.namespace}}"
+      target: "{{.event.pod_name}}"
+    timeout: "30s"
+    on_success: ["check_resources"]
+    on_failure: ["notify_failure"]
+
+  # 步骤 2: 检查资源配置
+  - id: "check_resources"
+    type: "command"
+    name: "Check resource configuration"
+    description: "Get pod resource limits and requests"
+    config:
+      tool: "kubectl"
+      action: "describe"
+      target: "pod/{{.event.pod_name}}"
+      namespace: "{{.event.namespace}}"
+    timeout: "30s"
+    on_success: ["get_metrics"]
+
+  # 步骤 3: 获取历史指标
+  - id: "get_metrics"
+    type: "command"
+    name: "Get historical metrics"
+    description: "Query Prometheus for historical memory usage"
+    config:
+      tool: "prometheus"
+      action: "query_range"
+      query: |
+        container_memory_usage_bytes{
+          pod="{{.event.pod_name}}",
+          namespace="{{.event.namespace}}"
+        }
+      time_range: "1h"
+    timeout: "30s"
+    on_success: ["ai_analysis"]
+
+  # 步骤 4: AI 根因分析
+  - id: "ai_analysis"
+    type: "ai_analysis"
+    name: "AI Root Cause Analysis"
+    description: "Analyze logs and metrics to determine root cause"
+    config:
+      analysis_type: "root_cause"
+      context:
+        event: "{{.trigger_event}}"
+        logs: "{{.steps.collect_logs.output}}"
+        resources: "{{.steps.check_resources.output}}"
+        metrics: "{{.steps.get_metrics.output}}"
+      options:
+        min_confidence: 0.7
+        include_similar_cases: true
+        max_recommendations: 5
+    timeout: "60s"
+    on_success: ["decide_action"]
+    on_failure: ["notify_analysis_failed"]
+
+  # 步骤 5: 决策分支
+  - id: "decide_action"
+    type: "decision"
+    name: "Decide remediation action"
+    description: "Determine what action to take based on analysis"
+    config:
+      conditions:
+        # 如果根因是 OOM 且置信度高，自动增加内存
+        - condition: |
+            {{.steps.ai_analysis.result.root_cause.type}} == "OOMKiller" &&
+            {{.steps.ai_analysis.result.confidence}} >= 0.85
+          then: "auto_increase_memory"
+
+        # 如果置信度中等，需要人工确认
+        - condition: |
+            {{.steps.ai_analysis.result.confidence}} >= 0.7 &&
+            {{.steps.ai_analysis.result.confidence}} < 0.85
+          then: "request_approval"
+
+        # 置信度低，只发送通知
+        - condition: |
+            {{.steps.ai_analysis.result.confidence}} < 0.7
+          then: "notify_low_confidence"
+    on_success: ["execute_action"]
+
+  # 步骤 6: 自动增加内存限制
+  - id: "auto_increase_memory"
+    type: "remediation"
+    name: "Increase memory limit"
+    description: "Automatically increase pod memory limits"
+    condition: |
+      {{.steps.decide_action.chosen}} == "auto_increase_memory"
+    config:
+      action_type: "kubectl"
+      action: "patch"
+      target_type: "deployment"
+      target_name: "{{.event.deployment_name}}"
+      namespace: "{{.event.namespace}}"
+      patch: |
+        {
+          "spec": {
+            "template": {
+              "spec": {
+                "containers": [{
+                  "name": "{{.event.container_name}}",
+                  "resources": {
+                    "limits": {
+                      "memory": "{{.steps.ai_analysis.result.recommendations[0].metadata.new_limit}}"
+                    },
+                    "requests": {
+                      "memory": "{{.steps.ai_analysis.result.recommendations[0].metadata.new_request}}"
+                    }
+                  }
+                }]
+              }
+            }
+          }
+        }
+      verify_success: true
+      rollback_on_failure: true
+    timeout: "60s"
+    on_success: ["verify_fix"]
+    on_failure: ["rollback_changes"]
+
+  # 步骤 7: 请求人工审批
+  - id: "request_approval"
+    type: "notification"
+    name: "Request manual approval"
+    description: "Send notification requesting approval"
+    condition: |
+      {{.steps.decide_action.chosen}} == "request_approval"
+    config:
+      channel: "slack"
+      severity: "warning"
+      message: |
+        OOM Killed detected in pod {{.event.pod_name}}
+
+        Root Cause: {{.steps.ai_analysis.result.root_cause.description}}
+        Confidence: {{.steps.ai_analysis.result.confidence}}
+
+        Recommended Actions:
+        {{range .steps.ai_analysis.result.recommendations}}
+        - {{.action}}: {{.description}} (confidence: {{.confidence}})
+        {{end}}
+
+        Please approve or reject the recommended action.
+      actions:
+        - label: "Approve"
+          action: "execute_action"
+        - label: "Reject"
+          action: "mark_rejected"
+      timeout: "15m"
+    on_success: ["wait_approval"]
+
+  # 步骤 8: 等待审批
+  - id: "wait_approval"
+    type: "wait"
+    name: "Wait for approval"
+    config:
+      timeout: "15m"
+      cancel_on_timeout: false
+    on_success: ["execute_approved_action"]
+    on_timeout: ["escalate_approval"]
+
+  # 步骤 9: 验证修复效果
+  - id: "verify_fix"
+    type: "command"
+    name: "Verify fix effectiveness"
+    description: "Check if pod is running normally after fix"
+    config:
+      tool: "kubectl"
+      action: "get"
+      target: "pod"
+      selector: "app={{.event.app_label}}"
+      namespace: "{{.event.namespace}}"
+      wait_for_condition: "Ready"
+      max_wait_time: "5m"
+    timeout: "5m"
+    on_success: ["record_success"]
+    on_failure: ["notify_verification_failed"]
+
+  # 步骤 10: 记录成功案例
+  - id: "record_success"
+    type: "ai_feedback"
+    name: "Record successful remediation"
+    description: "Save case to knowledge base for future learning"
+    config:
+      case_study:
+        title: "OOM Killed - {{.event.pod_name}}"
+        description: "Automated remediation of OOM killed pod"
+        symptoms:
+          - "OOMKilled event"
+          - "Memory usage at 100%"
+        root_cause: "{{.steps.ai_analysis.result.root_cause.type}}"
+        solution: "{{.steps.auto_increase_memory.action_taken}}"
+        outcome: "success"
+        metadata:
+          cluster_id: "{{.event.cluster_id}}"
+          namespace: "{{.event.namespace}}"
+          pod_name: "{{.event.pod_name}}"
+    on_success: ["notify_success"]
+
+  # 步骤 11: 成功通知
+  - id: "notify_success"
+    type: "notification"
+    name: "Send success notification"
+    config:
+      channel: "slack"
+      severity: "info"
+      message: |
+        ✅ OOM issue automatically resolved
+
+        Pod: {{.event.pod_name}}
+        Namespace: {{.event.namespace}}
+
+        Root Cause: {{.steps.ai_analysis.result.root_cause.description}}
+        Action Taken: {{.steps.auto_increase_memory.action_taken}}
+
+        Verification: Pod is now running normally
+        Total Time: {{.execution.duration}}
+    on_success: []
+
+  # 步骤 12: 失败通知
+  - id: "notify_failure"
+    type: "notification"
+    name: "Send failure notification"
+    config:
+      channel: "slack"
+      severity: "error"
+      message: |
+        ❌ Failed to diagnose OOM issue
+
+        Pod: {{.event.pod_name}}
+        Namespace: {{.event.namespace}}
+
+        Error: {{.error}}
+
+        Please investigate manually.
+    on_success: []
+
+  # 步骤 13: 回滚更改
+  - id: "rollback_changes"
+    type: "remediation"
+    name: "Rollback changes"
+    description: "Rollback failed remediation"
+    config:
+      action_type: "kubectl"
+      action: "rollout_undo"
+      target_type: "deployment"
+      target_name: "{{.event.deployment_name}}"
+      namespace: "{{.event.namespace}}"
+    on_success: ["notify_rollback"]
+
+  # 步骤 14: 回滚通知
+  - id: "notify_rollback"
+    type: "notification"
+    name: "Send rollback notification"
+    config:
+      channel: "slack"
+      severity: "warning"
+      message: |
+        ⚠️ Remediation failed and was rolled back
+
+        Pod: {{.event.pod_name}}
+        Namespace: {{.event.namespace}}
+
+        Action Attempted: Increase memory limit
+        Reason for Rollback: {{.steps.auto_increase_memory.error}}
+
+        The deployment has been rolled back to the previous version.
+        Manual intervention required.
+
+# 重试策略
+retry_policy:
+  max_retries: 3
+  retry_on:
+    - "timeout"
+    - "network_error"
+  backoff:
+    initial: "5s"
+    multiplier: 2
+    max: "60s"
+
+# 通知配置
+notifications:
+  on_start:
+    enabled: true
+    channels: ["slack"]
+  on_complete:
+    enabled: true
+    channels: ["slack", "email"]
+  on_failure:
+    enabled: true
+    channels: ["slack", "pagerduty"]
+
+# 元数据
+metadata:
+  author: "Aetherius Team"
+  version: "1.0.0"
+  tags:
+    - "oom"
+    - "memory"
+    - "auto-remediation"
+  documentation: "https://docs.aetherius.io/workflows/diagnose-oom"

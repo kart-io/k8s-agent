@@ -1,0 +1,426 @@
+# Orchestrator Service 示例配置
+# 用于工作流编排和任务调度
+
+# 服务配置
+server:
+  # HTTP 服务器端口
+  port: 8081
+  # 服务器模式: debug, release
+  mode: release
+  # 读取超时(秒)
+  read_timeout: 30
+  # 写入超时(秒)
+  write_timeout: 30
+  # 空闲超时(秒)
+  idle_timeout: 60
+  # 最大请求体大小(MB)
+  max_body_size: 10
+
+# 数据库配置
+database:
+  # 数据库类型: postgres, mysql
+  type: postgres
+  # 连接地址
+  host: localhost
+  # 端口
+  port: 5432
+  # 数据库名
+  database: orchestrator
+  # 用户名
+  username: aetherius
+  # 密码
+  password: aetherius_pass
+  # SSL 模式: disable, require, verify-ca, verify-full
+  sslmode: disable
+  # 最大空闲连接数
+  max_idle_conns: 10
+  # 最大打开连接数
+  max_open_conns: 100
+  # 连接最大生命周期(分钟)
+  conn_max_lifetime: 60
+  # 慢查询阈值(毫秒)
+  slow_threshold: 200
+
+# Redis 配置
+redis:
+  # Redis 地址
+  addr: localhost:6379
+  # 密码
+  password: redis_pass
+  # 数据库编号
+  db: 1
+  # 连接池大小
+  pool_size: 10
+  # 最小空闲连接数
+  min_idle_conns: 5
+  # 连接超时(秒)
+  dial_timeout: 5
+  # 读取超时(秒)
+  read_timeout: 3
+  # 写入超时(秒)
+  write_timeout: 3
+
+# NATS 配置
+nats:
+  # NATS 服务器地址
+  url: nats://localhost:4222
+  # 客户端名称
+  name: orchestrator-service
+  # 最大重连次数
+  max_reconnects: -1
+  # 重连等待时间(秒)
+  reconnect_wait: 2
+  # 连接超时(秒)
+  timeout: 10
+  # Ping 间隔(秒)
+  ping_interval: 20
+  # 最大 Ping 未响应次数
+  max_pings_out: 2
+
+# 工作流引擎配置
+workflow:
+  # 工作流定义目录
+  definition_dir: /etc/aetherius/workflows
+  # 是否自动加载工作流
+  auto_load: true
+  # 工作流扫描间隔(秒)
+  scan_interval: 60
+  # 最大并发工作流执行数
+  max_concurrent_executions: 100
+  # 工作流执行超时(分钟)
+  default_timeout: 60
+  # 执行历史保留时间(天)
+  execution_retention_days: 30
+  # 失败执行保留时间(天)
+  failed_execution_retention_days: 90
+  # 是否启用工作流版本控制
+  versioning_enabled: true
+  # 最大工作流版本数
+  max_versions: 10
+
+# 步骤执行器配置
+executor:
+  # 执行器工作协程数
+  workers: 20
+  # 任务队列大小
+  queue_size: 1000
+  # 步骤默认超时(秒)
+  default_step_timeout: 300
+  # 步骤默认重试次数
+  default_retry_count: 3
+  # 重试间隔(秒)
+  retry_interval: 10
+  # 重试退避倍数
+  retry_backoff_multiplier: 2.0
+  # 最大重试间隔(秒)
+  max_retry_interval: 300
+  # 并行步骤执行配置
+  parallel:
+    # 是否启用并行执行
+    enabled: true
+    # 最大并行度
+    max_parallelism: 10
+    # 并行超时(秒)
+    timeout: 600
+
+# 步骤类型配置
+steps:
+  # 诊断步骤配置
+  diagnostic:
+    # 默认超时(秒)
+    timeout: 120
+    # 支持的工具
+    supported_tools:
+      - kubectl
+      - logs
+      - describe
+      - top
+    # 最大日志行数
+    max_log_lines: 1000
+  # AI 分析步骤配置
+  ai_analysis:
+    # 推理服务地址
+    service_url: http://localhost:8082
+    # 请求超时(秒)
+    timeout: 60
+    # 最小置信度阈值
+    min_confidence: 0.7
+    # 是否启用缓存
+    cache_enabled: true
+    # 缓存过期时间(秒)
+    cache_ttl: 300
+  # 修复步骤配置
+  remediation:
+    # 默认超时(秒)
+    timeout: 300
+    # 是否需要审批
+    require_approval: true
+    # 审批超时(秒)
+    approval_timeout: 600
+    # 是否自动回滚
+    auto_rollback: true
+    # 验证重试次数
+    verify_retries: 3
+    # 验证间隔(秒)
+    verify_interval: 10
+  # 通知步骤配置
+  notification:
+    # 默认超时(秒)
+    timeout: 30
+    # 支持的渠道
+    supported_channels:
+      - email
+      - slack
+      - webhook
+    # 通知重试次数
+    retry_count: 3
+  # 决策步骤配置
+  decision:
+    # 默认超时(秒)
+    timeout: 10
+    # 是否启用表达式缓存
+    expression_cache: true
+  # 脚本步骤配置
+  script:
+    # 默认超时(秒)
+    timeout: 300
+    # 最大脚本大小(KB)
+    max_size: 100
+    # 允许的解释器
+    allowed_interpreters:
+      - bash
+      - python3
+    # 是否启用沙箱
+    sandbox_enabled: true
+
+# 策略引擎配置
+strategy:
+  # 策略定义目录
+  definition_dir: /etc/aetherius/strategies
+  # 是否自动加载策略
+  auto_load: true
+  # 策略扫描间隔(秒)
+  scan_interval: 60
+  # 策略评估间隔(秒)
+  evaluation_interval: 30
+  # 是否启用策略
+  enabled: true
+  # 默认冷却时间(秒)
+  default_cooldown: 300
+  # 最大并发策略执行数
+  max_concurrent_executions: 50
+
+# 事件处理配置
+event:
+  # 事件订阅配置
+  subscription:
+    # 订阅的事件主题
+    subjects:
+      - "aetherius.events.>"
+      - "internal.events.>"
+    # 队列组名称
+    queue_group: orchestrator-service
+    # 是否持久化订阅
+    durable: true
+  # 事件处理配置
+  processing:
+    # 缓冲区大小
+    buffer_size: 500
+    # 批处理大小
+    batch_size: 50
+    # 批处理超时(毫秒)
+    batch_timeout: 1000
+    # 工作协程数
+    workers: 10
+  # 事件过滤配置
+  filters:
+    # 是否启用过滤
+    enabled: true
+    # 最小严重级别
+    min_severity: medium
+    # 忽略的事件类型
+    ignore_types:
+      - Normal
+    # 仅处理的命名空间
+    namespaces: []
+
+# 通知配置
+notification:
+  # Email 通知
+  email:
+    # 是否启用
+    enabled: false
+    # SMTP 服务器
+    smtp_host: smtp.example.com
+    smtp_port: 587
+    # 认证
+    smtp_username: notifications@example.com
+    smtp_password: password
+    # 发件人
+    from: aetherius@example.com
+    # 是否使用 TLS
+    use_tls: true
+  # Slack 通知
+  slack:
+    # 是否启用
+    enabled: false
+    # Webhook URL
+    webhook_url: https://hooks.slack.com/services/YOUR/WEBHOOK
+    # 默认频道
+    default_channel: "#aetherius"
+    # 用户名
+    username: Aetherius Bot
+    # 图标
+    icon_emoji: ":robot_face:"
+  # Webhook 通知
+  webhook:
+    # 是否启用
+    enabled: true
+    # 默认 URL
+    default_url: http://webhook-service:8080/notifications
+    # 超时(秒)
+    timeout: 10
+    # 重试次数
+    retry_count: 3
+  # 通知模板
+  templates:
+    # 工作流开始
+    workflow_started: "Workflow '{{.WorkflowName}}' started for {{.ResourceType}}/{{.ResourceName}}"
+    # 工作流完成
+    workflow_completed: "Workflow '{{.WorkflowName}}' completed with status: {{.Status}}"
+    # 工作流失败
+    workflow_failed: "Workflow '{{.WorkflowName}}' failed: {{.Error}}"
+
+# 审批配置
+approval:
+  # 是否启用审批功能
+  enabled: true
+  # 默认审批超时(秒)
+  default_timeout: 600
+  # 审批者配置
+  approvers:
+    # 默认审批者
+    default:
+      - admin@example.com
+    # 按严重级别配置审批者
+    by_severity:
+      critical:
+        - oncall@example.com
+        - manager@example.com
+      high:
+        - oncall@example.com
+      medium:
+        - team@example.com
+  # 通知配置
+  notification:
+    # 审批请求通知渠道
+    channels:
+      - email
+      - slack
+    # 提醒间隔(秒)
+    reminder_interval: 300
+    # 最大提醒次数
+    max_reminders: 3
+
+# 上下文管理配置
+context:
+  # 上下文缓存大小
+  cache_size: 1000
+  # 上下文过期时间(秒)
+  ttl: 3600
+  # 是否持久化上下文
+  persist: true
+  # 最大上下文大小(KB)
+  max_size: 1024
+
+# 日志配置
+logging:
+  # 日志级别: debug, info, warn, error
+  level: info
+  # 日志格式: json, text
+  format: json
+  # 日志输出: stdout, stderr, file
+  output: stdout
+  # 日志文件配置
+  file:
+    path: /var/log/orchestrator/app.log
+    max_size: 100
+    max_backups: 10
+    max_age: 30
+    compress: true
+  # 是否启用调用栈
+  enable_caller: true
+
+# 指标配置
+metrics:
+  # 是否启用 Prometheus 指标
+  enabled: true
+  # 指标路径
+  path: /metrics
+  # 是否包含 Go 运行时指标
+  include_go_metrics: true
+
+# 健康检查配置
+health:
+  # 健康检查路径
+  path: /health
+  # 就绪检查路径
+  readiness_path: /ready
+  # 存活检查路径
+  liveness_path: /live
+
+# 链路追踪配置
+tracing:
+  # 是否启用链路追踪
+  enabled: false
+  # 追踪采样率 (0.0-1.0)
+  sampling_rate: 0.1
+  # OTLP 配置
+  otlp:
+    endpoint: localhost:4317
+    insecure: true
+
+# 安全配置
+security:
+  # TLS 配置
+  tls:
+    enabled: false
+    cert_file: /etc/aetherius/certs/server.crt
+    key_file: /etc/aetherius/certs/server.key
+    min_version: "1.2"
+  # 认证配置
+  auth:
+    enabled: false
+    jwt_secret: your-secret-key-change-in-production
+    token_expiry: 24
+  # CORS 配置
+  cors:
+    enabled: true
+    allowed_origins:
+      - "*"
+    allowed_methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+
+# 限流配置
+rate_limit:
+  # 是否启用限流
+  enabled: true
+  # 全局限流 (请求/秒)
+  global_rps: 1000
+  # 每个 IP 限流 (请求/秒)
+  per_ip_rps: 100
+
+# 特性开关
+features:
+  # 是否启用并行执行
+  parallel_execution: true
+  # 是否启用工作流版本控制
+  workflow_versioning: true
+  # 是否启用自动审批
+  auto_approval: false
+  # 是否启用实验性功能
+  experimental: false
