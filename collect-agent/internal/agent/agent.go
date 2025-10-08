@@ -3,12 +3,15 @@ package agent
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kart/k8s-agent/collect-agent/internal/types"
 	"github.com/kart/k8s-agent/collect-agent/internal/utils"
@@ -20,6 +23,11 @@ type Agent struct {
 	clusterID  string
 	clientset  kubernetes.Interface
 	logger     *zap.Logger
+	kubeConfig *rest.Config
+
+	// Cluster information
+	k8sVersion string
+	apiServer  string
 
 	// Components
 	eventWatcher         *EventWatcher
@@ -43,12 +51,38 @@ type Agent struct {
 	startTime time.Time
 }
 
+// getKubeConfig returns Kubernetes config, trying in-cluster first, then falling back to local kubeconfig
+func getKubeConfig() (*rest.Config, error) {
+	// Try in-cluster config first
+	config, err := rest.InClusterConfig()
+	if err == nil {
+		return config, nil
+	}
+
+	// Fall back to local kubeconfig
+	kubeconfig := os.Getenv("KUBECONFIG")
+	if kubeconfig == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("unable to get home directory: %w", err)
+		}
+		kubeconfig = filepath.Join(home, ".kube", "config")
+	}
+
+	config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build config from kubeconfig: %w", err)
+	}
+
+	return config, nil
+}
+
 // New creates a new Agent instance
 func New(config *types.AgentConfig, logger *zap.Logger) (*Agent, error) {
 	// Create Kubernetes clientset
-	kubeConfig, err := rest.InClusterConfig()
+	kubeConfig, err := getKubeConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create in-cluster config: %w", err)
+		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(kubeConfig)
@@ -67,11 +101,26 @@ func New(config *types.AgentConfig, logger *zap.Logger) (*Agent, error) {
 		config.ClusterID = clusterID
 	}
 
+	// Get Kubernetes version
+	k8sVersion := ""
+	versionInfo, err := clientset.Discovery().ServerVersion()
+	if err != nil {
+		logger.Warn("Failed to get Kubernetes version", zap.Error(err))
+	} else {
+		k8sVersion = versionInfo.GitVersion
+	}
+
+	// Get API Server address
+	apiServer := kubeConfig.Host
+
 	agent := &Agent{
-		config:    config,
-		clusterID: clusterID,
-		clientset: clientset,
-		logger:    logger.With(zap.String("cluster_id", clusterID)),
+		config:     config,
+		clusterID:  clusterID,
+		clientset:  clientset,
+		kubeConfig: kubeConfig,
+		k8sVersion: k8sVersion,
+		apiServer:  apiServer,
+		logger:     logger.With(zap.String("cluster_id", clusterID)),
 
 		eventChan:   make(chan *types.Event, config.BufferSize),
 		metricsChan: make(chan *types.Metrics, 100),
@@ -109,6 +158,8 @@ func (a *Agent) initializeComponents() error {
 	a.communicationManager = NewCommunicationManager(
 		a.config,
 		a.clusterID,
+		a.k8sVersion,
+		a.apiServer,
 		a.eventChan,
 		a.metricsChan,
 		a.resultChan,

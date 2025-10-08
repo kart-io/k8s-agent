@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+  namespace: traefik
+data:
+  traefik.yml: |
+    # API 和仪表板
+    api:
+      dashboard: true
+      insecure: false
+
+    # 入口点
+    entryPoints:
+      web:
+        address: ":80"
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+
+      websecure:
+        address: ":443"
+        http:
+          tls:
+            certResolver: letsencrypt
+
+      traefik:
+        address: ":8080"
+
+    # 提供者
+    providers:
+      kubernetesCRD:
+        allowCrossNamespace: true
+      kubernetesIngress:
+        allowEmptyServices: true
+
+    # 证书解析器
+    certificatesResolvers:
+      letsencrypt:
+        acme:
+          email: admin@example.com
+          storage: /data/acme.json
+          httpChallenge:
+            entryPoint: web
+
+    # 日志
+    log:
+      level: INFO
+      format: json
+
+    # 访问日志
+    accessLog:
+      format: json
+      filters:
+        statusCodes:
+          - "200-599"
+
+    # 指标
+    metrics:
+      prometheus:
+        addEntryPointsLabels: true
+        addServicesLabels: true
+
+    # 追踪
+    tracing:
+      serviceName: traefik
+
+    # Ping
+    ping:
+      entryPoint: traefik

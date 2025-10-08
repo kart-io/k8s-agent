@@ -1,0 +1,115 @@
+# Traefik 动态配置 - 中间件
+
+http:
+  middlewares:
+    # 限流中间件
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 200
+        period: 1s
+
+    # CORS 中间件
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        accessControlAllowOriginList:
+          - "http://localhost:3000"
+          - "http://localhost:5173"
+        accessControlAllowHeaders:
+          - "*"
+        accessControlExposeHeaders:
+          - "*"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    # 压缩中间件
+    compression:
+      compress: {}
+
+    # 安全头中间件
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        sslRedirect: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+
+    # 重试中间件
+    retry:
+      attempts: 3
+      initialInterval: 100ms
+
+    # 超时中间件
+    timeout:
+      responseHeaderTimeout: 30s
+      idleConnTimeout: 90s
+
+    # IP 白名单（可选）
+    ip-whitelist:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "192.168.0.0/16"
+          - "10.0.0.0/8"
+
+    # 请求路径前缀剥离
+    strip-api-prefix:
+      stripPrefix:
+        prefixes:
+          - "/api"
+
+    # 添加前缀
+    add-api-prefix:
+      addPrefix:
+        prefix: "/api/v1"
+
+    # 重定向 HTTPS
+    redirect-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    # 请求体大小限制
+    buffering:
+      maxRequestBodyBytes: 10485760  # 10MB
+      memRequestBodyBytes: 2097152   # 2MB
+      maxResponseBodyBytes: 10485760
+      memResponseBodyBytes: 2097152
+      retryExpression: "IsNetworkError() && Attempts() <= 2"
+
+    # 认证中间件（基础认证示例）
+    basic-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"  # admin:admin
+
+    # 链式中间件 - API 网关标准链
+    gateway-chain:
+      chain:
+        middlewares:
+          - cors-headers
+          - compression
+          - rate-limit
+          - retry
+          - timeout
+
+    # 链式中间件 - 安全链
+    secure-chain:
+      chain:
+        middlewares:
+          - security-headers
+          - cors-headers
+          - rate-limit
+          - compression

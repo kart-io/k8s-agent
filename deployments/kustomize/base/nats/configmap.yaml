@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-config
+  labels:
+    app: nats
+    component: message-queue
+data:
+  nats.conf: |
+    # NATS Server Configuration for Aetherius
+
+    # Server name
+    server_name: $POD_NAME
+
+    # Client port
+    port: 4222
+
+    # HTTP monitoring port
+    http_port: 8222
+
+    # Cluster port
+    cluster {
+      name: aetherius-cluster
+      port: 6222
+
+      # Routes for clustering (will be configured in prod overlay)
+      # routes = [
+      #   nats://nats-0.nats:6222
+      #   nats://nats-1.nats:6222
+      #   nats://nats-2.nats:6222
+      # ]
+    }
+
+    # Logging
+    debug: false
+    trace: false
+    logtime: true
+    log_file: "/data/nats.log"
+
+    # Limits
+    max_connections: 1000
+    max_subscriptions: 10000
+    max_payload: 1048576  # 1MB
+    max_pending: 67108864  # 64MB
+
+    # Connection timeouts
+    ping_interval: "2m"
+    ping_max: 2
+    write_deadline: "10s"
+
+    # JetStream (for persistence)
+    jetstream {
+      store_dir: "/data/jetstream"
+      max_memory_store: 256MB
+      max_file_store: 2GB
+    }
+
+    # System account for monitoring (disabled for development)
+    # system_account: SYS
+
+    # Accounts (optional, for multi-tenancy)
+    # accounts {
+    #   SYS {
+    #     users = [
+    #       { user: "admin", password: "changeme" }
+    #     ]
+    #   }
+    #   AETHERIUS {
+    #     users = [
+    #       { user: "aetherius", password: "changeme" }
+    #     ]
+    #     jetstream: enabled
+    #   }
+    # }
+
+    # Default authorization (disabled for development)
+    # authorization {
+    #   user: "aetherius"
+    #   password: "changeme"
+    #   timeout: 1
+    # }

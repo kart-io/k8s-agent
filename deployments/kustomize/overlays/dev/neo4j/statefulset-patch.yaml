@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j
+spec:
+  template:
+    spec:
+      containers:
+      - name: neo4j
+        env:
+        - name: NEO4J_dbms_memory_heap_initial__size
+          value: "256m"
+        - name: NEO4J_dbms_memory_heap_max__size
+          value: "512m"
+        - name: NEO4J_dbms_memory_pagecache_size
+          value: "256m"
+        - name: NEO4J_server_config_strict__validation_enabled
+          value: "false"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: neo4j-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi  # Smaller storage for dev
+  - metadata:
+      name: neo4j-logs
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 500Mi
+  - metadata:
+      name: neo4j-plugins
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 500Mi

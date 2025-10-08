@@ -1,0 +1,88 @@
+# Traefik 静态配置
+
+# API 和仪表板配置
+api:
+  dashboard: true
+  insecure: true  # 开发环境，生产环境应设为 false
+
+# 入口点配置
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+  traefik:
+    address: ":8080"
+
+# 证书解析器（Let's Encrypt）
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@example.com
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+
+# 提供者配置
+providers:
+  # Docker 提供者
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: k8s-agent-network
+
+  # 文件提供者（用于静态路由）
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# 日志配置
+log:
+  level: INFO
+  filePath: /var/log/traefik/traefik.log
+  format: json
+
+# 访问日志
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  filters:
+    statusCodes:
+      - "200"
+      - "300-302"
+      - "400-499"
+      - "500-599"
+  fields:
+    defaultMode: keep
+    headers:
+      defaultMode: keep
+
+# 指标配置
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+
+# 追踪配置
+tracing:
+  serviceName: traefik
+
+# 健康检查
+ping:
+  entryPoint: traefik

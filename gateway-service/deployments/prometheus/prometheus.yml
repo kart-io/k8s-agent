@@ -1,0 +1,65 @@
+# Prometheus 配置
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'k8s-agent'
+    environment: 'development'
+
+# Alertmanager 配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# 规则文件
+rule_files:
+  # - "alerts/*.yml"
+
+# 抓取配置
+scrape_configs:
+  # Prometheus 自身
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Traefik 指标
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8080']
+    metrics_path: '/metrics'
+
+  # Gateway Service 指标
+  - job_name: 'gateway-service'
+    static_configs:
+      - targets: ['gateway-service:8080']
+    metrics_path: '/metrics'
+
+  # Auth Service 指标
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:8090']
+    metrics_path: '/metrics'
+
+  # Agent Manager 指标
+  - job_name: 'agent-manager'
+    static_configs:
+      - targets: ['agent-manager:8081']
+    metrics_path: '/metrics'
+
+  # Orchestrator Service 指标
+  - job_name: 'orchestrator-service'
+    static_configs:
+      - targets: ['orchestrator-service:8082']
+    metrics_path: '/metrics'
+
+  # Redis Exporter (如果有)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # PostgreSQL Exporter (如果有)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']

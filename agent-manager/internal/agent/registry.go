@@ -93,7 +93,8 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 			zap.String("agent_id", agent.ID),
 			zap.String("cluster_id", agent.ClusterID))
 	} else {
-		// New agent
+		// New agent - keep the ID if provided, otherwise it will be empty and database will fail
+		// The ID should come from the registration message
 		agent.RegisteredAt = time.Now()
 		agent.UpdatedAt = time.Now()
 
@@ -105,7 +106,8 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 
 		r.logger.Info("New agent registered",
 			zap.String("agent_id", agent.ID),
-			zap.String("cluster_id", agent.ClusterID))
+			zap.String("cluster_id", agent.ClusterID),
+			zap.String("version", agent.Version))
 
 		r.registrationCount++
 	}
@@ -127,6 +129,14 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 
 	// Store in memory
 	r.agents[agent.ID] = agent
+
+	// Create or update cluster record
+	if err := r.ensureCluster(ctx, agent); err != nil {
+		r.logger.Warn("Failed to ensure cluster",
+			zap.String("cluster_id", agent.ClusterID),
+			zap.Error(err))
+		// Don't fail agent registration if cluster creation fails
+	}
 
 	return nil
 }
@@ -379,6 +389,80 @@ func (r *Registry) performCleanup() {
 			}
 		}
 	}
+}
+
+// ensureCluster creates or updates a cluster record for the agent
+func (r *Registry) ensureCluster(ctx context.Context, agent *types.Agent) error {
+	// Check if cluster already exists
+	cluster, err := r.store.GetCluster(ctx, agent.ClusterID)
+	if err == nil && cluster != nil {
+		// Update existing cluster
+		cluster.Status = types.ClusterStatusActive
+		cluster.Health = types.ClusterHealthHealthy
+		cluster.Version = agent.Version
+		cluster.AgentCount = 1 // This should be counted from agents table
+		cluster.UpdatedAt = time.Now()
+
+		return r.store.SaveCluster(ctx, cluster)
+	}
+
+	// Create new cluster
+	newCluster := &types.Cluster{
+		ID:          agent.ClusterID,
+		Name:        agent.ClusterID, // Use cluster ID as name by default
+		Description: "Auto-created from agent registration",
+		Environment: "unknown", // Can be updated later
+		Status:      types.ClusterStatusActive,
+		Health:      types.ClusterHealthHealthy,
+		Version:     agent.Version,
+		AgentCount:  1,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	return r.store.SaveCluster(ctx, newCluster)
+}
+
+// UpdateClusterInfo updates cluster K8s version and API server
+func (r *Registry) UpdateClusterInfo(ctx context.Context, clusterID, k8sVersion, apiServer string) error {
+	cluster, err := r.store.GetCluster(ctx, clusterID)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster: %w", err)
+	}
+
+	if cluster == nil {
+		return fmt.Errorf("cluster not found: %s", clusterID)
+	}
+
+	// Update fields if provided
+	if k8sVersion != "" {
+		cluster.Version = k8sVersion
+	}
+	if apiServer != "" {
+		cluster.APIServer = apiServer
+	}
+	cluster.UpdatedAt = time.Now()
+
+	return r.store.SaveCluster(ctx, cluster)
+}
+
+// UpdateClusterMetrics updates cluster node and pod counts
+func (r *Registry) UpdateClusterMetrics(ctx context.Context, clusterID string, nodeCount, podCount int) error {
+	cluster, err := r.store.GetCluster(ctx, clusterID)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster: %w", err)
+	}
+
+	if cluster == nil {
+		return fmt.Errorf("cluster not found: %s", clusterID)
+	}
+
+	// Update metrics
+	cluster.NodeCount = nodeCount
+	cluster.PodCount = podCount
+	cluster.UpdatedAt = time.Now()
+
+	return r.store.SaveCluster(ctx, cluster)
 }
 
 // GetStatistics returns registry statistics

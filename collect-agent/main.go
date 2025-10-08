@@ -17,20 +17,24 @@ import (
 
 var (
 	configPath = flag.String("config", "/etc/aetherius/config.yaml", "path to configuration file")
-	version    = flag.Bool("version", false, "print version information")
+	showVersion    = flag.Bool("version", false, "print version information")
 	healthPort = flag.Int("health-port", 8080, "port for health checks")
+
+	// Build-time variables (set via -ldflags)
+	version   = "v1.0.0"
+	gitCommit = "unknown"
+	buildDate = "unknown"
 )
 
 const (
 	AppName    = "aetherius-collect-agent"
-	AppVersion = "v1.0.0"
 )
 
 func main() {
 	flag.Parse()
 
-	if *version {
-		fmt.Printf("%s version %s\n", AppName, AppVersion)
+	if *showVersion {
+		fmt.Printf("%s version %s (commit: %s, built: %s)\n", AppName, version, gitCommit, buildDate)
 		os.Exit(0)
 	}
 
@@ -50,7 +54,7 @@ func main() {
 	defer logger.Sync()
 
 	logger.Info("Starting Aetherius Collect Agent",
-		zap.String("version", AppVersion),
+		zap.String("version", version),
 		zap.String("config_path", *configPath),
 		zap.String("cluster_id", cfg.ClusterID),
 		zap.String("central_endpoint", cfg.CentralEndpoint))
@@ -75,8 +79,14 @@ func main() {
 		logger.Fatal("Failed to create agent", zap.Error(err))
 	}
 
+	// Determine health port: use config value if set, otherwise use command line flag
+	port := *healthPort
+	if cfg.HealthPort > 0 {
+		port = cfg.HealthPort
+	}
+
 	// Start health server
-	healthServer := agent.NewHealthServer(agentInstance, *healthPort, logger)
+	healthServer := agent.NewHealthServer(agentInstance, port, logger)
 	if err := healthServer.Start(); err != nil {
 		logger.Fatal("Failed to start health server", zap.Error(err))
 	}

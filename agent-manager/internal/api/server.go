@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -172,7 +173,15 @@ func (s *Server) setupRoutes() {
 			commands.POST("", s.handleSendCommand)
 			commands.GET("/:id", s.handleGetCommand)
 			commands.GET("/:id/result", s.handleGetCommandResult)
+			commands.GET("/:id/events", s.handleGetCommandEvents)
 			commands.GET("", s.handleListPendingCommands)
+		}
+
+		// Operation tracking for correlating external commands with events
+		operations := v1.Group("/operations")
+		{
+			operations.POST("", s.handleRecordOperation)
+			operations.GET("/:id/events", s.handleGetOperationEvents)
 		}
 	}
 }
@@ -249,6 +258,15 @@ func (s *Server) handleListAgents(c *gin.Context) {
 		return
 	}
 
+	// Apply limit if specified
+	limit := len(agents)
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit < len(agents) {
+			limit = parsedLimit
+			agents = agents[:limit]
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"agents": agents,
 		"count":  len(agents),
@@ -285,6 +303,15 @@ func (s *Server) handleListClusters(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Apply limit if specified
+	limit := len(clusters)
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit < len(clusters) {
+			limit = parsedLimit
+			clusters = clusters[:limit]
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -376,11 +403,18 @@ func (s *Server) handleClusterHealth(c *gin.Context) {
 // Event handlers
 
 func (s *Server) handleListEvents(c *gin.Context) {
+	limit := 100
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
 	filter := storage.EventFilter{
 		ClusterID: c.Query("cluster_id"),
 		Severity:  c.Query("severity"),
 		Namespace: c.Query("namespace"),
-		Limit:     100,
+		Limit:     limit,
 	}
 
 	events, err := s.store.ListEvents(c.Request.Context(), filter)
@@ -444,6 +478,10 @@ func (s *Server) handleSendCommand(c *gin.Context) {
 		return
 	}
 
+	// 启动后台任务，自动关联命令产生的事件
+	// 在接下来30秒内，将匹配的事件的 command_id 设置为该命令的 ID
+	go s.correlateEventsToCommand(cmd.ID, cmd.ClusterID, cmd.Namespace, cmd.IssuedBy)
+
 	c.JSON(http.StatusCreated, cmd)
 }
 
@@ -471,13 +509,252 @@ func (s *Server) handleGetCommandResult(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// handleGetCommandEvents 获取与命令关联的所有事件
+// GET /api/v1/commands/:id/events
+// 路径参数: id - 命令ID (command_id)
+func (s *Server) handleGetCommandEvents(c *gin.Context) {
+	commandID := c.Param("id") // 从URL路径获取命令ID
+
+	// 查询所有关联的事件
+	var events []*types.Event
+	if err := s.store.DB().WithContext(c.Request.Context()).
+		Where("command_id = ?", commandID).
+		Order("timestamp DESC").
+		Find(&events).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 返回参数
+	c.JSON(http.StatusOK, gin.H{
+		"command_id": commandID,      // 命令ID
+		"events":     events,          // 事件列表，包含 reason, namespace, timestamp, triggered_by 等字段
+		"count":      len(events),     // 事件总数
+	})
+}
+
 func (s *Server) handleListPendingCommands(c *gin.Context) {
-	commands := s.dispatcher.GetPendingCommands()
+	// Get optional query parameters
+	clusterID := c.Query("cluster_id")
+	status := c.Query("status")
+
+	limit := 100
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	// Query database for commands with filters
+	var commands []*types.Command
+	query := s.store.DB().WithContext(c.Request.Context())
+
+	if clusterID != "" {
+		query = query.Where("cluster_id = ?", clusterID)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	// Order by creation time descending and apply limit
+	if err := query.Order("created_at DESC").Limit(limit).Find(&commands).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"commands": commands,
 		"count":    len(commands),
 	})
+}
+
+// Operation tracking handlers
+
+// handleRecordOperation 记录操作信息，用于关联后续触发的 Kubernetes 事件
+// POST /api/v1/operations
+func (s *Server) handleRecordOperation(c *gin.Context) {
+	// 请求参数
+	var req struct {
+		Command     string            `json:"command" binding:"required"` // 执行的命令，如 "kubectl scale deployment redis --replicas=0"
+		ClusterID   string            `json:"cluster_id"`                 // 集群ID
+		Namespace   string            `json:"namespace"`                  // 命名空间，用于过滤事件
+		User        string            `json:"user"`                       // 执行操作的用户名
+		Description string            `json:"description"`                // 操作描述
+		Metadata    map[string]string `json:"metadata"`                   // 额外的元数据
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 生成关联ID，用于跟踪相关事件
+	// 格式: op-{纳秒时间戳}-{集群ID}
+	// 例如: op-1759461933026009000-k8s-663078ee
+	// 这个ID会在后续30秒内自动写入到相关事件的 correlation_id 字段
+	correlationID := fmt.Sprintf("op-%d-%s", time.Now().UnixNano(), req.ClusterID)
+
+	// 存储操作数据
+	operationData := map[string]interface{}{
+		"correlation_id": correlationID, // 关联ID
+		"command":        req.Command,    // 执行的命令
+		"cluster_id":     req.ClusterID,  // 集群ID
+		"namespace":      req.Namespace,  // 命名空间
+		"user":           req.User,       // 用户名
+		"description":    req.Description, // 操作描述
+		"timestamp":      time.Now(),      // 记录时间
+		"metadata":       req.Metadata,    // 元数据
+	}
+
+	// 启动后台任务，关联接下来30秒内的事件
+	go s.correlateEventsToOperation(correlationID, req.ClusterID, req.Namespace, req.User)
+
+	// 返回参数
+	c.JSON(http.StatusOK, gin.H{
+		"correlation_id": correlationID,                                            // 关联ID，用于后续查询事件
+		"message":        "Operation recorded. Events will be correlated automatically.", // 提示消息
+		"operation":      operationData,                                             // 操作详情
+	})
+}
+
+// handleGetOperationEvents 获取与操作关联的所有事件
+// GET /api/v1/operations/:id/events
+// 路径参数: id - 关联ID (correlation_id)
+func (s *Server) handleGetOperationEvents(c *gin.Context) {
+	correlationID := c.Param("id") // 从URL路径获取关联ID
+
+	// 查询所有关联的事件
+	var events []*types.Event
+	if err := s.store.DB().WithContext(c.Request.Context()).
+		Where("correlation_id = ?", correlationID).
+		Order("timestamp DESC").
+		Find(&events).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 返回参数
+	c.JSON(http.StatusOK, gin.H{
+		"correlation_id": correlationID, // 关联ID
+		"events":         events,         // 事件列表，包含 reason, namespace, timestamp, triggered_by 等字段
+		"count":          len(events),    // 事件总数
+	})
+}
+
+// correlateEventsToOperation 后台任务：在接下来30秒内监听事件并自动关联
+// 参数:
+//   - correlationID: 关联ID
+//   - clusterID: 集群ID
+//   - namespace: 命名空间（可选，用于过滤）
+//   - user: 执行操作的用户名
+func (s *Server) correlateEventsToOperation(correlationID, clusterID, namespace, user string) {
+	startTime := time.Now()
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	timeout := time.After(30 * time.Second)
+
+	for {
+		select {
+		case <-timeout:
+			s.logger.Debug("Operation correlation timeout", zap.String("correlation_id", correlationID))
+			return
+		case <-ticker.C:
+			// Find recent events (last 5 seconds) that match cluster and namespace
+			var recentEvents []*types.Event
+			query := s.store.DB().
+				Where("cluster_id = ?", clusterID).
+				Where("timestamp >= ?", startTime).
+				Where("correlation_id IS NULL OR correlation_id = ''")
+
+			if namespace != "" {
+				query = query.Where("namespace = ?", namespace)
+			}
+
+			if err := query.Find(&recentEvents).Error; err != nil {
+				s.logger.Error("Failed to query events for correlation",
+					zap.Error(err),
+					zap.String("correlation_id", correlationID))
+				continue
+			}
+
+			// 更新事件的关联信息
+			// 将找到的事件的 correlation_id 字段设置为操作的 correlation_id
+			// 这样就建立了"操作 -> 事件"的关联关系
+			for _, event := range recentEvents {
+				event.CorrelationID = correlationID // 设置事件的关联ID为操作ID
+				event.TriggeredBy = user            // 记录触发者
+				if err := s.store.DB().Save(event).Error; err != nil {
+					s.logger.Error("Failed to update event correlation",
+						zap.Error(err),
+						zap.String("event_id", event.ID))
+				} else {
+					s.logger.Debug("Event correlated to operation",
+						zap.String("event_id", event.ID),
+						zap.String("correlation_id", correlationID),
+						zap.String("reason", event.Reason))
+				}
+			}
+		}
+	}
+}
+
+// correlateEventsToCommand 后台任务：在接下来30秒内监听事件并自动关联到命令
+// 参数:
+//   - commandID: 命令ID
+//   - clusterID: 集群ID
+//   - namespace: 命名空间（可选，用于过滤）
+//   - issuedBy: 发送命令的用户
+func (s *Server) correlateEventsToCommand(commandID, clusterID, namespace, issuedBy string) {
+	startTime := time.Now()
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	timeout := time.After(30 * time.Second)
+
+	for {
+		select {
+		case <-timeout:
+			s.logger.Debug("Command correlation timeout", zap.String("command_id", commandID))
+			return
+		case <-ticker.C:
+			// 查找最近的事件并关联到命令
+			var recentEvents []*types.Event
+			query := s.store.DB().
+				Where("cluster_id = ?", clusterID).
+				Where("timestamp >= ?", startTime).
+				Where("command_id IS NULL OR command_id = ''")
+
+			if namespace != "" {
+				query = query.Where("namespace = ?", namespace)
+			}
+
+			if err := query.Find(&recentEvents).Error; err != nil {
+				s.logger.Error("Failed to query events for command correlation",
+					zap.Error(err),
+					zap.String("command_id", commandID))
+				continue
+			}
+
+			// 更新事件的命令关联信息
+			// 将找到的事件的 command_id 字段设置为该命令的 ID
+			// 这样就建立了"命令 -> 事件"的关联关系
+			for _, event := range recentEvents {
+				event.CommandID = commandID   // 设置事件的命令ID
+				event.TriggeredBy = issuedBy // 记录触发者
+				if err := s.store.DB().Save(event).Error; err != nil {
+					s.logger.Error("Failed to update event command correlation",
+						zap.Error(err),
+						zap.String("event_id", event.ID))
+				} else {
+					s.logger.Debug("Event correlated to command",
+						zap.String("event_id", event.ID),
+						zap.String("command_id", commandID),
+						zap.String("reason", event.Reason))
+				}
+			}
+		}
+	}
 }
 
 // Middlewares

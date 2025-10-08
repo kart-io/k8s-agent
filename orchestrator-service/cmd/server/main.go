@@ -52,27 +52,38 @@ func main() {
 }
 
 func run(config *types.Config, logger *zap.Logger) error {
+	logger.Info("==========================================================")
+	logger.Info("     Aetherius Orchestrator Service - Initialization      ")
+	logger.Info("==========================================================")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Initialize PostgreSQL
-	logger.Info("Initializing PostgreSQL")
+	logger.Info("📦 [1/6] Initializing PostgreSQL",
+		zap.String("host", config.Database.Host),
+		zap.Int("port", config.Database.Port),
+		zap.String("database", config.Database.Database))
 	pgStore, err := storage.NewPostgresStore(config.Database, logger)
 	if err != nil {
 		return fmt.Errorf("failed to initialize PostgreSQL: %w", err)
 	}
 	defer pgStore.Close()
+	logger.Info("✅ PostgreSQL initialized successfully")
 
 	// Initialize Redis
-	logger.Info("Initializing Redis")
+	logger.Info("📦 [2/6] Initializing Redis",
+		zap.String("addr", config.Redis.Addr))
 	redisStore, err := storage.NewRedisStore(config.Redis, logger)
 	if err != nil {
 		return fmt.Errorf("failed to initialize Redis: %w", err)
 	}
 	defer redisStore.Close()
+	logger.Info("✅ Redis initialized successfully")
 
 	// Connect to NATS
-	logger.Info("Connecting to NATS")
+	logger.Info("📡 [3/6] Connecting to NATS",
+		zap.String("url", config.NATS.URL))
 	natsConn, err := nats.Connect(config.NATS.URL,
 		nats.Name("orchestrator-service"),
 		nats.MaxReconnects(config.NATS.MaxReconnect),
@@ -81,36 +92,50 @@ func run(config *types.Config, logger *zap.Logger) error {
 		return fmt.Errorf("failed to connect to NATS: %w", err)
 	}
 	defer natsConn.Close()
+	logger.Info("✅ NATS connected successfully",
+		zap.String("server_info", natsConn.ConnectedUrl()))
 
 	// Initialize workflow components
-	logger.Info("Initializing workflow engine")
+	logger.Info("⚙️  [4/6] Initializing workflow engine",
+		zap.String("agent_manager_url", config.AI.AgentManagerURL),
+		zap.String("reasoning_service_url", config.AI.ReasoningServiceURL))
 	executor := workflow.NewExecutor(
-		"http://agent-manager:8080",
+		config.AI.AgentManagerURL,
 		config.AI.ReasoningServiceURL,
 		logger)
 
 	engine := workflow.NewEngine(pgStore, redisStore, executor, logger)
+	logger.Info("✅ Workflow engine initialized")
 
 	// Initialize strategy manager
-	logger.Info("Initializing strategy manager")
+	logger.Info("🎯 [5/6] Initializing strategy manager")
 	strategyManager := strategy.NewManager(pgStore, engine, logger)
+	logger.Info("✅ Strategy manager initialized")
 
 	// Initialize event subscriber
-	logger.Info("Initializing event subscriber")
+	logger.Info("📬 [6/6] Initializing event subscriber")
 	eventSubscriber := subscriber.NewSubscriber(natsConn, strategyManager, logger)
 	if err := eventSubscriber.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start event subscriber: %w", err)
 	}
 	defer eventSubscriber.Stop()
 
-	logger.Info("Orchestrator Service started successfully")
+	logger.Info("==========================================================")
+	logger.Info("✅ Orchestrator Service started successfully!")
+	logger.Info("==========================================================")
+	logger.Info("🎧 Listening for events on NATS channels:")
+	logger.Info("   - internal.event.critical")
+	logger.Info("   - internal.event.anomaly")
+	logger.Info("   - internal.event.* (debug)")
+	logger.Info("==========================================================")
 
 	// Wait for interrupt signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	<-sigCh
 
-	logger.Info("Shutting down gracefully")
+	logger.Info("🛑 Shutdown signal received")
+	logger.Info("Shutting down gracefully...")
 	return nil
 }
 
@@ -141,6 +166,9 @@ func applyEnvOverrides(config *types.Config) {
 	}
 	if aiURL := os.Getenv("AI_SERVICE_URL"); aiURL != "" {
 		config.AI.ReasoningServiceURL = aiURL
+	}
+	if agentURL := os.Getenv("AGENT_MANAGER_URL"); agentURL != "" {
+		config.AI.AgentManagerURL = agentURL
 	}
 }
 

@@ -24,8 +24,8 @@ temporal:
 database:
   host: "localhost"
   port: 5432
-  user: "aetherius"
-  password: "aetherius123"
+  user: "postgres"
+  password: "dev-postgres-password"
   database: "aetherius_orchestrator"
   ssl_mode: "disable"
   max_open_conns: 25
@@ -35,7 +35,7 @@ database:
 # Redis
 redis:
   addr: "localhost:6379"
-  password: ""
+  password: "dev-redis-password"
   db: 1
   pool_size: 10
   min_idle_conns: 3
@@ -44,6 +44,7 @@ redis:
 # AI service
 ai:
   reasoning_service_url: "http://localhost:8082"
+  agent_manager_url: "http://localhost:8080"
   timeout: 30s
   max_retries: 3
 

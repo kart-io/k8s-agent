@@ -120,14 +120,59 @@ build-all: ## Build for all platforms
 .PHONY: run
 run: ## Run the application locally
 	@echo "Running $(APP_NAME)..."
-	@$(GOCMD) run ./main.go --config=config.example.yaml
+	@$(GOCMD) run ./main.go -config examples/config-development.yaml
 
 .PHONY: docker-build
-docker-build: ## Build Docker image
-	@echo "Building Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
+docker-build: ## Build Docker image (fast, local platform only)
+	@echo "Building Docker image $(IMAGE_NAME):$(IMAGE_TAG) for local platform..."
 	@docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
 	@docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest
 	@echo "Docker image built: $(IMAGE_NAME):$(IMAGE_TAG)"
+
+.PHONY: docker-build-fast
+docker-build-fast: ## Fast local build with cache (recommended for development)
+	@echo "Fast building Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
+	@if docker buildx version >/dev/null 2>&1; then \
+		DOCKER_BUILDKIT=1 docker buildx build \
+			--build-arg BUILDKIT_INLINE_CACHE=1 \
+			-t $(IMAGE_NAME):$(IMAGE_TAG) \
+			-t $(IMAGE_NAME):latest --load . ; \
+	else \
+		echo "BuildKit not available, using standard build..."; \
+		docker build -t $(IMAGE_NAME):$(IMAGE_TAG) . && \
+		docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest; \
+	fi
+	@echo "Docker image built: $(IMAGE_NAME):$(IMAGE_TAG)"
+
+.PHONY: docker-buildx
+docker-buildx: ## Build multi-platform Docker image (linux/amd64,linux/arm64)
+	@echo "Building multi-platform Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
+	@if command -v docker-buildx >/dev/null 2>&1 || docker buildx version >/dev/null 2>&1; then \
+		docker buildx build --platform linux/amd64,linux/arm64 \
+			-t $(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME):latest --load . 2>/dev/null || \
+		docker buildx build --platform linux/amd64,linux/arm64 \
+			-t $(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME):latest . ; \
+	else \
+		echo "Docker buildx not available, building for current platform only..."; \
+		docker build -t $(IMAGE_NAME):$(IMAGE_TAG) . && \
+		docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest; \
+	fi
+	@echo "Docker image built: $(IMAGE_NAME):$(IMAGE_TAG)"
+
+.PHONY: docker-buildx-push
+docker-buildx-push: ## Build and push multi-platform Docker image
+	@echo "Building and pushing multi-platform Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
+	@if command -v docker-buildx >/dev/null 2>&1 || docker buildx version >/dev/null 2>&1; then \
+		docker buildx build --platform linux/amd64,linux/arm64 \
+			-t $(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME):latest --push . ; \
+	else \
+		echo "Docker buildx not available, building and pushing for current platform only..."; \
+		docker build -t $(IMAGE_NAME):$(IMAGE_TAG) . && \
+		docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest && \
+		docker push $(IMAGE_NAME):$(IMAGE_TAG) && \
+		docker push $(IMAGE_NAME):latest; \
+	fi
+	@echo "Docker image pushed: $(IMAGE_NAME):$(IMAGE_TAG)"
 
 .PHONY: docker-push
 docker-push: ## Push Docker image to registry

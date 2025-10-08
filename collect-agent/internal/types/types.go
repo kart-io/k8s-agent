@@ -7,6 +7,7 @@ import (
 // AgentInfo contains information about the agent registration
 type AgentInfo struct {
 	ClusterID    string    `json:"cluster_id"`
+	ClusterName  string    `json:"cluster_name"`
 	Version      string    `json:"version"`
 	StartTime    time.Time `json:"start_time"`
 	Capabilities []string  `json:"capabilities"`
@@ -77,6 +78,7 @@ type HeartbeatMetrics struct {
 // AgentConfig represents the agent configuration
 type AgentConfig struct {
 	ClusterID         string        `yaml:"cluster_id"`
+	ClusterName       string        `yaml:"cluster_name"`
 	CentralEndpoint   string        `yaml:"central_endpoint"`
 	ReconnectDelay    time.Duration `yaml:"reconnect_delay"`
 	HeartbeatInterval time.Duration `yaml:"heartbeat_interval"`
@@ -86,6 +88,7 @@ type AgentConfig struct {
 	LogLevel          string        `yaml:"log_level"`
 	EnableMetrics     bool          `yaml:"enable_metrics"`
 	EnableEvents      bool          `yaml:"enable_events"`
+	HealthPort        int           `yaml:"health_port"`
 }
 
 // DefaultConfig returns a default configuration

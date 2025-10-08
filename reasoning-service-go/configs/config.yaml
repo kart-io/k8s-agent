@@ -1,0 +1,131 @@
+# Aetherius Reasoning Service (Go) Configuration
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8082
+  log_level: "INFO"
+
+# LLM Configuration
+llm:
+  enabled: true
+  providers:
+    - name: "openai"
+      api_key: ""  # Set via OPENAI_API_KEY env var
+      base_url: "https://api.openai.com/v1"
+      model: "gpt-4o-mini"
+      max_tokens: 4096
+      temperature: 0.7
+      timeout: 30
+      priority: 1  # Highest priority
+
+    - name: "gemini"
+      api_key: ""  # Set via GEMINI_API_KEY or GOOGLE_API_KEY env var
+      base_url: "https://generativelanguage.googleapis.com/v1beta"
+      model: "gemini-1.5-flash"
+      max_tokens: 8192
+      temperature: 0.7
+      timeout: 30
+      priority: 2
+
+    - name: "deepseek"
+      api_key: ""  # Set via DEEPSEEK_API_KEY env var
+      base_url: "https://api.deepseek.com/v1"
+      model: "deepseek-chat"
+      max_tokens: 4096
+      temperature: 0.7
+      timeout: 30
+      priority: 3
+
+    - name: "ollama"
+      api_key: ""  # Not required for local Ollama
+      base_url: "http://localhost:11434/v1"  # Local Ollama endpoint
+      model: "llama3.1"  # Or: llama3.2, qwen2.5, mistral, etc.
+      max_tokens: 4096
+      temperature: 0.7
+      timeout: 60  # Local inference may take longer
+      priority: 4
+
+    - name: "siliconflow"
+      api_key: ""  # Set via SILICONFLOW_API_KEY env var
+      base_url: "https://api.siliconflow.cn/v1"
+      model: "Qwen/Qwen2.5-7B-Instruct"  # Or: deepseek-ai/DeepSeek-V2.5, etc.
+      max_tokens: 4096
+      temperature: 0.7
+      timeout: 30
+      priority: 5
+
+    - name: "kimi"
+      api_key: ""  # Set via KIMI_API_KEY or MOONSHOT_API_KEY env var
+      base_url: "https://api.moonshot.cn/v1"
+      model: "moonshot-v1-8k"  # Or: moonshot-v1-32k, moonshot-v1-128k
+      max_tokens: 4096
+      temperature: 0.7
+      timeout: 30
+      priority: 6
+
+    # Custom LLM Provider (for self-hosted or other OpenAI-compatible services)
+    # Uncomment and configure if you have a custom LLM service
+    # - name: "custom"
+    #   api_key: ""  # Set via CUSTOM_LLM_API_KEY env var (if required)
+    #   base_url: "http://your-llm-service:8000/v1"  # Your custom LLM endpoint
+    #   model: "your-model-name"  # Model name supported by your service
+    #   max_tokens: 4096
+    #   temperature: 0.7
+    #   timeout: 60
+    #   priority: 7
+
+# Analysis Settings
+analysis:
+  min_confidence: 0.7
+  max_recommendations: 5
+  include_similar_cases: true
+  similarity_threshold: 0.6
+  use_llm_fallback: true  # Use LLM if rule-based analysis has low confidence
+
+# Prediction Settings
+prediction:
+  time_windows:
+    - "1h"
+    - "6h"
+    - "24h"
+    - "7d"
+  anomaly_detection:
+    contamination: 0.1
+    n_estimators: 100
+
+# Learning Settings
+learning:
+  enable_feedback: true
+  min_samples_for_accuracy: 5
+  accuracy_update_interval: "1h"
+  export_learning_data: true
+  export_path: "./data/learning"
+
+# Performance Settings
+performance:
+  max_workers: 4
+  request_timeout: "30s"
+  max_context_size: 10000  # Max characters in logs/context
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"
+  output:
+    - "stdout"
+    - "file"
+  file:
+    path: "./logs/reasoning-service.log"
+    max_size: "500MB"
+    max_age: "10d"
+    max_backups: 10
+    compress: true
+
+# Feature Flags
+features:
+  enable_prediction: true
+  enable_learning: true
+  enable_knowledge_graph: false  # Requires Neo4j
+  enable_anomaly_detection: true
+  enable_case_similarity: true

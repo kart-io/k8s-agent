@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 type CommunicationManager struct {
 	config      *types.AgentConfig
 	clusterID   string
+	k8sVersion  string
+	apiServer   string
 	natsConn    *nats.Conn
 	logger      *zap.Logger
 	mu          sync.RWMutex
@@ -35,6 +38,8 @@ type CommunicationManager struct {
 func NewCommunicationManager(
 	config *types.AgentConfig,
 	clusterID string,
+	k8sVersion string,
+	apiServer string,
 	eventChan <-chan *types.Event,
 	metricsChan <-chan *types.Metrics,
 	resultChan <-chan *types.CommandResult,
@@ -44,6 +49,8 @@ func NewCommunicationManager(
 	return &CommunicationManager{
 		config:         config,
 		clusterID:      clusterID,
+		k8sVersion:     k8sVersion,
+		apiServer:      apiServer,
 		eventChan:      eventChan,
 		metricsChan:    metricsChan,
 		resultChan:     resultChan,
@@ -149,11 +156,33 @@ func (cm *CommunicationManager) connect() error {
 
 // register sends agent registration information to central
 func (cm *CommunicationManager) register() error {
-	agentInfo := types.AgentInfo{
-		ClusterID:   cm.clusterID,
-		Version:     "v1.0.0", // This should come from version package
-		StartTime:   time.Now(),
-		Capabilities: []string{"event_watch", "metrics_collect", "command_execute"},
+	now := time.Now()
+
+	// Get local IP address
+	localIP := getLocalIP()
+	serviceAddress := fmt.Sprintf("http://%s:%d", localIP, cm.config.HealthPort)
+
+	// Create agent registration matching agent-manager's Agent type
+	agentInfo := map[string]interface{}{
+		"id":          cm.clusterID,  // Using clusterID as agent ID
+		"cluster_id":  cm.clusterID,
+		"cluster_name": cm.config.ClusterName,
+		"version":     "v1.0.0", // Agent version
+		"status":      "online",
+		"registered_at": now,
+		"last_heartbeat": now,
+		"capabilities": []string{"event_watch", "metrics_collect", "command_execute"},
+		"connection_info": map[string]interface{}{
+			"endpoint":         cm.config.CentralEndpoint,
+			"connected_at":     now,
+			"last_seen":        now,
+			"reconnect_count":  0,
+			"service_address":  serviceAddress,
+			"local_ip":         localIP,
+		},
+		// Cluster information for agent-manager to update cluster record
+		"k8s_version": cm.k8sVersion,
+		"api_server":  cm.apiServer,
 	}
 
 	data, err := json.Marshal(agentInfo)
@@ -161,7 +190,7 @@ func (cm *CommunicationManager) register() error {
 		return fmt.Errorf("failed to marshal agent info: %w", err)
 	}
 
-	subject := fmt.Sprintf("agent.register.%s", cm.clusterID)
+	subject := fmt.Sprintf("aetherius.agent.%s.register", cm.clusterID)
 	if err := cm.natsConn.Publish(subject, data); err != nil {
 		return fmt.Errorf("failed to publish register message: %w", err)
 	}
@@ -172,7 +201,7 @@ func (cm *CommunicationManager) register() error {
 
 // subscribeToCommands subscribes to command messages from central
 func (cm *CommunicationManager) subscribeToCommands() error {
-	subject := fmt.Sprintf("agent.command.%s", cm.clusterID)
+	subject := fmt.Sprintf("aetherius.agent.%s.command", cm.clusterID)
 
 	_, err := cm.natsConn.Subscribe(subject, func(msg *nats.Msg) {
 		var cmd types.Command
@@ -205,7 +234,7 @@ func (cm *CommunicationManager) subscribeToCommands() error {
 func (cm *CommunicationManager) handleEvents(ctx context.Context) {
 	defer cm.wg.Done()
 
-	subject := fmt.Sprintf("agent.event.%s", cm.clusterID)
+	subject := fmt.Sprintf("aetherius.agent.%s.event", cm.clusterID)
 
 	for {
 		select {
@@ -231,7 +260,7 @@ func (cm *CommunicationManager) handleEvents(ctx context.Context) {
 func (cm *CommunicationManager) handleMetrics(ctx context.Context) {
 	defer cm.wg.Done()
 
-	subject := fmt.Sprintf("agent.metrics.%s", cm.clusterID)
+	subject := fmt.Sprintf("aetherius.agent.%s.metrics", cm.clusterID)
 
 	for {
 		select {
@@ -255,7 +284,7 @@ func (cm *CommunicationManager) handleMetrics(ctx context.Context) {
 func (cm *CommunicationManager) handleResults(ctx context.Context) {
 	defer cm.wg.Done()
 
-	subject := fmt.Sprintf("agent.result.%s", cm.clusterID)
+	subject := fmt.Sprintf("aetherius.agent.%s.result", cm.clusterID)
 
 	for {
 		select {
@@ -284,7 +313,7 @@ func (cm *CommunicationManager) handleHeartbeat(ctx context.Context) {
 	ticker := time.NewTicker(cm.config.HeartbeatInterval)
 	defer ticker.Stop()
 
-	subject := fmt.Sprintf("agent.heartbeat.%s", cm.clusterID)
+	subject := fmt.Sprintf("aetherius.agent.%s.heartbeat", cm.clusterID)
 
 	// Send initial heartbeat
 	cm.sendHeartbeat(subject)
@@ -363,17 +392,17 @@ func (cm *CommunicationManager) publishResult(subject string, result *types.Comm
 
 // sendHeartbeat sends a heartbeat message
 func (cm *CommunicationManager) sendHeartbeat(subject string) {
-	// Get queue sizes (these would be passed from the main agent)
-	// For now, we'll use placeholder values
-	heartbeat := types.Heartbeat{
-		ClusterID: cm.clusterID,
-		Timestamp: time.Now(),
-		Status:    "healthy",
-		Metrics: types.HeartbeatMetrics{
-			EventQueueSize:   0, // This should be actual queue size
-			MetricsQueueSize: 0, // This should be actual queue size
-			CommandQueueSize: 0, // This should be actual queue size
-			UptimeSeconds:    int(time.Since(time.Now()).Seconds()), // This should be actual uptime
+	// Create heartbeat matching agent-manager's expected format
+	heartbeat := map[string]interface{}{
+		"agent_id":   cm.clusterID,  // Using clusterID as agent ID
+		"cluster_id": cm.clusterID,
+		"timestamp":  time.Now(),
+		"status":     "healthy",
+		"metrics": map[string]interface{}{
+			"event_queue_size":   0, // This should be actual queue size
+			"metrics_queue_size": 0, // This should be actual queue size
+			"command_queue_size": 0, // This should be actual queue size
+			"uptime_seconds":     0, // This should be actual uptime
 		},
 	}
 
@@ -388,7 +417,9 @@ func (cm *CommunicationManager) sendHeartbeat(subject string) {
 		return
 	}
 
-	cm.logger.Debug("Heartbeat sent", zap.String("cluster_id", cm.clusterID))
+	cm.logger.Debug("Heartbeat sent",
+		zap.String("agent_id", cm.clusterID),
+		zap.String("cluster_id", cm.clusterID))
 }
 
 // IsConnected returns true if connected to NATS
@@ -396,4 +427,22 @@ func (cm *CommunicationManager) IsConnected() bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 	return cm.connected && cm.natsConn != nil && cm.natsConn.IsConnected()
+}
+
+// getLocalIP gets the local non-loopback IP address
+func getLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "127.0.0.1"
+	}
+
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+
+	return "127.0.0.1"
 }

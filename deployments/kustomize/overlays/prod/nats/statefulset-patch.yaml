@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nats
+spec:
+  replicas: 3  # HA cluster with 3 nodes
+  template:
+    spec:
+      containers:
+      - name: nats
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+  volumeClaimTemplates:
+  - metadata:
+      name: nats-data
+    spec:
+      resources:
+        requests:
+          storage: 20Gi  # Larger storage for production

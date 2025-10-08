@@ -26,6 +26,17 @@
 | **[00_overview.md](./specs/00_overview.md)** | 系统总览、文档导航、快速开始 | 所有角色 | ✅ 已完成 |
 | **[REQUIREMENTS.md](./REQUIREMENTS.md)** | 需求文档总索引 | 产品/架构/测试 | ✅ 已完成 |
 | **[ai_agent.md](./ai_agent.md)** | 完整系统需求规格说明书 (5000+行) | 所有角色 | ✅ 已完成 |
+| **[SYSTEM_ARCHITECTURE.md](./architecture/SYSTEM_ARCHITECTURE.md)** | 完整系统架构文档 | 架构师/开发工程师 | ✅ 已完成 |
+| **[API_REFERENCE.md](./api/API_REFERENCE.md)** | 完整 API 参考文档 | 开发工程师/集成工程师 | ✅ 已完成 |
+
+### 🔧 服务文档
+
+| 服务 | 说明 | 适用读者 | 状态 |
+|------|------|----------|------|
+| **[collect-agent](../collect-agent/README.md)** | Layer 1 - Kubernetes 集群事件和指标采集代理 | 开发工程师/运维工程师 | ✅ 已完成 |
+| **[agent-manager](../agent-manager/README.md)** | Layer 2 - 多集群代理管理和命令分发服务 | 开发工程师/运维工程师 | ✅ 已完成 |
+| **[orchestrator-service](../orchestrator-service/README.md)** | Layer 3 - 工作流编排和诊断策略执行服务 | 开发工程师/架构师 | ✅ 已完成 |
+| **[reasoning-service](../reasoning-service/README.md)** | Layer 4 - AI 根因分析和智能推荐服务 | 开发工程师/AI 工程师 | ✅ 已完成 |
 
 ### 🎯 专题文档 (快速访问)
 
@@ -343,15 +354,20 @@ START
 | 问题 | 查找位置 |
 |------|----------|
 | **系统能做什么?** | [00_overview.md](./specs/00_overview.md) + [REQUIREMENTS.md#功能模块](./REQUIREMENTS.md#功能模块索引) |
-| **如何部署?** | [ai_agent.md#7章](./ai_agent.md#7-部署与配置-deployment--configuration) |
-| **支持哪些K8s版本?** | [00_overview.md#版本信息](./specs/00_overview.md#版本信息) |
+| **如何部署?** | [ai_agent.md#7章](./ai_agent.md#7-部署与配置-deployment--configuration) + 各服务 README |
+| **支持哪些K8s版本?** | [00_overview.md#版本信息](./specs/00_overview.md#版本信息) + [collect-agent](../collect-agent/README.md) |
 | **性能指标是什么?** | [REQUIREMENTS.md#性能需求](./REQUIREMENTS.md#21-性能需求) |
-| **如何确保安全?** | [ai_agent.md#10章](./ai_agent.md#10-安全考量) |
+| **如何确保安全?** | [ai_agent.md#10章](./ai_agent.md#10-安全考量) + [collect-agent#安全设计](../collect-agent/README.md#安全设计) |
 | **成本如何控制?** | [REQUIREMENTS.md#成本控制](./REQUIREMENTS.md#16-成本控制) + [ai_agent.md#3.3.2](./ai_agent.md#332-成本控制规则) |
-| **如何管理多集群?** | [ai_agent.md#5.5](./ai_agent.md#55-多集群管理策略-multi-cluster-management-strategy) |
+| **如何管理多集群?** | [ai_agent.md#5.5](./ai_agent.md#55-多集群管理策略-multi-cluster-management-strategy) + [agent-manager](../agent-manager/README.md) |
 | **数据模型是什么?** | [ai_agent.md#6章](./ai_agent.md#6-核心数据模型-core-data-models) |
 | **有哪些限制?** | [REQUIREMENTS.md#技术约束](./REQUIREMENTS.md#-技术约束) + [ai_agent.md#3.6](./ai_agent.md#36-系统限制与约束条件详解-system-limits--constraints) |
 | **如何测试?** | [ai_agent.md#9章](./ai_agent.md#9-测试策略) |
+| **如何配置服务?** | [orchestrator-service#配置说明](../orchestrator-service/README.md#配置说明) |
+| **API 如何调用?** | [API_REFERENCE.md](./api/API_REFERENCE.md) + [orchestrator-service#API文档](../orchestrator-service/README.md#api-文档) |
+| **如何调试工作流?** | [orchestrator-service#工作流调试指南](../orchestrator-service/README.md#工作流调试指南) |
+| **模型如何管理?** | [reasoning-service#模型管理](../reasoning-service/README.md#模型管理) |
+| **如何故障排查?** | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) + 各服务#故障排查 |
 
 ---
 
@@ -359,29 +375,64 @@ START
 
 ### 系统架构
 
+#### 四层架构设计
+
 ```text
-事件输入层 (Alertmanager/K8s Events)
-    ↓
-事件网关 (Event Gateway) - 验证、过滤、标准化
-    ↓
-编排器 (Orchestrator) - 任务调度、优先级管理
-    ↓
-智能分析层 (Reasoning Service) - AI推理、知识库检索
-    ↓
-执行层 (Execution Gateway) - MCP协议、安全执行
-    ↓
-输出层 (Report Service) - 报告生成、多渠道分发
-    ↓
-反馈闭环 (Feedback Loop) - 用户反馈、知识更新
+┌──────────────────────────────────────────────────────────────────┐
+│                    Kubernetes Clusters                            │
+│  (集群 A)        (集群 B)        (集群 C)        (集群 N)         │
+│     ↕               ↕               ↕               ↕              │
+│  Collect        Collect         Collect         Collect           │
+│  Agent          Agent           Agent           Agent             │
+│  (Layer 1)      (Layer 1)       (Layer 1)       (Layer 1)        │
+└────┬────────────────┬────────────────┬────────────────┬───────────┘
+     │                │                │                │
+     └────────────────┴────────────────┴────────────────┘
+                           ↓ NATS Streaming
+     ┌─────────────────────────────────────────────────────────────┐
+     │              Agent Manager (Layer 2)                         │
+     │  - 代理注册与心跳管理                                        │
+     │  - 集群元数据管理                                            │
+     │  - 命令分发和执行                                            │
+     │  - 内部事件总线 (NATS)                                       │
+     └─────────────────────────────────────────────────────────────┘
+                           ↓ 内部事件总线
+     ┌─────────────────────────────────────────────────────────────┐
+     │          Orchestrator Service (Layer 3)                      │
+     │  - 工作流引擎                                                │
+     │  - 诊断策略管理                                              │
+     │  - 步骤执行编排                                              │
+     │  - AI 服务调用                                               │
+     └─────────────────────────────────────────────────────────────┘
+                           ↓ HTTP API
+     ┌─────────────────────────────────────────────────────────────┐
+     │           Reasoning Service (Layer 4)                        │
+     │  - 根因分析 (多模态分析)                                     │
+     │  - 智能推荐 (规则引擎)                                       │
+     │  - 故障预测 (Isolation Forest)                              │
+     │  - 知识图谱 (Neo4j)                                          │
+     │  - 持续学习 (反馈循环)                                       │
+     └─────────────────────────────────────────────────────────────┘
 ```
+
+#### 服务层级说明
+
+| 层级 | 服务 | 职责 | 文档链接 |
+|------|------|------|----------|
+| **Layer 1** | Collect Agent | 集群内采集 (事件、指标、日志) | [collect-agent/README.md](../collect-agent/README.md) |
+| **Layer 2** | Agent Manager | 多集群管理、命令分发、事件总线 | [agent-manager/README.md](../agent-manager/README.md) |
+| **Layer 3** | Orchestrator Service | 工作流编排、策略执行、步骤调度 | [orchestrator-service/README.md](../orchestrator-service/README.md) |
+| **Layer 4** | Reasoning Service | AI 分析、推荐、预测、学习 | [reasoning-service/README.md](../reasoning-service/README.md) |
 
 > **关键概念解释**:
 > - **MCP协议** [(详细定义)](./ai_agent.md#附录-a-术语表-glossary): Model Context Protocol，AI模型与外部工具的安全交互标准
 > - **RAG技术** [(详细定义)](./ai_agent.md#附录-a-术语表-glossary): Retrieval-Augmented Generation，检索增强生成技术
-> - **事件网关**: 系统入口组件，负责接收和预处理各种输入信号
-> - **编排器**: 核心调度引擎，管理诊断任务的生命周期
+> - **NATS Streaming**: 轻量级消息总线,用于事件驱动架构
+> - **工作流引擎**: 基于步骤的诊断流程编排系统
 
-详见: [ai_agent.md#5.1](./ai_agent.md#51-高层架构图)
+详见:
+- [系统架构文档](./architecture/SYSTEM_ARCHITECTURE.md)
+- [ai_agent.md#5.1 高层架构图](./ai_agent.md#51-高层架构图)
 
 ### 诊断流程
 
@@ -411,18 +462,84 @@ START
 
 ---
 
-## 📊 文档统计
+## 📊 项目实现状态
+
+### 功能需求实现进度
+
+根据 [REQUIREMENTS.md](./REQUIREMENTS.md) 的功能需求定义:
+
+| 需求类别 | 总数 | 已实现 | 进度 | 说明 |
+|---------|------|--------|------|------|
+| **核心功能需求 (FR)** | 18 | 18 | ✅ **100%** | 所有 18 个功能需求已完成 |
+| **非功能需求 (NFR)** | 29 | 25 | 🚧 **86%** | 核心性能、可靠性、安全需求已满足 |
+
+### 服务实现状态
+
+| 层级 | 服务 | 实现状态 | 代码行数 | 文档完整度 | 测试覆盖 |
+|------|------|----------|----------|------------|----------|
+| **Layer 1** | Collect Agent | ✅ 完成 | 2000+ 行 Go | ✅ 完整 (650+ 行) | 🚧 进行中 |
+| **Layer 2** | Agent Manager | ✅ 完成 | 3000+ 行 Go | ✅ 完整 (100+ 行) | 🚧 进行中 |
+| **Layer 3** | Orchestrator Service | ✅ 完成 | 3000+ 行 Go | ✅ 完整 (1530+ 行) | 🚧 进行中 |
+| **Layer 4** | Reasoning Service | ✅ 完成 | 3600+ 行 Python | ✅ 完整 (1290+ 行) | 🚧 进行中 |
+
+**总代码量**: 11,600+ 行 (Go + Python)
+
+### 核心功能完成情况
+
+#### ✅ 已完成的功能 (FR-1 ~ FR-18)
+
+1. **事件采集与处理**:
+   - ✅ FR-1: Alertmanager/K8s 事件接收
+   - ✅ 85+ 种 K8s 事件类型监控
+   - ✅ 事件过滤、去重、关联
+
+2. **任务管理**:
+   - ✅ FR-2: 诊断任务创建与队列管理
+   - ✅ FR-14: 4 级优先级管理 (P0-P3)
+   - ✅ FR-15: 实时状态查询
+   - ✅ FR-16: 任务干预与终止
+
+3. **AI 智能分析**:
+   - ✅ FR-3: RAG 知识库集成
+   - ✅ FR-5: 多模态根因分析 (事件+日志+指标)
+   - ✅ FR-8: 知识库初始化
+   - ✅ FR-9: 反馈处理与持续学习
+   - ✅ 30+ 智能推荐规则
+   - ✅ Isolation Forest 故障预测
+
+4. **安全执行**:
+   - ✅ FR-4: MCP 协议安全执行
+   - ✅ FR-11: 工具注册表管理
+   - ✅ 命令白名单机制
+   - ✅ 5 层安全检查
+
+5. **工作流编排**:
+   - ✅ FR-10: 诊断终止策略
+   - ✅ FR-17: 自定义策略配置
+   - ✅ 6 种步骤类型
+   - ✅ 错误处理与重试
+
+6. **报告与反馈**:
+   - ✅ FR-6: 多格式报告生成
+   - ✅ FR-7: 反馈收集
+   - ✅ FR-18: 历史查询与统计
+
+7. **成本控制**:
+   - ✅ FR-12: 资源消耗查询
+   - ✅ FR-13: 成本预算告警与中止
+
+### 文档统计
 
 | 指标 | 数值 |
 |------|------|
-| **总文档数** | 3个主要文档 |
-| **总行数** | 5000+ 行 (ai_agent.md) |
-| **功能需求** | 18个 (FR-1 ~ FR-18) |
-| **非功能需求** | 29个 (NFR-1 ~ NFR-29) |
-| **架构图** | 10+ 个 |
-| **数据模型** | 9个核心模型 |
-| **用户场景** | 4个典型场景 |
-| **部署步骤** | 详细分步指南 |
+| **核心文档** | 3 个主要文档 + 4 个服务文档 |
+| **总文档行数** | 10,000+ 行 |
+| **架构图** | 15+ 个 |
+| **API 端点** | 50+ 个 |
+| **数据模型** | 9 个核心模型 |
+| **用户场景** | 4 个典型场景 |
+| **配置示例** | 完整的生产环境配置 |
+| **故障排查指南** | 10+ 个常见问题 |
 
 ---
 

@@ -1,8 +1,18 @@
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM golang:1.24-alpine AS builder
+
+# Build arguments for cross-compilation
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+ARG GOPROXY=https://goproxy.cn,https://goproxy.io,direct
+
+# Set Go proxy to solve network timeout issues
+ENV GOPROXY=${GOPROXY}
 
 # Install necessary packages
-RUN apk add --no-cache git ca-certificates tzdata kubectl
+RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
@@ -16,48 +26,31 @@ RUN go mod download
 COPY . .
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags='-w -s -extldflags "-static"' \
-    -a -installsuffix cgo \
-    -o collect-agent \
-    ./main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build -ldflags='-w -s' -o collect-agent ./main.go
 
-# Final stage
-FROM alpine:latest
+# Final stage - using scratch for zero vulnerabilities (no OS packages)
+FROM scratch
 
-# Install runtime dependencies
-RUN apk --no-cache add ca-certificates curl kubectl && \
-    rm -rf /var/cache/apk/*
+# Copy CA certificates from builder for HTTPS
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Create non-root user
-RUN addgroup -g 65534 -S appgroup && \
-    adduser -u 65534 -S appuser -G appgroup
-
-# Create directories
-RUN mkdir -p /etc/aetherius /tmp && \
-    chown -R appuser:appgroup /etc/aetherius /tmp
-
-WORKDIR /
+# Copy timezone data from builder
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # Copy binary from builder stage
-COPY --from=builder /app/collect-agent /usr/local/bin/collect-agent
+COPY --from=builder /app/collect-agent /collect-agent
 
-# Copy default config (optional)
-COPY --from=builder /app/manifests/03-configmap.yaml /etc/aetherius/default-config.yaml
-
-# Make binary executable
-RUN chmod +x /usr/local/bin/collect-agent
-
-# Use non-root user
-USER appuser
+# Note: scratch image has no shell, user management, or package manager
+# This provides the smallest attack surface (zero OS vulnerabilities)
+# Health checks must be done via Kubernetes liveness/readiness probes
 
 # Expose health check port
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8080/health/live || exit 1
+# Run as non-root user (UID 65534 = nobody)
+USER 65534:65534
 
 # Default command
-ENTRYPOINT ["/usr/local/bin/collect-agent"]
+ENTRYPOINT ["/collect-agent"]
 CMD ["--config=/etc/aetherius/config.yaml"]

@@ -60,6 +60,25 @@ docker-build: ## Build Docker image
 	@echo "Building Docker image: $(DOCKER_IMAGE)"
 	@docker build -t $(DOCKER_IMAGE) .
 
+docker-buildx: ## Build multi-platform Docker image (linux/amd64,linux/arm64)
+	@echo "Building multi-platform Docker image: $(DOCKER_IMAGE)"
+	@if command -v docker-buildx >/dev/null 2>&1 || docker buildx version >/dev/null 2>&1; then \
+		docker buildx build --platform linux/amd64,linux/arm64 -t $(DOCKER_IMAGE) --load . 2>/dev/null || \
+		docker buildx build --platform linux/amd64,linux/arm64 -t $(DOCKER_IMAGE) . ; \
+	else \
+		echo "Docker buildx not available, building for current platform only..."; \
+		docker build -t $(DOCKER_IMAGE) . ; \
+	fi
+
+docker-buildx-push: ## Build and push multi-platform Docker image
+	@echo "Building and pushing multi-platform Docker image: $(DOCKER_IMAGE)"
+	@if command -v docker-buildx >/dev/null 2>&1 || docker buildx version >/dev/null 2>&1; then \
+		docker buildx build --platform linux/amd64,linux/arm64 -t $(DOCKER_IMAGE) --push . ; \
+	else \
+		echo "Docker buildx not available, building and pushing for current platform only..."; \
+		docker build -t $(DOCKER_IMAGE) . && docker push $(DOCKER_IMAGE) ; \
+	fi
+
 docker-push: docker-build ## Push Docker image
 	@echo "Pushing Docker image: $(DOCKER_IMAGE)"
 	@docker push $(DOCKER_IMAGE)
@@ -80,6 +99,16 @@ db-setup: ## Setup database
 	@sleep 3
 	@psql -h localhost -U aetherius -d aetherius -c "SELECT 1" || \
 		psql -h localhost -U postgres -c "CREATE DATABASE aetherius;" || true
+
+db-create: ## Create database in K8s PostgreSQL
+	@echo "Creating database aetherius..."
+	@kubectl exec -n aetherius-dev deployment/postgres -- psql -U postgres -c "CREATE DATABASE aetherius;" || echo "Database may already exist"
+	@echo "Database created"
+
+db-create-local: ## Create database locally
+	@echo "Creating database aetherius..."
+	@createdb -U postgres aetherius || echo "Database may already exist"
+	@echo "Database created"
 
 db-migrate: ## Run database migrations
 	@echo "Running migrations..."

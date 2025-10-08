@@ -10,7 +10,7 @@ server:
 neo4j:
   uri: "bolt://localhost:7687"
   user: "neo4j"
-  password: "password"
+  password: "dev-neo4j-password"
   max_connections: 50
 
 # AI/ML Models

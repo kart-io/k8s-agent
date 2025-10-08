@@ -14,9 +14,9 @@ type Agent struct {
 	LastHeartbeat   time.Time              `json:"last_heartbeat" gorm:"index"`
 	RegisteredAt    time.Time              `json:"registered_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
-	Metadata        map[string]interface{} `json:"metadata" gorm:"type:jsonb"`
-	Capabilities    []string               `json:"capabilities" gorm:"type:jsonb"`
-	ConnectionInfo  *ConnectionInfo        `json:"connection_info" gorm:"type:jsonb"`
+	Metadata        map[string]interface{} `json:"metadata" gorm:"serializer:json"`
+	Capabilities    []string               `json:"capabilities" gorm:"serializer:json"`
+	ConnectionInfo  *ConnectionInfo        `json:"connection_info" gorm:"serializer:json"`
 }
 
 // AgentStatus represents the status of an agent
@@ -31,26 +31,32 @@ const (
 
 // ConnectionInfo contains agent connection details
 type ConnectionInfo struct {
-	Endpoint      string    `json:"endpoint"`
-	ConnectedAt   time.Time `json:"connected_at"`
-	LastSeen      time.Time `json:"last_seen"`
-	ReconnectCount int      `json:"reconnect_count"`
+	Endpoint       string    `json:"endpoint"`
+	ConnectedAt    time.Time `json:"connected_at"`
+	LastSeen       time.Time `json:"last_seen"`
+	ReconnectCount int       `json:"reconnect_count"`
+	ServiceAddress string    `json:"service_address,omitempty"`
+	LocalIP        string    `json:"local_ip,omitempty"`
 }
 
 // Event represents a Kubernetes event
 type Event struct {
-	ID        string                 `json:"id" gorm:"primaryKey"`
-	ClusterID string                 `json:"cluster_id" gorm:"index;not null"`
-	Timestamp time.Time              `json:"timestamp" gorm:"index"`
-	Type      string                 `json:"type" gorm:"index"`
-	Source    string                 `json:"source"`
-	Severity  string                 `json:"severity" gorm:"index"`
-	Reason    string                 `json:"reason" gorm:"index"`
-	Message   string                 `json:"message"`
-	Namespace string                 `json:"namespace" gorm:"index"`
-	Labels    map[string]string      `json:"labels" gorm:"type:jsonb"`
-	RawData   map[string]interface{} `json:"raw_data" gorm:"type:jsonb"`
-	ProcessedAt time.Time            `json:"processed_at"`
+	ID            string                 `json:"id" gorm:"primaryKey"`
+	ClusterID     string                 `json:"cluster_id" gorm:"index;not null"`
+	Timestamp     time.Time              `json:"timestamp" gorm:"index"`
+	Type          string                 `json:"type" gorm:"index"`
+	Source        string                 `json:"source"`
+	Severity      string                 `json:"severity" gorm:"index"`
+	Reason        string                 `json:"reason" gorm:"index"`
+	Message       string                 `json:"message"`
+	Namespace     string                 `json:"namespace" gorm:"index"`
+	Labels        map[string]string      `json:"labels" gorm:"serializer:json"`
+	RawData       map[string]interface{} `json:"raw_data" gorm:"serializer:json"`
+	ProcessedAt   time.Time              `json:"processed_at"`
+	ReportedAt    time.Time              `json:"reported_at,omitempty"`
+	CommandID     string                 `json:"command_id,omitempty" gorm:"index"`     // 触发此事件的命令ID
+	TriggeredBy   string                 `json:"triggered_by,omitempty"`                // 触发事件的用户或系统
+	CorrelationID string                 `json:"correlation_id,omitempty" gorm:"index"` // 关联ID，由 POST /api/v1/operations 接口生成，格式: op-{纳秒时间戳}-{集群ID}，用于分组同一操作触发的所有事件
 }
 
 // Metrics represents cluster metrics
@@ -58,10 +64,10 @@ type Metrics struct {
 	ID               string                 `json:"id" gorm:"primaryKey"`
 	ClusterID        string                 `json:"cluster_id" gorm:"index;not null"`
 	Timestamp        time.Time              `json:"timestamp" gorm:"index"`
-	ClusterMetrics   map[string]interface{} `json:"cluster_metrics" gorm:"type:jsonb"`
-	NodeMetrics      []map[string]interface{} `json:"node_metrics" gorm:"type:jsonb"`
-	PodMetrics       []map[string]interface{} `json:"pod_metrics" gorm:"type:jsonb"`
-	NamespaceMetrics []map[string]interface{} `json:"namespace_metrics" gorm:"type:jsonb"`
+	ClusterMetrics   map[string]interface{} `json:"cluster_metrics" gorm:"serializer:json"`
+	NodeMetrics      []map[string]interface{} `json:"node_metrics" gorm:"serializer:json"`
+	PodMetrics       []map[string]interface{} `json:"pod_metrics" gorm:"serializer:json"`
+	NamespaceMetrics []map[string]interface{} `json:"namespace_metrics" gorm:"serializer:json"`
 }
 
 // Command represents a command to be executed
@@ -71,7 +77,7 @@ type Command struct {
 	Type          string                 `json:"type"`
 	Tool          string                 `json:"tool"`
 	Action        string                 `json:"action"`
-	Args          []string               `json:"args" gorm:"type:jsonb"`
+	Args          []string               `json:"args" gorm:"serializer:json"`
 	Namespace     string                 `json:"namespace"`
 	Timeout       time.Duration          `json:"timeout"`
 	IssuedBy      string                 `json:"issued_by"`
@@ -79,7 +85,7 @@ type Command struct {
 	Status        CommandStatus          `json:"status" gorm:"index"`
 	CreatedAt     time.Time              `json:"created_at"`
 	UpdatedAt     time.Time              `json:"updated_at"`
-	Metadata      map[string]interface{} `json:"metadata" gorm:"type:jsonb"`
+	Metadata      map[string]interface{} `json:"metadata" gorm:"serializer:json"`
 }
 
 // CommandStatus represents the status of a command
@@ -117,11 +123,12 @@ type Cluster struct {
 	Provider    string                 `json:"provider"` // eks, gke, aks, onprem
 	Status      ClusterStatus          `json:"status" gorm:"index"`
 	Health      ClusterHealth          `json:"health" gorm:"index"`
-	Version     string                 `json:"version"`
+	Version     string                 `json:"version"`      // Kubernetes version
+	APIServer   string                 `json:"api_server"`   // Kubernetes API server address
 	AgentCount  int                    `json:"agent_count"`
 	NodeCount   int                    `json:"node_count"`
 	PodCount    int                    `json:"pod_count"`
-	Metadata    map[string]interface{} `json:"metadata" gorm:"type:jsonb"`
+	Metadata    map[string]interface{} `json:"metadata" gorm:"serializer:json"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
 }
@@ -153,9 +160,9 @@ type AlertRule struct {
 	Description string                 `json:"description"`
 	Enabled     bool                   `json:"enabled" gorm:"index"`
 	Severity    string                 `json:"severity" gorm:"index"`
-	Conditions  map[string]interface{} `json:"conditions" gorm:"type:jsonb"`
-	Actions     []string               `json:"actions" gorm:"type:jsonb"`
-	Metadata    map[string]interface{} `json:"metadata" gorm:"type:jsonb"`
+	Conditions  map[string]interface{} `json:"conditions" gorm:"serializer:json"`
+	Actions     []string               `json:"actions" gorm:"serializer:json"`
+	Metadata    map[string]interface{} `json:"metadata" gorm:"serializer:json"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
 }
@@ -169,7 +176,7 @@ type Alert struct {
 	Status      AlertStatus            `json:"status" gorm:"index"`
 	Title       string                 `json:"title"`
 	Description string                 `json:"description"`
-	Context     map[string]interface{} `json:"context" gorm:"type:jsonb"`
+	Context     map[string]interface{} `json:"context" gorm:"serializer:json"`
 	FiredAt     time.Time              `json:"fired_at" gorm:"index"`
 	ResolvedAt  *time.Time             `json:"resolved_at,omitempty"`
 	UpdatedAt   time.Time              `json:"updated_at"`

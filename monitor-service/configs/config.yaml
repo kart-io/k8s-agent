@@ -1,0 +1,55 @@
+server:
+  port: 8081
+  mode: debug
+  read_timeout: 30s
+  write_timeout: 30s
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: monitor_db
+  sslmode: disable
+  max_open_conns: 25
+  max_idle_conns: 5
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+
+prometheus:
+  enabled: true
+  port: 9091
+  path: /metrics
+
+alert:
+  check_interval: 30s
+  channels:
+    email:
+      enabled: true
+      smtp_host: smtp.gmail.com
+      smtp_port: 587
+      from: alerts@example.com
+    webhook:
+      enabled: true
+      url: http://localhost:9090/webhook
+    slack:
+      enabled: false
+      webhook_url: ""
+
+metrics:
+  retention_days: 30
+  aggregation_interval: 1m
+
+logging:
+  level: info
+  format: json
+  output: stdout
+
+jwt:
+  secret: your-secret-key-change-in-production
+  expiration: 24h

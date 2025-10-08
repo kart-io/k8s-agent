@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:14-alpine
+    container_name: k8s-agent-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - k8s-agent-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: k8s-agent-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - k8s-agent-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NATS 消息队列
+  nats:
+    image: nats:2.9-alpine
+    container_name: k8s-agent-nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: "--http_port 8222"
+    networks:
+      - k8s-agent-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 认证服务
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: k8s-agent-auth
+    ports:
+      - "8090:8090"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=k8s_agent_auth
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - k8s-agent-network
+    restart: unless-stopped
+
+  # 监控服务
+  monitor-service:
+    build:
+      context: ./monitor-service
+      dockerfile: Dockerfile
+    container_name: k8s-agent-monitor
+    ports:
+      - "8081:8081"
+      - "9091:9091"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=monitor_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - k8s-agent-network
+    restart: unless-stopped
+
+  # 集群服务
+  cluster-service:
+    build:
+      context: ./cluster-service
+      dockerfile: Dockerfile
+    container_name: k8s-agent-cluster
+    ports:
+      - "8082:8082"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=cluster_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - k8s-agent-network
+    restart: unless-stopped
+    volumes:
+      - ~/.kube:/root/.kube:ro
+
+  # API 网关
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    container_name: k8s-agent-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_SERVICE_URL=http://auth-service:8090
+      - MONITOR_SERVICE_URL=http://monitor-service:8081
+      - CLUSTER_SERVICE_URL=http://cluster-service:8082
+      - AGENT_MANAGER_URL=http://agent-manager:8080
+    depends_on:
+      - redis
+      - auth-service
+      - monitor-service
+      - cluster-service
+    networks:
+      - k8s-agent-network
+    restart: unless-stopped
+
+  # 前端 UI
+  agent-manager-ui:
+    build:
+      context: ./agent-manager-ui
+      dockerfile: Dockerfile
+    container_name: k8s-agent-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway-service
+    networks:
+      - k8s-agent-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  k8s-agent-network:
+    driver: bridge

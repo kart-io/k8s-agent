@@ -1,0 +1,112 @@
+---
+# Gateway Service IngressRoute
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gateway-https
+  namespace: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`gateway.k8s-agent.local`) || Host(`api.k8s-agent.local`)
+      kind: Rule
+      services:
+        - name: gateway-service
+          namespace: default
+          port: 8080
+      middlewares:
+        - name: cors-headers
+  tls:
+    certResolver: letsencrypt
+---
+# Agent Manager UI IngressRoute
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: agent-manager-ui-https
+  namespace: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`agent.k8s-agent.local`) || Host(`agents.k8s-agent.local`)
+      kind: Rule
+      services:
+        - name: agent-manager-ui
+          namespace: default
+          port: 80
+      middlewares:
+        - name: cors-headers
+  tls:
+    certResolver: letsencrypt
+---
+# Traefik Dashboard IngressRoute
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`traefik.k8s-agent.local`)
+      kind: Rule
+      services:
+        - name: api@internal
+          kind: TraefikService
+      middlewares:
+        - name: auth-middleware
+  tls:
+    certResolver: letsencrypt
+---
+# CORS Middleware
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: cors-headers
+  namespace: traefik
+spec:
+  headers:
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - OPTIONS
+    accessControlAllowHeaders:
+      - "*"
+    accessControlAllowOriginList:
+      - "http://localhost:3000"
+      - "http://localhost:8080"
+      - "https://agent.k8s-agent.local"
+      - "https://agents.k8s-agent.local"
+      - "https://gateway.k8s-agent.local"
+      - "https://api.k8s-agent.local"
+    accessControlMaxAge: 100
+    addVaryHeader: true
+    accessControlAllowCredentials: true
+---
+# Basic Auth Middleware for Dashboard
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: auth-middleware
+  namespace: traefik
+spec:
+  basicAuth:
+    secret: traefik-dashboard-auth
+---
+# Secret for Dashboard Auth (username: admin, password: admin)
+# Generate new password with: htpasswd -nb admin <password>
+apiVersion: v1
+kind: Secret
+metadata:
+  name: traefik-dashboard-auth
+  namespace: traefik
+type: Opaque
+stringData:
+  users: |
+    admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/

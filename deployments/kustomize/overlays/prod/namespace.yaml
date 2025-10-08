@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aetherius-prod
+  labels:
+    name: aetherius-prod
+    environment: production

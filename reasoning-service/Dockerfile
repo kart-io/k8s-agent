@@ -3,6 +3,10 @@ FROM python:3.11-slim
 LABEL maintainer="Aetherius Team"
 LABEL description="AI-powered root cause analysis and failure prediction service"
 
+# Set Python pip mirror for faster package installation in China
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_INDEX_URL=${PIP_INDEX_URL}
+
 # Set working directory
 WORKDIR /app
 
@@ -16,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i ${PIP_INDEX_URL} -r requirements.txt
 
 # Copy application code
 COPY . .

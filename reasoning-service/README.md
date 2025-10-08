@@ -678,15 +678,605 @@ curl http://localhost:8082/health
 
 ---
 
+## 模型管理
+
+### 当前模型架构
+
+Reasoning Service 当前采用**基于规则和机器学习混合**的方法,不依赖深度神经网络模型:
+
+#### 1. 根因分析模型
+
+**分析方法**:
+- **规则匹配**: 基于事件 reason、日志关键词、指标阈值的规则引擎
+- **模式识别**: 正则表达式和字符串匹配
+- **多模态融合**: 综合事件、日志、指标的加权投票
+
+**无需训练**: 规则和模式基于 Kubernetes 最佳实践和故障模式库
+
+**核心组件** (`internal/analyzer/root_cause.py`):
+```python
+class RootCauseAnalyzer:
+    def analyze(self, context: AnalysisContext) -> AnalysisResult:
+        # 事件分析
+        event_analysis = self._analyze_event(context.event)
+
+        # 日志分析 (关键词 + 正则)
+        log_analysis = self._analyze_logs(context.logs)
+
+        # 指标分析 (阈值检测)
+        metric_analysis = self._analyze_metrics(context.metrics)
+
+        # 选择最佳结果 (最高置信度)
+        return self._select_best_analysis([
+            event_analysis,
+            log_analysis,
+            metric_analysis
+        ])
+```
+
+**根因检测规则**:
+```python
+# 事件映射
+EVENT_REASON_MAPPING = {
+    "OOMKilled": RootCauseType.OOMKiller,
+    "CrashLoopBackOff": None,  # 需要进一步分析
+    "ImagePullBackOff": RootCauseType.ImagePullError,
+    # ... 更多映射
+}
+
+# 日志模式 (正则表达式)
+LOG_PATTERNS = {
+    RootCauseType.OOMKiller: [
+        r"out of memory",
+        r"OOM killer",
+        r"fatal error: runtime: out of memory"
+    ],
+    RootCauseType.NetworkError: [
+        r"connection refused",
+        r"dial tcp.*timeout",
+        r"no route to host"
+    ],
+    # ... 更多模式
+}
+
+# 指标阈值
+METRIC_THRESHOLDS = {
+    "memory_usage_percent": {
+        "critical": 95,
+        "warning": 85
+    },
+    "cpu_throttling_percent": {
+        "critical": 80,
+        "warning": 60
+    }
+}
+```
+
+#### 2. 故障预测模型
+
+**预测方法**:
+- **阈值预测**: 基于当前指标判断是否接近临界值
+- **趋势分析**: 简单线性趋势 (增长速度)
+- **异常检测**: Isolation Forest (sklearn)
+
+**Isolation Forest 模型**:
+
+```python
+from sklearn.ensemble import IsolationForest
+
+class PredictionEngine:
+    def __init__(self):
+        # Isolation Forest 用于异常检测
+        self.anomaly_detector = IsolationForest(
+            contamination=0.1,      # 假设 10% 数据为异常
+            random_state=42,
+            n_estimators=100
+        )
+        self.is_trained = False
+
+    def predict_failure(self, request: PredictionRequest) -> PredictionResult:
+        # 1. 阈值预测
+        threshold_prediction = self._predict_by_threshold(request.metrics)
+
+        # 2. 趋势预测
+        trend_prediction = self._predict_by_trend(request.metrics)
+
+        # 3. 异常检测 (如果有历史数据)
+        anomaly_prediction = None
+        if self.is_trained and request.metrics.history:
+            anomaly_prediction = self._predict_by_anomaly(request.metrics)
+
+        # 4. 聚合预测结果
+        return self._aggregate_predictions([
+            threshold_prediction,
+            trend_prediction,
+            anomaly_prediction
+        ])
+```
+
+**模型特点**:
+- **无监督学习**: Isolation Forest 不需要标注数据
+- **增量训练**: 可以使用新数据持续更新
+- **轻量级**: 不需要 GPU,CPU 即可运行
+
+#### 3. 推荐引擎
+
+**推荐方法**:
+- **基于规则**: 预定义的修复动作规则库
+- **条件匹配**: 根据根因类型和上下文条件选择推荐
+
+**规则库结构** (`internal/recommender/engine.py`):
+```python
+RECOMMENDATION_RULES = {
+    RootCauseType.OOMKiller: [
+        {
+            "action": "increase_memory_limit",
+            "description": "增加内存限制防止 OOM",
+            "confidence": 0.90,
+            "risk": "low",
+            "conditions": {
+                "memory_usage_percent": {"gt": 85}  # 仅当使用率 > 85% 时推荐
+            },
+            "steps": [
+                "分析当前内存使用模式",
+                "计算推荐内存限制 (当前 + 50%)",
+                "更新 Deployment/StatefulSet 内存限制",
+                "kubectl apply -f updated-manifest.yaml",
+                "监控 OOM 是否再次发生"
+            ],
+            "rollback_steps": [
+                "恢复到之前的内存限制",
+                "kubectl rollout undo deployment/<name>"
+            ],
+            "estimated_duration": "5 minutes"
+        },
+        {
+            "action": "investigate_memory_leak",
+            "description": "调查内存泄漏",
+            "confidence": 0.70,
+            "risk": "none",
+            "steps": [
+                "获取内存 profile",
+                "分析内存泄漏点",
+                "修复应用程序代码"
+            ]
+        }
+    ],
+    # ... 其他根因类型的推荐规则
+}
+```
+
+#### 4. 知识图谱 (Neo4j)
+
+**用途**:
+- 存储历史案例
+- 相似案例检索 (基于向量相似度或图匹配)
+- 案例关联分析
+
+**图结构**:
+```cypher
+# 案例节点
+(:Case {
+  id: "case-123",
+  title: "OOM in production",
+  root_cause: "OOMKiller",
+  symptoms: ["OOMKilled", "high memory"],
+  solution: "Increased memory to 1Gi",
+  cluster_id: "prod"
+})
+
+# 症状节点
+(:Symptom {name: "OOMKilled"})
+
+# 关系
+(:Case)-[:HAS_SYMPTOM]->(:Symptom)
+(:Case)-[:SIMILAR_TO {score: 0.85}]->(:Case)
+```
+
+**相似度计算**:
+```python
+def find_similar_cases(self, context: AnalysisContext, limit: int = 5) -> List[CaseStudy]:
+    # 基于症状的 Jaccard 相似度
+    query = """
+    MATCH (c:Case)
+    WHERE c.root_cause = $root_cause
+    WITH c,
+         size([s IN c.symptoms WHERE s IN $symptoms]) AS common,
+         size(c.symptoms) + size($symptoms) AS total
+    RETURN c,
+           1.0 * common / (total - common) AS similarity
+    ORDER BY similarity DESC
+    LIMIT $limit
+    """
+```
+
+### 模型训练与更新
+
+#### 1. Isolation Forest 训练
+
+**初始训练**:
+```python
+# 使用历史指标数据训练
+def train_anomaly_detector(self, historical_data: List[MetricSnapshot]):
+    """
+    Args:
+        historical_data: 历史指标快照列表
+            [
+                {"memory_usage": 70, "cpu_usage": 50, "restart_count": 0},
+                {"memory_usage": 85, "cpu_usage": 75, "restart_count": 1},
+                ...
+            ]
+    """
+    if len(historical_data) < 20:
+        logger.warning("Insufficient data for training (<20 samples)")
+        return False
+
+    # 准备特征矩阵
+    X = np.array([[
+        d["memory_usage"],
+        d["cpu_usage"],
+        d["restart_count"]
+    ] for d in historical_data])
+
+    # 训练模型
+    self.anomaly_detector.fit(X)
+    self.is_trained = True
+
+    logger.info(f"Anomaly detector trained with {len(historical_data)} samples")
+    return True
+```
+
+**增量更新**:
+```python
+# 定期重新训练
+async def update_models_periodically():
+    while True:
+        await asyncio.sleep(3600)  # 每小时
+
+        # 从知识图谱获取最近 7 天的数据
+        recent_data = knowledge_graph.get_recent_metrics(days=7)
+
+        if len(recent_data) >= 20:
+            predictor.train_anomaly_detector(recent_data)
+```
+
+#### 2. 规则更新
+
+**手动更新**:
+1. 编辑 `internal/analyzer/root_cause.py` 中的规则
+2. 重启服务或热加载 (规划中)
+
+**示例 - 添加新的日志模式**:
+```python
+# 在 LOG_PATTERNS 中添加新模式
+LOG_PATTERNS = {
+    RootCauseType.OOMKiller: [
+        r"out of memory",
+        r"OOM killer",
+        r"fatal error: runtime: out of memory",
+        r"java\.lang\.OutOfMemoryError"  # 新增 Java OOM 模式
+    ],
+}
+```
+
+**基于反馈的自动调整** (规划中):
+```python
+# 学习系统根据反馈自动调整规则权重
+def adjust_rule_weights(self, feedback: List[Feedback]):
+    for fb in feedback:
+        if not fb.was_helpful:
+            # 降低错误规则的权重
+            rule = self.get_rule(fb.root_cause_predicted)
+            rule.confidence *= 0.9
+```
+
+#### 3. 知识图谱更新
+
+**添加案例**:
+```bash
+# API 调用添加新案例
+POST /api/v1/cases
+{
+  "id": "case-new",
+  "title": "新的故障案例",
+  "root_cause": "NetworkError",
+  "symptoms": ["connection timeout", "dns resolution failed"],
+  "solution": "Updated DNS configuration",
+  "cluster_id": "prod"
+}
+```
+
+**批量导入**:
+```python
+# 从 CSV 或 JSON 批量导入案例
+def import_cases_from_file(filepath: str):
+    with open(filepath) as f:
+        cases = json.load(f)
+
+    for case_data in cases:
+        case = CaseStudy(**case_data)
+        knowledge_graph.add_case_study(case)
+
+    logger.info(f"Imported {len(cases)} cases")
+```
+
+### 模型性能监控
+
+#### 1. 准确率追踪
+
+```bash
+# 查看整体准确率
+GET /api/v1/metrics/accuracy
+
+# 响应
+{
+  "overall": 0.87,
+  "by_root_cause": {
+    "OOMKiller": {
+      "total_diagnoses": 50,
+      "correct_diagnoses": 47,
+      "accuracy": 0.94
+    },
+    "NetworkError": {
+      "total_diagnoses": 30,
+      "correct_diagnoses": 24,
+      "accuracy": 0.80
+    }
+  }
+}
+```
+
+#### 2. 改进建议
+
+```bash
+# 获取改进建议
+GET /api/v1/metrics/suggestions
+
+# 响应
+{
+  "suggestions": [
+    {
+      "type": "low_accuracy",
+      "root_cause": "NetworkError",
+      "current_accuracy": 0.80,
+      "message": "NetworkError 诊断准确率较低 (80%), 建议添加更多检测模式或案例"
+    },
+    {
+      "type": "insufficient_samples",
+      "root_cause": "DiskPressure",
+      "sample_count": 3,
+      "message": "DiskPressure 样本数不足 (3), 建议收集更多反馈数据"
+    }
+  ]
+}
+```
+
+#### 3. 响应时间监控
+
+```python
+# 在 server.py 中自动记录
+@app.middleware("http")
+async def log_performance(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+
+    logger.info(
+        f"{request.method} {request.url.path}",
+        extra={"duration": duration}
+    )
+    return response
+```
+
+### 模型导出与备份
+
+#### 1. Isolation Forest 模型导出
+
+```python
+import joblib
+
+# 导出模型
+def export_model(filepath: str = "models/isolation_forest.pkl"):
+    if not self.is_trained:
+        logger.warning("Model not trained, nothing to export")
+        return False
+
+    joblib.dump(self.anomaly_detector, filepath)
+    logger.info(f"Model exported to {filepath}")
+    return True
+
+# 加载模型
+def load_model(filepath: str = "models/isolation_forest.pkl"):
+    try:
+        self.anomaly_detector = joblib.load(filepath)
+        self.is_trained = True
+        logger.info(f"Model loaded from {filepath}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to load model: {e}")
+        return False
+```
+
+#### 2. 知识图谱备份
+
+```bash
+# 使用 Neo4j dump
+neo4j-admin database dump neo4j --to=/backups/neo4j-$(date +%Y%m%d).dump
+
+# 恢复
+neo4j-admin database load neo4j --from=/backups/neo4j-20251001.dump
+```
+
+#### 3. 规则配置版本控制
+
+```bash
+# 将规则配置提交到 Git
+git add internal/analyzer/root_cause.py
+git add internal/recommender/engine.py
+git commit -m "Update detection rules for NetworkError"
+git push
+```
+
+### 未来模型规划
+
+#### 1. 大语言模型 (LLM) 集成
+
+**用途**:
+- 日志分析和总结
+- 自然语言描述生成
+- 智能问答
+
+**架构**:
+```plaintext
+┌─────────────────────────────────────────┐
+│  Reasoning Service                       │
+│                                          │
+│  ┌────────────────┐   ┌──────────────┐ │
+│  │ Rule-based     │   │ LLM Engine   │ │
+│  │ Analyzer       │   │              │ │
+│  │                │   │ - Log Parse  │ │
+│  │ (Current)      │   │ - Summary    │ │
+│  └────────────────┘   │ - NLG        │ │
+│          │             └──────────────┘ │
+│          │                     │         │
+│          └─────────┬───────────┘         │
+│                    │                     │
+│              ┌─────▼──────┐             │
+│              │  Ensemble  │             │
+│              │  Fusion    │             │
+│              └────────────┘             │
+└─────────────────────────────────────────┘
+```
+
+**集成方案**:
+- OpenAI API
+- 本地 LLaMA/Mistral
+- Azure OpenAI Service
+
+#### 2. 深度学习模型
+
+**用途**:
+- 时序预测 (LSTM/Transformer)
+- 多维异常检测
+- 日志序列分析
+
+**模型选择**:
+- **时序预测**: Prophet, LSTM
+- **异常检测**: Autoencoder, VAE
+- **日志分析**: BERT, RoBERTa
+
+#### 3. 联邦学习
+
+**多集群学习**:
+- 各集群本地训练
+- 中央服务器聚合模型
+- 保护数据隐私
+
+### 模型管理最佳实践
+
+#### 1. 数据收集
+
+**收集关键数据**:
+- 所有分析请求的输入和输出
+- 用户反馈 (准确率、有用性)
+- 故障案例和解决方案
+- 指标时序数据
+
+**数据存储**:
+```yaml
+# PostgreSQL 或 InfluxDB
+analysis_requests:
+  - request_id
+  - timestamp
+  - context (JSON)
+  - result (JSON)
+  - feedback_rating
+
+metric_history:
+  - timestamp
+  - resource_id
+  - metric_name
+  - value
+```
+
+#### 2. 模型版本控制
+
+**版本命名**:
+```plaintext
+models/
+├── isolation_forest_v1.0.0.pkl
+├── isolation_forest_v1.1.0.pkl
+└── metadata.json
+```
+
+**元数据记录**:
+```json
+{
+  "model_name": "isolation_forest",
+  "version": "1.1.0",
+  "trained_at": "2025-10-01T10:00:00Z",
+  "training_samples": 5000,
+  "features": ["memory_usage", "cpu_usage", "restart_count"],
+  "hyperparameters": {
+    "contamination": 0.1,
+    "n_estimators": 100
+  },
+  "performance": {
+    "accuracy": 0.87,
+    "precision": 0.85,
+    "recall": 0.90
+  }
+}
+```
+
+#### 3. A/B 测试
+
+**对比测试新规则**:
+```python
+# 在部分请求上使用新规则
+if request_id % 10 < 2:  # 20% 流量
+    result = new_analyzer.analyze(context)
+else:
+    result = current_analyzer.analyze(context)
+
+# 记录结果用于对比
+log_ab_test_result(request_id, "new" if use_new else "current", result)
+```
+
+#### 4. 模型监控告警
+
+**设置告警**:
+```yaml
+# Prometheus 告警规则
+groups:
+  - name: reasoning_service
+    rules:
+      - alert: LowAccuracy
+        expr: reasoning_accuracy < 0.7
+        for: 1h
+        annotations:
+          summary: "分析准确率过低 ({{ $value }})"
+
+      - alert: HighLatency
+        expr: reasoning_latency_p95 > 5
+        for: 5m
+        annotations:
+          summary: "分析延迟过高 ({{ $value }}s)"
+```
+
+---
+
 ## 路线图
 
 - [ ] 集成大语言模型 (LLM) 进行日志分析
-- [ ] 深度学习模型训练
+- [ ] 深度学习模型训练 (LSTM, Transformer)
 - [ ] 更多根因检测模式
 - [ ] 自动化修复执行
-- [ ] 多集群分析
+- [ ] 多集群联邦学习
 - [ ] 实时流式分析
+- [ ] 模型 A/B 测试框架
 - [ ] Web UI 界面
+- [ ] 模型可解释性增强
 
 ---
 

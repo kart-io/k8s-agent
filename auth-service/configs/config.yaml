@@ -1,0 +1,30 @@
+# Auth Service Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8090
+  mode: "debug" # debug, release
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "k8s_agent_auth"
+  sslmode: "disable"
+  max_idle_conns: 10
+  max_open_conns: 100
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 2
+
+jwt:
+  secret: "your-secret-key-change-in-production"
+  expires_hours: 24
+
+logging:
+  level: "info" # debug, info, warn, error
+  format: "json" # json, text

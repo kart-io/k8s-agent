@@ -88,6 +88,11 @@ func (s *PostgresStore) migrate() error {
 	)
 }
 
+// DB returns the underlying GORM database instance
+func (s *PostgresStore) DB() *gorm.DB {
+	return s.db
+}
+
 // Agent operations
 
 // SaveAgent saves an agent to the database

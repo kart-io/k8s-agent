@@ -33,47 +33,89 @@ func NewManager(
 
 // MatchStrategy finds matching strategy for an event
 func (m *Manager) MatchStrategy(ctx context.Context, event types.InternalEvent) (*types.Strategy, error) {
+	m.logger.Info("🔍 Starting strategy matching",
+		zap.String("event_type", event.Type),
+		zap.String("severity", event.Severity))
+
 	// Get all active strategies
 	strategies, err := m.store.ListStrategies(ctx, true)
 	if err != nil {
+		m.logger.Error("❌ Failed to list strategies from database", zap.Error(err))
 		return nil, fmt.Errorf("failed to list strategies: %w", err)
+	}
+
+	m.logger.Info("📋 Retrieved strategies from database",
+		zap.Int("total_strategies", len(strategies)))
+
+	if len(strategies) == 0 {
+		m.logger.Warn("⚠️  No active strategies found in database")
+		return nil, fmt.Errorf("no active strategies available")
 	}
 
 	// Find best matching strategy
 	var bestMatch *types.Strategy
 	var bestScore int
 
-	for _, strategy := range strategies {
+	for i, strategy := range strategies {
 		score := m.calculateMatchScore(event, strategy)
+		m.logger.Debug("Evaluating strategy",
+			zap.Int("index", i),
+			zap.String("strategy_id", strategy.ID),
+			zap.String("strategy_name", strategy.Name),
+			zap.String("category", strategy.Category),
+			zap.Int("score", score))
+
 		if score > bestScore {
 			bestScore = score
 			bestMatch = strategy
+			m.logger.Info("✓ New best match found",
+				zap.String("strategy_name", strategy.Name),
+				zap.Int("score", score))
 		}
 	}
 
 	if bestMatch == nil {
+		m.logger.Warn("⚠️  No matching strategy found",
+			zap.String("event_type", event.Type))
 		return nil, fmt.Errorf("no matching strategy found")
 	}
 
-	m.logger.Info("Strategy matched",
+	m.logger.Info("✅ Strategy matched successfully",
 		zap.String("strategy_id", bestMatch.ID),
 		zap.String("strategy_name", bestMatch.Name),
-		zap.Int("score", bestScore))
+		zap.String("category", bestMatch.Category),
+		zap.Int("final_score", bestScore))
 
 	return bestMatch, nil
 }
 
 // ExecuteStrategy executes a matched strategy
 func (m *Manager) ExecuteStrategy(ctx context.Context, strategy *types.Strategy, event types.InternalEvent) (*types.WorkflowExecution, error) {
-	m.logger.Info("Executing strategy",
+	m.logger.Info("🚀 Starting strategy execution",
 		zap.String("strategy_id", strategy.ID),
+		zap.String("strategy_name", strategy.Name),
 		zap.String("workflow_id", strategy.WorkflowID))
 
 	// Start workflow execution
-	return m.engine.StartWorkflow(ctx, strategy.WorkflowID, map[string]interface{}{
+	execution, err := m.engine.StartWorkflow(ctx, strategy.WorkflowID, map[string]interface{}{
 		"strategy_id": strategy.ID,
 		"event":       event,
 	})
+
+	if err != nil {
+		m.logger.Error("❌ Failed to start workflow",
+			zap.String("strategy_id", strategy.ID),
+			zap.String("workflow_id", strategy.WorkflowID),
+			zap.Error(err))
+		return nil, err
+	}
+
+	m.logger.Info("✅ Workflow execution started",
+		zap.String("execution_id", execution.ID),
+		zap.String("workflow_id", execution.WorkflowID),
+		zap.String("status", string(execution.Status)))
+
+	return execution, nil
 }
 
 // calculateMatchScore calculates match score between event and strategy

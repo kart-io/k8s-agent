@@ -65,26 +65,26 @@ type Condition struct {
 
 // RetryPolicy defines retry behavior
 type RetryPolicy struct {
-	MaxRetries     int           `json:"max_retries"`
-	InitialDelay   time.Duration `json:"initial_delay"`
-	MaxDelay       time.Duration `json:"max_delay"`
-	BackoffFactor  float64       `json:"backoff_factor"`
+	MaxRetries    int           `json:"max_retries"`
+	InitialDelay  time.Duration `json:"initial_delay"`
+	MaxDelay      time.Duration `json:"max_delay"`
+	BackoffFactor float64       `json:"backoff_factor"`
 }
 
 // WorkflowExecution represents a workflow execution instance
 type WorkflowExecution struct {
-	ID              string                 `json:"id" gorm:"primaryKey"`
-	WorkflowID      string                 `json:"workflow_id" gorm:"index;not null"`
-	TriggerEvent    map[string]interface{} `json:"trigger_event" gorm:"type:jsonb"`
-	Status          ExecutionStatus        `json:"status" gorm:"index"`
-	CurrentStepID   string                 `json:"current_step_id"`
-	StepExecutions  []StepExecution        `json:"step_executions" gorm:"type:jsonb"`
-	Context         map[string]interface{} `json:"context" gorm:"type:jsonb"`
-	Result          map[string]interface{} `json:"result" gorm:"type:jsonb"`
-	Error           string                 `json:"error,omitempty"`
-	StartedAt       time.Time              `json:"started_at"`
-	CompletedAt     *time.Time             `json:"completed_at,omitempty"`
-	Duration        time.Duration          `json:"duration"`
+	ID             string                 `json:"id" gorm:"primaryKey"`
+	WorkflowID     string                 `json:"workflow_id" gorm:"index;not null"`
+	TriggerEvent   map[string]interface{} `json:"trigger_event" gorm:"type:jsonb"`
+	Status         ExecutionStatus        `json:"status" gorm:"index"`
+	CurrentStepID  string                 `json:"current_step_id"`
+	StepExecutions []StepExecution        `json:"step_executions" gorm:"type:jsonb"`
+	Context        map[string]interface{} `json:"context" gorm:"type:jsonb"`
+	Result         map[string]interface{} `json:"result" gorm:"type:jsonb"`
+	Error          string                 `json:"error,omitempty"`
+	StartedAt      time.Time              `json:"started_at"`
+	CompletedAt    *time.Time             `json:"completed_at,omitempty"`
+	Duration       time.Duration          `json:"duration"`
 }
 
 // ExecutionStatus represents execution status
@@ -136,20 +136,20 @@ type Symptom struct {
 
 // Task represents a scheduled or queued task
 type Task struct {
-	ID             string                 `json:"id" gorm:"primaryKey"`
-	Type           TaskType               `json:"type" gorm:"index"`
-	WorkflowID     string                 `json:"workflow_id" gorm:"index"`
-	ExecutionID    string                 `json:"execution_id" gorm:"index"`
-	Payload        map[string]interface{} `json:"payload" gorm:"type:jsonb"`
-	Status         TaskStatus             `json:"status" gorm:"index"`
-	Priority       int                    `json:"priority" gorm:"index"`
-	ScheduledAt    time.Time              `json:"scheduled_at" gorm:"index"`
-	StartedAt      *time.Time             `json:"started_at,omitempty"`
-	CompletedAt    *time.Time             `json:"completed_at,omitempty"`
-	RetryCount     int                    `json:"retry_count"`
-	MaxRetries     int                    `json:"max_retries"`
-	Error          string                 `json:"error,omitempty"`
-	CreatedAt      time.Time              `json:"created_at"`
+	ID          string                 `json:"id" gorm:"primaryKey"`
+	Type        TaskType               `json:"type" gorm:"index"`
+	WorkflowID  string                 `json:"workflow_id" gorm:"index"`
+	ExecutionID string                 `json:"execution_id" gorm:"index"`
+	Payload     map[string]interface{} `json:"payload" gorm:"type:jsonb"`
+	Status      TaskStatus             `json:"status" gorm:"index"`
+	Priority    int                    `json:"priority" gorm:"index"`
+	ScheduledAt time.Time              `json:"scheduled_at" gorm:"index"`
+	StartedAt   *time.Time             `json:"started_at,omitempty"`
+	CompletedAt *time.Time             `json:"completed_at,omitempty"`
+	RetryCount  int                    `json:"retry_count"`
+	MaxRetries  int                    `json:"max_retries"`
+	Error       string                 `json:"error,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
 }
 
 // TaskType represents task type
@@ -175,18 +175,18 @@ const (
 
 // RemediationAction represents an automated remediation action
 type RemediationAction struct {
-	ID          string                 `json:"id" gorm:"primaryKey"`
-	Name        string                 `json:"name" gorm:"index;not null"`
-	Category    string                 `json:"category" gorm:"index"`
-	Description string                 `json:"description"`
-	ActionType  string                 `json:"action_type"` // kubectl, api_call, script
-	Config      map[string]interface{} `json:"config" gorm:"type:jsonb"`
-	RiskLevel   RiskLevel              `json:"risk_level" gorm:"index"`
-	RequireApproval bool               `json:"require_approval"`
-	Rollback    *RollbackConfig        `json:"rollback" gorm:"type:jsonb"`
-	Metadata    map[string]interface{} `json:"metadata" gorm:"type:jsonb"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID              string                 `json:"id" gorm:"primaryKey"`
+	Name            string                 `json:"name" gorm:"index;not null"`
+	Category        string                 `json:"category" gorm:"index"`
+	Description     string                 `json:"description"`
+	ActionType      string                 `json:"action_type"` // kubectl, api_call, script
+	Config          map[string]interface{} `json:"config" gorm:"type:jsonb"`
+	RiskLevel       RiskLevel              `json:"risk_level" gorm:"index"`
+	RequireApproval bool                   `json:"require_approval"`
+	Rollback        *RollbackConfig        `json:"rollback" gorm:"type:jsonb"`
+	Metadata        map[string]interface{} `json:"metadata" gorm:"type:jsonb"`
+	CreatedAt       time.Time              `json:"created_at"`
+	UpdatedAt       time.Time              `json:"updated_at"`
 }
 
 // RiskLevel represents risk level
@@ -201,10 +201,10 @@ const (
 
 // RollbackConfig defines rollback configuration
 type RollbackConfig struct {
-	Enabled       bool                   `json:"enabled"`
-	ActionType    string                 `json:"action_type"`
-	Config        map[string]interface{} `json:"config"`
-	TriggerOn     []string               `json:"trigger_on"` // failure, timeout, manual
+	Enabled    bool                   `json:"enabled"`
+	ActionType string                 `json:"action_type"`
+	Config     map[string]interface{} `json:"config"`
+	TriggerOn  []string               `json:"trigger_on"` // failure, timeout, manual
 }
 
 // RemediationExecution represents a remediation execution
@@ -241,8 +241,8 @@ type AIAnalysisRequest struct {
 type AIAnalysisType string
 
 const (
-	AIAnalysisTypeRootCause     AIAnalysisType = "root_cause"
-	AIAnalysisTypePrediction    AIAnalysisType = "prediction"
+	AIAnalysisTypeRootCause      AIAnalysisType = "root_cause"
+	AIAnalysisTypePrediction     AIAnalysisType = "prediction"
 	AIAnalysisTypeRecommendation AIAnalysisType = "recommendation"
 )
 
@@ -335,6 +335,7 @@ type RedisConfig struct {
 // AIConfig represents AI service configuration
 type AIConfig struct {
 	ReasoningServiceURL string        `yaml:"reasoning_service_url"`
+	AgentManagerURL     string        `yaml:"agent_manager_url"`
 	Timeout             time.Duration `yaml:"timeout"`
 	MaxRetries          int           `yaml:"max_retries"`
 }

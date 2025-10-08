@@ -1,0 +1,144 @@
+# Gateway Service 配置
+
+server:
+  port: 8080
+  mode: debug  # debug, release, test
+  read_timeout: 30s
+  write_timeout: 30s
+
+# 日志配置
+log:
+  level: info
+  file: ./logs/gateway.log
+
+# Redis 配置 (用于限流、缓存)
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+
+# JWT 配置
+jwt:
+  secret: "your-gateway-secret-key"  # 生产环境必须修改
+  expires_hours: 24
+
+# 限流配置
+rate_limit:
+  enabled: true
+  requests_per_second: 100
+  burst: 200
+
+# CORS 配置
+cors:
+  enabled: true
+  allow_origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+  allow_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  allow_headers:
+    - Origin
+    - Content-Type
+    - Authorization
+  expose_headers:
+    - Content-Length
+  allow_credentials: true
+  max_age: 12h
+
+# 后端服务配置
+services:
+  # 认证服务
+  auth:
+    name: auth-service
+    url: http://localhost:8090
+    timeout: 30s
+    retry: 3
+    health_check: /health
+
+  # Agent 管理服务
+  agent_manager:
+    name: agent-manager
+    url: http://localhost:8081
+    timeout: 30s
+    retry: 3
+    health_check: /health
+
+  # 编排服务
+  orchestrator:
+    name: orchestrator-service
+    url: http://localhost:8082
+    timeout: 30s
+    retry: 3
+    health_check: /health
+
+  # 推理服务
+  reasoning:
+    name: reasoning-service
+    url: http://localhost:8083
+    timeout: 30s
+    retry: 3
+    health_check: /health
+
+# 路由配置
+routes:
+  # 认证服务路由
+  - path: /api/v1/auth/*
+    service: auth
+    strip_prefix: false
+    auth_required: false
+
+  # Agent 管理路由
+  - path: /api/v1/agents/*
+    service: agent_manager
+    strip_prefix: false
+    auth_required: true
+
+  - path: /api/v1/clusters/*
+    service: agent_manager
+    strip_prefix: false
+    auth_required: true
+
+  - path: /api/v1/events/*
+    service: agent_manager
+    strip_prefix: false
+    auth_required: true
+
+  - path: /api/v1/commands/*
+    service: agent_manager
+    strip_prefix: false
+    auth_required: true
+
+  # 编排服务路由
+  - path: /api/v1/workflows/*
+    service: orchestrator
+    strip_prefix: false
+    auth_required: true
+
+  - path: /api/v1/strategies/*
+    service: orchestrator
+    strip_prefix: false
+    auth_required: true
+
+  # 推理服务路由
+  - path: /api/v1/reasoning/*
+    service: reasoning
+    strip_prefix: false
+    auth_required: true
+
+# 健康检查配置
+health_check:
+  enabled: true
+  interval: 30s
+  timeout: 5s
+
+# 监控配置
+metrics:
+  enabled: true
+  path: /metrics

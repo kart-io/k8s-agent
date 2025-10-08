@@ -2,6 +2,7 @@
 
 # Cluster identification (leave empty for auto-detection)
 cluster_id: ""
+cluster_name: "Development Cluster"
 
 # NATS local endpoint
 central_endpoint: "nats://localhost:4222"
@@ -21,5 +22,8 @@ buffer_size: 100
 enable_metrics: true
 enable_events: true
 
-# Logging (debug level for development)
+# Health check port (different from agent-manager's 8080)
+health_port: 8082
+
+# Logging (info level for development - use "debug" for more details)
 log_level: "debug"

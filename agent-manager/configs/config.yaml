@@ -22,8 +22,8 @@ nats:
 database:
   host: "localhost"
   port: 5432
-  user: "aetherius"
-  password: "aetherius123"
+  user: "postgres"
+  password: "dev-postgres-password"
   database: "aetherius"
   ssl_mode: "disable"
   max_open_conns: 25
@@ -33,7 +33,7 @@ database:
 # Redis configuration
 redis:
   addr: "localhost:6379"
-  password: ""
+  password: "dev-redis-password"
   db: 0
   pool_size: 10
   min_idle_conns: 3
@@ -43,7 +43,7 @@ redis:
 
 # Logging configuration
 logging:
-  level: "info"  # debug, info, warn, error
+  level: "debug"  # debug, info, warn, error
   format: "json"  # json, console
   output_path: "stdout"  # stdout, stderr, or file path
 

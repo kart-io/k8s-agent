@@ -182,6 +182,16 @@ func (ew *EventWatcher) shouldProcessEvent(event *corev1.Event) bool {
 		"FileSystemResizeFailed":           true,
 		"FailedMapVolume":                  true,
 		"FailedUnmapDevice":                true,
+		// Normal deployment events
+		"Scheduled":           true,
+		"Pulled":              true,
+		"Created":             true,
+		"Started":             true,
+		"SuccessfulCreate":    true,
+		"ScalingReplicaSet":   true,
+		"SuccessfulDelete":    true,
+		"NoPods":              true,
+		"SuccessfulRescale":   true,
 	}
 
 	// Also include Warning and Error type events
@@ -258,6 +268,16 @@ func (ew *EventWatcher) determineSeverity(event *corev1.Event) string {
 		"Starting",
 		"Rebooted",
 		"ProbeWarning",
+		"Killing", // Pod deletion events
+		// Normal deployment events
+		"Scheduled",
+		"Pulled",
+		"Created",
+		"Started",
+		"SuccessfulCreate",
+		"ScalingReplicaSet",
+		"SuccessfulDelete",
+		"SuccessfulRescale",
 	}
 
 	reason := event.Reason

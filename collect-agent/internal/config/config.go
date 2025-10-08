@@ -50,6 +50,10 @@ func overrideWithEnv(config *types.AgentConfig) {
 		config.ClusterID = val
 	}
 
+	if val := os.Getenv("CLUSTER_NAME"); val != "" {
+		config.ClusterName = val
+	}
+
 	if val := os.Getenv("CENTRAL_ENDPOINT"); val != "" {
 		config.CentralEndpoint = val
 	}

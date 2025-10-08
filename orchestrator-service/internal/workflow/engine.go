@@ -48,19 +48,34 @@ func NewEngine(
 
 // StartWorkflow starts a new workflow execution
 func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEvent map[string]interface{}) (*types.WorkflowExecution, error) {
+	e.logger.Info("🎬 Starting workflow execution",
+		zap.String("workflow_id", workflowID))
+
 	// Load workflow definition
 	workflow, err := e.store.GetWorkflow(ctx, workflowID)
 	if err != nil {
+		e.logger.Error("❌ Failed to load workflow from database",
+			zap.String("workflow_id", workflowID),
+			zap.Error(err))
 		return nil, fmt.Errorf("failed to load workflow: %w", err)
 	}
 
+	e.logger.Info("✓ Workflow loaded",
+		zap.String("workflow_name", workflow.Name),
+		zap.String("status", string(workflow.Status)),
+		zap.Int("steps", len(workflow.Steps)))
+
 	if workflow.Status != types.WorkflowStatusActive {
+		e.logger.Warn("⚠️  Workflow is not active",
+			zap.String("workflow_id", workflowID),
+			zap.String("status", string(workflow.Status)))
 		return nil, fmt.Errorf("workflow is not active")
 	}
 
 	// Create execution instance
+	executionID := uuid.New().String()
 	execution := &types.WorkflowExecution{
-		ID:           uuid.New().String(),
+		ID:           executionID,
 		WorkflowID:   workflowID,
 		TriggerEvent: triggerEvent,
 		Status:       types.ExecutionStatusPending,
@@ -68,16 +83,30 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 		StartedAt:    time.Now(),
 	}
 
+	e.logger.Info("📝 Created workflow execution instance",
+		zap.String("execution_id", executionID))
+
 	// Save execution
 	if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+		e.logger.Error("❌ Failed to save execution to database",
+			zap.String("execution_id", executionID),
+			zap.Error(err))
 		return nil, fmt.Errorf("failed to save execution: %w", err)
 	}
+
+	e.logger.Info("✓ Execution saved to database",
+		zap.String("execution_id", executionID))
 
 	// Track in memory
 	e.mu.Lock()
 	e.executions[execution.ID] = execution
 	e.executionsStarted++
+	currentStats := e.executionsStarted
 	e.mu.Unlock()
+
+	e.logger.Info("📊 Execution tracking updated",
+		zap.String("execution_id", executionID),
+		zap.Int64("total_started", currentStats))
 
 	// Start execution asynchronously
 	go e.executeWorkflow(context.Background(), workflow, execution)
@@ -384,10 +413,10 @@ func (e *Engine) GetStatistics() map[string]interface{} {
 	defer e.mu.RUnlock()
 
 	return map[string]interface{}{
-		"active_executions":     len(e.executions),
-		"executions_started":    e.executionsStarted,
-		"executions_completed":  e.executionsCompleted,
-		"executions_failed":     e.executionsFailed,
+		"active_executions":    len(e.executions),
+		"executions_started":   e.executionsStarted,
+		"executions_completed": e.executionsCompleted,
+		"executions_failed":    e.executionsFailed,
 	}
 }
 

@@ -1,0 +1,130 @@
+# Traefik 动态配置 - 路由规则
+
+http:
+  routers:
+    # 认证服务路由（不需要认证）
+    auth-service-router:
+      rule: "PathPrefix(`/api/v1/auth`)"
+      service: auth-service
+      entryPoints:
+        - web
+        - websecure
+      middlewares:
+        - gateway-chain
+      priority: 100
+
+    # Agent 管理服务路由
+    agent-manager-router:
+      rule: "PathPrefix(`/api/v1/agents`) || PathPrefix(`/api/v1/clusters`) || PathPrefix(`/api/v1/events`) || PathPrefix(`/api/v1/commands`)"
+      service: agent-manager-service
+      entryPoints:
+        - web
+        - websecure
+      middlewares:
+        - gateway-chain
+      priority: 90
+
+    # 编排服务路由
+    orchestrator-router:
+      rule: "PathPrefix(`/api/v1/workflows`) || PathPrefix(`/api/v1/strategies`)"
+      service: orchestrator-service
+      entryPoints:
+        - web
+        - websecure
+      middlewares:
+        - gateway-chain
+      priority: 90
+
+    # 推理服务路由
+    reasoning-router:
+      rule: "PathPrefix(`/api/v1/reasoning`)"
+      service: reasoning-service
+      entryPoints:
+        - web
+        - websecure
+      middlewares:
+        - gateway-chain
+      priority: 90
+
+    # 用户管理路由
+    users-router:
+      rule: "PathPrefix(`/api/v1/users`) || PathPrefix(`/api/v1/roles`) || PathPrefix(`/api/v1/permissions`)"
+      service: auth-service
+      entryPoints:
+        - web
+        - websecure
+      middlewares:
+        - gateway-chain
+      priority: 85
+
+    # 健康检查路由
+    health-router:
+      rule: "PathPrefix(`/health`) || PathPrefix(`/api/v1/health`)"
+      service: gateway-service
+      entryPoints:
+        - web
+        - websecure
+      middlewares:
+        - compression
+      priority: 100
+
+    # 监控指标路由
+    metrics-router:
+      rule: "Path(`/metrics`)"
+      service: gateway-service
+      entryPoints:
+        - web
+        - websecure
+      priority: 100
+
+  services:
+    # 认证服务
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-service:8090"
+        healthCheck:
+          path: /health
+          interval: 30s
+          timeout: 5s
+        passHostHeader: true
+
+    # Agent 管理服务
+    agent-manager-service:
+      loadBalancer:
+        servers:
+          - url: "http://agent-manager:8081"
+        healthCheck:
+          path: /health
+          interval: 30s
+          timeout: 5s
+        passHostHeader: true
+
+    # 编排服务
+    orchestrator-service:
+      loadBalancer:
+        servers:
+          - url: "http://orchestrator-service:8082"
+        healthCheck:
+          path: /health
+          interval: 30s
+          timeout: 5s
+        passHostHeader: true
+
+    # 推理服务
+    reasoning-service:
+      loadBalancer:
+        servers:
+          - url: "http://reasoning-service:8083"
+        healthCheck:
+          path: /health
+          interval: 30s
+          timeout: 5s
+        passHostHeader: true
+
+    # 网关服务自身
+    gateway-service:
+      loadBalancer:
+        servers:
+          - url: "http://gateway-service:8080"
+        passHostHeader: true

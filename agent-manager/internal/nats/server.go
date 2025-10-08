@@ -263,6 +263,19 @@ func (s *Server) subscribeResults() error {
 func (s *Server) handleRegister(msg *nats.Msg) {
 	s.messagesReceived++
 
+	// Unmarshal into a generic map to extract both agent and cluster info
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(msg.Data, &rawData); err != nil {
+		s.logger.Error("Failed to unmarshal register message", zap.Error(err))
+		s.errorCount++
+		return
+	}
+
+	// Extract cluster information if provided
+	k8sVersion, _ := rawData["k8s_version"].(string)
+	apiServer, _ := rawData["api_server"].(string)
+
+	// Unmarshal again into Agent struct
 	var agentInfo types.Agent
 	if err := json.Unmarshal(msg.Data, &agentInfo); err != nil {
 		s.logger.Error("Failed to unmarshal register message", zap.Error(err))
@@ -277,6 +290,15 @@ func (s *Server) handleRegister(msg *nats.Msg) {
 			zap.Error(err))
 		s.errorCount++
 		return
+	}
+
+	// Update cluster with K8s information if provided
+	if k8sVersion != "" || apiServer != "" {
+		if err := s.registry.UpdateClusterInfo(ctx, agentInfo.ClusterID, k8sVersion, apiServer); err != nil {
+			s.logger.Warn("Failed to update cluster info",
+				zap.String("cluster_id", agentInfo.ClusterID),
+				zap.Error(err))
+		}
 	}
 
 	s.logger.Info("Agent registered successfully",
@@ -352,16 +374,49 @@ func (s *Server) handleEvent(msg *nats.Msg) {
 func (s *Server) handleMetrics(msg *nats.Msg) {
 	s.messagesReceived++
 
-	var metrics types.Metrics
-	if err := json.Unmarshal(msg.Data, &metrics); err != nil {
+	// Parse as generic map to access Data field from collect-agent
+	var rawMetrics map[string]interface{}
+	if err := json.Unmarshal(msg.Data, &rawMetrics); err != nil {
 		s.logger.Error("Failed to unmarshal metrics message", zap.Error(err))
 		s.errorCount++
 		return
 	}
 
-	// TODO: Process metrics (store in Prometheus/VictoriaMetrics)
-	s.logger.Debug("Metrics received",
-		zap.String("cluster_id", metrics.ClusterID))
+	clusterID, _ := rawMetrics["cluster_id"].(string)
+	if clusterID == "" {
+		s.logger.Warn("Metrics message missing cluster_id")
+		return
+	}
+
+	// Extract node and pod counts from metrics data
+	var nodeCount, podCount int
+
+	if data, ok := rawMetrics["data"].(map[string]interface{}); ok {
+		if nodesData, ok := data["nodes"].(map[string]interface{}); ok {
+			if total, ok := nodesData["total"].(float64); ok {
+				nodeCount = int(total)
+			}
+		}
+
+		if podsData, ok := data["pods"].(map[string]interface{}); ok {
+			if total, ok := podsData["total"].(float64); ok {
+				podCount = int(total)
+			}
+		}
+	}
+
+	// Update cluster metrics
+	ctx := context.Background()
+	if err := s.registry.UpdateClusterMetrics(ctx, clusterID, nodeCount, podCount); err != nil {
+		s.logger.Warn("Failed to update cluster metrics",
+			zap.String("cluster_id", clusterID),
+			zap.Error(err))
+	}
+
+	s.logger.Debug("Metrics received and processed",
+		zap.String("cluster_id", clusterID),
+		zap.Int("node_count", nodeCount),
+		zap.Int("pod_count", podCount))
 }
 
 // handleResult handles command result messages

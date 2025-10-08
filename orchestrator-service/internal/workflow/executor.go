@@ -15,10 +15,10 @@ import (
 
 // Executor executes workflow steps
 type Executor struct {
-	logger            *zap.Logger
-	agentManagerURL   string
+	logger              *zap.Logger
+	agentManagerURL     string
 	reasoningServiceURL string
-	httpClient        *http.Client
+	httpClient          *http.Client
 }
 
 // NewExecutor creates a new executor
@@ -60,13 +60,13 @@ func (ex *Executor) ExecuteCommand(ctx context.Context, execution *types.Workflo
 
 	// Prepare command request
 	cmdReq := map[string]interface{}{
-		"cluster_id": clusterID,
-		"type":       "diagnostic",
-		"tool":       tool,
-		"action":     action,
-		"args":       args,
-		"timeout":    "30s",
-		"issued_by":  "orchestrator-service",
+		"cluster_id":     clusterID,
+		"type":           "diagnostic",
+		"tool":           tool,
+		"action":         action,
+		"args":           args,
+		"timeout":        "30s",
+		"issued_by":      "orchestrator-service",
 		"correlation_id": execution.ID,
 	}
 
@@ -98,8 +98,8 @@ func (ex *Executor) ExecuteAIAnalysis(ctx context.Context, execution *types.Work
 
 	// Prepare analysis request
 	analysisReq := map[string]interface{}{
-		"request_id":   fmt.Sprintf("%s-%s", execution.ID, step.ID),
-		"workflow_id":  execution.WorkflowID,
+		"request_id":    fmt.Sprintf("%s-%s", execution.ID, step.ID),
+		"workflow_id":   execution.WorkflowID,
 		"analysis_type": step.Config["analysis_type"],
 		"context": map[string]interface{}{
 			"event":       execution.TriggerEvent,
