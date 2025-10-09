@@ -258,6 +258,29 @@ router.Use(middleware.APIKeyAuth())
 
 ## 运行服务
 
+### 使用 Docker Compose (推荐)
+
+```bash
+# 启动所有服务
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f auth-service
+
+# 停止服务
+docker-compose down
+```
+
+服务地址:
+- Auth Service: http://localhost:8080
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000 (admin/admin)
+
+### 手动运行
+
 ```bash
 # 初始化依赖
 go mod tidy

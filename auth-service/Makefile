@@ -1,4 +1,10 @@
-.PHONY: build run test clean init-db init-mysql
+.PHONY: help build run test clean init-db init-mysql deps fmt lint docker-build docker-run test-coverage vet dev
+
+help: ## Show this help message
+	@echo 'Usage: make [target]'
+	@echo ''
+	@echo 'Available targets:'
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # Build the service
 build:
@@ -12,9 +18,21 @@ run:
 	@go run cmd/server/main.go
 
 # Run tests
-test:
+test: ## Run all tests
 	@echo "Running tests..."
 	@go test -v ./...
+
+# Run tests with coverage
+test-coverage: ## Run tests with coverage report
+	@echo "Running tests with coverage..."
+	@go test -cover -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+# Run go vet
+vet: ## Run go vet
+	@echo "Running go vet..."
+	@go vet ./...
 
 # Clean build artifacts
 clean:
@@ -23,11 +41,16 @@ clean:
 	@echo "Clean complete"
 
 # Initialize dependencies
-deps:
+deps: ## Install and update dependencies
 	@echo "Initializing dependencies..."
 	@go mod tidy
 	@go mod download
 	@echo "Dependencies initialized"
+
+# Setup development environment
+dev: deps ## Setup development environment
+	@echo "Development environment ready"
+	@echo "Run 'make run' to start the server"
 
 # Initialize PostgreSQL database
 init-db:

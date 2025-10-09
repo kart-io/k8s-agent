@@ -6,25 +6,33 @@ server:
   mode: "debug" # debug, release
 
 database:
-  host: "localhost"
+  host: localhost
   port: 5432
-  user: "postgres"
-  password: "postgres"
-  dbname: "k8s_agent_auth"
-  sslmode: "disable"
-  max_idle_conns: 10
-  max_open_conns: 100
+  user: postgres
+  password: postgres
+  dbname: k8s_agent_auth
+  sslmode: disable
+  max_open_conns: 25
+  max_idle_conns: 5
+  auto_migrate: true # Enable GORM AutoMigrate (true in dev/test, false in production)
 
 redis:
-  host: "localhost"
+  host: localhost
   port: 6379
   password: ""
-  db: 2
+  db: 0
+  pool_size: 10
 
 jwt:
-  secret: "your-secret-key-change-in-production"
+  secret: "change-this-in-production-min-32-chars"
   expires_hours: 24
 
 logging:
+  engine: "zap" # zap (default, high-performance), slog (standard library)
   level: "info" # debug, info, warn, error
   format: "json" # json, text
+  output: "stdout" # stdout, stderr, or file path
+  otlp:
+    enabled: false # Enable OTLP export for distributed tracing
+    endpoint: "http://localhost:4317" # OTLP collector endpoint
+    insecure: true # Use insecure connection (true for local dev)
