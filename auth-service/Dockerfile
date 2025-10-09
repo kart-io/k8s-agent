@@ -11,7 +11,7 @@ ARG GOPROXY=https://goproxy.cn,https://goproxy.io,direct
 ENV GOPROXY=${GOPROXY}
 
 # Install build dependencies
-RUN apk add --no-cache git make
+RUN apk add --no-cache git make tzdata
 
 # Set working directory
 WORKDIR /build

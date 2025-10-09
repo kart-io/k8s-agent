@@ -4,23 +4,22 @@ Provides REST API for AI analysis, prediction, and recommendations
 """
 
 import time
+from contextlib import asynccontextmanager
 from typing import Dict, Optional
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
-from contextlib import asynccontextmanager
 
-from pkg.types import (
-    AnalysisRequest, AnalysisResponse, AnalysisResult, AnalysisType,
-    PredictionRequest, PredictionResult, Feedback, CaseStudy
-)
 from internal.analyzer.root_cause import RootCauseAnalyzer
-from internal.recommender.engine import RecommendationEngine
 from internal.knowledge.graph import KnowledgeGraph
-from internal.predictor.engine import PredictionEngine
 from internal.learning.system import LearningSystem
-
+from internal.predictor.engine import PredictionEngine
+from internal.recommender.engine import RecommendationEngine
+from pkg.types import (AnalysisRequest, AnalysisResponse, AnalysisResult,
+                       AnalysisType, CaseStudy, Feedback, PredictionRequest,
+                       PredictionResult)
 
 # Global service components
 analyzer: Optional[RootCauseAnalyzer] = None
@@ -45,7 +44,7 @@ async def lifespan(app: FastAPI):
         knowledge_graph = KnowledgeGraph(
             uri=app.state.config.get("neo4j_uri", "bolt://localhost:7687"),
             user=app.state.config.get("neo4j_user", "neo4j"),
-            password=app.state.config.get("neo4j_password", "password")
+            password=app.state.config.get("neo4j_password", "password"),
         )
         predictor = PredictionEngine()
         learning_system = LearningSystem(knowledge_graph=knowledge_graph)
@@ -69,7 +68,7 @@ app = FastAPI(
     title="Aetherius Reasoning Service",
     description="AI-powered root cause analysis and failure prediction",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Initialize config storage
@@ -99,7 +98,9 @@ async def log_requests(request: Request, call_next):
 
     # Log response
     duration = time.time() - start_time
-    logger.info(f"← {request.method} {request.url.path} - {response.status_code} ({duration:.3f}s)")
+    logger.info(
+        f"← {request.method} {request.url.path} - {response.status_code} ({duration:.3f}s)"
+    )
 
     return response
 
@@ -116,8 +117,8 @@ async def health_check():
             "recommender": recommender is not None,
             "knowledge_graph": knowledge_graph is not None,
             "predictor": predictor is not None,
-            "learning_system": learning_system is not None
-        }
+            "learning_system": learning_system is not None,
+        },
     }
 
 
@@ -141,7 +142,7 @@ async def analyze_root_cause(request: AnalysisRequest):
         if not analyzer or not recommender:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Analysis components not initialized"
+                detail="Analysis components not initialized",
             )
 
         # Perform root cause analysis
@@ -150,8 +151,7 @@ async def analyze_root_cause(request: AnalysisRequest):
         # Generate recommendations if root cause identified
         if analysis_result.root_cause:
             recommendations = recommender.recommend(
-                analysis_result.root_cause,
-                request.context
+                analysis_result.root_cause, request.context
             )
             analysis_result.recommendations = recommendations
 
@@ -160,7 +160,7 @@ async def analyze_root_cause(request: AnalysisRequest):
                 similar_cases = knowledge_graph.find_similar_cases(
                     request.context,
                     analysis_result.root_cause.type,
-                    limit=request.options.max_recommendations
+                    limit=request.options.max_recommendations,
                 )
                 analysis_result.similar_cases = similar_cases
 
@@ -171,7 +171,7 @@ async def analyze_root_cause(request: AnalysisRequest):
             request_id=request.request_id,
             status="completed",
             result=analysis_result,
-            processing_time=processing_time
+            processing_time=processing_time,
         )
 
     except Exception as e:
@@ -182,7 +182,7 @@ async def analyze_root_cause(request: AnalysisRequest):
             request_id=request.request_id,
             status="failed",
             error=str(e),
-            processing_time=processing_time
+            processing_time=processing_time,
         )
 
 
@@ -198,13 +198,15 @@ async def predict_failure(request: PredictionRequest):
     Returns:
         Prediction result with probability and estimated time
     """
-    logger.info(f"Predicting failures for {request.resource_type}/{request.resource_name}")
+    logger.info(
+        f"Predicting failures for {request.resource_type}/{request.resource_name}"
+    )
 
     try:
         if not predictor:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Predictor not initialized"
+                detail="Predictor not initialized",
             )
 
         result = predictor.predict_failure(request)
@@ -213,8 +215,7 @@ async def predict_failure(request: PredictionRequest):
     except Exception as e:
         logger.error(f"Prediction failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -236,7 +237,7 @@ async def get_recommendations(request: AnalysisRequest):
         if not analyzer or not recommender:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Analysis components not initialized"
+                detail="Analysis components not initialized",
             )
 
         # Quick root cause analysis
@@ -247,20 +248,18 @@ async def get_recommendations(request: AnalysisRequest):
 
         # Get recommendations
         recommendations = recommender.recommend(
-            analysis_result.root_cause,
-            request.context
+            analysis_result.root_cause, request.context
         )
 
         return {
             "root_cause": analysis_result.root_cause.dict(),
-            "recommendations": [r.dict() for r in recommendations]
+            "recommendations": [r.dict() for r in recommendations],
         }
 
     except Exception as e:
         logger.error(f"Recommendation generation failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -282,7 +281,7 @@ async def submit_feedback(feedback: Feedback):
         if not learning_system:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Learning system not initialized"
+                detail="Learning system not initialized",
             )
 
         success = learning_system.process_feedback(feedback)
@@ -292,14 +291,13 @@ async def submit_feedback(feedback: Feedback):
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to process feedback"
+                detail="Failed to process feedback",
             )
 
     except Exception as e:
         logger.error(f"Feedback processing failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -321,7 +319,7 @@ async def add_case_study(case: CaseStudy):
         if not knowledge_graph:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Knowledge graph not initialized"
+                detail="Knowledge graph not initialized",
             )
 
         success = knowledge_graph.add_case_study(case)
@@ -331,14 +329,13 @@ async def add_case_study(case: CaseStudy):
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to add case study"
+                detail="Failed to add case study",
             )
 
     except Exception as e:
         logger.error(f"Failed to add case study: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -360,12 +357,15 @@ async def find_similar_cases(event_reason: Optional[str] = None, limit: int = 5)
         if not knowledge_graph:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Knowledge graph not initialized"
+                detail="Knowledge graph not initialized",
             )
 
         # Create minimal context
         from pkg.types import AnalysisContext
-        context = AnalysisContext(event={"reason": event_reason} if event_reason else None)
+
+        context = AnalysisContext(
+            event={"reason": event_reason} if event_reason else None
+        )
 
         cases = knowledge_graph.find_similar_cases(context, limit=limit)
 
@@ -374,8 +374,7 @@ async def find_similar_cases(event_reason: Optional[str] = None, limit: int = 5)
     except Exception as e:
         logger.error(f"Failed to find similar cases: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -397,7 +396,7 @@ async def get_accuracy_metrics(root_cause_type: Optional[str] = None):
         if not learning_system:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Learning system not initialized"
+                detail="Learning system not initialized",
             )
 
         metrics = learning_system.get_accuracy_metrics(root_cause_type)
@@ -406,8 +405,7 @@ async def get_accuracy_metrics(root_cause_type: Optional[str] = None):
     except Exception as e:
         logger.error(f"Failed to get metrics: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -425,7 +423,7 @@ async def get_improvement_suggestions():
         if not learning_system:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Learning system not initialized"
+                detail="Learning system not initialized",
             )
 
         suggestions = learning_system.suggest_improvements()
@@ -434,8 +432,7 @@ async def get_improvement_suggestions():
     except Exception as e:
         logger.error(f"Failed to get suggestions: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -449,7 +446,7 @@ async def get_knowledge_stats():
         if not knowledge_graph:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Knowledge graph not initialized"
+                detail="Knowledge graph not initialized",
             )
 
         stats = knowledge_graph.get_statistics()
@@ -458,8 +455,7 @@ async def get_knowledge_stats():
     except Exception as e:
         logger.error(f"Failed to get stats: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -467,10 +463,7 @@ async def get_knowledge_stats():
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Handle HTTP exceptions"""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.detail}
-    )
+    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
 
 
 @app.exception_handler(Exception)
@@ -479,7 +472,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception: {exc}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"error": "Internal server error"}
+        content={"error": "Internal server error"},
     )
 
 

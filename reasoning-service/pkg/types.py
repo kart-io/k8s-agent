@@ -2,14 +2,16 @@
 Type definitions for Aetherius Reasoning Service
 """
 
-from enum import Enum
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
 class AnalysisType(str, Enum):
     """Analysis type enumeration"""
+
     ROOT_CAUSE = "root_cause"
     PREDICTION = "prediction"
     RECOMMENDATION = "recommendation"
@@ -17,6 +19,7 @@ class AnalysisType(str, Enum):
 
 class RiskLevel(str, Enum):
     """Risk level enumeration"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -25,6 +28,7 @@ class RiskLevel(str, Enum):
 
 class RootCauseType(str, Enum):
     """Root cause types"""
+
     OOM_KILLER = "OOMKiller"
     CPU_THROTTLING = "CPUThrottling"
     DISK_PRESSURE = "DiskPressure"
@@ -39,8 +43,10 @@ class RootCauseType(str, Enum):
 
 # Request Models
 
+
 class AnalysisContext(BaseModel):
     """Analysis context data"""
+
     event: Optional[Dict[str, Any]] = None
     logs: Optional[str] = None
     metrics: Optional[Dict[str, Any]] = None
@@ -50,6 +56,7 @@ class AnalysisContext(BaseModel):
 
 class AnalysisOptions(BaseModel):
     """Analysis options"""
+
     timeout: str = "30s"
     min_confidence: float = 0.7
     include_similar_cases: bool = True
@@ -58,6 +65,7 @@ class AnalysisOptions(BaseModel):
 
 class AnalysisRequest(BaseModel):
     """AI analysis request"""
+
     request_id: str
     workflow_id: Optional[str] = None
     analysis_type: AnalysisType
@@ -67,8 +75,10 @@ class AnalysisRequest(BaseModel):
 
 # Response Models
 
+
 class RootCause(BaseModel):
     """Root cause analysis result"""
+
     type: RootCauseType
     description: str
     confidence: float = Field(ge=0.0, le=1.0)
@@ -77,6 +87,7 @@ class RootCause(BaseModel):
 
 class Recommendation(BaseModel):
     """Remediation recommendation"""
+
     action: str
     description: str
     confidence: float = Field(ge=0.0, le=1.0)
@@ -90,6 +101,7 @@ class Recommendation(BaseModel):
 
 class SimilarCase(BaseModel):
     """Similar historical case"""
+
     case_id: str
     description: str
     similarity_score: float
@@ -101,6 +113,7 @@ class SimilarCase(BaseModel):
 
 class AnalysisResult(BaseModel):
     """Complete analysis result"""
+
     root_cause: Optional[RootCause] = None
     recommendations: List[Recommendation] = Field(default_factory=list)
     confidence: float = Field(ge=0.0, le=1.0)
@@ -111,6 +124,7 @@ class AnalysisResult(BaseModel):
 
 class AnalysisResponse(BaseModel):
     """Analysis response"""
+
     request_id: str
     status: str = "completed"
     result: Optional[AnalysisResult] = None
@@ -121,8 +135,10 @@ class AnalysisResponse(BaseModel):
 
 # Prediction Models
 
+
 class PredictionRequest(BaseModel):
     """Failure prediction request"""
+
     cluster_id: str
     resource_type: str  # pod, node, service
     resource_name: str
@@ -132,6 +148,7 @@ class PredictionRequest(BaseModel):
 
 class PredictionResult(BaseModel):
     """Prediction result"""
+
     failure_probability: float = Field(ge=0.0, le=1.0)
     predicted_failure_time: Optional[datetime] = None
     failure_types: List[str] = Field(default_factory=list)
@@ -141,8 +158,10 @@ class PredictionResult(BaseModel):
 
 # Knowledge Graph Models
 
+
 class KnowledgeNode(BaseModel):
     """Knowledge graph node"""
+
     id: str
     type: str  # failure, cause, solution, resource
     label: str
@@ -151,6 +170,7 @@ class KnowledgeNode(BaseModel):
 
 class KnowledgeRelation(BaseModel):
     """Knowledge graph relationship"""
+
     from_node: str
     to_node: str
     type: str  # causes, resolves, affects, similar_to
@@ -159,6 +179,7 @@ class KnowledgeRelation(BaseModel):
 
 class CaseStudy(BaseModel):
     """Historical case study"""
+
     id: str
     title: str
     description: str
@@ -173,8 +194,10 @@ class CaseStudy(BaseModel):
 
 # Feedback Models
 
+
 class FeedbackType(str, Enum):
     """Feedback type"""
+
     DIAGNOSIS_ACCURACY = "diagnosis_accuracy"
     RECOMMENDATION_USEFULNESS = "recommendation_usefulness"
     PREDICTION_ACCURACY = "prediction_accuracy"
@@ -182,6 +205,7 @@ class FeedbackType(str, Enum):
 
 class Feedback(BaseModel):
     """User feedback for learning"""
+
     feedback_id: str
     request_id: str
     feedback_type: FeedbackType
@@ -196,8 +220,10 @@ class Feedback(BaseModel):
 
 # Configuration Models
 
+
 class Config(BaseModel):
     """Service configuration"""
+
     server_host: str = "0.0.0.0"
     server_port: int = 8082
     log_level: str = "INFO"

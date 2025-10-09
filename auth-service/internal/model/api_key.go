@@ -12,8 +12,8 @@ type APIKey struct {
 	Secret      string     `gorm:"column:secret;not null;type:varchar(255)" db:"secret"`       // bcrypt hash of sk_xxxxx
 	UserID      string     `gorm:"column:user_id;index;type:varchar(36)" db:"user_id"`
 	Description string     `gorm:"column:description;type:text" db:"description"`
-	ExpiresAt   *time.Time `gorm:"column:expires_at;type:timestamp" db:"expires_at"` // Nullable, pointer for GORM
-	Status      int        `gorm:"column:status;default:1;type:integer" db:"status"` // 1=active, 0=disabled
+	ExpiresAt   *time.Time `gorm:"column:expires_at;type:timestamp" db:"expires_at"`     // Nullable, pointer for GORM
+	Status      int        `gorm:"column:status;default:1;type:integer" db:"status"`     // 1=active, 0=disabled
 	LastUsedAt  *time.Time `gorm:"column:last_used_at;type:timestamp" db:"last_used_at"` // Nullable, pointer for GORM
 	CreatedAt   time.Time  `gorm:"column:created_at;autoCreateTime" db:"created_at"`
 	UpdatedAt   time.Time  `gorm:"column:updated_at;autoUpdateTime" db:"updated_at"`

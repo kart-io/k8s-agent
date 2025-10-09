@@ -8,7 +8,7 @@ ARG GOPROXY=https://goproxy.cn,https://goproxy.io,direct
 ENV GOPROXY=${GOPROXY}
 
 # 安装必要的工具
-RUN apk add --no-cache git make
+RUN apk add --no-cache git make tzdata
 
 # 设置工作目录
 WORKDIR /build

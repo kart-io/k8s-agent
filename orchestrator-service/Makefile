@@ -7,11 +7,14 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS := -w -s -X main.version=$(VERSION) -X main.gitCommit=$(GIT_COMMIT) -X main.buildDate=$(BUILD_DATE)
 
-# Docker variables
-DOCKER_REGISTRY ?= docker.io
-DOCKER_NAMESPACE ?= aetherius
-IMAGE_NAME := $(DOCKER_REGISTRY)/$(DOCKER_NAMESPACE)/$(APP_NAME)
-IMAGE_TAG := $(VERSION)
+# Docker image configuration
+DOCKER_REGISTRY ?= aetherius
+IMAGE_NAME ?= $(APP_NAME)
+IMAGE_TAG ?= $(VERSION)
+ENV ?= dev
+PLATFORMS ?= linux/amd64,linux/arm64
+DOCKER_IMAGE = $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+DOCKER_IMAGE_ENV = $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)-$(ENV)
 
 # Go variables
 GOCMD := go
@@ -135,46 +138,51 @@ dev: ## Run in development mode with auto-reload
 
 .PHONY: docker-build
 docker-build: ## Build Docker image
-	@echo "Building Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
-	@docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
-	@docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest
-	@echo "Docker image built: $(IMAGE_NAME):$(IMAGE_TAG)"
+	@echo "Building Docker image $(DOCKER_IMAGE)..."
+	@docker build -t $(DOCKER_IMAGE) .
+	@echo "Docker image built: $(DOCKER_IMAGE)"
+
+docker-buildx-setup: ## Setup Docker buildx builder for multi-platform builds
+	@echo "Setting up Docker buildx builder..."
+	@docker buildx create --name multiarch-builder --driver docker-container --use 2>/dev/null || \
+		docker buildx use multiarch-builder 2>/dev/null || \
+		(docker buildx create --name multiarch-builder --driver docker-container --use && docker buildx inspect --bootstrap)
+	@echo "Docker buildx builder ready"
 
 .PHONY: docker-buildx
-docker-buildx: ## Build multi-platform Docker image (linux/amd64,linux/arm64)
-	@echo "Building multi-platform Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
-	@if command -v docker-buildx >/dev/null 2>&1 || docker buildx version >/dev/null 2>&1; then \
-		docker buildx build --platform linux/amd64,linux/arm64 \
-			-t $(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME):latest --load . 2>/dev/null || \
-		docker buildx build --platform linux/amd64,linux/arm64 \
-			-t $(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME):latest . ; \
-	else \
-		echo "Docker buildx not available, building for current platform only..."; \
-		docker build -t $(IMAGE_NAME):$(IMAGE_TAG) . && \
-		docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest; \
-	fi
-	@echo "Docker image built: $(IMAGE_NAME):$(IMAGE_TAG)"
+docker-buildx: docker-buildx-setup ## Build multi-platform Docker image
+	@echo "Building multi-platform Docker image $(DOCKER_IMAGE) for $(PLATFORMS)..."
+	@docker buildx build --builder multiarch-builder --platform $(PLATFORMS) \
+		-t $(DOCKER_IMAGE) --load . 2>/dev/null || \
+	docker buildx build --builder multiarch-builder --platform $(PLATFORMS) \
+		-t $(DOCKER_IMAGE) .
+	@echo "Docker image built: $(DOCKER_IMAGE)"
 
 .PHONY: docker-buildx-push
-docker-buildx-push: ## Build and push multi-platform Docker image
-	@echo "Building and pushing multi-platform Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
-	@if command -v docker-buildx >/dev/null 2>&1 || docker buildx version >/dev/null 2>&1; then \
-		docker buildx build --platform linux/amd64,linux/arm64 \
-			-t $(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME):latest --push . ; \
-	else \
-		echo "Docker buildx not available, building and pushing for current platform only..."; \
-		docker build -t $(IMAGE_NAME):$(IMAGE_TAG) . && \
-		docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest && \
-		docker push $(IMAGE_NAME):$(IMAGE_TAG) && \
-		docker push $(IMAGE_NAME):latest; \
-	fi
-	@echo "Docker image pushed: $(IMAGE_NAME):$(IMAGE_TAG)"
+docker-buildx-push: docker-buildx-setup ## Build and push multi-platform Docker image
+	@echo "Building and pushing multi-platform Docker image $(DOCKER_IMAGE) for $(PLATFORMS)..."
+	@docker buildx build --builder multiarch-builder --platform $(PLATFORMS) \
+		-t $(DOCKER_IMAGE) --push .
+	@echo "Docker image pushed: $(DOCKER_IMAGE)"
+
+docker-buildx-env: docker-buildx-setup ## Build multi-platform Docker image with environment tag
+	@echo "Building multi-platform Docker image $(DOCKER_IMAGE_ENV) for $(PLATFORMS)..."
+	@docker buildx build --builder multiarch-builder --platform $(PLATFORMS) \
+		-t $(DOCKER_IMAGE_ENV) --load . 2>/dev/null || \
+	docker buildx build --builder multiarch-builder --platform $(PLATFORMS) \
+		-t $(DOCKER_IMAGE_ENV) .
+	@echo "Docker image built: $(DOCKER_IMAGE_ENV)"
+
+docker-buildx-push-env: docker-buildx-setup ## Build and push multi-platform Docker image with environment tag
+	@echo "Building and pushing multi-platform Docker image $(DOCKER_IMAGE_ENV) for $(PLATFORMS)..."
+	@docker buildx build --builder multiarch-builder --platform $(PLATFORMS) \
+		-t $(DOCKER_IMAGE_ENV) --push .
+	@echo "Docker image pushed: $(DOCKER_IMAGE_ENV)"
 
 .PHONY: docker-push
 docker-push: ## Push Docker image to registry
-	@echo "Pushing Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
-	@docker push $(IMAGE_NAME):$(IMAGE_TAG)
-	@docker push $(IMAGE_NAME):latest
+	@echo "Pushing Docker image $(DOCKER_IMAGE)..."
+	@docker push $(DOCKER_IMAGE)
 	@echo "Docker image pushed"
 
 .PHONY: docker-run
@@ -190,7 +198,17 @@ docker-run: ## Run Docker container locally
 		-e NATS_URL=nats://nats:4222 \
 		-e AI_SERVICE_URL=http://reasoning-service:8082 \
 		-p 8081:8081 \
-		$(IMAGE_NAME):$(IMAGE_TAG)
+		$(DOCKER_IMAGE)
+
+docker-tag-env: ## Tag Docker image with environment suffix
+	@echo "Tagging Docker image for environment: $(ENV)"
+	@docker tag $(DOCKER_IMAGE) $(DOCKER_IMAGE_ENV)
+	@echo "Tagged: $(DOCKER_IMAGE_ENV)"
+
+docker-push-env: docker-tag-env ## Push Docker image with environment tag
+	@echo "Pushing Docker image: $(DOCKER_IMAGE_ENV)"
+	@docker push $(DOCKER_IMAGE_ENV)
+	@echo "Pushed: $(DOCKER_IMAGE_ENV)"
 
 .PHONY: docker-compose-up
 docker-compose-up: ## Start with docker-compose
@@ -354,7 +372,7 @@ release: clean deps test build-all docker-build ## Create release
 	@echo "Creating release $(VERSION)..."
 	@echo "Release $(VERSION) created"
 	@echo "Binaries available in $(DIST_DIR)/"
-	@echo "Docker image: $(IMAGE_NAME):$(IMAGE_TAG)"
+	@echo "Docker image: $(DOCKER_IMAGE)"
 
 .PHONY: health-check
 health-check: ## Check service health

@@ -3,14 +3,16 @@ Failure Prediction Engine
 Uses time series analysis and anomaly detection to predict failures
 """
 
-import numpy as np
-from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 from loguru import logger
 
 try:
     from sklearn.ensemble import IsolationForest
     from sklearn.preprocessing import StandardScaler
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -18,6 +20,7 @@ except ImportError:
 
 try:
     import statsmodels.api as sm
+
     STATSMODELS_AVAILABLE = True
 except ImportError:
     STATSMODELS_AVAILABLE = False
@@ -46,7 +49,9 @@ class PredictionEngine:
         Returns:
             Prediction result with probability and estimated time
         """
-        logger.info(f"Predicting failures for {request.resource_type}/{request.resource_name}")
+        logger.info(
+            f"Predicting failures for {request.resource_type}/{request.resource_name}"
+        )
 
         # Multiple prediction methods
         predictions = []
@@ -74,7 +79,7 @@ class PredictionEngine:
             return PredictionResult(
                 failure_probability=0.0,
                 confidence=0.5,
-                contributing_factors=["Insufficient data for prediction"]
+                contributing_factors=["Insufficient data for prediction"],
             )
 
         # Aggregate predictions
@@ -82,7 +87,9 @@ class PredictionEngine:
         logger.info(f"Failure probability: {result.failure_probability:.2f}")
         return result
 
-    def _predict_by_threshold(self, metrics: Dict) -> Optional[Tuple[float, List[str], List[str]]]:
+    def _predict_by_threshold(
+        self, metrics: Dict
+    ) -> Optional[Tuple[float, List[str], List[str]]]:
         """Predict based on metric thresholds"""
         failure_prob = 0.0
         failure_types = []
@@ -153,7 +160,9 @@ class PredictionEngine:
             return (failure_prob, failure_types, factors)
         return None
 
-    def _predict_by_trend(self, history: List[Dict]) -> Optional[Tuple[float, List[str], List[str]]]:
+    def _predict_by_trend(
+        self, history: List[Dict]
+    ) -> Optional[Tuple[float, List[str], List[str]]]:
         """Predict based on metric trends"""
         if not history or len(history) < 3:
             return None
@@ -163,7 +172,11 @@ class PredictionEngine:
         factors = []
 
         # Analyze memory trend
-        mem_values = [h.get("memory", {}).get("usage_percent", 0) for h in history if "memory" in h]
+        mem_values = [
+            h.get("memory", {}).get("usage_percent", 0)
+            for h in history
+            if "memory" in h
+        ]
         if len(mem_values) >= 3:
             trend = self._calculate_trend(mem_values)
             if trend > 5:  # Increasing by 5% per interval
@@ -173,10 +186,14 @@ class PredictionEngine:
                 if time_to_failure and time_to_failure < 10:  # Less than 10 intervals
                     failure_prob = max(failure_prob, 0.7)
                     failure_types.append(RootCauseType.OOM_KILLER.value)
-                    factors.append(f"Memory increasing at {trend:.1f}% per interval, {time_to_failure:.1f} intervals to exhaustion")
+                    factors.append(
+                        f"Memory increasing at {trend:.1f}% per interval, {time_to_failure:.1f} intervals to exhaustion"
+                    )
 
         # Analyze disk trend
-        disk_values = [h.get("disk", {}).get("usage_percent", 0) for h in history if "disk" in h]
+        disk_values = [
+            h.get("disk", {}).get("usage_percent", 0) for h in history if "disk" in h
+        ]
         if len(disk_values) >= 3:
             trend = self._calculate_trend(disk_values)
             if trend > 3:  # Increasing by 3% per interval
@@ -185,7 +202,9 @@ class PredictionEngine:
                 if time_to_failure and time_to_failure < 20:
                     failure_prob = max(failure_prob, 0.6)
                     failure_types.append(RootCauseType.DISK_PRESSURE.value)
-                    factors.append(f"Disk usage increasing at {trend:.1f}% per interval")
+                    factors.append(
+                        f"Disk usage increasing at {trend:.1f}% per interval"
+                    )
 
         # Analyze restart frequency
         restart_values = [h.get("restart_count", 0) for h in history]
@@ -194,13 +213,17 @@ class PredictionEngine:
             if restart_rate >= 3:  # 3 or more restarts in time window
                 failure_prob = max(failure_prob, 0.75)
                 failure_types.append(RootCauseType.CONFIG_ERROR.value)
-                factors.append(f"Restart frequency increasing ({restart_rate} restarts in window)")
+                factors.append(
+                    f"Restart frequency increasing ({restart_rate} restarts in window)"
+                )
 
         if failure_prob > 0:
             return (failure_prob, failure_types, factors)
         return None
 
-    def _predict_by_anomaly(self, history: List[Dict]) -> Optional[Tuple[float, List[str], List[str]]]:
+    def _predict_by_anomaly(
+        self, history: List[Dict]
+    ) -> Optional[Tuple[float, List[str], List[str]]]:
         """Predict using anomaly detection"""
         if not SKLEARN_AVAILABLE or len(history) < 5:
             return None
@@ -214,7 +237,7 @@ class PredictionEngine:
                     h.get("cpu", {}).get("usage_percent", 0),
                     h.get("disk", {}).get("usage_percent", 0),
                     h.get("network", {}).get("error_rate", 0) * 100,
-                    h.get("restart_count", 0)
+                    h.get("restart_count", 0),
                 ]
                 features.append(feature_vector)
 
@@ -222,7 +245,9 @@ class PredictionEngine:
 
             # Train anomaly detector if not exists
             if self.anomaly_detector is None:
-                self.anomaly_detector = IsolationForest(contamination=0.1, random_state=42)
+                self.anomaly_detector = IsolationForest(
+                    contamination=0.1, random_state=42
+                )
                 self.anomaly_detector.fit(features_array)
 
             # Predict anomalies
@@ -239,7 +264,7 @@ class PredictionEngine:
                 return (
                     failure_prob,
                     [RootCauseType.UNKNOWN.value],
-                    ["Anomalous metrics pattern detected"]
+                    ["Anomalous metrics pattern detected"],
                 )
 
         except Exception as e:
@@ -269,7 +294,9 @@ class PredictionEngine:
         slope = numerator / denominator
         return slope
 
-    def _aggregate_predictions(self, predictions: List[Tuple[float, List[str], List[str]]]) -> PredictionResult:
+    def _aggregate_predictions(
+        self, predictions: List[Tuple[float, List[str], List[str]]]
+    ) -> PredictionResult:
         """Aggregate multiple predictions"""
         # Use maximum probability
         max_prob = max(p[0] for p in predictions)
@@ -302,32 +329,17 @@ class PredictionEngine:
             predicted_failure_time=predicted_time,
             failure_types=failure_types,
             confidence=confidence,
-            contributing_factors=all_factors
+            contributing_factors=all_factors,
         )
 
     def _load_thresholds(self) -> Dict:
         """Load threshold configurations"""
         return {
-            "memory": {
-                "critical": 95,
-                "warning": 85
-            },
-            "cpu": {
-                "critical": 90,
-                "warning": 75
-            },
-            "disk": {
-                "critical": 95,
-                "warning": 85
-            },
-            "network_error_rate": {
-                "critical": 0.1,
-                "warning": 0.05
-            },
-            "restart_count": {
-                "critical": 5,
-                "warning": 3
-            }
+            "memory": {"critical": 95, "warning": 85},
+            "cpu": {"critical": 90, "warning": 75},
+            "disk": {"critical": 95, "warning": 85},
+            "network_error_rate": {"critical": 0.1, "warning": 0.05},
+            "restart_count": {"critical": 5, "warning": 3},
         }
 
     def update_thresholds(self, thresholds: Dict):
@@ -349,7 +361,7 @@ class PredictionEngine:
                     data.get("cpu", {}).get("usage_percent", 0),
                     data.get("disk", {}).get("usage_percent", 0),
                     data.get("network", {}).get("error_rate", 0) * 100,
-                    data.get("restart_count", 0)
+                    data.get("restart_count", 0),
                 ]
                 features.append(feature_vector)
 

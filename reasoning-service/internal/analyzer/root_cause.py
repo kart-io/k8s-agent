@@ -3,14 +3,13 @@ Root Cause Analysis Engine
 Uses pattern matching, NLP, and ML to determine failure root causes
 """
 
-import re
 import json
+import re
 from typing import Dict, List, Optional, Tuple
+
 from loguru import logger
 
-from pkg.types import (
-    AnalysisContext, RootCause, RootCauseType, AnalysisResult
-)
+from pkg.types import AnalysisContext, AnalysisResult, RootCause, RootCauseType
 
 
 class RootCauseAnalyzer:
@@ -64,23 +63,24 @@ class RootCauseAnalyzer:
         if not analyses:
             logger.warning("No root cause identified")
             return AnalysisResult(
-                confidence=0.0,
-                evidence=["Insufficient data for analysis"]
+                confidence=0.0, evidence=["Insufficient data for analysis"]
             )
 
         # Sort by confidence and select best
         best_analysis = max(analyses, key=lambda x: x[1])
         root_cause, confidence, evidence = best_analysis
 
-        logger.info(f"Root cause identified: {root_cause.type} (confidence: {confidence:.2f})")
-
-        return AnalysisResult(
-            root_cause=root_cause,
-            confidence=confidence,
-            evidence=evidence
+        logger.info(
+            f"Root cause identified: {root_cause.type} (confidence: {confidence:.2f})"
         )
 
-    def _analyze_event(self, event: Dict) -> Optional[Tuple[RootCause, float, List[str]]]:
+        return AnalysisResult(
+            root_cause=root_cause, confidence=confidence, evidence=evidence
+        )
+
+    def _analyze_event(
+        self, event: Dict
+    ) -> Optional[Tuple[RootCause, float, List[str]]]:
         """Analyze Kubernetes event"""
         logger.debug("Analyzing event data")
 
@@ -114,7 +114,7 @@ class RootCauseAnalyzer:
                 type=root_cause_type,
                 description=self._get_root_cause_description(root_cause_type, message),
                 confidence=confidence,
-                evidence=evidence
+                evidence=evidence,
             )
 
             return (root_cause, confidence, evidence)
@@ -137,7 +137,9 @@ class RootCauseAnalyzer:
             matches = re.findall(pattern, logs, re.IGNORECASE | re.MULTILINE)
             if matches:
                 scores[root_cause_type] += len(matches) * weight
-                evidence.append(f"Found pattern: {pattern_info['description']} ({len(matches)} occurrences)")
+                evidence.append(
+                    f"Found pattern: {pattern_info['description']} ({len(matches)} occurrences)"
+                )
 
         # Keyword matching
         log_lower = logs.lower()
@@ -163,12 +165,14 @@ class RootCauseAnalyzer:
             type=best_type,
             description=self._get_root_cause_description(best_type, logs[:500]),
             confidence=confidence,
-            evidence=evidence[:5]  # Top 5 evidence
+            evidence=evidence[:5],  # Top 5 evidence
         )
 
         return (root_cause, confidence, evidence[:5])
 
-    def _analyze_metrics(self, metrics: Dict) -> Optional[Tuple[RootCause, float, List[str]]]:
+    def _analyze_metrics(
+        self, metrics: Dict
+    ) -> Optional[Tuple[RootCause, float, List[str]]]:
         """Analyze resource metrics"""
         logger.debug("Analyzing metrics data")
 
@@ -185,7 +189,7 @@ class RootCauseAnalyzer:
                         type=RootCauseType.OOM_KILLER,
                         description="Memory usage exceeded limits",
                         confidence=0.9,
-                        evidence=evidence
+                        evidence=evidence,
                     )
                     return (root_cause, 0.9, evidence)
 
@@ -200,7 +204,7 @@ class RootCauseAnalyzer:
                         type=RootCauseType.CPU_THROTTLING,
                         description="CPU throttling detected",
                         confidence=0.85,
-                        evidence=evidence
+                        evidence=evidence,
                     )
                     return (root_cause, 0.85, evidence)
 
@@ -215,13 +219,15 @@ class RootCauseAnalyzer:
                         type=RootCauseType.DISK_PRESSURE,
                         description="Disk space exhausted",
                         confidence=0.85,
-                        evidence=evidence
+                        evidence=evidence,
                     )
                     return (root_cause, 0.85, evidence)
 
         return None
 
-    def _correlate_analyses(self, analyses: List[Tuple]) -> Optional[Tuple[RootCause, float, List[str]]]:
+    def _correlate_analyses(
+        self, analyses: List[Tuple]
+    ) -> Optional[Tuple[RootCause, float, List[str]]]:
         """Correlate multiple analyses to improve confidence"""
         logger.debug(f"Correlating {len(analyses)} analyses")
 
@@ -232,7 +238,11 @@ class RootCauseAnalyzer:
         for root_cause, confidence, evidence in analyses:
             rc_type = root_cause.type
             if rc_type not in type_counts:
-                type_counts[rc_type] = {"count": 0, "total_confidence": 0.0, "evidence": []}
+                type_counts[rc_type] = {
+                    "count": 0,
+                    "total_confidence": 0.0,
+                    "evidence": [],
+                }
             type_counts[rc_type]["count"] += 1
             type_counts[rc_type]["total_confidence"] += confidence
             type_counts[rc_type]["evidence"].extend(evidence)
@@ -250,14 +260,16 @@ class RootCauseAnalyzer:
                 type=best_type,
                 description=f"{best_type.value} (confirmed by {info['count']} analyses)",
                 confidence=boosted_confidence,
-                evidence=list(set(info["evidence"][:5]))
+                evidence=list(set(info["evidence"][:5])),
             )
 
             return (root_cause, boosted_confidence, root_cause.evidence)
 
         return None
 
-    def _get_root_cause_description(self, root_cause_type: RootCauseType, context: str) -> str:
+    def _get_root_cause_description(
+        self, root_cause_type: RootCauseType, context: str
+    ) -> str:
         """Get human-readable description"""
         descriptions = {
             RootCauseType.OOM_KILLER: "Container was killed due to out of memory (OOM)",
@@ -280,55 +292,55 @@ class RootCauseAnalyzer:
                 "pattern": r"out of memory|oom|memory.*exhausted",
                 "type": "OOMKiller",
                 "description": "OOM indicator",
-                "weight": 2.0
+                "weight": 2.0,
             },
             {
                 "pattern": r"killed.*signal 9|sigkill",
                 "type": "OOMKiller",
                 "description": "SIGKILL",
-                "weight": 1.5
+                "weight": 1.5,
             },
             {
                 "pattern": r"exit code 137",
                 "type": "OOMKiller",
                 "description": "Exit code 137 (OOMKilled)",
-                "weight": 2.0
+                "weight": 2.0,
             },
             {
                 "pattern": r"connection refused|connection timeout",
                 "type": "NetworkError",
                 "description": "Connection error",
-                "weight": 1.5
+                "weight": 1.5,
             },
             {
                 "pattern": r"cannot pull image|pull.*failed|image pull back",
                 "type": "ImagePullError",
                 "description": "Image pull failure",
-                "weight": 2.0
+                "weight": 2.0,
             },
             {
                 "pattern": r"config.*not found|missing.*environment|env.*required",
                 "type": "ConfigError",
                 "description": "Configuration issue",
-                "weight": 1.5
+                "weight": 1.5,
             },
             {
                 "pattern": r"permission denied|forbidden|unauthorized",
                 "type": "ConfigError",
                 "description": "Permission issue",
-                "weight": 1.5
+                "weight": 1.5,
             },
             {
                 "pattern": r"no space left|disk.*full",
                 "type": "DiskPressure",
                 "description": "Disk space issue",
-                "weight": 2.0
+                "weight": 2.0,
             },
             {
                 "pattern": r"panic|fatal error|segmentation fault",
                 "type": "ConfigError",
                 "description": "Application crash",
-                "weight": 1.5
+                "weight": 1.5,
             },
         ]
 

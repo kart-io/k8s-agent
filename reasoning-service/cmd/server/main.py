@@ -2,8 +2,8 @@
 Reasoning Service Main Entry Point
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add project root to path
@@ -12,8 +12,9 @@ sys.path.insert(0, str(project_root))
 
 import argparse
 import signal
-from loguru import logger
+
 import uvicorn
+from loguru import logger
 
 from internal.api.server import create_app
 
@@ -28,7 +29,7 @@ def setup_logging(log_level: str = "INFO"):
         sys.stderr,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
         level=log_level,
-        colorize=True
+        colorize=True,
     )
 
     # Add file logger
@@ -37,7 +38,7 @@ def setup_logging(log_level: str = "INFO"):
         rotation="500 MB",
         retention="10 days",
         level=log_level,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
     )
 
     logger.info("Logging configured")
@@ -63,14 +64,15 @@ def load_config(config_path: str) -> dict:
         "model_path": os.getenv("MODEL_PATH", "./models"),
         "knowledge_base_path": os.getenv("KNOWLEDGE_BASE_PATH", "./data/knowledge"),
         "enable_gpu": os.getenv("ENABLE_GPU", "false").lower() == "true",
-        "max_workers": int(os.getenv("MAX_WORKERS", "4"))
+        "max_workers": int(os.getenv("MAX_WORKERS", "4")),
     }
 
     # Load from YAML file if exists
     if config_path and os.path.exists(config_path):
         try:
             import yaml
-            with open(config_path, 'r') as f:
+
+            with open(config_path, "r") as f:
                 file_config = yaml.safe_load(f)
                 config.update(file_config)
             logger.info(f"Configuration loaded from {config_path}")
@@ -82,6 +84,7 @@ def load_config(config_path: str) -> dict:
 
 def setup_signal_handlers():
     """Setup graceful shutdown handlers"""
+
     def signal_handler(sig, frame):
         logger.info(f"Received signal {sig}, shutting down gracefully...")
         sys.exit(0)
@@ -98,26 +101,20 @@ def main():
         "--config",
         type=str,
         default="configs/config.yaml",
-        help="Path to configuration file"
+        help="Path to configuration file",
     )
     parser.add_argument(
-        "--host",
-        type=str,
-        default=None,
-        help="Server host (overrides config)"
+        "--host", type=str, default=None, help="Server host (overrides config)"
     )
     parser.add_argument(
-        "--port",
-        type=int,
-        default=None,
-        help="Server port (overrides config)"
+        "--port", type=int, default=None, help="Server port (overrides config)"
     )
     parser.add_argument(
         "--log-level",
         type=str,
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="Log level"
+        help="Log level",
     )
 
     args = parser.parse_args()
@@ -164,7 +161,7 @@ def main():
             port=config["server_port"],
             log_level=config["log_level"].lower(),
             access_log=True,
-            log_config=None  # Use loguru instead
+            log_config=None,  # Use loguru instead
         )
     except Exception as e:
         logger.error(f"Failed to start server: {e}")

@@ -3,27 +3,32 @@ Knowledge Graph for Failure Patterns
 Stores and retrieves historical cases, patterns, and relationships
 """
 
-from typing import List, Dict, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
+
 from loguru import logger
 
 try:
     from neo4j import GraphDatabase
+
     NEO4J_AVAILABLE = True
 except ImportError:
     NEO4J_AVAILABLE = False
     logger.warning("Neo4j driver not available, using in-memory fallback")
 
-from pkg.types import (
-    CaseStudy, KnowledgeNode, KnowledgeRelation, SimilarCase,
-    RootCauseType, AnalysisContext
-)
+from pkg.types import (AnalysisContext, CaseStudy, KnowledgeNode,
+                       KnowledgeRelation, RootCauseType, SimilarCase)
 
 
 class KnowledgeGraph:
     """Knowledge graph for storing and querying failure patterns"""
 
-    def __init__(self, uri: str = "bolt://localhost:7687", user: str = "neo4j", password: str = "password"):
+    def __init__(
+        self,
+        uri: str = "bolt://localhost:7687",
+        user: str = "neo4j",
+        password: str = "password",
+    ):
         """Initialize knowledge graph"""
         self.uri = uri
         self.user = user
@@ -35,7 +40,9 @@ class KnowledgeGraph:
                 logger.info("Connected to Neo4j knowledge graph")
                 self._create_indexes()
             except Exception as e:
-                logger.warning(f"Failed to connect to Neo4j: {e}, using in-memory fallback")
+                logger.warning(
+                    f"Failed to connect to Neo4j: {e}, using in-memory fallback"
+                )
                 self.driver = None
                 self._init_memory_storage()
         else:
@@ -58,8 +65,12 @@ class KnowledgeGraph:
             try:
                 # Create indexes on frequently queried fields
                 session.run("CREATE INDEX IF NOT EXISTS FOR (c:CaseStudy) ON (c.id)")
-                session.run("CREATE INDEX IF NOT EXISTS FOR (c:CaseStudy) ON (c.root_cause)")
-                session.run("CREATE INDEX IF NOT EXISTS FOR (c:CaseStudy) ON (c.cluster_id)")
+                session.run(
+                    "CREATE INDEX IF NOT EXISTS FOR (c:CaseStudy) ON (c.root_cause)"
+                )
+                session.run(
+                    "CREATE INDEX IF NOT EXISTS FOR (c:CaseStudy) ON (c.cluster_id)"
+                )
                 logger.debug("Knowledge graph indexes created")
             except Exception as e:
                 logger.error(f"Failed to create indexes: {e}")
@@ -99,18 +110,21 @@ class KnowledgeGraph:
 
         try:
             with self.driver.session() as session:
-                session.run(query, {
-                    "id": case.id,
-                    "title": case.title,
-                    "description": case.description,
-                    "root_cause": case.root_cause,
-                    "solution": case.solution,
-                    "outcome": case.outcome,
-                    "cluster_id": case.cluster_id,
-                    "timestamp": case.timestamp.isoformat(),
-                    "symptoms": case.symptoms,
-                    "metadata": case.metadata
-                })
+                session.run(
+                    query,
+                    {
+                        "id": case.id,
+                        "title": case.title,
+                        "description": case.description,
+                        "root_cause": case.root_cause,
+                        "solution": case.solution,
+                        "outcome": case.outcome,
+                        "cluster_id": case.cluster_id,
+                        "timestamp": case.timestamp.isoformat(),
+                        "symptoms": case.symptoms,
+                        "metadata": case.metadata,
+                    },
+                )
                 logger.debug(f"Case {case.id} added to Neo4j")
                 return True
         except Exception as e:
@@ -127,7 +141,7 @@ class KnowledgeGraph:
         self,
         context: AnalysisContext,
         root_cause_type: Optional[RootCauseType] = None,
-        limit: int = 5
+        limit: int = 5,
     ) -> List[SimilarCase]:
         """
         Find similar historical cases
@@ -154,7 +168,7 @@ class KnowledgeGraph:
         self,
         context: AnalysisContext,
         root_cause_type: Optional[RootCauseType],
-        limit: int
+        limit: int,
     ) -> List[SimilarCase]:
         """Find similar cases in Neo4j"""
         # Build query based on available context
@@ -188,15 +202,17 @@ class KnowledgeGraph:
                     # Calculate similarity score based on context
                     similarity = self._calculate_similarity(context, record)
 
-                    cases.append(SimilarCase(
-                        case_id=record["case_id"],
-                        description=record["description"],
-                        similarity_score=similarity,
-                        root_cause=record["root_cause"],
-                        solution=record["solution"],
-                        outcome=record["outcome"],
-                        timestamp=datetime.fromisoformat(str(record["timestamp"]))
-                    ))
+                    cases.append(
+                        SimilarCase(
+                            case_id=record["case_id"],
+                            description=record["description"],
+                            similarity_score=similarity,
+                            root_cause=record["root_cause"],
+                            solution=record["solution"],
+                            outcome=record["outcome"],
+                            timestamp=datetime.fromisoformat(str(record["timestamp"])),
+                        )
+                    )
 
                 # Sort by similarity
                 cases.sort(key=lambda x: x.similarity_score, reverse=True)
@@ -209,7 +225,7 @@ class KnowledgeGraph:
         self,
         context: AnalysisContext,
         root_cause_type: Optional[RootCauseType],
-        limit: int
+        limit: int,
     ) -> List[SimilarCase]:
         """Find similar cases in memory"""
         candidates = []
@@ -222,15 +238,17 @@ class KnowledgeGraph:
             # Calculate similarity
             similarity = self._calculate_similarity_from_case(context, case)
 
-            candidates.append(SimilarCase(
-                case_id=case.id,
-                description=case.description,
-                similarity_score=similarity,
-                root_cause=case.root_cause,
-                solution=case.solution,
-                outcome=case.outcome,
-                timestamp=case.timestamp
-            ))
+            candidates.append(
+                SimilarCase(
+                    case_id=case.id,
+                    description=case.description,
+                    similarity_score=similarity,
+                    root_cause=case.root_cause,
+                    solution=case.solution,
+                    outcome=case.outcome,
+                    timestamp=case.timestamp,
+                )
+            )
 
         # Sort by similarity and return top N
         candidates.sort(key=lambda x: x.similarity_score, reverse=True)
@@ -255,7 +273,9 @@ class KnowledgeGraph:
 
         return min(score, 1.0)
 
-    def _calculate_similarity_from_case(self, context: AnalysisContext, case: CaseStudy) -> float:
+    def _calculate_similarity_from_case(
+        self, context: AnalysisContext, case: CaseStudy
+    ) -> float:
         """Calculate similarity from full case object"""
         score = 0.3  # Base score
 
@@ -271,7 +291,9 @@ class KnowledgeGraph:
         # Log keyword matching
         if context.logs:
             log_lower = context.logs.lower()
-            matched = sum(1 for symptom in case.symptoms if symptom.lower() in log_lower)
+            matched = sum(
+                1 for symptom in case.symptoms if symptom.lower() in log_lower
+            )
             score += min(matched * 0.1, 0.4)
 
         return min(score, 1.0)
@@ -311,14 +333,17 @@ class KnowledgeGraph:
 
         try:
             with self.driver.session() as session:
-                session.run(query, {
-                    "case_id": case_id,
-                    "feedback_id": feedback.get("feedback_id"),
-                    "rating": feedback.get("rating"),
-                    "was_helpful": feedback.get("was_helpful"),
-                    "comments": feedback.get("comments", ""),
-                    "timestamp": datetime.now().isoformat()
-                })
+                session.run(
+                    query,
+                    {
+                        "case_id": case_id,
+                        "feedback_id": feedback.get("feedback_id"),
+                        "rating": feedback.get("rating"),
+                        "was_helpful": feedback.get("was_helpful"),
+                        "comments": feedback.get("comments", ""),
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
                 logger.debug(f"Feedback added for case {case_id}")
                 return True
         except Exception as e:
@@ -358,7 +383,7 @@ class KnowledgeGraph:
                 return {
                     "total_cases": record["total_cases"],
                     "root_cause_types": len(record["root_causes"]),
-                    "storage": "neo4j"
+                    "storage": "neo4j",
                 }
         except Exception as e:
             logger.error(f"Failed to get stats: {e}")
@@ -370,7 +395,7 @@ class KnowledgeGraph:
         return {
             "total_cases": len(self.cases),
             "root_cause_types": len(root_causes),
-            "storage": "memory"
+            "storage": "memory",
         }
 
     def close(self):

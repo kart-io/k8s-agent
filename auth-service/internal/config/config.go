@@ -52,11 +52,11 @@ type JWTConfig struct {
 
 // LoggingConfig holds logging configuration
 type LoggingConfig struct {
-	Engine string      `mapstructure:"engine"` // zap, slog
-	Level  string      `mapstructure:"level"`  // debug, info, warn, error
-	Format string      `mapstructure:"format"` // json, text
-	Output string      `mapstructure:"output"` // stdout, stderr, file path
-	OTLP   OTLPConfig  `mapstructure:"otlp"`   // OTLP configuration
+	Engine string     `mapstructure:"engine"` // zap, slog
+	Level  string     `mapstructure:"level"`  // debug, info, warn, error
+	Format string     `mapstructure:"format"` // json, text
+	Output string     `mapstructure:"output"` // stdout, stderr, file path
+	OTLP   OTLPConfig `mapstructure:"otlp"`   // OTLP configuration
 }
 
 // OTLPConfig holds OTLP exporter configuration
