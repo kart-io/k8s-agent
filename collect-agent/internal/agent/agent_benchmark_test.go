@@ -27,8 +27,8 @@ func BenchmarkEventProcessing(b *testing.B) {
 			Name:      "test-event",
 			Namespace: "default",
 		},
-		Type:   corev1.EventTypeWarning,
-		Reason: "CrashLoopBackOff",
+		Type:    corev1.EventTypeWarning,
+		Reason:  "CrashLoopBackOff",
 		Message: "Back-off restarting failed container",
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
@@ -169,8 +169,8 @@ func BenchmarkConcurrentEventProcessing(b *testing.B) {
 			Name:      "test-event",
 			Namespace: "default",
 		},
-		Type:   corev1.EventTypeWarning,
-		Reason: "CrashLoopBackOff",
+		Type:    corev1.EventTypeWarning,
+		Reason:  "CrashLoopBackOff",
 		Message: "Back-off restarting failed container",
 		InvolvedObject: corev1.ObjectReference{
 			Kind: "Pod",

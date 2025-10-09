@@ -55,8 +55,8 @@ func TestValidateConfig_MissingEndpoint(t *testing.T) {
 
 func TestValidateConfig_InvalidReconnectDelay(t *testing.T) {
 	config := &types.AgentConfig{
-		CentralEndpoint: "nats://localhost:4222",
-		ReconnectDelay:  500 * time.Millisecond, // Less than 1 second
+		CentralEndpoint:   "nats://localhost:4222",
+		ReconnectDelay:    500 * time.Millisecond, // Less than 1 second
 		HeartbeatInterval: 30 * time.Second,
 		MetricsInterval:   60 * time.Second,
 		BufferSize:        100,

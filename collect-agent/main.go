@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	configPath = flag.String("config", "/etc/aetherius/config.yaml", "path to configuration file")
-	showVersion    = flag.Bool("version", false, "print version information")
-	healthPort = flag.Int("health-port", 8080, "port for health checks")
+	configPath  = flag.String("config", "/etc/aetherius/config.yaml", "path to configuration file")
+	showVersion = flag.Bool("version", false, "print version information")
+	healthPort  = flag.Int("health-port", 8080, "port for health checks")
 
 	// Build-time variables (set via -ldflags)
 	version   = "v1.0.0"
@@ -27,7 +27,7 @@ var (
 )
 
 const (
-	AppName    = "aetherius-collect-agent"
+	AppName = "aetherius-collect-agent"
 )
 
 func main() {

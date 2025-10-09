@@ -14,13 +14,13 @@ import (
 
 // Registry manages agent lifecycle and state
 type Registry struct {
-	store       *storage.PostgresStore
-	cache       *storage.RedisStore
-	logger      *zap.Logger
-	mu          sync.RWMutex
-	agents      map[string]*types.Agent // In-memory cache
-	stopCh      chan struct{}
-	wg          sync.WaitGroup
+	store  *storage.PostgresStore
+	cache  *storage.RedisStore
+	logger *zap.Logger
+	mu     sync.RWMutex
+	agents map[string]*types.Agent // In-memory cache
+	stopCh chan struct{}
+	wg     sync.WaitGroup
 
 	// Configuration
 	heartbeatTimeout time.Duration
@@ -482,11 +482,11 @@ func (r *Registry) GetStatistics() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_agents":        len(r.agents),
-		"online_agents":       onlineCount,
-		"offline_agents":      offlineCount,
-		"registration_count":  r.registrationCount,
-		"heartbeat_count":     r.heartbeatCount,
-		"heartbeat_timeout":   r.heartbeatTimeout.String(),
+		"total_agents":       len(r.agents),
+		"online_agents":      onlineCount,
+		"offline_agents":     offlineCount,
+		"registration_count": r.registrationCount,
+		"heartbeat_count":    r.heartbeatCount,
+		"heartbeat_timeout":  r.heartbeatTimeout.String(),
 	}
 }

@@ -17,12 +17,12 @@ import (
 
 // Server manages NATS server connection and subscriptions
 type Server struct {
-	conn          *nats.Conn
-	logger        *zap.Logger
-	config        types.NATSConfig
+	conn   *nats.Conn
+	logger *zap.Logger
+	config types.NATSConfig
 
 	// Components
-	registry      *agent.Registry
+	registry       *agent.Registry
 	eventProcessor *event.Processor
 
 	// Subscriptions
@@ -307,7 +307,7 @@ func (s *Server) handleRegister(msg *nats.Msg) {
 
 	// Send acknowledgment
 	ack := map[string]interface{}{
-		"status":  "registered",
+		"status":   "registered",
 		"agent_id": agentInfo.ID,
 	}
 	s.sendResponse(msg, ack)

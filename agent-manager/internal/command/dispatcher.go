@@ -24,15 +24,15 @@ type Dispatcher struct {
 	logger   *zap.Logger
 
 	// Command tracking
-	mu               sync.RWMutex
-	pendingCommands  map[string]*types.Command
-	commandTimeouts  map[string]*time.Timer
+	mu              sync.RWMutex
+	pendingCommands map[string]*types.Command
+	commandTimeouts map[string]*time.Timer
 
 	// Metrics
-	commandsIssued   int64
+	commandsIssued    int64
 	commandsCompleted int64
-	commandsFailed   int64
-	commandsTimeout  int64
+	commandsFailed    int64
+	commandsTimeout   int64
 }
 
 // NewDispatcher creates a new command dispatcher

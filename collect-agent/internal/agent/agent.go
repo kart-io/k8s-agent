@@ -310,9 +310,9 @@ func (a *Agent) GetStatus() AgentStatus {
 	defer a.mu.RUnlock()
 
 	return AgentStatus{
-		ClusterID:         a.clusterID,
-		Running:           a.running,
-		StartTime:         a.startTime,
+		ClusterID:        a.clusterID,
+		Running:          a.running,
+		StartTime:        a.startTime,
 		Uptime:           time.Since(a.startTime),
 		EventQueueSize:   len(a.eventChan),
 		MetricsQueueSize: len(a.metricsChan),
@@ -324,9 +324,9 @@ func (a *Agent) GetStatus() AgentStatus {
 
 // AgentStatus represents the current status of the agent
 type AgentStatus struct {
-	ClusterID         string        `json:"cluster_id"`
-	Running           bool          `json:"running"`
-	StartTime         time.Time     `json:"start_time"`
+	ClusterID        string        `json:"cluster_id"`
+	Running          bool          `json:"running"`
+	StartTime        time.Time     `json:"start_time"`
 	Uptime           time.Duration `json:"uptime"`
 	EventQueueSize   int           `json:"event_queue_size"`
 	MetricsQueueSize int           `json:"metrics_queue_size"`

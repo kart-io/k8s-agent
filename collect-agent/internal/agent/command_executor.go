@@ -39,18 +39,18 @@ func NewCommandExecutor(clientset kubernetes.Interface, clusterID string, logger
 				"version", "cluster-info", "api-resources", "api-versions",
 			},
 			// System information commands
-			"ps": {"aux", "-ef"},
-			"df": {"-h"},
-			"free": {"-h"},
+			"ps":     {"aux", "-ef"},
+			"df":     {"-h"},
+			"free":   {"-h"},
 			"uptime": {},
-			"uname": {"-a"},
+			"uname":  {"-a"},
 			"whoami": {},
 			// Network diagnostics
-			"ping": {"-c", "3"},
+			"ping":     {"-c", "3"},
 			"nslookup": {},
-			"dig": {},
-			"curl": {"-I", "-s", "--connect-timeout", "5"},
-			"wget": {"--spider", "-T", "5"},
+			"dig":      {},
+			"curl":     {"-I", "-s", "--connect-timeout", "5"},
+			"wget":     {"--spider", "-T", "5"},
 		},
 	}
 }

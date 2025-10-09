@@ -225,14 +225,14 @@ func (s *Server) handleStatus(c *gin.Context) {
 	totalClusters, _ := s.store.ListClusters(ctx)
 
 	status := types.HealthStatus{
-		Status:           "healthy",
-		Version:          "1.0.0",
-		Uptime:           time.Since(s.startTime),
-		ActiveAgents:     onlineAgents,
-		TotalClusters:    len(totalClusters),
-		EventsProcessed:  s.eventProcessor.GetStatistics()["events_processed"].(int64),
-		CommandsIssued:   s.dispatcher.GetStatistics()["commands_issued"].(int64),
-		Timestamp:        time.Now(),
+		Status:          "healthy",
+		Version:         "1.0.0",
+		Uptime:          time.Since(s.startTime),
+		ActiveAgents:    onlineAgents,
+		TotalClusters:   len(totalClusters),
+		EventsProcessed: s.eventProcessor.GetStatistics()["events_processed"].(int64),
+		CommandsIssued:  s.dispatcher.GetStatistics()["commands_issued"].(int64),
+		Timestamp:       time.Now(),
 		Components: map[string]interface{}{
 			"registry":        s.registry.GetStatistics(),
 			"event_processor": s.eventProcessor.GetStatistics(),
@@ -391,10 +391,10 @@ func (s *Server) handleClusterHealth(c *gin.Context) {
 	}
 
 	health := gin.H{
-		"cluster_id": clusterID,
-		"agent_status": agent.Status,
+		"cluster_id":     clusterID,
+		"agent_status":   agent.Status,
 		"last_heartbeat": agent.LastHeartbeat,
-		"healthy": agent.Status == types.AgentStatusOnline,
+		"healthy":        agent.Status == types.AgentStatusOnline,
 	}
 
 	c.JSON(http.StatusOK, health)
@@ -527,9 +527,9 @@ func (s *Server) handleGetCommandEvents(c *gin.Context) {
 
 	// 返回参数
 	c.JSON(http.StatusOK, gin.H{
-		"command_id": commandID,      // 命令ID
-		"events":     events,          // 事件列表，包含 reason, namespace, timestamp, triggered_by 等字段
-		"count":      len(events),     // 事件总数
+		"command_id": commandID,   // 命令ID
+		"events":     events,      // 事件列表，包含 reason, namespace, timestamp, triggered_by 等字段
+		"count":      len(events), // 事件总数
 	})
 }
 
@@ -596,11 +596,11 @@ func (s *Server) handleRecordOperation(c *gin.Context) {
 
 	// 存储操作数据
 	operationData := map[string]interface{}{
-		"correlation_id": correlationID, // 关联ID
-		"command":        req.Command,    // 执行的命令
-		"cluster_id":     req.ClusterID,  // 集群ID
-		"namespace":      req.Namespace,  // 命名空间
-		"user":           req.User,       // 用户名
+		"correlation_id": correlationID,   // 关联ID
+		"command":        req.Command,     // 执行的命令
+		"cluster_id":     req.ClusterID,   // 集群ID
+		"namespace":      req.Namespace,   // 命名空间
+		"user":           req.User,        // 用户名
 		"description":    req.Description, // 操作描述
 		"timestamp":      time.Now(),      // 记录时间
 		"metadata":       req.Metadata,    // 元数据
@@ -611,9 +611,9 @@ func (s *Server) handleRecordOperation(c *gin.Context) {
 
 	// 返回参数
 	c.JSON(http.StatusOK, gin.H{
-		"correlation_id": correlationID,                                            // 关联ID，用于后续查询事件
+		"correlation_id": correlationID,                                                  // 关联ID，用于后续查询事件
 		"message":        "Operation recorded. Events will be correlated automatically.", // 提示消息
-		"operation":      operationData,                                             // 操作详情
+		"operation":      operationData,                                                  // 操作详情
 	})
 }
 
@@ -636,8 +636,8 @@ func (s *Server) handleGetOperationEvents(c *gin.Context) {
 	// 返回参数
 	c.JSON(http.StatusOK, gin.H{
 		"correlation_id": correlationID, // 关联ID
-		"events":         events,         // 事件列表，包含 reason, namespace, timestamp, triggered_by 等字段
-		"count":          len(events),    // 事件总数
+		"events":         events,        // 事件列表，包含 reason, namespace, timestamp, triggered_by 等字段
+		"count":          len(events),   // 事件总数
 	})
 }
 
@@ -740,7 +740,7 @@ func (s *Server) correlateEventsToCommand(commandID, clusterID, namespace, issue
 			// 将找到的事件的 command_id 字段设置为该命令的 ID
 			// 这样就建立了"命令 -> 事件"的关联关系
 			for _, event := range recentEvents {
-				event.CommandID = commandID   // 设置事件的命令ID
+				event.CommandID = commandID  // 设置事件的命令ID
 				event.TriggeredBy = issuedBy // 记录触发者
 				if err := s.store.DB().Save(event).Error; err != nil {
 					s.logger.Error("Failed to update event command correlation",
