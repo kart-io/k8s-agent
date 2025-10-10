@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/audit"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/audit"
 )
 
 // AuditHandler handles audit log queries and exports

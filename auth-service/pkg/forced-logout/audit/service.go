@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kart/k8s-agent/auth-service/pkg/types"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 )
 
 // Service provides business logic for audit event management

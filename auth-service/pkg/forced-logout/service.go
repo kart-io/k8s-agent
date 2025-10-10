@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/audit"
-	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/notification"
-	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/session"
-	"github.com/kart/k8s-agent/auth-service/pkg/types"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/audit"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/notification"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/session"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 )
 
 // Service provides core forced logout operations

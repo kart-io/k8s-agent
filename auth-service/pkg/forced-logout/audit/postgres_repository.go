@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kart/k8s-agent/auth-service/pkg/types"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 	"gorm.io/gorm"
 )
 

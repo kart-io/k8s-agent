@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	forcedlogout "github.com/kart/k8s-agent/auth-service/pkg/forced-logout"
-	"github.com/kart/k8s-agent/auth-service/pkg/types"
+	forcedlogout "github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 )
 
 // ForcedLogoutHandler handles forced logout operations

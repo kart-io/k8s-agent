@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/kart/k8s-agent/auth-service/pkg/types"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 )
 
 // Repository defines the interface for notification storage operations

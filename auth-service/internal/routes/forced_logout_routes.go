@@ -2,8 +2,8 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/kart/k8s-agent/auth-service/internal/handler"
-	"github.com/kart/k8s-agent/auth-service/internal/middleware"
+	"github.com/kart-io/k8s-agent/auth-service/internal/handler"
+	"github.com/kart-io/k8s-agent/auth-service/internal/middleware"
 )
 
 // ForcedLogoutRoutes registers all forced logout related routes

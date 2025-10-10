@@ -8,8 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/session"
-	"github.com/kart/k8s-agent/auth-service/pkg/types"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/session"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )

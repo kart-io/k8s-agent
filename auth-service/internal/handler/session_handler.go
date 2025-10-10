@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/session"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/session"
 )
 
 // SessionHandler handles session-related HTTP requests

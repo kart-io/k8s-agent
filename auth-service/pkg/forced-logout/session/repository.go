@@ -3,7 +3,7 @@ package session
 import (
 	"context"
 
-	"github.com/kart/k8s-agent/auth-service/pkg/types"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 )
 
 // Repository defines the interface for session storage operations

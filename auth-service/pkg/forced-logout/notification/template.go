@@ -8,7 +8,7 @@ import (
 	texttemplate "text/template"
 	"time"
 
-	"github.com/kart/k8s-agent/auth-service/pkg/types"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 )
 
 // TemplateEngine handles email template rendering

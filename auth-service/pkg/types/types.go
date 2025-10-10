@@ -96,12 +96,6 @@ type UserInfo struct {
 	RealName string `json:"real_name"`
 	Avatar   string `json:"avatar"`
 	Roles    []Role `json:"roles"`
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	RealName string `json:"real_name"`
-	Avatar   string `json:"avatar"`
-	Roles    []Role `json:"roles"`
 }
 
 // MenuTree represents a menu tree structure
@@ -196,13 +190,6 @@ type PaginatedResponse struct {
 	Page       int         `json:"page"`
 	PageSize   int         `json:"page_size"`
 	TotalPages int         `json:"total_pages"`
-}
-
-// ErrorResponse represents error response
-type ErrorResponse struct {
-	Error   string `json:"error"`
-	Code    int    `json:"code"`
-	Details string `json:"details"`
 }
 
 // MenuItem represents a menu item with hierarchy
