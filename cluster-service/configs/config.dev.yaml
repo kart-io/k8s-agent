@@ -1,0 +1,24 @@
+# Development Configuration
+
+server:
+  port: 8082
+  mode: debug
+  read_timeout: 30s
+  write_timeout: 30s
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: cluster_dev
+  sslmode: disable
+  max_open_conns: 10
+  max_idle_conns: 2
+
+jwt:
+  secret: dev-secret-key-not-for-production
+
+logging:
+  level: debug
+  format: text
