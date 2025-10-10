@@ -28,3 +28,14 @@ jwt:
 logging:
   level: "info" # debug, info, warn, error
   format: "json" # json, text
+
+# Email notification configuration for forced logout
+email:
+  enabled: false  # Set true when SMTP configured
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_user: "notifications@example.com"
+  smtp_password: ""
+  from_address: "noreply@k8s-agent.com"
+  from_name: "K8s Agent Security"
+  template_dir: "templates/email"

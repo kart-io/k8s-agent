@@ -1,0 +1,32 @@
+SECURITY ALERT: Session Terminated
+===================================
+
+Hello {{.Username}},
+
+This is an automated security notification from K8s Agent. Your session has been terminated by an administrator.
+
+SESSION DETAILS:
+----------------
+Timestamp:      {{.Timestamp}}
+Device:         {{.DeviceInfo}}
+Location:       {{.Location}}
+Terminated By:  {{.ActorName}}
+{{if .Reason}}Reason:         {{.Reason}}{{end}}
+
+WHAT DOES THIS MEAN?
+-------------------
+You have been logged out of your K8s Agent account. Any active sessions on this device and others have been terminated. You will need to log in again to access your account.
+
+WHAT SHOULD YOU DO?
+-------------------
+• If you recognize this action, no further action is required.
+• If you do not recognize this action, please contact your security administrator immediately.
+• To access your account again, please log in at: {{.LoginURL}}
+
+---
+
+This is an automated security notification from K8s Agent.
+
+If you did not request this action and believe your account may be compromised, please contact your security administrator immediately.
+
+© 2025 K8s Agent. All rights reserved.

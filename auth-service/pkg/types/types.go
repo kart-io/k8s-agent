@@ -82,19 +82,20 @@ type LoginRequest struct {
 
 // LoginResponse represents a login response
 type LoginResponse struct {
-	Token     string      `json:"token"`
-	ExpiresAt time.Time   `json:"expires_at"`
-	User      *UserInfo   `json:"user"`
+	Token     string    `json:"token"`
+	JTI       string    `json:"jti"` // JWT ID for session tracking
+	ExpiresAt time.Time `json:"expires_at"`
+	User      *UserInfo `json:"user"`
 }
 
 // UserInfo represents user information (without sensitive data)
 type UserInfo struct {
-	ID       string   `json:"id"`
-	Username string   `json:"username"`
-	Email    string   `json:"email"`
-	RealName string   `json:"real_name"`
-	Avatar   string   `json:"avatar"`
-	Roles    []Role   `json:"roles"`
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	RealName string `json:"real_name"`
+	Avatar   string `json:"avatar"`
+	Roles    []Role `json:"roles"`
 }
 
 // MenuTree represents a menu tree structure
