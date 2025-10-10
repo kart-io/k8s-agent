@@ -36,3 +36,14 @@ logging:
     enabled: false # Enable OTLP export for distributed tracing
     endpoint: "http://localhost:4317" # OTLP collector endpoint
     insecure: true # Use insecure connection (true for local dev)
+
+# Email notification configuration for forced logout
+email:
+  enabled: false  # Set true when SMTP configured
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_user: "notifications@example.com"
+  smtp_password: ""
+  from_address: "noreply@k8s-agent.com"
+  from_name: "K8s Agent Security"
+  template_dir: "templates/email"

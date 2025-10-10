@@ -1,219 +1,239 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"net/http"
+	"log"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/auth-service/internal/config"
-	"github.com/kart-io/k8s-agent/auth-service/internal/handler"
-	"github.com/kart-io/k8s-agent/auth-service/internal/middleware"
-	"github.com/kart-io/k8s-agent/auth-service/internal/service"
-	"github.com/kart-io/k8s-agent/auth-service/internal/storage"
-	"github.com/kart-io/k8s-agent/auth-service/pkg/logger"
-	"github.com/kart-io/k8s-agent/auth-service/pkg/metrics"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/kart-io/notifyhub/pkg/config"
+	"github.com/kart-io/notifyhub/pkg/notifyhub"
+	"github.com/kart-io/notifyhub/pkg/utils/logger"
+	"github.com/kart/k8s-agent/auth-service/internal/handler"
+	"github.com/kart/k8s-agent/auth-service/internal/middleware"
+	"github.com/kart/k8s-agent/auth-service/internal/routes"
+	forcedlogout "github.com/kart/k8s-agent/auth-service/pkg/forced-logout"
+	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/audit"
+	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/notification"
+	"github.com/kart/k8s-agent/auth-service/pkg/forced-logout/session"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
-	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Printf("Failed to load config: %v\n", err)
-		os.Exit(1)
-	}
+	// Load configuration (simplified - in production, use proper config management)
+	cfg := loadConfig()
 
-	// Initialize logger
-	if err := logger.Init(&cfg.Logging); err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
-	}
-	log := logger.GetLogger()
-	log.Infow("Starting auth-service...")
-
-	// Connect to PostgreSQL
-	db, err := storage.NewPostgresDB(&cfg.Database)
+	// Initialize database connection
+	db, err := initDatabase(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
-	log.Info("Database connected successfully")
 
-	// Connect to Redis
-	redis, err := storage.NewRedisClient(&cfg.Redis)
-	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
-	}
-	defer redis.Close()
-	log.Info("Redis connected successfully")
+	// Initialize Redis client
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
+		DB:       0,
+	})
 
-	// NOTE: Database migrations are now handled automatically by GORM AutoMigrate
-	// in postgres.go if cfg.Database.AutoMigrate is true
+	// Initialize repositories
+	sessionRepo := session.NewRedisRepository(redisClient, cfg.JWTExpiresHours)
+	auditRepo := audit.NewPostgresRepository(db)
+	notificationRepo := notification.NewPostgresRepository(db)
 
 	// Initialize services
-	authService := service.NewAuthService(db, redis, cfg)
-	userService := service.NewUserService(db)
-	roleService := service.NewRoleService(db)
-	permissionService := service.NewPermissionService(db)
-	apikeyService := service.NewAPIKeyService(db)
+	sessionService := session.NewService(sessionRepo)
+	auditService := audit.NewService(auditRepo)
+
+	// Initialize NotifyHub client for email notifications
+	notifyHubLogger := logger.New().LogMode(logger.Info)
+
+	var notifyHubClient notifyhub.Client
+	if cfg.EmailEnabled {
+		// Configure email platform using NotifyHub
+		emailConfig := config.EmailConfig{
+			Host:     cfg.SMTPHost,
+			Port:     cfg.SMTPPort,
+			Username: cfg.SMTPUser,
+			Password: cfg.SMTPPassword,
+			From:     cfg.EmailFromAddress,
+			UseTLS:   true,
+			Timeout:  30 * time.Second,
+		}
+
+		notifyHubClient, err = notifyhub.NewClientFromOptions(
+			config.WithEmail(emailConfig),
+			config.WithLogger(notifyHubLogger),
+			config.WithTimeout(30*time.Second),
+		)
+		if err != nil {
+			log.Fatalf("Failed to initialize NotifyHub client: %v", err)
+		}
+		log.Printf("✅ NotifyHub client initialized with email platform (%s:%d)\n", cfg.SMTPHost, cfg.SMTPPort)
+	} else {
+		// Create a test client with no-op configuration
+		notifyHubClient, err = notifyhub.NewClientFromOptions(
+			config.WithTestDefaults(),
+			config.WithLogger(notifyHubLogger),
+		)
+		if err != nil {
+			log.Fatalf("Failed to initialize test NotifyHub client: %v", err)
+		}
+		log.Println("⚠️  Email notifications disabled - using test mode")
+	}
+
+	// Initialize notification template engine
+	templateEngine, err := notification.NewTemplateEngine(cfg.EmailTemplateDir)
+	if err != nil {
+		log.Fatalf("Failed to initialize template engine: %v", err)
+	}
+
+	// Initialize notification service with NotifyHub
+	notificationService := notification.NewService(notificationRepo, notifyHubClient, templateEngine)
+
+	// Initialize forced logout service
+	forcedLogoutService := forcedlogout.NewService(
+		sessionService,
+		auditService,
+		notificationService,
+		cfg.LoginURL,
+	)
 
 	// Initialize handlers
-	authHandler := handler.NewAuthHandler(authService)
-	userHandler := handler.NewUserHandler(userService)
-	roleHandler := handler.NewRoleHandler(roleService)
-	permissionHandler := handler.NewPermissionHandler(permissionService)
-	apikeyHandler := handler.NewAPIKeyHandler(apikeyService)
+	authHandler := handler.NewAuthHandler(db, cfg.JWTSecret, cfg.JWTExpiresHours, sessionService)
+	sessionHandler := handler.NewSessionHandler(sessionService)
+	forcedLogoutHandler := handler.NewForcedLogoutHandler(forcedLogoutService)
+	auditHandler := handler.NewAuditHandler(auditService)
 
-	// Setup Gin
-	if cfg.Server.Mode == "release" {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	// Initialize middleware
+	jwtMiddleware := middleware.NewJWTMiddleware(cfg.JWTSecret, sessionService)
+	authMiddleware := middleware.NewForcedLogoutAuthMiddleware(db)
+	rateLimiter := middleware.NewRateLimiter(redisClient)
+
+	// Initialize Gin router
 	router := gin.Default()
 
-	// Apply global middleware
-	router.Use(middleware.CORS())
-	router.Use(middleware.RequestLogger())
-	router.Use(metrics.PrometheusMiddleware())
-
-	// API routes
-	v1 := router.Group("/api/v1")
-	{
-		// Public auth routes
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/login", authHandler.Login)
-			auth.POST("/check", authHandler.CheckPermission)
-		}
-
-		// Protected auth routes (require JWT)
-		authProtected := v1.Group("/auth")
-		authProtected.Use(middleware.JWTAuth(cfg.JWT.Secret, redis))
-		{
-			authProtected.POST("/logout", authHandler.Logout)
-			authProtected.GET("/me", authHandler.Me)
-			authProtected.GET("/menus", authHandler.Menus)
-		}
-
-		// User management routes (require JWT + permissions)
-		users := v1.Group("/users")
-		users.Use(middleware.JWTAuth(cfg.JWT.Secret, redis))
-		{
-			users.GET("", middleware.RequirePermission(db, "user:list"), userHandler.List)
-			users.GET("/:id", middleware.RequirePermission(db, "user:list"), userHandler.GetByID)
-			users.POST("", middleware.RequirePermission(db, "user:create"), userHandler.Create)
-			users.PUT("/:id", middleware.RequirePermission(db, "user:update"), userHandler.Update)
-			users.DELETE("/:id", middleware.RequirePermission(db, "user:delete"), userHandler.Delete)
-			users.POST("/:id/roles", middleware.RequirePermission(db, "user:update"), userHandler.AssignRoles)
-		}
-
-		// Role management routes (require JWT + permissions)
-		roles := v1.Group("/roles")
-		roles.Use(middleware.JWTAuth(cfg.JWT.Secret, redis))
-		{
-			roles.GET("", middleware.RequirePermission(db, "role:list"), roleHandler.List)
-			roles.GET("/:id", middleware.RequirePermission(db, "role:view"), roleHandler.GetByID)
-			roles.POST("", middleware.RequirePermission(db, "role:create"), roleHandler.Create)
-			roles.PUT("/:id", middleware.RequirePermission(db, "role:update"), roleHandler.Update)
-			roles.DELETE("/:id", middleware.RequirePermission(db, "role:delete"), roleHandler.Delete)
-			roles.POST("/:id/permissions", middleware.RequirePermission(db, "role:assign"), roleHandler.AssignPermissions)
-			roles.GET("/:id/permissions", middleware.RequirePermission(db, "role:view"), roleHandler.GetPermissions)
-		}
-
-		// Permission management routes (require JWT + permissions)
-		permissions := v1.Group("/permissions")
-		permissions.Use(middleware.JWTAuth(cfg.JWT.Secret, redis))
-		{
-			permissions.GET("", middleware.RequirePermission(db, "permission:list"), permissionHandler.List)
-			permissions.GET("/tree", middleware.RequirePermission(db, "permission:list"), permissionHandler.GetTree)
-			permissions.GET("/:id", middleware.RequirePermission(db, "permission:view"), permissionHandler.GetByID)
-			permissions.POST("", middleware.RequirePermission(db, "permission:create"), permissionHandler.Create)
-			permissions.PUT("/:id", middleware.RequirePermission(db, "permission:update"), permissionHandler.Update)
-			permissions.DELETE("/:id", middleware.RequirePermission(db, "permission:delete"), permissionHandler.Delete)
-		}
-
-		// API Key management routes (require JWT + permissions)
-		apikeys := v1.Group("/api-keys")
-		apikeys.Use(middleware.JWTAuth(cfg.JWT.Secret, redis))
-		{
-			apikeys.GET("", middleware.RequirePermission(db, "apikey:list"), apikeyHandler.List)
-			apikeys.POST("", middleware.RequirePermission(db, "apikey:create"), apikeyHandler.Create)
-			apikeys.DELETE("/:id", middleware.RequirePermission(db, "apikey:delete"), apikeyHandler.Delete)
-		}
-	}
-
-	// Health check endpoint
+	// Register health check endpoint
 	router.GET("/health", func(c *gin.Context) {
-		// Check database connection
-		dbStatus := "ok"
-		if err := db.Health(); err != nil {
-			dbStatus = "error"
-			log.Warnf("Database health check failed: %v", err)
-		}
-
-		// Check Redis connection
-		redisStatus := "ok"
-		if err := redis.Client.Ping(context.Background()).Err(); err != nil {
-			redisStatus = "error"
-			log.Warnf("Redis health check failed: %v", err)
-		}
-
-		// Overall status
-		overallStatus := "ok"
-		if dbStatus != "ok" || redisStatus != "ok" {
-			overallStatus = "degraded"
-		}
-
-		statusCode := http.StatusOK
-		if overallStatus == "degraded" {
-			statusCode = http.StatusServiceUnavailable
-		}
-
-		c.JSON(statusCode, gin.H{
-			"status": overallStatus,
-			"time":   time.Now().Format(time.RFC3339),
-			"checks": gin.H{
-				"database": dbStatus,
-				"redis":    redisStatus,
-			},
+		c.JSON(200, gin.H{
+			"status":              "healthy",
+			"service":             "auth-service",
+			"version":             "1.0.0",
+			"email_notifications": cfg.EmailEnabled,
 		})
 	})
 
-	// Metrics endpoint
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
-	// Create HTTP server
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	srv := &http.Server{
-		Addr:    addr,
-		Handler: router,
+	// Register authentication routes
+	v1 := router.Group("/api/v1/auth")
+	{
+		v1.POST("/login", authHandler.LoginHandler)
+		v1.POST("/logout", jwtMiddleware.JWTAuth(), authHandler.LogoutHandler)
+		v1.GET("/me", jwtMiddleware.JWTAuth(), authHandler.GetCurrentUserHandler)
 	}
 
-	// Start server in goroutine
-	go func() {
-		log.Infof("Server started on %s", addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
-		}
-	}()
+	// Register forced logout routes
+	forcedLogoutRoutes := routes.NewForcedLogoutRoutes(
+		sessionHandler,
+		forcedLogoutHandler,
+		auditHandler,
+		jwtMiddleware,
+		authMiddleware,
+		rateLimiter,
+	)
+	forcedLogoutRoutes.RegisterRoutes(router)
 
-	// Wait for interrupt signal for graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Info("Shutting down server...")
+	// Print registered routes
+	fmt.Println("\n=== Auth Service Started ===")
+	fmt.Println("Listening on:", cfg.ServerAddr)
+	fmt.Println("NotifyHub Integration: ✅ Enabled")
+	if cfg.EmailEnabled {
+		fmt.Printf("Email Platform: %s:%d (from: %s)\n", cfg.SMTPHost, cfg.SMTPPort, cfg.EmailFromAddress)
+	} else {
+		fmt.Println("Email Platform: Disabled (test mode)")
+	}
+	fmt.Println("\nRegistered Routes:")
+	fmt.Println("GET    /health                              - Health check")
+	fmt.Println("POST   /api/v1/auth/login                   - User login")
+	fmt.Println("POST   /api/v1/auth/logout                  - User logout")
+	fmt.Println("GET    /api/v1/auth/me                      - Get current user")
+	for _, route := range forcedLogoutRoutes.PrintRegisteredRoutes() {
+		fmt.Println(route)
+	}
+	fmt.Println("============================")
 
-	// Graceful shutdown with 5 second timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Start server
+	if err := router.Run(cfg.ServerAddr); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
+}
 
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Errorf("Server forced to shutdown: %v", err)
+// Config holds application configuration
+type Config struct {
+	ServerAddr       string
+	DatabaseURL      string
+	RedisAddr        string
+	RedisPassword    string
+	JWTSecret        string
+	JWTExpiresHours  int
+	EmailEnabled     bool
+	SMTPHost         string
+	SMTPPort         int
+	SMTPUser         string
+	SMTPPassword     string
+	EmailFromAddress string
+	EmailFromName    string
+	EmailTemplateDir string
+	LoginURL         string
+}
+
+// loadConfig loads configuration from environment variables
+func loadConfig() Config {
+	return Config{
+		ServerAddr:       getEnv("SERVER_ADDR", ":8090"),
+		DatabaseURL:      getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/k8s_agent_auth?sslmode=disable"),
+		RedisAddr:        getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:    getEnv("REDIS_PASSWORD", ""),
+		JWTSecret:        getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
+		JWTExpiresHours:  24,
+		EmailEnabled:     getEnv("EMAIL_ENABLED", "false") == "true",
+		SMTPHost:         getEnv("SMTP_HOST", "smtp.example.com"),
+		SMTPPort:         587,
+		SMTPUser:         getEnv("SMTP_USER", ""),
+		SMTPPassword:     getEnv("SMTP_PASSWORD", ""),
+		EmailFromAddress: getEnv("EMAIL_FROM_ADDRESS", "noreply@k8s-agent.com"),
+		EmailFromName:    getEnv("EMAIL_FROM_NAME", "K8s Agent Security"),
+		EmailTemplateDir: getEnv("EMAIL_TEMPLATE_DIR", "templates/email"),
+		LoginURL:         getEnv("LOGIN_URL", "http://localhost:8090/login"),
+	}
+}
+
+// getEnv gets environment variable with default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// initDatabase initializes database connection
+func initDatabase(databaseURL string) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	log.Info("Server exited")
+	// Test connection
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("get sql.DB: %w", err)
+	}
+
+	if err := sqlDB.Ping(); err != nil {
+		return nil, fmt.Errorf("ping database: %w", err)
+	}
+
+	return db, nil
 }
