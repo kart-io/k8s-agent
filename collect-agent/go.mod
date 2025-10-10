@@ -1,4 +1,4 @@
-module github.com/kart/k8s-agent/collect-agent
+module github.com/kart-io/k8s-agent/collect-agent
 
 go 1.24.0
 

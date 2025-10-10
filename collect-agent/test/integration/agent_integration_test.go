@@ -4,18 +4,13 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
-	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/agent"
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // TestAgentNATSIntegration tests end-to-end NATS communication

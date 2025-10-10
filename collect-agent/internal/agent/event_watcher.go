@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // EventWatcher watches Kubernetes events and sends them to the event channel

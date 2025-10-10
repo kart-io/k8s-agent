@@ -332,7 +332,7 @@ security-scan: ## Run security scan with gosec
 docs: ## Generate documentation
 	@echo "Generating documentation..."
 	@if command -v godoc >/dev/null 2>&1; then \
-		echo "Documentation server starting at http://localhost:6060/pkg/github.com/kart/k8s-agent/collect-agent/"; \
+		echo "Documentation server starting at http://localhost:6060/pkg/github.com/kart-io/k8s-agent/collect-agent/"; \
 		godoc -http=:6060; \
 	else \
 		echo "godoc not installed. Install with: go install golang.org/x/tools/cmd/godoc@latest"; \

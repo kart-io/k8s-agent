@@ -11,7 +11,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // CommunicationManager handles all NATS communication for the agent

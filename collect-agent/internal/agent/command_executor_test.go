@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 func TestNewCommandExecutor(t *testing.T) {

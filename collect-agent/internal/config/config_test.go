@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 func TestLoadConfig_DefaultConfig(t *testing.T) {

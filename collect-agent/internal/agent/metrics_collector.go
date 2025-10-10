@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // MetricsCollector collects cluster metrics and sends them to the metrics channel

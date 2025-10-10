@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // CommandExecutor executes commands received from the central control plane

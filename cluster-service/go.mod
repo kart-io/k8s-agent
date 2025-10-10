@@ -1,4 +1,4 @@
-module github.com/kart/k8s-agent/cluster-service
+module github.com/kart-io/k8s-agent/cluster-service
 
 go 1.21
 

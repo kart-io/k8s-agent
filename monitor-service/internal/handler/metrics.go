@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart/k8s-agent/monitor-service/internal/service"
+	"github.com/kart-io/k8s-agent/monitor-service/internal/service"
 	"github.com/sirupsen/logrus"
 )
 

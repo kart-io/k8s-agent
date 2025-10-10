@@ -460,5 +460,5 @@ MIT License
 
 ## 📞 联系
 
-- 项目地址: https://github.com/kart/k8s-agent
+- 项目地址: https://github.com/kart-io/k8s-agent
 - 文档: [ARCHITECTURE.md](../../docs/architecture/SYSTEM_ARCHITECTURE.md)

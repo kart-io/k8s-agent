@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/kart/k8s-agent/monitor-service/internal/storage"
-	"github.com/kart/k8s-agent/monitor-service/pkg/types"
+	"github.com/kart-io/k8s-agent/monitor-service/internal/storage"
+	"github.com/kart-io/k8s-agent/monitor-service/pkg/types"
 	"github.com/sirupsen/logrus"
 )
 

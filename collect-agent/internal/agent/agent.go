@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
-	"github.com/kart/k8s-agent/collect-agent/internal/utils"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/utils"
 )
 
 // Agent represents the main collect agent that coordinates all components

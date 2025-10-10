@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // BenchmarkEventProcessing benchmarks event processing throughput
