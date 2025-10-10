@@ -182,33 +182,6 @@ func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 	return buildMenuTree(menus), nil
 }
 
-// getUserRoles retrieves roles for a user (helper method, kept for compatibility)
-func (s *AuthService) getUserRoles(userID string) ([]types.Role, error) {
-	var user model.User
-	err := s.db.DB.Preload("Roles", "status = ?", 1).
-		Where("id = ?", userID).
-		First(&user).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert model.Role to types.Role
-	roles := make([]types.Role, len(user.Roles))
-	for i, role := range user.Roles {
-		roles[i] = types.Role{
-			ID:          role.ID,
-			Name:        role.Name,
-			Code:        role.Code,
-			Description: role.Description,
-			Status:      role.Status,
-			Sort:        role.Sort,
-		}
-	}
-
-	return roles, nil
-}
-
 // buildMenuTree builds hierarchical menu structure
 func buildMenuTree(menus []*types.MenuItem) []*types.MenuItem {
 	menuMap := make(map[string]*types.MenuItem)

@@ -118,10 +118,11 @@ type UserFilters struct {
 func ExtractUserFilters(c *gin.Context) UserFilters {
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {
-		if statusStr == "0" {
+		switch statusStr {
+		case "0":
 			s := 0
 			status = &s
-		} else if statusStr == "1" {
+		case "1":
 			s := 1
 			status = &s
 		}
@@ -157,10 +158,11 @@ type RoleFilters struct {
 func ExtractRoleFilters(c *gin.Context) RoleFilters {
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {
-		if statusStr == "0" {
+		switch statusStr {
+		case "0":
 			s := 0
 			status = &s
-		} else if statusStr == "1" {
+		case "1":
 			s := 1
 			status = &s
 		}
@@ -195,10 +197,11 @@ type PermissionFilters struct {
 func ExtractPermissionFilters(c *gin.Context) PermissionFilters {
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {
-		if statusStr == "0" {
+		switch statusStr {
+		case "0":
 			s := 0
 			status = &s
-		} else if statusStr == "1" {
+		case "1":
 			s := 1
 			status = &s
 		}

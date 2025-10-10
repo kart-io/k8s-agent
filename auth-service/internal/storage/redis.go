@@ -28,7 +28,9 @@ func NewRedisClient(cfg *config.RedisConfig) (*RedisClient, error) {
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		client.Close()
+		if closeErr := client.Close(); closeErr != nil {
+			return nil, fmt.Errorf("failed to ping redis: %w (close error: %v)", err, closeErr)
+		}
 		return nil, fmt.Errorf("failed to ping redis: %w", err)
 	}
 

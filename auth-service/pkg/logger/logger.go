@@ -19,11 +19,12 @@ func Init(cfg *config.LoggingConfig) error {
 	}
 
 	// Set output paths
-	if cfg.Output == "" || cfg.Output == "stdout" {
+	switch cfg.Output {
+	case "", "stdout":
 		logOption.OutputPaths = []string{"stdout"}
-	} else if cfg.Output == "stderr" {
+	case "stderr":
 		logOption.OutputPaths = []string{"stderr"}
-	} else {
+	default:
 		// File path
 		logOption.OutputPaths = []string{cfg.Output}
 	}

@@ -42,10 +42,16 @@ func Created(c *gin.Context, data interface{}) {
 
 // Error sends an error response
 func Error(c *gin.Context, httpStatus int, code int, message string, details string) {
+	detailsMap := make(map[string]interface{})
+	if details != "" {
+		detailsMap["description"] = details
+	}
+	detailsMap["code"] = code
+
 	c.JSON(httpStatus, types.ErrorResponse{
 		Error:   message,
-		Code:    code,
-		Details: details,
+		Message: message,
+		Details: detailsMap,
 	})
 }
 
