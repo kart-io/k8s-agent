@@ -2,9 +2,10 @@
 
 API 网关服务，作为所有后端服务的统一入口，提供路由转发、认证授权、限流、CORS 等功能。
 
-支持两种部署模式：
-- **Go 网关** - 基于 Gin 的轻量级网关
-- **Traefik 网关** - 功能强大的云原生边缘路由器（推荐生产环境使用）
+支持三种部署模式:
+- **Go 网关** - 基于 Gin 的轻量级网关(适合开发环境)
+- **Traefik 网关** - 功能强大的云原生边缘路由器
+- **Tyk Gateway** - 企业级 API 网关(推荐生产环境使用)
 
 ## 功能特性
 
@@ -149,7 +150,28 @@ POST   /api/v1/workflows      -> orchestrator-service
 
 ## 快速开始
 
-### 方案一：使用 Traefik（推荐）
+### 方案一:使用 Tyk Gateway(推荐生产环境)
+
+Tyk 是一个企业级 API 网关,支持 REST、GraphQL、gRPC,提供完整的 API 管理功能。
+
+```bash
+cd gateway-service/deployments/tyk
+
+# 一键启动
+./start.sh
+
+# 或手动启动
+docker-compose up -d
+```
+
+访问地址:
+- Tyk Gateway: `http://localhost:8080`
+- Tyk Dashboard: `http://localhost:3000`
+- Prometheus 指标: `http://localhost:9090/metrics`
+
+详细使用请查看 [Tyk 部署指南](deployments/tyk/README.md)
+
+### 方案二:使用 Traefik
 
 Traefik 是一个现代化的云原生边缘路由器，提供更强大的功能和更好的性能。
 
@@ -174,7 +196,7 @@ docker-compose logs -f traefik
 
 详细使用请查看 [Traefik 部署指南](deployments/TRAEFIK_GUIDE.md)
 
-### 方案二：使用 Go 网关
+### 方案三:使用 Go 网关
 
 适合开发环境快速测试。
 
