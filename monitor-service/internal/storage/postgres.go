@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,12 +26,13 @@ type PostgresStorage struct {
 }
 
 func NewPostgresStorage(config *Config, logger *logrus.Logger) (*PostgresStorage, error) {
+	// MySQL DSN format
 	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode,
+		"%s:%s@tcp(%s:%d)/%s?parseTime=true&charset=utf8mb4",
+		config.User, config.Password, config.Host, config.Port, config.DBName,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -60,7 +61,7 @@ func NewPostgresStorage(config *Config, logger *logrus.Logger) (*PostgresStorage
 func (s *PostgresStorage) initSchema() error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS metrics_summary (
-		id SERIAL PRIMARY KEY,
+		id INT AUTO_INCREMENT PRIMARY KEY,
 		total_agents INT,
 		online_agents INT,
 		offline_agents INT,
@@ -74,10 +75,10 @@ func (s *PostgresStorage) initSchema() error {
 		network_in FLOAT,
 		network_out FLOAT,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 	CREATE TABLE IF NOT EXISTS agent_metrics (
-		id SERIAL PRIMARY KEY,
+		id INT AUTO_INCREMENT PRIMARY KEY,
 		agent_id VARCHAR(255) NOT NULL,
 		agent_name VARCHAR(255),
 		cluster_id VARCHAR(255),
@@ -86,23 +87,23 @@ func (s *PostgresStorage) initSchema() error {
 		memory_usage FLOAT,
 		event_count INT,
 		command_count INT,
-		last_heartbeat TIMESTAMP,
+		last_heartbeat TIMESTAMP NULL,
 		uptime BIGINT,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		INDEX idx_agent_id (agent_id),
 		INDEX idx_created_at (created_at)
-	);
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 	CREATE TABLE IF NOT EXISTS event_metrics (
-		id SERIAL PRIMARY KEY,
+		id INT AUTO_INCREMENT PRIMARY KEY,
 		event_type VARCHAR(100),
 		severity VARCHAR(50),
 		count INT,
-		last_occurrence TIMESTAMP,
+		last_occurrence TIMESTAMP NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		INDEX idx_event_type (event_type),
 		INDEX idx_severity (severity)
-	);
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 	CREATE TABLE IF NOT EXISTS alerts (
 		id VARCHAR(255) PRIMARY KEY,
@@ -110,12 +111,12 @@ func (s *PostgresStorage) initSchema() error {
 		description TEXT,
 		enabled BOOLEAN DEFAULT true,
 		rule_type VARCHAR(50),
-		conditions JSONB,
-		channels JSONB,
+		conditions JSON,
+		channels JSON,
 		severity VARCHAR(50),
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 	CREATE TABLE IF NOT EXISTS alert_history (
 		id VARCHAR(255) PRIMARY KEY,
@@ -123,21 +124,21 @@ func (s *PostgresStorage) initSchema() error {
 		alert_name VARCHAR(255),
 		status VARCHAR(50),
 		message TEXT,
-		triggered_at TIMESTAMP,
-		resolved_at TIMESTAMP,
+		triggered_at TIMESTAMP NULL,
+		resolved_at TIMESTAMP NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		INDEX idx_alert_id (alert_id),
 		INDEX idx_status (status),
 		INDEX idx_triggered_at (triggered_at)
-	);
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 	CREATE TABLE IF NOT EXISTS trend_data (
-		id SERIAL PRIMARY KEY,
+		id INT AUTO_INCREMENT PRIMARY KEY,
 		timestamp TIMESTAMP NOT NULL,
-		metrics JSONB,
+		metrics JSON,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		INDEX idx_timestamp (timestamp)
-	);
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 	`
 
 	_, err := s.db.Exec(schema)

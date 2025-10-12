@@ -1,9 +1,9 @@
 -- Auth Service MySQL 初始化脚本
 
 -- 创建数据库（如果不存在）
-CREATE DATABASE IF NOT EXISTS k8s_agent_auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS user_auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE k8s_agent_auth;
+USE user_auth;
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS users (

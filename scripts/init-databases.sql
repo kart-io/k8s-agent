@@ -1,25 +1,24 @@
--- 创建所有微服务需要的数据库
+-- 创建所有微服务需要的数据库 (MySQL 版本)
 
 -- 认证服务数据库
-CREATE DATABASE k8s_agent_auth;
+CREATE DATABASE IF NOT EXISTS k8s_agent_auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 监控服务数据库
-CREATE DATABASE monitor_db;
+CREATE DATABASE IF NOT EXISTS monitor_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 集群服务数据库
-CREATE DATABASE cluster_db;
+CREATE DATABASE IF NOT EXISTS cluster_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Agent 管理服务数据库 (如果还没有)
-SELECT 'CREATE DATABASE agent_manager_db'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'agent_manager_db')\gexec
+-- Agent 管理服务数据库
+CREATE DATABASE IF NOT EXISTS agent_manager_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 编排服务数据库 (如果还没有)
-SELECT 'CREATE DATABASE orchestrator_db'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'orchestrator_db')\gexec
+-- 编排服务数据库
+CREATE DATABASE IF NOT EXISTS orchestrator_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 授权
-GRANT ALL PRIVILEGES ON DATABASE k8s_agent_auth TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE monitor_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE cluster_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE agent_manager_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE orchestrator_db TO postgres;
+-- 授权 (MySQL 使用不同的授权语法)
+GRANT ALL PRIVILEGES ON k8s_agent_auth.* TO 'mysql'@'%';
+GRANT ALL PRIVILEGES ON monitor_db.* TO 'mysql'@'%';
+GRANT ALL PRIVILEGES ON cluster_db.* TO 'mysql'@'%';
+GRANT ALL PRIVILEGES ON agent_manager_db.* TO 'mysql'@'%';
+GRANT ALL PRIVILEGES ON orchestrator_db.* TO 'mysql'@'%';
+FLUSH PRIVILEGES;

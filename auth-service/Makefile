@@ -65,11 +65,11 @@ init-postgres:
 	@psql -U postgres -c "CREATE DATABASE k8s_agent_auth;" || true
 	@echo "PostgreSQL database initialized"
 
-# Initialize MySQL database
+# Initialize MySQL database (reads config from configs/config.yaml)
 init-mysql:
-	@echo "Initializing MySQL database..."
-	@mysql -u root -p < scripts/init-mysql.sql
-	@echo "MySQL database initialized"
+	@echo "Initializing MySQL database from config.yaml..."
+	@bash scripts/init-mysql.sh
+	@echo "MySQL database initialized successfully"
 
 # Format code
 fmt:

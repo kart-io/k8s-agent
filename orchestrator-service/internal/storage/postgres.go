@@ -5,26 +5,29 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
 	"github.com/kart-io/k8s-agent/orchestrator-service/pkg/types"
 )
 
-// PostgresStore implements PostgreSQL storage
+// PostgresStore implements MySQL storage
+// Note: Kept the name for backward compatibility, but now using MySQL
 type PostgresStore struct {
 	db     *gorm.DB
 	logger *zap.Logger
 }
 
-// NewPostgresStore creates a new PostgreSQL store
+// NewPostgresStore creates a new MySQL store
+// Note: Kept the name for backward compatibility, but now using MySQL
 func NewPostgresStore(config types.DatabaseConfig, log *zap.Logger) (*PostgresStore, error) {
+	// MySQL DSN format
 	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.User, config.Password, config.Database, config.SSLMode,
+		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		config.User, config.Password, config.Host, config.Port, config.Database,
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}

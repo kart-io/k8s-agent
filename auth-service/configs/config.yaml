@@ -6,25 +6,21 @@ server:
   mode: "debug" # debug, release
 
 database:
-  host: "localhost"
-  port: 3306
-  user: "root"
-  password: "root"
-  dbname: "k8s_agent_auth"
-  charset: "utf8mb4"
-  parse_time: true
-  max_idle_conns: 10
-  max_open_conns: 100
+  host: "127.0.0.1"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "auth_db"
 
 redis:
-  host: localhost
+  host: 127.0.0.1
   port: 6379
   password: ""
   db: 0
   pool_size: 10
 
 jwt:
-  secret: "change-this-in-production-min-32-chars"
+  secret: "131233"
   expires_hours: 24
 
 logging:

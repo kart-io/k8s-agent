@@ -1,22 +1,24 @@
 version: '3.8'
 
 services:
-  # PostgreSQL 数据库
-  postgres:
-    image: postgres:14-alpine
-    container_name: k8s-agent-postgres
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: k8s-agent-mysql
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: mysql
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
       - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - k8s-agent-network
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmysql"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -62,15 +64,15 @@ services:
     ports:
       - "8090:8090"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=mysql
+      - DB_PASSWORD=mysql
       - DB_NAME=k8s_agent_auth
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -88,15 +90,15 @@ services:
       - "8081:8081"
       - "9091:9091"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=mysql
+      - DB_PASSWORD=mysql
       - DB_NAME=monitor_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -113,13 +115,13 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=mysql
+      - DB_PASSWORD=mysql
       - DB_NAME=cluster_db
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
     networks:
       - k8s-agent-network
@@ -166,7 +168,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  mysql_data:
   redis_data:
 
 networks:

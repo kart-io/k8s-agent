@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 	"github.com/kart-io/notifyhub/pkg/message"
 	"github.com/kart-io/notifyhub/pkg/notifyhub"
 	"github.com/kart-io/notifyhub/pkg/target"
-	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
 )
 
 // Service orchestrates notification delivery and tracking using NotifyHub

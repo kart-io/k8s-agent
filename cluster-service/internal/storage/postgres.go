@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,7 +15,7 @@ type Config struct {
 	User         string
 	Password     string
 	DBName       string
-	SSLMode      string
+	SSLMode      string // Kept for compatibility but not used in MySQL
 	MaxOpenConns int
 	MaxIdleConns int
 }
@@ -26,10 +26,11 @@ type PostgresStorage struct {
 }
 
 func NewPostgresStorage(cfg *Config, logger *logrus.Logger) (*PostgresStorage, error) {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+	// MySQL DSN format: user:password@tcp(host:port)/dbname?parseTime=true&charset=utf8mb4
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&charset=utf8mb4",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -81,11 +82,10 @@ func (s *PostgresStorage) InitSchema() error {
 		provider VARCHAR(100),
 		kubeconfig TEXT NOT NULL,
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-	);
-
-	CREATE INDEX IF NOT EXISTS idx_clusters_status ON clusters(status);
-	CREATE INDEX IF NOT EXISTS idx_clusters_provider ON clusters(provider);
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		INDEX idx_clusters_status (status),
+		INDEX idx_clusters_provider (provider)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 	`
 
 	_, err := s.db.Exec(schema)

@@ -90,11 +90,11 @@ curl http://localhost:8082/health  # Reasoning Service
 # 1. 创建命名空间
 kubectl apply -f deployments/k8s/namespace.yaml
 
-# 2. 部署依赖服务 (PostgreSQL, Redis, NATS, Neo4j)
+# 2. 部署依赖服务 (MySQL, Redis, NATS, Neo4j)
 kubectl apply -f deployments/k8s/dependencies.yaml
 
 # 3. 等待依赖服务就绪
-kubectl -n aetherius wait --for=condition=ready pod -l app=postgres --timeout=300s
+kubectl -n aetherius wait --for=condition=ready pod -l app=mysql --timeout=300s
 
 # 4. 部署应用服务
 kubectl apply -f deployments/k8s/agent-manager.yaml
@@ -135,7 +135,7 @@ make run
 
 中央控制平面，管理所有 Agent，处理事件，分发命令。
 
-- **技术栈**: Go 1.21+, PostgreSQL, Redis, NATS, Gin
+- **技术栈**: Go 1.21+, MySQL, Redis, NATS, Gin
 - **核心功能**:
   - Agent 生命周期管理 (注册/心跳/状态)
   - 事件聚合与路由 (过滤/去重/关联)
@@ -157,7 +157,7 @@ make run
 
 工作流编排，自动诊断和修复。
 
-- **技术栈**: Go 1.21+, PostgreSQL, Redis, NATS
+- **技术栈**: Go 1.21+, MySQL, Redis, NATS
 - **核心功能**:
   - 工作流引擎 (步骤执行/重试/分支)
   - 诊断策略 (模式匹配/工作流触发)
@@ -205,7 +205,7 @@ make run
 - **Python**: 3.11+
 - **Docker**: 20.10+
 - **Kubernetes**: 1.23+
-- **PostgreSQL**: 14+
+- **MySQL**: 8.0+
 - **Redis**: 6+
 - **NATS**: 2.10+
 - **Neo4j**: 5+ (可选)
@@ -216,7 +216,7 @@ make run
 
 ```bash
 cd deployments/docker-compose
-docker-compose up -d postgres redis nats neo4j
+docker-compose up -d mysql redis nats neo4j
 ```
 
 2. **运行各个服务**:

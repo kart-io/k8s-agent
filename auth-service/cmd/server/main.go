@@ -3,44 +3,50 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/k8s-agent/auth-service/internal/config"
 	"github.com/kart-io/k8s-agent/auth-service/internal/handler"
 	"github.com/kart-io/k8s-agent/auth-service/internal/middleware"
 	"github.com/kart-io/k8s-agent/auth-service/internal/routes"
+	"github.com/kart-io/k8s-agent/auth-service/internal/storage"
+	forcedlogout "github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout"
 	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/audit"
 	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/notification"
 	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/session"
-	"github.com/kart-io/notifyhub/pkg/config"
+	notifyhubconfig "github.com/kart-io/notifyhub/pkg/config"
 	"github.com/kart-io/notifyhub/pkg/notifyhub"
 	"github.com/kart-io/notifyhub/pkg/utils/logger"
-	forcedlogout "github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func main() {
-	// Load configuration (simplified - in production, use proper config management)
-	cfg := loadConfig()
+	// Load configuration from config.yaml
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
-	// Initialize database connection
-	db, err := initDatabase(cfg.DatabaseURL)
+	// Initialize database connection using internal/storage
+	dbConn, err := storage.NewPostgresDB(&cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
+	defer dbConn.Close()
+
+	db := dbConn.DB
 
 	// Initialize Redis client
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisAddr,
-		Password: cfg.RedisPassword,
-		DB:       0,
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+		PoolSize: cfg.Redis.PoolSize,
 	})
 
 	// Initialize repositories
-	sessionRepo := session.NewRedisRepository(redisClient, cfg.JWTExpiresHours)
+	sessionRepo := session.NewRedisRepository(redisClient, cfg.JWT.ExpiresHours)
 	auditRepo := audit.NewPostgresRepository(db)
 	notificationRepo := notification.NewPostgresRepository(db)
 
@@ -52,32 +58,32 @@ func main() {
 	notifyHubLogger := logger.New().LogMode(logger.Info)
 
 	var notifyHubClient notifyhub.Client
-	if cfg.EmailEnabled {
+	if cfg.Email.Enabled {
 		// Configure email platform using NotifyHub
-		emailConfig := config.EmailConfig{
-			Host:     cfg.SMTPHost,
-			Port:     cfg.SMTPPort,
-			Username: cfg.SMTPUser,
-			Password: cfg.SMTPPassword,
-			From:     cfg.EmailFromAddress,
+		emailConfig := notifyhubconfig.EmailConfig{
+			Host:     cfg.Email.SMTPHost,
+			Port:     cfg.Email.SMTPPort,
+			Username: cfg.Email.SMTPUser,
+			Password: cfg.Email.SMTPPassword,
+			From:     cfg.Email.FromAddress,
 			UseTLS:   true,
 			Timeout:  30 * time.Second,
 		}
 
 		notifyHubClient, err = notifyhub.NewClientFromOptions(
-			config.WithEmail(emailConfig),
-			config.WithLogger(notifyHubLogger),
-			config.WithTimeout(30*time.Second),
+			notifyhubconfig.WithEmail(emailConfig),
+			notifyhubconfig.WithLogger(notifyHubLogger),
+			notifyhubconfig.WithTimeout(30*time.Second),
 		)
 		if err != nil {
 			log.Fatalf("Failed to initialize NotifyHub client: %v", err)
 		}
-		log.Printf("✅ NotifyHub client initialized with email platform (%s:%d)\n", cfg.SMTPHost, cfg.SMTPPort)
+		log.Printf("✅ NotifyHub client initialized with email platform (%s:%d)\n", cfg.Email.SMTPHost, cfg.Email.SMTPPort)
 	} else {
 		// Create a test client with no-op configuration
 		notifyHubClient, err = notifyhub.NewClientFromOptions(
-			config.WithTestDefaults(),
-			config.WithLogger(notifyHubLogger),
+			notifyhubconfig.WithTestDefaults(),
+			notifyhubconfig.WithLogger(notifyHubLogger),
 		)
 		if err != nil {
 			log.Fatalf("Failed to initialize test NotifyHub client: %v", err)
@@ -86,7 +92,7 @@ func main() {
 	}
 
 	// Initialize notification template engine
-	templateEngine, err := notification.NewTemplateEngine(cfg.EmailTemplateDir)
+	templateEngine, err := notification.NewTemplateEngine(cfg.Email.TemplateDir)
 	if err != nil {
 		log.Fatalf("Failed to initialize template engine: %v", err)
 	}
@@ -94,27 +100,37 @@ func main() {
 	// Initialize notification service with NotifyHub
 	notificationService := notification.NewService(notificationRepo, notifyHubClient, templateEngine)
 
+	// Determine login URL (use environment variable or default)
+	loginURL := "http://localhost:8090/login"
+
 	// Initialize forced logout service
 	forcedLogoutService := forcedlogout.NewService(
 		sessionService,
 		auditService,
 		notificationService,
-		cfg.LoginURL,
+		loginURL,
 	)
 
 	// Initialize handlers
-	authHandler := handler.NewAuthHandler(db, cfg.JWTSecret, cfg.JWTExpiresHours, sessionService)
+	authHandler := handler.NewAuthHandler(db, cfg.JWT.Secret, cfg.JWT.ExpiresHours, sessionService)
 	sessionHandler := handler.NewSessionHandler(sessionService)
 	forcedLogoutHandler := handler.NewForcedLogoutHandler(forcedLogoutService)
 	auditHandler := handler.NewAuditHandler(auditService)
 
 	// Initialize middleware
-	jwtMiddleware := middleware.NewJWTMiddleware(cfg.JWTSecret, sessionService)
+	jwtMiddleware := middleware.NewJWTMiddleware(cfg.JWT.Secret, sessionService)
 	authMiddleware := middleware.NewForcedLogoutAuthMiddleware(db)
 	rateLimiter := middleware.NewRateLimiter(redisClient)
 
 	// Initialize Gin router
 	router := gin.Default()
+	router.SetTrustedProxies(nil) // Don't trust any proxies in development
+
+	// Or for production with specific proxies:
+  // router.SetTrustedProxies([]string{"127.0.0.1", "10.0.0.0/8"})
+
+	// Set Gin mode based on config
+	gin.SetMode(cfg.Server.Mode)
 
 	// Register health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -122,7 +138,7 @@ func main() {
 			"status":              "healthy",
 			"service":             "auth-service",
 			"version":             "1.0.0",
-			"email_notifications": cfg.EmailEnabled,
+			"email_notifications": cfg.Email.Enabled,
 		})
 	})
 
@@ -146,11 +162,12 @@ func main() {
 	forcedLogoutRoutes.RegisterRoutes(router)
 
 	// Print registered routes
+	serverAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	fmt.Println("\n=== Auth Service Started ===")
-	fmt.Println("Listening on:", cfg.ServerAddr)
+	fmt.Println("Listening on:", serverAddr)
 	fmt.Println("NotifyHub Integration: ✅ Enabled")
-	if cfg.EmailEnabled {
-		fmt.Printf("Email Platform: %s:%d (from: %s)\n", cfg.SMTPHost, cfg.SMTPPort, cfg.EmailFromAddress)
+	if cfg.Email.Enabled {
+		fmt.Printf("Email Platform: %s:%d (from: %s)\n", cfg.Email.SMTPHost, cfg.Email.SMTPPort, cfg.Email.FromAddress)
 	} else {
 		fmt.Println("Email Platform: Disabled (test mode)")
 	}
@@ -165,75 +182,7 @@ func main() {
 	fmt.Println("============================")
 
 	// Start server
-	if err := router.Run(cfg.ServerAddr); err != nil {
+	if err := router.Run(serverAddr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
-}
-
-// Config holds application configuration
-type Config struct {
-	ServerAddr       string
-	DatabaseURL      string
-	RedisAddr        string
-	RedisPassword    string
-	JWTSecret        string
-	JWTExpiresHours  int
-	EmailEnabled     bool
-	SMTPHost         string
-	SMTPPort         int
-	SMTPUser         string
-	SMTPPassword     string
-	EmailFromAddress string
-	EmailFromName    string
-	EmailTemplateDir string
-	LoginURL         string
-}
-
-// loadConfig loads configuration from environment variables
-func loadConfig() Config {
-	return Config{
-		ServerAddr:       getEnv("SERVER_ADDR", ":8090"),
-		DatabaseURL:      getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/k8s_agent_auth?sslmode=disable"),
-		RedisAddr:        getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPassword:    getEnv("REDIS_PASSWORD", ""),
-		JWTSecret:        getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
-		JWTExpiresHours:  24,
-		EmailEnabled:     getEnv("EMAIL_ENABLED", "false") == "true",
-		SMTPHost:         getEnv("SMTP_HOST", "smtp.example.com"),
-		SMTPPort:         587,
-		SMTPUser:         getEnv("SMTP_USER", ""),
-		SMTPPassword:     getEnv("SMTP_PASSWORD", ""),
-		EmailFromAddress: getEnv("EMAIL_FROM_ADDRESS", "noreply@k8s-agent.com"),
-		EmailFromName:    getEnv("EMAIL_FROM_NAME", "K8s Agent Security"),
-		EmailTemplateDir: getEnv("EMAIL_TEMPLATE_DIR", "templates/email"),
-		LoginURL:         getEnv("LOGIN_URL", "http://localhost:8090/login"),
-	}
-}
-
-// getEnv gets environment variable with default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-// initDatabase initializes database connection
-func initDatabase(databaseURL string) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
-	}
-
-	// Test connection
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, fmt.Errorf("get sql.DB: %w", err)
-	}
-
-	if err := sqlDB.Ping(); err != nil {
-		return nil, fmt.Errorf("ping database: %w", err)
-	}
-
-	return db, nil
 }

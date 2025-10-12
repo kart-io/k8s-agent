@@ -132,3 +132,5 @@ Thumbs.db
 data/
 models/
 *.dump
+
+auth-service/configs/config-dev.yaml

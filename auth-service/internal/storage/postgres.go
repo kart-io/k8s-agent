@@ -7,26 +7,28 @@ import (
 	"github.com/kart-io/k8s-agent/auth-service/internal/config"
 	"github.com/kart-io/k8s-agent/auth-service/internal/model"
 	"github.com/kart-io/k8s-agent/auth-service/pkg/logger"
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 // PostgresDB wraps GORM database connection
+// Note: Kept the name for backward compatibility, but now using MySQL
 type PostgresDB struct {
 	DB *gorm.DB
 }
 
-// NewPostgresDB creates a new PostgreSQL connection using GORM
+// NewPostgresDB creates a new MySQL connection using GORM
+// Note: Kept the name for backward compatibility, but now using MySQL
 func NewPostgresDB(cfg *config.DatabaseConfig) (*PostgresDB, error) {
-	// Build connection string (DSN)
+	// Build connection string (DSN) for MySQL
+	// Format: user:password@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
 	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Host,
-		cfg.Port,
+		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.User,
 		cfg.Password,
+		cfg.Host,
+		cfg.Port,
 		cfg.DBName,
-		cfg.SSLMode,
 	)
 
 	// Get kart-io/logger instance for GORM
@@ -34,7 +36,7 @@ func NewPostgresDB(cfg *config.DatabaseConfig) (*PostgresDB, error) {
 	gormLogger := logger.NewGormLogger(log)
 
 	// Open GORM connection with custom logger
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {

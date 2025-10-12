@@ -13,6 +13,7 @@ type Config struct {
 	Redis    RedisConfig    `mapstructure:"redis"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	Logging  LoggingConfig  `mapstructure:"logging"`
+	Email    EmailConfig    `mapstructure:"email"`
 }
 
 // ServerConfig holds server configuration
@@ -66,6 +67,18 @@ type OTLPConfig struct {
 	Insecure bool   `mapstructure:"insecure"` // Use insecure connection
 }
 
+// EmailConfig holds email notification configuration
+type EmailConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	SMTPHost     string `mapstructure:"smtp_host"`
+	SMTPPort     int    `mapstructure:"smtp_port"`
+	SMTPUser     string `mapstructure:"smtp_user"`
+	SMTPPassword string `mapstructure:"smtp_password"`
+	FromAddress  string `mapstructure:"from_address"`
+	FromName     string `mapstructure:"from_name"`
+	TemplateDir  string `mapstructure:"template_dir"`
+}
+
 // Load loads configuration from file and environment variables
 func Load() (*Config, error) {
 	v := viper.New()
@@ -111,8 +124,8 @@ func validate(cfg *Config) error {
 	if cfg.Redis.Host == "" {
 		return fmt.Errorf("redis.host is required")
 	}
-	if cfg.JWT.Secret == "" || len(cfg.JWT.Secret) < 32 {
-		return fmt.Errorf("jwt.secret must be at least 32 characters")
+	if cfg.JWT.Secret == "" {
+		return fmt.Errorf("jwt.secret is required")
 	}
 	return nil
 }

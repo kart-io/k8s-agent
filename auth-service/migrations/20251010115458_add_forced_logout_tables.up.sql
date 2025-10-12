@@ -1,12 +1,11 @@
 -- Migration: Add forced logout tables
 -- Version: 001
 -- Date: 2025-10-10
-
-BEGIN;
+-- Updated for MySQL
 
 -- Create forced_logout_events table
 CREATE TABLE IF NOT EXISTS forced_logout_events (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     event_id VARCHAR(36) UNIQUE NOT NULL,
     timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actor_type VARCHAR(20) NOT NULL,
@@ -16,27 +15,26 @@ CREATE TABLE IF NOT EXISTS forced_logout_events (
     target_user_id VARCHAR(36) NOT NULL,
     target_username VARCHAR(50) NOT NULL,
     session_jti VARCHAR(100),
-    session_count INTEGER NOT NULL,
-    session_metadata JSONB,
+    session_count INT NOT NULL,
+    session_metadata JSON,
     reason TEXT,
     logout_type VARCHAR(20) NOT NULL,
     triggered_by VARCHAR(50) NOT NULL,
     previous_hash VARCHAR(64),
     current_hash VARCHAR(64) NOT NULL,
     correlation_id VARCHAR(36),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_fle_event_id ON forced_logout_events(event_id);
-CREATE INDEX idx_fle_timestamp ON forced_logout_events(timestamp DESC);
-CREATE INDEX idx_fle_target_user ON forced_logout_events(target_user_id, timestamp DESC);
-CREATE INDEX idx_fle_actor ON forced_logout_events(actor_id, timestamp DESC);
-CREATE INDEX idx_fle_actor_type ON forced_logout_events(actor_type);
-CREATE INDEX idx_fle_logout_type ON forced_logout_events(logout_type);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_fle_event_id (event_id),
+    INDEX idx_fle_timestamp (timestamp DESC),
+    INDEX idx_fle_target_user (target_user_id, timestamp DESC),
+    INDEX idx_fle_actor (actor_id, timestamp DESC),
+    INDEX idx_fle_actor_type (actor_type),
+    INDEX idx_fle_logout_type (logout_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Immutable audit trail of forced logout actions';
 
 -- Create forced_logout_notifications table
 CREATE TABLE IF NOT EXISTS forced_logout_notifications (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     notification_id VARCHAR(36) UNIQUE NOT NULL,
     event_id VARCHAR(36) NOT NULL,
     user_id VARCHAR(36) NOT NULL,
@@ -45,34 +43,21 @@ CREATE TABLE IF NOT EXISTS forced_logout_notifications (
     template_name VARCHAR(100) NOT NULL,
     subject TEXT,
     body TEXT,
-    variables JSONB,
+    variables JSON,
     status VARCHAR(20) NOT NULL DEFAULT 'pending',
-    attempts INTEGER NOT NULL DEFAULT 0,
-    last_attempt_at TIMESTAMP,
-    sent_at TIMESTAMP,
-    failed_at TIMESTAMP,
+    attempts INT NOT NULL DEFAULT 0,
+    last_attempt_at TIMESTAMP NULL,
+    sent_at TIMESTAMP NULL,
+    failed_at TIMESTAMP NULL,
     error_message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_fln_event_id ON forced_logout_notifications(event_id);
-CREATE INDEX idx_fln_user_id ON forced_logout_notifications(user_id);
-CREATE INDEX idx_fln_status ON forced_logout_notifications(status);
-CREATE INDEX idx_fln_created_at ON forced_logout_notifications(created_at DESC);
-
--- Add foreign key constraint
-ALTER TABLE forced_logout_notifications
-    ADD CONSTRAINT fk_fln_event_id
-    FOREIGN KEY (event_id)
-    REFERENCES forced_logout_events(event_id)
-    ON DELETE CASCADE;
-
--- Add comments
-COMMENT ON TABLE forced_logout_events IS 'Immutable audit trail of forced logout actions';
-COMMENT ON TABLE forced_logout_notifications IS 'Tracks notification delivery for forced logout events';
-COMMENT ON COLUMN forced_logout_events.previous_hash IS 'SHA-256 hash of previous event for tamper detection';
-COMMENT ON COLUMN forced_logout_events.current_hash IS 'SHA-256(event_id || timestamp || actor_id || target_user_id || reason || previous_hash)';
-COMMENT ON COLUMN forced_logout_events.session_metadata IS 'JSON array of {jti, ip_address, device_name, login_at} for each terminated session';
-
-COMMIT;
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_fln_event_id (event_id),
+    INDEX idx_fln_user_id (user_id),
+    INDEX idx_fln_status (status),
+    INDEX idx_fln_created_at (created_at DESC),
+    CONSTRAINT fk_fln_event_id
+        FOREIGN KEY (event_id)
+        REFERENCES forced_logout_events(event_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tracks notification delivery for forced logout events';

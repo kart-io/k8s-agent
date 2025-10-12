@@ -6,11 +6,11 @@ Auto-generated from all feature plans. Last updated: 2025-10-10
 
 - Go 1.21 (001-auth-service-a)
 - Go 1.21+ (002-gorm-kart-io)
-- PostgreSQL 13+ (existing schema, no changes) (002-gorm-kart-io)
+- MySQL 8.0+ (migrated from PostgreSQL)
 - Gin v1.9.1 Web Framework (001-auth-service-a)
 - JWT Authentication (golang-jwt/jwt/v5) (001-auth-service-a)
 - Redis (go-redis/v9) for session storage (001-auth-service-a)
-- PostgreSQL for audit logging (001-auth-service-a)
+- MySQL for audit logging (001-auth-service-a)
 - Logrus for structured logging (001-auth-service-a)
 
 ## Project Structure
@@ -83,7 +83,7 @@ Go 1.21: Follow standard conventions
 **Data Models**:
 
 - Redis: `user:sessions:{user_id}`, `session:{jti}`, `revoked:{jti}`
-- PostgreSQL: `forced_logout_events`, `forced_logout_notifications`
+- MySQL: `forced_logout_events`, `forced_logout_notifications`
 
 **API Endpoints**:
 
