@@ -81,13 +81,23 @@ type EmailConfig struct {
 
 // Load loads configuration from file and environment variables
 func Load() (*Config, error) {
+	return LoadFromPath("")
+}
+
+// LoadFromPath loads configuration from a specific file path
+func LoadFromPath(configPath string) (*Config, error) {
 	v := viper.New()
 
-	// Set configuration file
-	v.SetConfigName("config")
-	v.SetConfigType("yaml")
-	v.AddConfigPath("./configs")
-	v.AddConfigPath(".")
+	if configPath != "" {
+		// Use specified config file path
+		v.SetConfigFile(configPath)
+	} else {
+		// Use default config file search
+		v.SetConfigName("config")
+		v.SetConfigType("yaml")
+		v.AddConfigPath("./configs")
+		v.AddConfigPath(".")
+	}
 
 	// Read configuration file
 	if err := v.ReadInConfig(); err != nil {
@@ -96,6 +106,10 @@ func Load() (*Config, error) {
 
 	// Allow environment variable overrides
 	v.AutomaticEnv()
+
+	// Bind specific environment variables with custom names
+	v.BindEnv("jwt.secret", "JWT_SECRET")
+	v.BindEnv("jwt.expires_hours", "JWT_EXPIRES_HOURS")
 
 	var config Config
 	if err := v.Unmarshal(&config); err != nil {

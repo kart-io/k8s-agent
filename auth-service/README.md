@@ -297,6 +297,8 @@ make run
 
 ## 配置说明
 
+### 配置文件
+
 编辑 `configs/config.yaml` 文件：
 
 ```yaml
@@ -319,6 +321,73 @@ redis:
 jwt:
   secret: "your-secret-key"  # JWT 密钥，生产环境必须修改
   expires_hours: 24          # Token 过期时间（小时）
+```
+
+### 环境变量配置
+
+JWT 配置支持通过环境变量覆盖配置文件中的值，这在容器化部署时特别有用：
+
+```bash
+# JWT 密钥（推荐在生产环境使用环境变量）
+export JWT_SECRET="your-super-secret-jwt-key-change-in-production"
+
+# Token 过期时间（小时）
+export JWT_EXPIRES_HOURS=24
+
+# 运行服务
+go run cmd/server/main.go -c configs/config.yaml
+```
+
+### Docker 部署时设置 JWT 密钥
+
+使用 docker run：
+```bash
+docker run -d \
+  -e JWT_SECRET="your-super-secret-jwt-key" \
+  -e JWT_EXPIRES_HOURS=24 \
+  -p 8090:8090 \
+  auth-service:latest
+```
+
+使用 docker-compose（已在 docker-compose.yml 中配置）：
+```yaml
+services:
+  auth-service:
+    environment:
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_HOURS=24
+```
+
+### Kubernetes 部署时设置 JWT 密钥
+
+使用 Secret：
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: auth-service-secret
+type: Opaque
+stringData:
+  jwt-secret: "your-super-secret-jwt-key"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+spec:
+  template:
+    spec:
+      containers:
+      - name: auth-service
+        image: auth-service:latest
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: auth-service-secret
+              key: jwt-secret
+        - name: JWT_EXPIRES_HOURS
+          value: "24"
 ```
 
 ## 前端集成

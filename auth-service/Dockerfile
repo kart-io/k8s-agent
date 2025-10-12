@@ -46,6 +46,11 @@ COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /build/auth-service /auth-service
 COPY --from=builder /build/configs /configs
 
+# Environment variables for JWT configuration
+# These can be overridden at runtime using -e or docker-compose
+ENV JWT_SECRET="" \
+    JWT_EXPIRES_HOURS=24
+
 # Expose port
 EXPOSE 8090
 
@@ -54,4 +59,4 @@ USER 65534:65534
 
 # Run the binary
 ENTRYPOINT ["/auth-service"]
-CMD ["--config=/configs/config.yaml"]
+CMD ["-c", "/configs/config.yaml"]
