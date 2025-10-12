@@ -3,14 +3,13 @@ Learning System for Continuous Improvement
 Learns from feedback and outcomes to improve analysis accuracy
 """
 
-from typing import Dict, List, Optional
-from datetime import datetime, timedelta
-from loguru import logger
 import json
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
-from pkg.types import (
-    Feedback, FeedbackType, AnalysisResult, RootCauseType
-)
+from loguru import logger
+
+from pkg.types import AnalysisResult, Feedback, FeedbackType, RootCauseType
 
 
 class LearningSystem:
@@ -31,7 +30,7 @@ class LearningSystem:
                 "total_diagnoses": 0,
                 "correct_diagnoses": 0,
                 "accuracy": 0.0,
-                "last_updated": datetime.now()
+                "last_updated": datetime.now(),
             }
 
     def process_feedback(self, feedback: Feedback) -> bool:
@@ -64,7 +63,9 @@ class LearningSystem:
         if self.knowledge_graph and feedback.actual_root_cause:
             self._update_knowledge_graph(feedback)
 
-        logger.debug(f"Feedback processed: rating={feedback.rating}, helpful={feedback.was_helpful}")
+        logger.debug(
+            f"Feedback processed: rating={feedback.rating}, helpful={feedback.was_helpful}"
+        )
         return True
 
     def _update_diagnosis_metrics(self, feedback: Feedback):
@@ -80,7 +81,7 @@ class LearningSystem:
                 "total_diagnoses": 0,
                 "correct_diagnoses": 0,
                 "accuracy": 0.0,
-                "last_updated": datetime.now()
+                "last_updated": datetime.now(),
             }
 
         metrics = self.accuracy_metrics[actual_cause]
@@ -94,7 +95,9 @@ class LearningSystem:
         metrics["accuracy"] = metrics["correct_diagnoses"] / metrics["total_diagnoses"]
         metrics["last_updated"] = datetime.now()
 
-        logger.info(f"Updated metrics for {actual_cause}: accuracy={metrics['accuracy']:.2%}")
+        logger.info(
+            f"Updated metrics for {actual_cause}: accuracy={metrics['accuracy']:.2%}"
+        )
 
     def _update_recommendation_metrics(self, feedback: Feedback):
         """Update recommendation usefulness metrics"""
@@ -117,7 +120,7 @@ class LearningSystem:
                 "actual_root_cause": feedback.actual_root_cause,
                 "actual_solution": feedback.actual_solution,
                 "comments": feedback.comments,
-                "timestamp": feedback.timestamp.isoformat()
+                "timestamp": feedback.timestamp.isoformat(),
             }
 
             # Add feedback to the case study
@@ -141,7 +144,7 @@ class LearningSystem:
 
         return {
             "overall": self._calculate_overall_accuracy(),
-            "by_root_cause": self.accuracy_metrics
+            "by_root_cause": self.accuracy_metrics,
         }
 
     def _calculate_overall_accuracy(self) -> float:
@@ -166,22 +169,26 @@ class LearningSystem:
         # Find root causes with low accuracy
         for root_cause, metrics in self.accuracy_metrics.items():
             if metrics["total_diagnoses"] >= 5 and metrics["accuracy"] < 0.7:
-                suggestions.append({
-                    "type": "low_accuracy",
-                    "root_cause": root_cause,
-                    "current_accuracy": metrics["accuracy"],
-                    "suggestion": f"Consider improving detection patterns for {root_cause}",
-                    "total_cases": metrics["total_diagnoses"]
-                })
+                suggestions.append(
+                    {
+                        "type": "low_accuracy",
+                        "root_cause": root_cause,
+                        "current_accuracy": metrics["accuracy"],
+                        "suggestion": f"Consider improving detection patterns for {root_cause}",
+                        "total_cases": metrics["total_diagnoses"],
+                    }
+                )
 
         # Find frequently misdiagnosed patterns
         misdiagnoses = self._find_common_misdiagnoses()
         for pattern in misdiagnoses:
-            suggestions.append({
-                "type": "common_misdiagnosis",
-                "pattern": pattern,
-                "suggestion": "Review and refine detection rules for this pattern"
-            })
+            suggestions.append(
+                {
+                    "type": "common_misdiagnosis",
+                    "pattern": pattern,
+                    "suggestion": "Review and refine detection rules for this pattern",
+                }
+            )
 
         logger.info(f"Generated {len(suggestions)} improvement suggestions")
         return suggestions
@@ -217,7 +224,7 @@ class LearningSystem:
             "accuracy_metrics": self.accuracy_metrics,
             "total_feedback": sum(len(f) for f in self.feedback_store.values()),
             "feedback_by_type": self._count_feedback_by_type(),
-            "export_time": datetime.now().isoformat()
+            "export_time": datetime.now().isoformat(),
         }
 
     def _count_feedback_by_type(self) -> Dict[str, int]:
@@ -260,7 +267,7 @@ class LearningSystem:
             Trend analysis
         """
         # Parse time window
-        days = int(time_window.rstrip('d'))
+        days = int(time_window.rstrip("d"))
         cutoff = datetime.now() - timedelta(days=days)
 
         # Filter recent feedback
@@ -282,7 +289,7 @@ class LearningSystem:
             "total_feedback": total_count,
             "helpful_rate": helpful_count / total_count,
             "average_rating": avg_rating,
-            "trend": "improving" if avg_rating >= 4 else "needs_attention"
+            "trend": "improving" if avg_rating >= 4 else "needs_attention",
         }
 
     def get_top_performing_patterns(self, limit: int = 5) -> List[Dict]:
@@ -299,18 +306,20 @@ class LearningSystem:
         sorted_metrics = sorted(
             self.accuracy_metrics.items(),
             key=lambda x: (x[1]["accuracy"], x[1]["total_diagnoses"]),
-            reverse=True
+            reverse=True,
         )
 
         top_patterns = []
         for root_cause, metrics in sorted_metrics[:limit]:
             if metrics["total_diagnoses"] >= 3:  # Minimum sample size
-                top_patterns.append({
-                    "root_cause": root_cause,
-                    "accuracy": metrics["accuracy"],
-                    "total_diagnoses": metrics["total_diagnoses"],
-                    "correct_diagnoses": metrics["correct_diagnoses"]
-                })
+                top_patterns.append(
+                    {
+                        "root_cause": root_cause,
+                        "accuracy": metrics["accuracy"],
+                        "total_diagnoses": metrics["total_diagnoses"],
+                        "correct_diagnoses": metrics["correct_diagnoses"],
+                    }
+                )
 
         return top_patterns
 
@@ -327,7 +336,7 @@ class LearningSystem:
                     "total_diagnoses": 0,
                     "correct_diagnoses": 0,
                     "accuracy": 0.0,
-                    "last_updated": datetime.now()
+                    "last_updated": datetime.now(),
                 }
                 logger.info(f"Metrics reset for {root_cause_type}")
         else:

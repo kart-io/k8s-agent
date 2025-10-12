@@ -17,15 +17,33 @@ database:
   max_open_conns: 100
 
 redis:
-  host: "localhost"
+  host: localhost
   port: 6379
   password: ""
-  db: 2
+  db: 0
+  pool_size: 10
 
 jwt:
-  secret: "your-secret-key-change-in-production"
+  secret: "change-this-in-production-min-32-chars"
   expires_hours: 24
 
 logging:
+  engine: "zap" # zap (default, high-performance), slog (standard library)
   level: "info" # debug, info, warn, error
   format: "json" # json, text
+  output: "stdout" # stdout, stderr, or file path
+  otlp:
+    enabled: false # Enable OTLP export for distributed tracing
+    endpoint: "http://localhost:4317" # OTLP collector endpoint
+    insecure: true # Use insecure connection (true for local dev)
+
+# Email notification configuration for forced logout
+email:
+  enabled: false # Set true when SMTP configured
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_user: "notifications@example.com"
+  smtp_password: ""
+  from_address: "noreply@k8s-agent.com"
+  from_name: "K8s Agent Security"
+  template_dir: "templates/email"

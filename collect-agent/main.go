@@ -11,14 +11,14 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/agent"
-	"github.com/kart/k8s-agent/collect-agent/internal/config"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/agent"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/config"
 )
 
 var (
-	configPath = flag.String("config", "/etc/aetherius/config.yaml", "path to configuration file")
-	showVersion    = flag.Bool("version", false, "print version information")
-	healthPort = flag.Int("health-port", 8080, "port for health checks")
+	configPath  = flag.String("config", "/etc/aetherius/config.yaml", "path to configuration file")
+	showVersion = flag.Bool("version", false, "print version information")
+	healthPort  = flag.Int("health-port", 8080, "port for health checks")
 
 	// Build-time variables (set via -ldflags)
 	version   = "v1.0.0"
@@ -27,7 +27,7 @@ var (
 )
 
 const (
-	AppName    = "aetherius-collect-agent"
+	AppName = "aetherius-collect-agent"
 )
 
 func main() {

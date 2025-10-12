@@ -61,10 +61,10 @@ type CommandResult struct {
 
 // Heartbeat represents agent health status
 type Heartbeat struct {
-	ClusterID string            `json:"cluster_id"`
-	Timestamp time.Time         `json:"timestamp"`
-	Status    string            `json:"status"`
-	Metrics   HeartbeatMetrics  `json:"metrics"`
+	ClusterID string           `json:"cluster_id"`
+	Timestamp time.Time        `json:"timestamp"`
+	Status    string           `json:"status"`
+	Metrics   HeartbeatMetrics `json:"metrics"`
 }
 
 // HeartbeatMetrics contains internal metrics for heartbeat

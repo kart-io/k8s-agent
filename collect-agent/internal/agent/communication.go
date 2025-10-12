@@ -11,26 +11,26 @@ import (
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // CommunicationManager handles all NATS communication for the agent
 type CommunicationManager struct {
-	config      *types.AgentConfig
-	clusterID   string
-	k8sVersion  string
-	apiServer   string
-	natsConn    *nats.Conn
-	logger      *zap.Logger
-	mu          sync.RWMutex
-	connected   bool
-	stopCh      chan struct{}
-	wg          sync.WaitGroup
+	config     *types.AgentConfig
+	clusterID  string
+	k8sVersion string
+	apiServer  string
+	natsConn   *nats.Conn
+	logger     *zap.Logger
+	mu         sync.RWMutex
+	connected  bool
+	stopCh     chan struct{}
+	wg         sync.WaitGroup
 
 	// Channels for different message types
-	eventChan   <-chan *types.Event
-	metricsChan <-chan *types.Metrics
-	resultChan  <-chan *types.CommandResult
+	eventChan      <-chan *types.Event
+	metricsChan    <-chan *types.Metrics
+	resultChan     <-chan *types.CommandResult
 	commandHandler func(*types.Command)
 }
 
@@ -164,21 +164,21 @@ func (cm *CommunicationManager) register() error {
 
 	// Create agent registration matching agent-manager's Agent type
 	agentInfo := map[string]interface{}{
-		"id":          cm.clusterID,  // Using clusterID as agent ID
-		"cluster_id":  cm.clusterID,
-		"cluster_name": cm.config.ClusterName,
-		"version":     "v1.0.0", // Agent version
-		"status":      "online",
-		"registered_at": now,
+		"id":             cm.clusterID, // Using clusterID as agent ID
+		"cluster_id":     cm.clusterID,
+		"cluster_name":   cm.config.ClusterName,
+		"version":        "v1.0.0", // Agent version
+		"status":         "online",
+		"registered_at":  now,
 		"last_heartbeat": now,
-		"capabilities": []string{"event_watch", "metrics_collect", "command_execute"},
+		"capabilities":   []string{"event_watch", "metrics_collect", "command_execute"},
 		"connection_info": map[string]interface{}{
-			"endpoint":         cm.config.CentralEndpoint,
-			"connected_at":     now,
-			"last_seen":        now,
-			"reconnect_count":  0,
-			"service_address":  serviceAddress,
-			"local_ip":         localIP,
+			"endpoint":        cm.config.CentralEndpoint,
+			"connected_at":    now,
+			"last_seen":       now,
+			"reconnect_count": 0,
+			"service_address": serviceAddress,
+			"local_ip":        localIP,
 		},
 		// Cluster information for agent-manager to update cluster record
 		"k8s_version": cm.k8sVersion,
@@ -394,7 +394,7 @@ func (cm *CommunicationManager) publishResult(subject string, result *types.Comm
 func (cm *CommunicationManager) sendHeartbeat(subject string) {
 	// Create heartbeat matching agent-manager's expected format
 	heartbeat := map[string]interface{}{
-		"agent_id":   cm.clusterID,  // Using clusterID as agent ID
+		"agent_id":   cm.clusterID, // Using clusterID as agent ID
 		"cluster_id": cm.clusterID,
 		"timestamp":  time.Now(),
 		"status":     "healthy",

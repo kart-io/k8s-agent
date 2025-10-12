@@ -11,19 +11,19 @@ import (
 	"k8s.io/client-go/kubernetes"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // MetricsCollector collects cluster metrics and sends them to the metrics channel
 type MetricsCollector struct {
-	clientset       kubernetes.Interface
+	clientset        kubernetes.Interface
 	metricsClientset *metricsv1beta1.Clientset
-	clusterID       string
-	metricsChan     chan<- *types.Metrics
-	stopCh          chan struct{}
-	running         bool
-	mu              sync.RWMutex
-	logger          *zap.Logger
+	clusterID        string
+	metricsChan      chan<- *types.Metrics
+	stopCh           chan struct{}
+	running          bool
+	mu               sync.RWMutex
+	logger           *zap.Logger
 }
 
 // NewMetricsCollector creates a new metrics collector
@@ -34,12 +34,12 @@ func NewMetricsCollector(clientset kubernetes.Interface, clusterID string, metri
 	// For now, we'll collect basic metrics without the metrics server
 
 	return &MetricsCollector{
-		clientset:       clientset,
+		clientset:        clientset,
 		metricsClientset: metricsClientset,
-		clusterID:       clusterID,
-		metricsChan:     metricsChan,
-		stopCh:          make(chan struct{}),
-		logger:          logger.With(zap.String("component", "metrics-collector")),
+		clusterID:        clusterID,
+		metricsChan:      metricsChan,
+		stopCh:           make(chan struct{}),
+		logger:           logger.With(zap.String("component", "metrics-collector")),
 	}
 }
 
@@ -130,9 +130,9 @@ func (mc *MetricsCollector) collectClusterMetrics(metrics *types.Metrics) {
 		mc.logger.Warn("Failed to get server version", zap.Error(err))
 	} else {
 		metrics.Data["cluster"] = map[string]interface{}{
-			"version":    version.String(),
+			"version":     version.String(),
 			"git_version": version.GitVersion,
-			"platform":  version.Platform,
+			"platform":    version.Platform,
 		}
 	}
 
@@ -205,9 +205,9 @@ func (mc *MetricsCollector) analyzeNodes(nodes []corev1.Node) map[string]interfa
 	schedulable := 0
 
 	capacityStats := map[string]int64{
-		"cpu_cores":       0,
-		"memory_bytes":    0,
-		"pods":           0,
+		"cpu_cores":         0,
+		"memory_bytes":      0,
+		"pods":              0,
 		"ephemeral_storage": 0,
 	}
 
@@ -259,10 +259,10 @@ func (mc *MetricsCollector) analyzeNodes(nodes []corev1.Node) map[string]interfa
 // getNodeMetrics gets detailed metrics for a specific node
 func (mc *MetricsCollector) getNodeMetrics(node *corev1.Node) map[string]interface{} {
 	nodeMetrics := map[string]interface{}{
-		"name":      node.Name,
-		"ready":     false,
+		"name":        node.Name,
+		"ready":       false,
 		"schedulable": !node.Spec.Unschedulable,
-		"labels":    node.Labels,
+		"labels":      node.Labels,
 		"annotations": node.Annotations,
 	}
 
@@ -332,10 +332,10 @@ func (mc *MetricsCollector) analyzePods(pods []corev1.Pod) map[string]interface{
 	}
 
 	return map[string]interface{}{
-		"total":           total,
-		"by_phase":        phaseCount,
-		"by_namespace":    namespaceCount,
-		"total_restarts":  restartCount,
+		"total":          total,
+		"by_phase":       phaseCount,
+		"by_namespace":   namespaceCount,
+		"total_restarts": restartCount,
 	}
 }
 
@@ -378,10 +378,10 @@ func (mc *MetricsCollector) getNamespaceMetrics(namespace *corev1.Namespace) map
 		"labels":      namespace.Labels,
 		"annotations": namespace.Annotations,
 		"resources": map[string]int{
-			"pods":        podCount,
-			"services":    serviceCount,
-			"configmaps":  configMapCount,
-			"secrets":     secretCount,
+			"pods":       podCount,
+			"services":   serviceCount,
+			"configmaps": configMapCount,
+			"secrets":    secretCount,
 		},
 	}
 }

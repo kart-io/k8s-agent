@@ -2,13 +2,12 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/kart/k8s-agent/cluster-service/internal/k8s"
-	"github.com/kart/k8s-agent/cluster-service/internal/storage"
-	"github.com/kart/k8s-agent/cluster-service/pkg/types"
+	"github.com/kart-io/k8s-agent/cluster-service/internal/k8s"
+	"github.com/kart-io/k8s-agent/cluster-service/internal/storage"
+	"github.com/kart-io/k8s-agent/cluster-service/pkg/types"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

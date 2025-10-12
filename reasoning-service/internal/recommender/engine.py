@@ -3,12 +3,12 @@ Recommendation Engine
 Provides intelligent remediation recommendations based on root cause
 """
 
-from typing import List, Dict
+from typing import Dict, List
+
 from loguru import logger
 
-from pkg.types import (
-    RootCause, RootCauseType, Recommendation, RiskLevel, AnalysisContext
-)
+from pkg.types import (AnalysisContext, Recommendation, RiskLevel, RootCause,
+                       RootCauseType)
 
 
 class RecommendationEngine:
@@ -18,7 +18,9 @@ class RecommendationEngine:
         """Initialize recommendation engine"""
         self.recommendation_rules = self._load_recommendation_rules()
 
-    def recommend(self, root_cause: RootCause, context: AnalysisContext) -> List[Recommendation]:
+    def recommend(
+        self, root_cause: RootCause, context: AnalysisContext
+    ) -> List[Recommendation]:
         """
         Generate recommendations based on root cause
 
@@ -42,13 +44,14 @@ class RecommendationEngine:
                 recommendation = Recommendation(
                     action=rule["action"],
                     description=rule["description"],
-                    confidence=rule["confidence"] * root_cause.confidence,  # Adjust by root cause confidence
+                    confidence=rule["confidence"]
+                    * root_cause.confidence,  # Adjust by root cause confidence
                     risk=RiskLevel(rule["risk"]),
                     impact=rule["impact"],
                     steps=rule["steps"],
                     rollback_steps=rule.get("rollback_steps"),
                     estimated_duration=rule.get("estimated_duration"),
-                    metadata=rule.get("metadata", {})
+                    metadata=rule.get("metadata", {}),
                 )
                 recommendations.append(recommendation)
 
@@ -57,12 +60,11 @@ class RecommendationEngine:
             RiskLevel.LOW: 1.0,
             RiskLevel.MEDIUM: 0.9,
             RiskLevel.HIGH: 0.7,
-            RiskLevel.CRITICAL: 0.5
+            RiskLevel.CRITICAL: 0.5,
         }
 
         recommendations.sort(
-            key=lambda r: r.confidence * risk_weights[r.risk],
-            reverse=True
+            key=lambda r: r.confidence * risk_weights[r.risk], reverse=True
         )
 
         logger.info(f"Generated {len(recommendations)} recommendations")
@@ -101,17 +103,14 @@ class RecommendationEngine:
                         "Calculate recommended memory limit (current + 50%)",
                         "Update Deployment/StatefulSet memory limits",
                         "kubectl apply -f updated-manifest.yaml",
-                        "Monitor for OOM recurrence"
+                        "Monitor for OOM recurrence",
                     ],
                     "rollback_steps": [
                         "Revert to previous memory limits",
-                        "kubectl rollout undo deployment/<name>"
+                        "kubectl rollout undo deployment/<name>",
                     ],
                     "estimated_duration": "5 minutes",
-                    "metadata": {
-                        "suggested_increase": "50%",
-                        "monitor_period": "24h"
-                    }
+                    "metadata": {"suggested_increase": "50%", "monitor_period": "24h"},
                 },
                 {
                     "action": "add_memory_request",
@@ -123,9 +122,9 @@ class RecommendationEngine:
                         "Calculate 80th percentile memory usage",
                         "Set memory request to P80 value",
                         "Update pod spec with requests",
-                        "Apply changes and monitor"
+                        "Apply changes and monitor",
                     ],
-                    "estimated_duration": "5 minutes"
+                    "estimated_duration": "5 minutes",
                 },
                 {
                     "action": "optimize_application",
@@ -138,12 +137,11 @@ class RecommendationEngine:
                         "Identify memory leaks or inefficiencies",
                         "Optimize code or dependencies",
                         "Test changes in staging",
-                        "Deploy to production"
+                        "Deploy to production",
                     ],
-                    "estimated_duration": "Several hours to days"
-                }
+                    "estimated_duration": "Several hours to days",
+                },
             ],
-
             RootCauseType.CPU_THROTTLING: [
                 {
                     "action": "increase_cpu_limit",
@@ -156,9 +154,9 @@ class RecommendationEngine:
                         "Increase CPU limit by 50-100%",
                         "Update deployment manifest",
                         "Apply changes",
-                        "Monitor throttling metrics"
+                        "Monitor throttling metrics",
                     ],
-                    "estimated_duration": "5 minutes"
+                    "estimated_duration": "5 minutes",
                 },
                 {
                     "action": "optimize_workload",
@@ -170,12 +168,11 @@ class RecommendationEngine:
                         "Profile CPU usage",
                         "Identify hotspots",
                         "Optimize algorithms or add caching",
-                        "Test performance improvements"
+                        "Test performance improvements",
                     ],
-                    "estimated_duration": "Hours to days"
-                }
+                    "estimated_duration": "Hours to days",
+                },
             ],
-
             RootCauseType.IMAGE_PULL_ERROR: [
                 {
                     "action": "fix_image_reference",
@@ -187,9 +184,9 @@ class RecommendationEngine:
                         "Verify image exists in registry",
                         "Check image name and tag spelling",
                         "Update deployment with correct image",
-                        "kubectl apply -f deployment.yaml"
+                        "kubectl apply -f deployment.yaml",
                     ],
-                    "estimated_duration": "2 minutes"
+                    "estimated_duration": "2 minutes",
                 },
                 {
                     "action": "configure_image_pull_secret",
@@ -201,12 +198,11 @@ class RecommendationEngine:
                         "Create docker-registry secret",
                         "kubectl create secret docker-registry regcred --docker-server=<registry> ...",
                         "Add imagePullSecrets to pod spec",
-                        "Apply updated manifest"
+                        "Apply updated manifest",
                     ],
-                    "estimated_duration": "5 minutes"
-                }
+                    "estimated_duration": "5 minutes",
+                },
             ],
-
             RootCauseType.CONFIG_ERROR: [
                 {
                     "action": "fix_configuration",
@@ -218,9 +214,9 @@ class RecommendationEngine:
                         "Review application logs for config errors",
                         "Identify missing or incorrect configuration",
                         "Update ConfigMap or Secret",
-                        "Restart pods to pick up new config"
+                        "Restart pods to pick up new config",
                     ],
-                    "estimated_duration": "10 minutes"
+                    "estimated_duration": "10 minutes",
                 },
                 {
                     "action": "add_missing_env_vars",
@@ -232,12 +228,11 @@ class RecommendationEngine:
                         "Identify missing environment variables from logs",
                         "Add env vars to deployment spec",
                         "kubectl apply updated deployment",
-                        "Verify pods start successfully"
+                        "Verify pods start successfully",
                     ],
-                    "estimated_duration": "5 minutes"
-                }
+                    "estimated_duration": "5 minutes",
+                },
             ],
-
             RootCauseType.NETWORK_ERROR: [
                 {
                     "action": "check_service_connectivity",
@@ -249,9 +244,9 @@ class RecommendationEngine:
                         "Check if target service is running",
                         "Verify Service and Endpoints exist",
                         "Test connectivity from pod: kubectl exec <pod> -- curl <service>",
-                        "Check NetworkPolicy rules"
+                        "Check NetworkPolicy rules",
                     ],
-                    "estimated_duration": "10 minutes"
+                    "estimated_duration": "10 minutes",
                 },
                 {
                     "action": "fix_service_dns",
@@ -263,12 +258,11 @@ class RecommendationEngine:
                         "Check CoreDNS pods are running",
                         "Verify Service name is correct",
                         "Test DNS resolution: kubectl exec <pod> -- nslookup <service>",
-                        "Check kube-dns Service"
+                        "Check kube-dns Service",
                     ],
-                    "estimated_duration": "15 minutes"
-                }
+                    "estimated_duration": "15 minutes",
+                },
             ],
-
             RootCauseType.VOLUME_ERROR: [
                 {
                     "action": "fix_pvc_binding",
@@ -281,12 +275,11 @@ class RecommendationEngine:
                         "Verify StorageClass exists",
                         "Check available PersistentVolumes",
                         "Verify node has volume plugin",
-                        "Check PVC access modes match PV"
+                        "Check PVC access modes match PV",
                     ],
-                    "estimated_duration": "15 minutes"
+                    "estimated_duration": "15 minutes",
                 }
             ],
-
             RootCauseType.DISK_PRESSURE: [
                 {
                     "action": "cleanup_disk_space",
@@ -298,9 +291,9 @@ class RecommendationEngine:
                         "Identify large files or logs",
                         "Remove unused container images: docker system prune",
                         "Clean up old logs",
-                        "Verify disk usage: df -h"
+                        "Verify disk usage: df -h",
                     ],
-                    "estimated_duration": "10 minutes"
+                    "estimated_duration": "10 minutes",
                 },
                 {
                     "action": "increase_volume_size",
@@ -312,12 +305,11 @@ class RecommendationEngine:
                         "Check if StorageClass supports expansion",
                         "Edit PVC to increase size",
                         "Wait for volume expansion",
-                        "Verify new size: kubectl get pvc"
+                        "Verify new size: kubectl get pvc",
                     ],
-                    "estimated_duration": "15 minutes"
-                }
+                    "estimated_duration": "15 minutes",
+                },
             ],
-
             RootCauseType.RESOURCE_LIMIT: [
                 {
                     "action": "adjust_resource_quotas",
@@ -329,9 +321,9 @@ class RecommendationEngine:
                         "Check current quota: kubectl get resourcequota",
                         "Calculate required resources",
                         "Update ResourceQuota",
-                        "kubectl apply updated quota"
+                        "kubectl apply updated quota",
                     ],
-                    "estimated_duration": "5 minutes"
+                    "estimated_duration": "5 minutes",
                 },
                 {
                     "action": "add_node_capacity",
@@ -343,9 +335,9 @@ class RecommendationEngine:
                         "Evaluate current cluster capacity",
                         "Add new nodes or scale node group",
                         "Wait for nodes to become ready",
-                        "Verify pod scheduling"
+                        "Verify pod scheduling",
                     ],
-                    "estimated_duration": "10-30 minutes"
-                }
-            ]
+                    "estimated_duration": "10-30 minutes",
+                },
+            ],
         }

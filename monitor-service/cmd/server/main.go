@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kart/k8s-agent/monitor-service/internal/api"
-	"github.com/kart/k8s-agent/monitor-service/internal/handler"
-	"github.com/kart/k8s-agent/monitor-service/internal/service"
-	"github.com/kart/k8s-agent/monitor-service/internal/storage"
+	"github.com/kart-io/k8s-agent/monitor-service/internal/api"
+	"github.com/kart-io/k8s-agent/monitor-service/internal/handler"
+	"github.com/kart-io/k8s-agent/monitor-service/internal/service"
+	"github.com/kart-io/k8s-agent/monitor-service/internal/storage"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )

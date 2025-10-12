@@ -39,7 +39,7 @@ func TestNewProcessor(t *testing.T) {
 	assert.NotNil(t, processor)
 	assert.NotNil(t, processor.aggregator)
 	assert.NotNil(t, processor.publisher)
-	assert.Len(t, processor.filters, 2) // Default filters
+	assert.Len(t, processor.filters, 2)   // Default filters
 	assert.Len(t, processor.enrichers, 1) // Default enrichers
 }
 

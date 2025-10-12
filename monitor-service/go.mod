@@ -1,4 +1,4 @@
-module github.com/kart/k8s-agent/monitor-service
+module github.com/kart-io/k8s-agent/monitor-service
 
 go 1.21
 

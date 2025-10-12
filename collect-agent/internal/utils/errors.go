@@ -9,20 +9,20 @@ import (
 // Common error types for the agent
 var (
 	// Connection errors
-	ErrNATSConnectionFailed  = errors.New("failed to connect to NATS")
-	ErrNATSDisconnected      = errors.New("NATS connection lost")
-	ErrSubscriptionFailed    = errors.New("failed to subscribe to subject")
-	ErrPublishFailed         = errors.New("failed to publish message")
+	ErrNATSConnectionFailed = errors.New("failed to connect to NATS")
+	ErrNATSDisconnected     = errors.New("NATS connection lost")
+	ErrSubscriptionFailed   = errors.New("failed to subscribe to subject")
+	ErrPublishFailed        = errors.New("failed to publish message")
 
 	// Configuration errors
-	ErrInvalidConfig         = errors.New("invalid configuration")
-	ErrMissingClusterID      = errors.New("cluster ID is required")
-	ErrMissingEndpoint       = errors.New("central endpoint is required")
-	ErrInvalidInterval       = errors.New("invalid interval value")
+	ErrInvalidConfig    = errors.New("invalid configuration")
+	ErrMissingClusterID = errors.New("cluster ID is required")
+	ErrMissingEndpoint  = errors.New("central endpoint is required")
+	ErrInvalidInterval  = errors.New("invalid interval value")
 
 	// K8s API errors
-	ErrK8sAPIFailed          = errors.New("kubernetes API call failed")
-	ErrResourceNotFound      = errors.New("kubernetes resource not found")
+	ErrK8sAPIFailed           = errors.New("kubernetes API call failed")
+	ErrResourceNotFound       = errors.New("kubernetes resource not found")
 	ErrInsufficientPermission = errors.New("insufficient RBAC permissions")
 
 	// Command execution errors
@@ -32,17 +32,17 @@ var (
 	ErrUnsafeCommand           = errors.New("unsafe command detected")
 
 	// Internal errors
-	ErrChannelClosed         = errors.New("channel closed")
-	ErrQueueFull             = errors.New("queue is full")
-	ErrShutdown              = errors.New("agent is shutting down")
+	ErrChannelClosed = errors.New("channel closed")
+	ErrQueueFull     = errors.New("queue is full")
+	ErrShutdown      = errors.New("agent is shutting down")
 )
 
 // AgentError wraps errors with additional context
 type AgentError struct {
-	Op        string    // Operation that failed
-	Err       error     // Original error
-	Timestamp time.Time // When the error occurred
-	Retryable bool      // Whether this error is retryable
+	Op        string                 // Operation that failed
+	Err       error                  // Original error
+	Timestamp time.Time              // When the error occurred
+	Retryable bool                   // Whether this error is retryable
 	Context   map[string]interface{} // Additional context
 }
 
@@ -142,10 +142,10 @@ func CategorizeError(err error) ErrorType {
 
 // RetryConfig holds retry configuration
 type RetryConfig struct {
-	MaxRetries     int
-	InitialDelay   time.Duration
-	MaxDelay       time.Duration
-	BackoffFactor  float64
+	MaxRetries    int
+	InitialDelay  time.Duration
+	MaxDelay      time.Duration
+	BackoffFactor float64
 }
 
 // DefaultRetryConfig returns the default retry configuration
@@ -191,10 +191,10 @@ func RetryWithBackoff(config RetryConfig, fn func() error) error {
 
 // ErrorStats tracks error statistics
 type ErrorStats struct {
-	TotalErrors    int64
-	LastError      error
-	LastErrorTime  time.Time
-	ErrorsByType   map[ErrorType]int64
+	TotalErrors   int64
+	LastError     error
+	LastErrorTime time.Time
+	ErrorsByType  map[ErrorType]int64
 }
 
 // NewErrorStats creates a new error statistics tracker

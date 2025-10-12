@@ -1,0 +1,21 @@
+# 环境变量
+.env
+
+# 日志文件
+*.log
+
+# 备份文件
+backups/
+
+# 临时文件
+*.tmp
+*.swp
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

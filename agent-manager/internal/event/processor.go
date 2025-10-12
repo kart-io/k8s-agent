@@ -142,13 +142,13 @@ func (p *Processor) ProcessEvent(ctx context.Context, event *types.Event) error 
 // isCriticalEvent checks if event requires immediate attention
 func (p *Processor) isCriticalEvent(event *types.Event) bool {
 	criticalReasons := map[string]bool{
-		"CrashLoopBackOff":      true,
-		"OOMKilling":            true,
-		"FailedScheduling":      true,
-		"NodeNotReady":          true,
-		"VolumeBindingFailed":   true,
-		"ImagePullBackOff":      true,
-		"DeadlineExceeded":      true,
+		"CrashLoopBackOff":    true,
+		"OOMKilling":          true,
+		"FailedScheduling":    true,
+		"NodeNotReady":        true,
+		"VolumeBindingFailed": true,
+		"ImagePullBackOff":    true,
+		"DeadlineExceeded":    true,
 	}
 
 	return event.Severity == "critical" || criticalReasons[event.Reason]
@@ -260,11 +260,11 @@ type Aggregator struct {
 
 // EventGroup represents a group of related events
 type EventGroup struct {
-	Key        string
-	Events     []*types.Event
-	FirstSeen  time.Time
-	LastSeen   time.Time
-	Count      int
+	Key       string
+	Events    []*types.Event
+	FirstSeen time.Time
+	LastSeen  time.Time
+	Count     int
 }
 
 func NewAggregator(logger *zap.Logger) *Aggregator {

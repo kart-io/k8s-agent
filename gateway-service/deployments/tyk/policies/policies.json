@@ -1,0 +1,120 @@
+{
+  "default": {
+    "id": "default",
+    "name": "Default Policy",
+    "org_id": "default",
+    "rate": 1000,
+    "per": 60,
+    "quota_max": 10000,
+    "quota_renewal_rate": 3600,
+    "access_rights": {
+      "auth-service": {
+        "api_id": "auth-service",
+        "api_name": "Auth Service API",
+        "versions": ["Default"],
+        "allowed_urls": [],
+        "limit": {
+          "rate": 1000,
+          "per": 60,
+          "throttle_interval": -1,
+          "throttle_retry_limit": -1,
+          "max_query_depth": -1,
+          "quota_max": -1,
+          "quota_renews": 1609459200,
+          "quota_remaining": -1,
+          "quota_renewal_rate": 3600,
+          "set_by_policy": false
+        }
+      },
+      "agent-manager": {
+        "api_id": "agent-manager",
+        "api_name": "Agent Manager API",
+        "versions": ["Default"],
+        "allowed_urls": [],
+        "limit": {
+          "rate": 1000,
+          "per": 60,
+          "throttle_interval": -1,
+          "throttle_retry_limit": -1,
+          "max_query_depth": -1,
+          "quota_max": -1,
+          "quota_renews": 1609459200,
+          "quota_remaining": -1,
+          "quota_renewal_rate": 3600,
+          "set_by_policy": false
+        }
+      }
+    },
+    "active": true,
+    "is_inactive": false,
+    "tags": ["starter", "free tier"],
+    "key_expires_in": 0,
+    "partitions": {
+      "quota": false,
+      "rate_limit": false,
+      "acl": false
+    },
+    "last_updated": "1609459200",
+    "meta_data": {},
+    "state": "active"
+  },
+  "admin": {
+    "id": "admin",
+    "name": "Admin Policy",
+    "org_id": "default",
+    "rate": 5000,
+    "per": 60,
+    "quota_max": 50000,
+    "quota_renewal_rate": 3600,
+    "access_rights": {
+      "auth-service": {
+        "api_id": "auth-service",
+        "api_name": "Auth Service API",
+        "versions": ["Default"],
+        "allowed_urls": [],
+        "limit": {
+          "rate": 5000,
+          "per": 60,
+          "throttle_interval": -1,
+          "throttle_retry_limit": -1,
+          "max_query_depth": -1,
+          "quota_max": -1,
+          "quota_renews": 1609459200,
+          "quota_remaining": -1,
+          "quota_renewal_rate": 3600,
+          "set_by_policy": false
+        }
+      },
+      "agent-manager": {
+        "api_id": "agent-manager",
+        "api_name": "Agent Manager API",
+        "versions": ["Default"],
+        "allowed_urls": [],
+        "limit": {
+          "rate": 5000,
+          "per": 60,
+          "throttle_interval": -1,
+          "throttle_retry_limit": -1,
+          "max_query_depth": -1,
+          "quota_max": -1,
+          "quota_renews": 1609459200,
+          "quota_remaining": -1,
+          "quota_renewal_rate": 3600,
+          "set_by_policy": false
+        }
+      }
+    },
+    "active": true,
+    "is_inactive": false,
+    "tags": ["admin", "premium"],
+    "key_expires_in": 0,
+    "partitions": {
+      "quota": false,
+      "rate_limit": false,
+      "acl": false
+    },
+    "last_updated": "1609459200",
+    "meta_data": {},
+    "state": "active"
+  }
+}

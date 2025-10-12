@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+  # Redis - Tyk Gateway 依赖
+  redis:
+    image: redis:7-alpine
+    container_name: tyk-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - tyk-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Tyk Gateway
+  tyk-gateway:
+    image: tykio/tyk-gateway:v5.2
+    container_name: tyk-gateway
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tyk.conf:/opt/tyk-gateway/tyk.conf
+      - ./apps:/opt/tyk-gateway/apps
+      - ./policies:/opt/tyk-gateway/policies
+      - ./middleware:/opt/tyk-gateway/middleware
+    environment:
+      - TYK_GW_SECRET=352d20ee67be67f6340b4c0605b044b7
+      - TYK_GW_STORAGE_HOST=redis
+      - TYK_GW_STORAGE_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - tyk-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/hello"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Tyk Dashboard (可选 - 提供 UI 管理界面)
+  tyk-dashboard:
+    image: tykio/tyk-dashboard:v5.2
+    container_name: tyk-dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - TYK_DB_LISTENPORT=3000
+      - TYK_DB_TYKAPI_HOST=http://tyk-gateway
+      - TYK_DB_TYKAPI_PORT=8080
+      - TYK_DB_TYKAPI_SECRET=352d20ee67be67f6340b4c0605b044b7
+      - TYK_DB_REDISHOST=redis
+      - TYK_DB_REDISPORT=6379
+      - TYK_DB_STORAGE_MAIN_TYPE=postgres
+      - TYK_DB_STORAGE_MAIN_CONNECTIONSTRING=host=postgres port=5432 user=tyk password=tykpass dbname=tyk_analytics sslmode=disable
+    depends_on:
+      - redis
+      - tyk-gateway
+      - postgres
+    networks:
+      - tyk-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/hello"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL - Tyk Dashboard 数据存储
+  postgres:
+    image: postgres:15-alpine
+    container_name: tyk-postgres
+    environment:
+      - POSTGRES_USER=tyk
+      - POSTGRES_PASSWORD=tykpass
+      - POSTGRES_DB=tyk_analytics
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - tyk-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tyk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Tyk Pump - 分析数据处理器
+  tyk-pump:
+    image: tykio/tyk-pump-docker-pub:v1.9
+    container_name: tyk-pump
+    volumes:
+      - ./pump.conf:/opt/tyk-pump/pump.conf
+    environment:
+      - TYK_PMP_PUMPS_POSTGRES_TYPE=postgres
+      - TYK_PMP_PUMPS_POSTGRES_CONNECTIONSTRING=host=postgres port=5432 user=tyk password=tykpass dbname=tyk_analytics sslmode=disable
+      - TYK_PMP_ANALYTICSSTORAGECONFIG_HOST=redis
+      - TYK_PMP_ANALYTICSSTORAGECONFIG_PORT=6379
+    depends_on:
+      - redis
+      - postgres
+      - tyk-gateway
+    networks:
+      - tyk-network
+
+  # 后端服务示例 - Auth Service
+  auth-service:
+    image: auth-service:latest
+    container_name: auth-service
+    ports:
+      - "8090:8090"
+    networks:
+      - tyk-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 后端服务示例 - Agent Manager
+  agent-manager:
+    image: agent-manager:latest
+    container_name: agent-manager
+    ports:
+      - "8081:8081"
+    networks:
+      - tyk-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  tyk-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:

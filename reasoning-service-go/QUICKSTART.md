@@ -5,7 +5,7 @@
 ### 步骤 1: 克隆或进入项目目录
 
 ```bash
-cd /Users/costalong/code/go/src/github.com/kart/k8s-agent/reasoning-service-go
+cd /Users/costalong/code/go/src/github.com/kart-io/k8s-agent/reasoning-service-go
 ```
 
 ### 步骤 2: 设置 LLM 提供商

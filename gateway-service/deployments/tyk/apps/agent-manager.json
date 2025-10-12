@@ -1,0 +1,157 @@
+{
+  "name": "Agent Manager API",
+  "api_id": "agent-manager",
+  "org_id": "default",
+  "use_keyless": false,
+  "use_oauth2": false,
+  "use_openid": false,
+  "auth": {
+    "use_param": false,
+    "param_name": "",
+    "use_cookie": false,
+    "cookie_name": "",
+    "auth_header_name": "Authorization",
+    "use_certificate": false
+  },
+  "use_basic_auth": false,
+  "use_mutual_tls_auth": false,
+  "enable_jwt": true,
+  "jwt_signing_method": "hmac",
+  "jwt_source": "",
+  "jwt_identity_base_field": "sub",
+  "jwt_client_base_field": "",
+  "jwt_policy_field_name": "",
+  "jwt_default_policies": [],
+  "definition": {
+    "location": "header",
+    "key": "x-api-version",
+    "strip_path": false
+  },
+  "version_data": {
+    "not_versioned": true,
+    "default_version": "",
+    "versions": {
+      "Default": {
+        "name": "Default",
+        "expires": "",
+        "paths": {
+          "ignored": [],
+          "white_list": [],
+          "black_list": []
+        },
+        "use_extended_paths": true,
+        "extended_paths": {
+          "ignored": [],
+          "white_list": [],
+          "black_list": [],
+          "cache": [
+            {
+              "path": "/api/v1/agents",
+              "method": "GET",
+              "cache_key_regex": "",
+              "cache_response_codes": [200]
+            },
+            {
+              "path": "/api/v1/clusters",
+              "method": "GET",
+              "cache_key_regex": "",
+              "cache_response_codes": [200]
+            }
+          ],
+          "transform": [],
+          "transform_response": [],
+          "transform_jq": [],
+          "transform_jq_response": [],
+          "transform_headers": [],
+          "transform_response_headers": [],
+          "hard_timeouts": [],
+          "circuit_breakers": [],
+          "url_rewrites": [],
+          "virtual": [],
+          "size_limits": [],
+          "method_transforms": [],
+          "track_endpoints": [],
+          "do_not_track_endpoints": [],
+          "validate_json": [],
+          "internal": []
+        },
+        "global_headers": {},
+        "global_headers_remove": [],
+        "global_response_headers": {},
+        "global_response_headers_remove": [],
+        "ignore_endpoint_case": false,
+        "global_size_limit": 0,
+        "override_target": ""
+      }
+    }
+  },
+  "proxy": {
+    "preserve_host_header": false,
+    "listen_path": "/api/v1/agents",
+    "target_url": "http://agent-manager:8081/api/v1/agents",
+    "disable_strip_slash": true,
+    "strip_listen_path": false,
+    "enable_load_balancing": false,
+    "target_list": [],
+    "check_host_against_uptime_tests": false,
+    "transport": {
+      "ssl_insecure_skip_verify": false,
+      "ssl_ciphers": [],
+      "ssl_min_version": 0,
+      "proxy_url": ""
+    }
+  },
+  "disable_rate_limit": false,
+  "disable_quota": false,
+  "cache_options": {
+    "cache_timeout": 60,
+    "enable_cache": true,
+    "cache_all_safe_requests": false,
+    "cache_response_codes": [200],
+    "enable_upstream_cache_control": false,
+    "cache_control_ttl_header": "",
+    "cache_by_headers": []
+  },
+  "session_lifetime": 0,
+  "active": true,
+  "event_handlers": {
+    "events": {}
+  },
+  "enable_batch_request_support": false,
+  "enable_ip_whitelisting": false,
+  "allowed_ips": [],
+  "enable_ip_blacklisting": false,
+  "blacklisted_ips": [],
+  "CORS": {
+    "enable": true,
+    "allowed_origins": [
+      "*"
+    ],
+    "allowed_methods": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "OPTIONS",
+      "PATCH"
+    ],
+    "allowed_headers": [
+      "Origin",
+      "Accept",
+      "Content-Type",
+      "Authorization",
+      "X-Request-ID"
+    ],
+    "exposed_headers": [],
+    "allow_credentials": true,
+    "max_age": 24,
+    "options_passthrough": false,
+    "debug": false
+  },
+  "tags": ["agent", "management", "k8s"],
+  "global_rate_limit": {
+    "rate": 1000,
+    "per": 60
+  },
+  "strip_auth_data": false
+}

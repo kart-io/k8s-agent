@@ -6,17 +6,17 @@ import (
 
 // Agent represents a registered agent
 type Agent struct {
-	ID              string                 `json:"id" gorm:"primaryKey"`
-	ClusterID       string                 `json:"cluster_id" gorm:"index;not null"`
-	ClusterName     string                 `json:"cluster_name"`
-	Version         string                 `json:"version"`
-	Status          AgentStatus            `json:"status" gorm:"index"`
-	LastHeartbeat   time.Time              `json:"last_heartbeat" gorm:"index"`
-	RegisteredAt    time.Time              `json:"registered_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	Metadata        map[string]interface{} `json:"metadata" gorm:"serializer:json"`
-	Capabilities    []string               `json:"capabilities" gorm:"serializer:json"`
-	ConnectionInfo  *ConnectionInfo        `json:"connection_info" gorm:"serializer:json"`
+	ID             string                 `json:"id" gorm:"primaryKey"`
+	ClusterID      string                 `json:"cluster_id" gorm:"index;not null"`
+	ClusterName    string                 `json:"cluster_name"`
+	Version        string                 `json:"version"`
+	Status         AgentStatus            `json:"status" gorm:"index"`
+	LastHeartbeat  time.Time              `json:"last_heartbeat" gorm:"index"`
+	RegisteredAt   time.Time              `json:"registered_at"`
+	UpdatedAt      time.Time              `json:"updated_at"`
+	Metadata       map[string]interface{} `json:"metadata" gorm:"serializer:json"`
+	Capabilities   []string               `json:"capabilities" gorm:"serializer:json"`
+	ConnectionInfo *ConnectionInfo        `json:"connection_info" gorm:"serializer:json"`
 }
 
 // AgentStatus represents the status of an agent
@@ -61,10 +61,10 @@ type Event struct {
 
 // Metrics represents cluster metrics
 type Metrics struct {
-	ID               string                 `json:"id" gorm:"primaryKey"`
-	ClusterID        string                 `json:"cluster_id" gorm:"index;not null"`
-	Timestamp        time.Time              `json:"timestamp" gorm:"index"`
-	ClusterMetrics   map[string]interface{} `json:"cluster_metrics" gorm:"serializer:json"`
+	ID               string                   `json:"id" gorm:"primaryKey"`
+	ClusterID        string                   `json:"cluster_id" gorm:"index;not null"`
+	Timestamp        time.Time                `json:"timestamp" gorm:"index"`
+	ClusterMetrics   map[string]interface{}   `json:"cluster_metrics" gorm:"serializer:json"`
 	NodeMetrics      []map[string]interface{} `json:"node_metrics" gorm:"serializer:json"`
 	PodMetrics       []map[string]interface{} `json:"pod_metrics" gorm:"serializer:json"`
 	NamespaceMetrics []map[string]interface{} `json:"namespace_metrics" gorm:"serializer:json"`
@@ -123,8 +123,8 @@ type Cluster struct {
 	Provider    string                 `json:"provider"` // eks, gke, aks, onprem
 	Status      ClusterStatus          `json:"status" gorm:"index"`
 	Health      ClusterHealth          `json:"health" gorm:"index"`
-	Version     string                 `json:"version"`      // Kubernetes version
-	APIServer   string                 `json:"api_server"`   // Kubernetes API server address
+	Version     string                 `json:"version"`    // Kubernetes version
+	APIServer   string                 `json:"api_server"` // Kubernetes API server address
 	AgentCount  int                    `json:"agent_count"`
 	NodeCount   int                    `json:"node_count"`
 	PodCount    int                    `json:"pod_count"`

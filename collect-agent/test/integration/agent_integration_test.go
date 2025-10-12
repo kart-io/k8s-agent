@@ -4,18 +4,13 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
-	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kart/k8s-agent/collect-agent/internal/agent"
-	"github.com/kart/k8s-agent/collect-agent/internal/types"
+	"github.com/kart-io/k8s-agent/collect-agent/internal/types"
 )
 
 // TestAgentNATSIntegration tests end-to-end NATS communication
@@ -23,7 +18,7 @@ func TestAgentNATSIntegration(t *testing.T) {
 	t.Skip("Requires NATS server running")
 
 	logger, _ := zap.NewDevelopment()
-	
+
 	config := &types.AgentConfig{
 		ClusterID:         "test-cluster",
 		CentralEndpoint:   "nats://localhost:4222",
@@ -39,7 +34,7 @@ func TestAgentNATSIntegration(t *testing.T) {
 
 	// Create fake clientset
 	clientset := fake.NewSimpleClientset()
-	
+
 	// Test would continue with actual NATS connection
 	t.Log("Integration test completed")
 }
