@@ -262,6 +262,9 @@ router.Use(middleware.APIKeyAuth())
 # 初始化依赖
 go mod tidy
 
+# 初始化 MySQL 数据库
+make init-db
+
 # 运行服务
 go run cmd/server/main.go
 
@@ -279,8 +282,12 @@ server:
 
 database:
   host: localhost
-  port: 5432
+  port: 3306        # MySQL 端口
+  user: root
+  password: root
   dbname: k8s_agent_auth
+  charset: utf8mb4
+  parse_time: true
 
 redis:
   host: localhost

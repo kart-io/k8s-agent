@@ -29,8 +29,11 @@ deps:
 	@go mod download
 	@echo "Dependencies initialized"
 
-# Initialize PostgreSQL database
-init-db:
+# Initialize MySQL database (default)
+init-db: init-mysql
+
+# Initialize PostgreSQL database (legacy)
+init-postgres:
 	@echo "Initializing PostgreSQL database..."
 	@psql -U postgres -c "CREATE DATABASE k8s_agent_auth;" || true
 	@echo "PostgreSQL database initialized"

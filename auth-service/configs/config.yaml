@@ -7,11 +7,12 @@ server:
 
 database:
   host: "localhost"
-  port: 5432
-  user: "postgres"
-  password: "postgres"
+  port: 3306
+  user: "root"
+  password: "root"
   dbname: "k8s_agent_auth"
-  sslmode: "disable"
+  charset: "utf8mb4"
+  parse_time: true
   max_idle_conns: 10
   max_open_conns: 100
 

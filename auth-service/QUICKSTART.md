@@ -64,7 +64,7 @@ func main() {
 	defer logger.Sync()
 
 	// 连接数据库
-	db, err := storage.NewPostgresDB()
+	db, err := storage.NewMySQLDB()
 	if err != nil {
 		logger.Fatal("Failed to connect database", zap.Error(err))
 	}
@@ -197,7 +197,7 @@ func setupRouter(
 
 ### 第1步：实现数据存储层 (internal/storage/)
 
-1. `postgres.go` - PostgreSQL 连接和初始化
+1. `mysql.go` - MySQL 连接和初始化
 2. `redis.go` - Redis 连接和初始化
 3. `migrate.go` - 数据库迁移和初始化数据
 
