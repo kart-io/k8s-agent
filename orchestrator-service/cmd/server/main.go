@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,30 +12,43 @@ import (
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/yaml.v3"
 
+	"github.com/kart-io/k8s-agent/orchestrator-service/internal/config"
 	"github.com/kart-io/k8s-agent/orchestrator-service/internal/storage"
 	"github.com/kart-io/k8s-agent/orchestrator-service/internal/strategy"
 	"github.com/kart-io/k8s-agent/orchestrator-service/internal/subscriber"
 	"github.com/kart-io/k8s-agent/orchestrator-service/internal/workflow"
-	"github.com/kart-io/k8s-agent/orchestrator-service/pkg/types"
 )
 
 var (
-	configFile = flag.String("config", "configs/config.yaml", "Path to configuration file")
-	version    = "1.0.0"
+	version = "1.0.0"
 )
 
 func main() {
+	// Parse command-line flags
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Path to configuration file (defaults to ./configs/config.yaml)")
+	flag.StringVar(&configPath, "c", "", "Path to configuration file (shorthand)")
 	flag.Parse()
 
-	config, err := loadConfig(*configFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
-		os.Exit(1)
+	// Load configuration from config file
+	var cfg *config.Config
+	var err error
+
+	if configPath != "" {
+		cfg, err = config.LoadFromPath(configPath)
+		if err != nil {
+			log.Fatalf("Failed to load configuration from %s: %v", configPath, err)
+		}
+		log.Printf("Loaded configuration from: %s", configPath)
+	} else {
+		cfg, err = config.Load()
+		if err != nil {
+			log.Fatalf("Failed to load configuration: %v", err)
+		}
 	}
 
-	logger, err := initLogger(config.Logging)
+	logger, err := initLogger(cfg.Logging)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 		os.Exit(1)
@@ -44,14 +58,14 @@ func main() {
 	logger.Info("Starting Aetherius Orchestrator Service",
 		zap.String("version", version))
 
-	if err := run(config, logger); err != nil {
+	if err := run(cfg, logger); err != nil {
 		logger.Fatal("Application error", zap.Error(err))
 	}
 
 	logger.Info("Orchestrator Service stopped successfully")
 }
 
-func run(config *types.Config, logger *zap.Logger) error {
+func run(cfg *config.Config, logger *zap.Logger) error {
 	logger.Info("==========================================================")
 	logger.Info("     Aetherius Orchestrator Service - Initialization      ")
 	logger.Info("==========================================================")
@@ -61,10 +75,10 @@ func run(config *types.Config, logger *zap.Logger) error {
 
 	// Initialize PostgreSQL
 	logger.Info("📦 [1/6] Initializing PostgreSQL",
-		zap.String("host", config.Database.Host),
-		zap.Int("port", config.Database.Port),
-		zap.String("database", config.Database.Database))
-	pgStore, err := storage.NewPostgresStore(config.Database, logger)
+		zap.String("host", cfg.Database.Host),
+		zap.Int("port", cfg.Database.Port),
+		zap.String("database", cfg.Database.Database))
+	pgStore, err := storage.NewPostgresStore(cfg.Database, logger)
 	if err != nil {
 		return fmt.Errorf("failed to initialize PostgreSQL: %w", err)
 	}
@@ -73,8 +87,8 @@ func run(config *types.Config, logger *zap.Logger) error {
 
 	// Initialize Redis
 	logger.Info("📦 [2/6] Initializing Redis",
-		zap.String("addr", config.Redis.Addr))
-	redisStore, err := storage.NewRedisStore(config.Redis, logger)
+		zap.String("addr", cfg.Redis.Addr))
+	redisStore, err := storage.NewRedisStore(cfg.Redis, logger)
 	if err != nil {
 		return fmt.Errorf("failed to initialize Redis: %w", err)
 	}
@@ -83,11 +97,11 @@ func run(config *types.Config, logger *zap.Logger) error {
 
 	// Connect to NATS
 	logger.Info("📡 [3/6] Connecting to NATS",
-		zap.String("url", config.NATS.URL))
-	natsConn, err := nats.Connect(config.NATS.URL,
+		zap.String("url", cfg.NATS.URL))
+	natsConn, err := nats.Connect(cfg.NATS.URL,
 		nats.Name("orchestrator-service"),
-		nats.MaxReconnects(config.NATS.MaxReconnect),
-		nats.ReconnectWait(config.NATS.ReconnectWait))
+		nats.MaxReconnects(cfg.NATS.MaxReconnect),
+		nats.ReconnectWait(cfg.NATS.ReconnectWait))
 	if err != nil {
 		return fmt.Errorf("failed to connect to NATS: %w", err)
 	}
@@ -97,11 +111,11 @@ func run(config *types.Config, logger *zap.Logger) error {
 
 	// Initialize workflow components
 	logger.Info("⚙️  [4/6] Initializing workflow engine",
-		zap.String("agent_manager_url", config.AI.AgentManagerURL),
-		zap.String("reasoning_service_url", config.AI.ReasoningServiceURL))
+		zap.String("agent_manager_url", cfg.AI.AgentManagerURL),
+		zap.String("reasoning_service_url", cfg.AI.ReasoningServiceURL))
 	executor := workflow.NewExecutor(
-		config.AI.AgentManagerURL,
-		config.AI.ReasoningServiceURL,
+		cfg.AI.AgentManagerURL,
+		cfg.AI.ReasoningServiceURL,
 		logger)
 
 	engine := workflow.NewEngine(pgStore, redisStore, executor, logger)
@@ -139,47 +153,14 @@ func run(config *types.Config, logger *zap.Logger) error {
 	return nil
 }
 
-func loadConfig(path string) (*types.Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	var config types.Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	applyEnvOverrides(&config)
-	return &config, nil
-}
-
-func applyEnvOverrides(config *types.Config) {
-	if dbHost := os.Getenv("DB_HOST"); dbHost != "" {
-		config.Database.Host = dbHost
-	}
-	if dbPort := os.Getenv("DB_PORT"); dbPort != "" {
-		fmt.Sscanf(dbPort, "%d", &config.Database.Port)
-	}
-	if natsURL := os.Getenv("NATS_URL"); natsURL != "" {
-		config.NATS.URL = natsURL
-	}
-	if aiURL := os.Getenv("AI_SERVICE_URL"); aiURL != "" {
-		config.AI.ReasoningServiceURL = aiURL
-	}
-	if agentURL := os.Getenv("AGENT_MANAGER_URL"); agentURL != "" {
-		config.AI.AgentManagerURL = agentURL
-	}
-}
-
-func initLogger(config types.LoggingConfig) (*zap.Logger, error) {
+func initLogger(cfg config.LoggingConfig) (*zap.Logger, error) {
 	level := zapcore.InfoLevel
-	if err := level.UnmarshalText([]byte(config.Level)); err != nil {
+	if err := level.UnmarshalText([]byte(cfg.Level)); err != nil {
 		return nil, fmt.Errorf("invalid log level: %w", err)
 	}
 
 	var encoderConfig zapcore.EncoderConfig
-	if config.Format == "json" {
+	if cfg.Format == "json" {
 		encoderConfig = zap.NewProductionEncoderConfig()
 	} else {
 		encoderConfig = zap.NewDevelopmentEncoderConfig()
@@ -190,10 +171,10 @@ func initLogger(config types.LoggingConfig) (*zap.Logger, error) {
 
 	zapConfig := zap.Config{
 		Level:            zap.NewAtomicLevelAt(level),
-		Development:      config.Format != "json",
-		Encoding:         config.Format,
+		Development:      cfg.Format != "json",
+		Encoding:         cfg.Format,
 		EncoderConfig:    encoderConfig,
-		OutputPaths:      []string{config.OutputPath},
+		OutputPaths:      []string{cfg.OutputPath},
 		ErrorOutputPaths: []string{"stderr"},
 	}
 

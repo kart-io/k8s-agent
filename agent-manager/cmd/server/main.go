@@ -10,11 +10,11 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/yaml.v3"
 
 	"github.com/kart-io/k8s-agent/agent-manager/internal/agent"
 	"github.com/kart-io/k8s-agent/agent-manager/internal/api"
 	"github.com/kart-io/k8s-agent/agent-manager/internal/command"
+	"github.com/kart-io/k8s-agent/agent-manager/internal/config"
 	"github.com/kart-io/k8s-agent/agent-manager/internal/event"
 	"github.com/kart-io/k8s-agent/agent-manager/internal/nats"
 	"github.com/kart-io/k8s-agent/agent-manager/internal/storage"
@@ -22,22 +22,37 @@ import (
 )
 
 var (
-	configFile = flag.String("config", "configs/config.yaml", "Path to configuration file")
-	version    = "1.0.0"
+	version = "1.0.0"
 )
 
 func main() {
+	// Parse command-line flags
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Path to configuration file (defaults to ./configs/config.yaml)")
+	flag.StringVar(&configPath, "c", "", "Path to configuration file (shorthand)")
 	flag.Parse()
 
-	// Load configuration
-	config, err := loadConfig(*configFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
-		os.Exit(1)
+	// Load configuration from config file
+	var cfg *types.Config
+	var err error
+
+	if configPath != "" {
+		cfg, err = config.LoadFromPath(configPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to load configuration from %s: %v\n", configPath, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Loaded configuration from: %s\n", configPath)
+	} else {
+		cfg, err = config.Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	// Initialize logger
-	logger, err := initLogger(config.Logging)
+	logger, err := initLogger(cfg.Logging)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 		os.Exit(1)
@@ -45,11 +60,10 @@ func main() {
 	defer logger.Sync()
 
 	logger.Info("Starting Aetherius Agent Manager",
-		zap.String("version", version),
-		zap.String("config", *configFile))
+		zap.String("version", version))
 
 	// Run application
-	if err := run(config, logger); err != nil {
+	if err := run(cfg, logger); err != nil {
 		logger.Fatal("Application error", zap.Error(err))
 	}
 
@@ -144,55 +158,6 @@ func run(config *types.Config, logger *zap.Logger) error {
 	}
 
 	return nil
-}
-
-func loadConfig(path string) (*types.Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	var config types.Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	// Apply environment variable overrides
-	applyEnvOverrides(&config)
-
-	return &config, nil
-}
-
-func applyEnvOverrides(config *types.Config) {
-	// Database overrides
-	if dbHost := os.Getenv("DB_HOST"); dbHost != "" {
-		config.Database.Host = dbHost
-	}
-	if dbPort := os.Getenv("DB_PORT"); dbPort != "" {
-		fmt.Sscanf(dbPort, "%d", &config.Database.Port)
-	}
-	if dbUser := os.Getenv("DB_USER"); dbUser != "" {
-		config.Database.User = dbUser
-	}
-	if dbPass := os.Getenv("DB_PASSWORD"); dbPass != "" {
-		config.Database.Password = dbPass
-	}
-	if dbName := os.Getenv("DB_NAME"); dbName != "" {
-		config.Database.Database = dbName
-	}
-
-	// Redis overrides
-	if redisAddr := os.Getenv("REDIS_ADDR"); redisAddr != "" {
-		config.Redis.Addr = redisAddr
-	}
-	if redisPass := os.Getenv("REDIS_PASSWORD"); redisPass != "" {
-		config.Redis.Password = redisPass
-	}
-
-	// NATS overrides
-	if natsURL := os.Getenv("NATS_URL"); natsURL != "" {
-		config.NATS.URL = natsURL
-	}
 }
 
 func initLogger(config types.LoggingConfig) (*zap.Logger, error) {

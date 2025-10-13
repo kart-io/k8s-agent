@@ -32,7 +32,13 @@ auth-service/
 ## Commands
 
 ```bash
-# Run auth-service
+# Run auth-service with config file
+cd auth-service && go run cmd/server/main.go -config configs/config.yaml
+
+# Run auth-service with dev config (using -c shorthand)
+cd auth-service && go run cmd/server/main.go -c configs/config-dev.yaml
+
+# Run without -config flag (defaults to ./configs/config.yaml)
 cd auth-service && go run cmd/server/main.go
 
 # Or using Make

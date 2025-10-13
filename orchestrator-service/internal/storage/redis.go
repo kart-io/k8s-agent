@@ -8,7 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	"github.com/kart-io/k8s-agent/orchestrator-service/pkg/types"
+	"github.com/kart-io/k8s-agent/orchestrator-service/internal/config"
 )
 
 // RedisStore implements Redis caching
@@ -18,14 +18,14 @@ type RedisStore struct {
 }
 
 // NewRedisStore creates a new Redis store
-func NewRedisStore(config types.RedisConfig, log *zap.Logger) (*RedisStore, error) {
+func NewRedisStore(cfg config.RedisConfig, log *zap.Logger) (*RedisStore, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:         config.Addr,
-		Password:     config.Password,
-		DB:           config.DB,
-		PoolSize:     config.PoolSize,
-		MinIdleConns: config.MinIdleConns,
-		DialTimeout:  config.DialTimeout,
+		Addr:         cfg.Addr,
+		Password:     cfg.Password,
+		DB:           cfg.DB,
+		PoolSize:     cfg.PoolSize,
+		MinIdleConns: cfg.MinIdleConns,
+		DialTimeout:  cfg.DialTimeout,
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

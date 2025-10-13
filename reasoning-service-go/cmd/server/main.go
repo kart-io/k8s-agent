@@ -13,18 +13,36 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "configs/config.yaml", "Path to config file")
+	// Parse command-line flags
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Path to configuration file (defaults to ./configs/config.yaml)")
+	flag.StringVar(&configPath, "c", "", "Path to configuration file (shorthand)")
 	flag.Parse()
 
-	// Load configuration
-	cfg, err := config.Load(*configPath)
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+	// Load configuration from config file
+	var cfg *config.Config
+	var err error
+
+	if configPath != "" {
+		cfg, err = config.LoadFromPath(configPath)
+		if err != nil {
+			log.Fatalf("Failed to load configuration from %s: %v", configPath, err)
+		}
+		log.Printf("Loaded configuration from: %s", configPath)
+	} else {
+		cfg, err = config.Load()
+		if err != nil {
+			log.Fatalf("Failed to load configuration: %v", err)
+		}
 	}
 
 	fmt.Printf("Aetherius Reasoning Service (Go)\n")
 	fmt.Printf("=================================\n")
-	fmt.Printf("Config: %s\n", *configPath)
+	if configPath != "" {
+		fmt.Printf("Config: %s\n", configPath)
+	} else {
+		fmt.Printf("Config: ./configs/config.yaml (default)\n")
+	}
 	fmt.Printf("Server: %s:%d\n", cfg.Server.Host, cfg.Server.Port)
 
 	// Initialize LLM clients

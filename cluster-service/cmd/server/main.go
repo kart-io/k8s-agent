@@ -2,64 +2,57 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/kart-io/k8s-agent/cluster-service/internal/api"
+	"github.com/kart-io/k8s-agent/cluster-service/internal/config"
 	"github.com/kart-io/k8s-agent/cluster-service/internal/handler"
 	"github.com/kart-io/k8s-agent/cluster-service/internal/service"
 	"github.com/kart-io/k8s-agent/cluster-service/internal/storage"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
-type Config struct {
-	Server struct {
-		Port         int    `yaml:"port"`
-		Mode         string `yaml:"mode"`
-		ReadTimeout  string `yaml:"read_timeout"`
-		WriteTimeout string `yaml:"write_timeout"`
-	} `yaml:"server"`
-	Database struct {
-		Host         string `yaml:"host"`
-		Port         int    `yaml:"port"`
-		User         string `yaml:"user"`
-		Password     string `yaml:"password"`
-		DBName       string `yaml:"dbname"`
-		SSLMode      string `yaml:"sslmode"`
-		MaxOpenConns int    `yaml:"max_open_conns"`
-		MaxIdleConns int    `yaml:"max_idle_conns"`
-	} `yaml:"database"`
-	JWT struct {
-		Secret string `yaml:"secret"`
-	} `yaml:"jwt"`
-	Logging struct {
-		Level  string `yaml:"level"`
-		Format string `yaml:"format"`
-	} `yaml:"logging"`
-}
-
 func main() {
-	config, err := loadConfig("configs/config.yaml")
-	if err != nil {
-		fmt.Printf("Failed to load config: %v\n", err)
-		os.Exit(1)
+	// Parse command-line flags
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Path to configuration file (defaults to ./configs/config.yaml)")
+	flag.StringVar(&configPath, "c", "", "Path to configuration file (shorthand)")
+	flag.Parse()
+
+	// Load configuration from config file
+	var cfg *config.Config
+	var err error
+
+	if configPath != "" {
+		cfg, err = config.LoadFromPath(configPath)
+		if err != nil {
+			log.Fatalf("Failed to load configuration from %s: %v", configPath, err)
+		}
+		log.Printf("Loaded configuration from: %s", configPath)
+	} else {
+		cfg, err = config.Load()
+		if err != nil {
+			log.Fatalf("Failed to load configuration: %v", err)
+		}
 	}
 
-	logger := setupLogger(config.Logging.Level, config.Logging.Format)
+	logger := setupLogger(cfg.Logging.Level, cfg.Logging.Format)
 
 	pgStorage, err := storage.NewPostgresStorage(&storage.Config{
-		Host:         config.Database.Host,
-		Port:         config.Database.Port,
-		User:         config.Database.User,
-		Password:     config.Database.Password,
-		DBName:       config.Database.DBName,
-		SSLMode:      config.Database.SSLMode,
-		MaxOpenConns: config.Database.MaxOpenConns,
-		MaxIdleConns: config.Database.MaxIdleConns,
+		Host:         cfg.Database.Host,
+		Port:         cfg.Database.Port,
+		User:         cfg.Database.User,
+		Password:     cfg.Database.Password,
+		DBName:       cfg.Database.DBName,
+		SSLMode:      cfg.Database.SSLMode,
+		MaxOpenConns: cfg.Database.MaxOpenConns,
+		MaxIdleConns: cfg.Database.MaxIdleConns,
 	}, logger)
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to initialize PostgreSQL storage")
@@ -69,15 +62,15 @@ func main() {
 	clusterService := service.NewClusterService(pgStorage, logger)
 	clusterHandler := handler.NewClusterHandler(clusterService, logger)
 
-	readTimeout, _ := time.ParseDuration(config.Server.ReadTimeout)
-	writeTimeout, _ := time.ParseDuration(config.Server.WriteTimeout)
+	readTimeout, _ := time.ParseDuration(cfg.Server.ReadTimeout)
+	writeTimeout, _ := time.ParseDuration(cfg.Server.WriteTimeout)
 
 	server := api.NewServer(&api.ServerConfig{
-		Port:         config.Server.Port,
-		Mode:         config.Server.Mode,
+		Port:         cfg.Server.Port,
+		Mode:         cfg.Server.Mode,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
-		JWTSecret:    config.JWT.Secret,
+		JWTSecret:    cfg.JWT.Secret,
 	}, clusterHandler, logger)
 
 	go func() {
@@ -99,20 +92,6 @@ func main() {
 	}
 
 	logger.Info("Server exited")
-}
-
-func loadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, err
-	}
-
-	return &config, nil
 }
 
 func setupLogger(level, format string) *logrus.Logger {

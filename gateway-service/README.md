@@ -70,19 +70,49 @@ gateway-service/
 
 ## 配置说明
 
+### 配置文件加载
+
+网关服务支持灵活的配置文件加载方式，使用命令行标志指定配置文件：
+
+```bash
+# 使用默认配置 (./configs/config.yaml)
+go run cmd/server/main.go
+
+# 使用 -config 标志指定配置文件
+go run cmd/server/main.go -config configs/config-dev.yaml
+
+# 使用 -c 简写形式
+go run cmd/server/main.go -c configs/config-dev.yaml
+
+# 或使用 Make 命令
+make run          # 使用默认配置
+make run-dev      # 使用 configs/config-dev.yaml
+```
+
 ### 服务配置 (configs/config.yaml)
 
 ```yaml
 server:
+  host: "0.0.0.0"         # 监听地址
   port: 8080              # 网关端口
   mode: debug             # 运行模式: debug, release, test
+  read_timeout: 30s       # 读超时
+  write_timeout: 30s      # 写超时
+
+log:
+  level: info             # 日志级别: debug, info, warn, error
+  file: ./logs/gateway.log
 
 redis:
   host: localhost         # Redis 地址
   port: 6379
+  password: ""            # Redis 密码
+  db: 0                   # Redis 数据库编号
+  pool_size: 10           # 连接池大小
 
 jwt:
   secret: "your-secret"   # JWT 密钥（生产环境必须修改）
+  expires_hours: 24       # Token 过期时间（小时）
 
 rate_limit:
   enabled: true           # 是否启用限流
@@ -93,15 +123,43 @@ cors:
   enabled: true
   allow_origins:
     - "http://localhost:3000"
+  allow_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+  allow_headers:
+    - Origin
+    - Content-Type
+    - Authorization
+  allow_credentials: true
+  max_age: 12h
 
 services:                 # 后端服务配置
   auth:
+    name: auth-service
     url: http://localhost:8090
     timeout: 30s
+    retry: 3
+    health_check: /health
   agent_manager:
+    name: agent-manager
     url: http://localhost:8081
     timeout: 30s
+    retry: 3
+    health_check: /health
 ```
+
+### 环境变量覆盖
+
+可以使用环境变量覆盖配置文件中的值：
+
+```bash
+export JWT_SECRET="your-production-secret"
+export GATEWAY_PORT=8080
+```
+
+配置加载器会自动绑定这些环境变量。
 
 ## API 路由
 

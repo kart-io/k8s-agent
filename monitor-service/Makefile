@@ -21,6 +21,10 @@ run:
 	@echo "Running $(SERVICE_NAME)..."
 	@go run cmd/server/main.go
 
+run-dev:
+	@echo "Running $(SERVICE_NAME) with dev config..."
+	@go run cmd/server/main.go -config configs/config-dev.yaml
+
 clean:
 	@echo "Cleaning..."
 	@rm -rf bin

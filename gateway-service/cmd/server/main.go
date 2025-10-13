@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,21 +11,39 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kart-io/k8s-agent/gateway-service/internal/config"
 	"github.com/kart-io/k8s-agent/gateway-service/internal/middleware"
 	"github.com/kart-io/k8s-agent/gateway-service/internal/router"
 	"github.com/redis/go-redis/v9"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
 func main() {
-	// 加载配置
-	if err := loadConfig(); err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+	// Parse command-line flags
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Path to configuration file (defaults to ./configs/config.yaml)")
+	flag.StringVar(&configPath, "c", "", "Path to configuration file (shorthand)")
+	flag.Parse()
+
+	// Load configuration from config file
+	var cfg *config.Config
+	var err error
+
+	if configPath != "" {
+		cfg, err = config.LoadFromPath(configPath)
+		if err != nil {
+			log.Fatalf("Failed to load configuration from %s: %v", configPath, err)
+		}
+		log.Printf("Loaded configuration from: %s", configPath)
+	} else {
+		cfg, err = config.Load()
+		if err != nil {
+			log.Fatalf("Failed to load configuration: %v", err)
+		}
 	}
 
 	// 初始化日志
-	logger, err := initLogger()
+	logger, err := initLogger(cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
@@ -33,7 +52,7 @@ func main() {
 	logger.Info("Starting Gateway Service...")
 
 	// 连接 Redis
-	rdb := connectRedis(logger)
+	rdb := connectRedis(cfg, logger)
 	if rdb != nil {
 		defer rdb.Close()
 		// 初始化限流器
@@ -44,19 +63,19 @@ func main() {
 	r := router.Setup(logger)
 
 	// 创建 HTTP 服务器
-	port := viper.GetInt("server.port")
+	serverAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", port),
+		Addr:         serverAddr,
 		Handler:      r,
-		ReadTimeout:  viper.GetDuration("server.read_timeout"),
-		WriteTimeout: viper.GetDuration("server.write_timeout"),
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
 	}
 
 	// 启动服务器
 	go func() {
 		logger.Info("Gateway server started",
-			zap.Int("port", port),
-			zap.String("mode", viper.GetString("server.mode")),
+			zap.String("addr", serverAddr),
+			zap.String("mode", cfg.Server.Mode),
 		)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Failed to start server", zap.Error(err))
@@ -80,65 +99,41 @@ func main() {
 	logger.Info("Gateway server exited")
 }
 
-// loadConfig 加载配置
-func loadConfig() error {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./configs")
-	viper.AddConfigPath(".")
-
-	// 设置默认值
-	viper.SetDefault("server.port", 8080)
-	viper.SetDefault("server.mode", "debug")
-	viper.SetDefault("server.read_timeout", "30s")
-	viper.SetDefault("server.write_timeout", "30s")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	return nil
-}
-
 // initLogger 初始化日志
-func initLogger() (*zap.Logger, error) {
-	logLevel := viper.GetString("log.level")
+func initLogger(cfg *config.Config) (*zap.Logger, error) {
+	logLevel := cfg.Log.Level
 
-	var config zap.Config
-	if viper.GetString("server.mode") == "release" {
-		config = zap.NewProductionConfig()
+	var zapConfig zap.Config
+	if cfg.Server.Mode == "release" {
+		zapConfig = zap.NewProductionConfig()
 	} else {
-		config = zap.NewDevelopmentConfig()
+		zapConfig = zap.NewDevelopmentConfig()
 	}
 
 	// 设置日志级别
 	switch logLevel {
 	case "debug":
-		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	case "info":
-		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	case "warn":
-		config.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
 	case "error":
-		config.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
 	default:
-		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
 
-	return config.Build()
+	return zapConfig.Build()
 }
 
 // connectRedis 连接 Redis
-func connectRedis(logger *zap.Logger) *redis.Client {
-	host := viper.GetString("redis.host")
-	port := viper.GetInt("redis.port")
-	password := viper.GetString("redis.password")
-	db := viper.GetInt("redis.db")
-
+func connectRedis(cfg *config.Config, logger *zap.Logger) *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", host, port),
-		Password: password,
-		DB:       db,
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+		PoolSize: cfg.Redis.PoolSize,
 	})
 
 	// 测试连接
@@ -153,7 +148,7 @@ func connectRedis(logger *zap.Logger) *redis.Client {
 	}
 
 	logger.Info("Connected to Redis",
-		zap.String("addr", fmt.Sprintf("%s:%d", host, port)),
+		zap.String("addr", fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)),
 	)
 
 	return rdb

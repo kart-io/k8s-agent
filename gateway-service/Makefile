@@ -21,6 +21,11 @@ run:
 	@echo "Running gateway-service..."
 	@go run cmd/server/main.go
 
+# Run with dev config
+run-dev:
+	@echo "Running gateway-service with dev config..."
+	@go run cmd/server/main.go -config configs/config-dev.yaml
+
 # Run tests
 test:
 	@echo "Running tests..."

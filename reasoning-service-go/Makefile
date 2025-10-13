@@ -26,7 +26,12 @@ build:
 # Run the service
 run:
 	@echo "Running $(BINARY_NAME)..."
-	go run $(MAIN_PATH) -config configs/config.yaml
+	go run $(MAIN_PATH)
+
+# Run the service with dev config
+run-dev:
+	@echo "Running $(BINARY_NAME) with dev config..."
+	go run $(MAIN_PATH) -c configs/config-dev.yaml
 
 # Clean build artifacts
 clean:
@@ -120,7 +125,8 @@ docker-buildx-push-env: docker-buildx-setup ## Build and push multi-platform Doc
 help:
 	@echo "Available targets:"
 	@echo "  make build                  - Build the binary"
-	@echo "  make run                    - Run the service"
+	@echo "  make run                    - Run the service (default config)"
+	@echo "  make run-dev                - Run the service (dev config)"
 	@echo "  make clean                  - Clean build artifacts"
 	@echo "  make test                   - Run tests"
 	@echo "  make deps                   - Install dependencies"

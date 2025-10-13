@@ -33,11 +33,15 @@ build: deps ## Build the application
 
 run: ## Run the application
 	@echo "Running $(APP_NAME)..."
-	@go run ./cmd/server --config=configs/config.yaml
+	@go run ./cmd/server
+
+run-dev: ## Run with development config
+	@echo "Running $(APP_NAME) with development config..."
+	@go run ./cmd/server -c configs/config-dev.yaml
 
 dev: ## Run in development mode with hot reload
 	@echo "Running in development mode..."
-	@air -c .air.toml || go run ./cmd/server --config=configs/config.yaml
+	@air -c .air.toml || go run ./cmd/server -c configs/config-dev.yaml
 
 test: ## Run tests
 	@echo "Running tests..."

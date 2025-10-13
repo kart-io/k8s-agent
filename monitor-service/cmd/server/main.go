@@ -2,80 +2,59 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/kart-io/k8s-agent/monitor-service/internal/api"
+	"github.com/kart-io/k8s-agent/monitor-service/internal/config"
 	"github.com/kart-io/k8s-agent/monitor-service/internal/handler"
 	"github.com/kart-io/k8s-agent/monitor-service/internal/service"
 	"github.com/kart-io/k8s-agent/monitor-service/internal/storage"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
-type Config struct {
-	Server struct {
-		Port         int    `yaml:"port"`
-		Mode         string `yaml:"mode"`
-		ReadTimeout  string `yaml:"read_timeout"`
-		WriteTimeout string `yaml:"write_timeout"`
-	} `yaml:"server"`
-	Database struct {
-		Host         string `yaml:"host"`
-		Port         int    `yaml:"port"`
-		User         string `yaml:"user"`
-		Password     string `yaml:"password"`
-		DBName       string `yaml:"dbname"`
-		SSLMode      string `yaml:"sslmode"`
-		MaxOpenConns int    `yaml:"max_open_conns"`
-		MaxIdleConns int    `yaml:"max_idle_conns"`
-	} `yaml:"database"`
-	Redis struct {
-		Host     string `yaml:"host"`
-		Port     int    `yaml:"port"`
-		Password string `yaml:"password"`
-		DB       int    `yaml:"db"`
-		PoolSize int    `yaml:"pool_size"`
-	} `yaml:"redis"`
-	Prometheus struct {
-		Enabled bool `yaml:"enabled"`
-		Port    int  `yaml:"port"`
-	} `yaml:"prometheus"`
-	JWT struct {
-		Secret     string `yaml:"secret"`
-		Expiration string `yaml:"expiration"`
-	} `yaml:"jwt"`
-	Logging struct {
-		Level  string `yaml:"level"`
-		Format string `yaml:"format"`
-		Output string `yaml:"output"`
-	} `yaml:"logging"`
-}
-
 func main() {
-	// 加载配置
-	config, err := loadConfig("configs/config.yaml")
-	if err != nil {
-		fmt.Printf("Failed to load config: %v\n", err)
-		os.Exit(1)
+	// Parse command-line flags
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Path to configuration file (defaults to ./configs/config.yaml)")
+	flag.StringVar(&configPath, "c", "", "Path to configuration file (shorthand)")
+	flag.Parse()
+
+	// Load configuration from config file
+	var cfg *config.Config
+	var err error
+
+	if configPath != "" {
+		cfg, err = config.LoadFromPath(configPath)
+		if err != nil {
+			log.Fatalf("Failed to load configuration from %s: %v", configPath, err)
+		}
+		log.Printf("Loaded configuration from: %s", configPath)
+	} else {
+		cfg, err = config.Load()
+		if err != nil {
+			log.Fatalf("Failed to load configuration: %v", err)
+		}
 	}
 
 	// 初始化日志
-	logger := setupLogger(config.Logging.Level, config.Logging.Format)
+	logger := setupLogger(cfg.Logging.Level, cfg.Logging.Format)
 
 	// 初始化存储
 	pgStorage, err := storage.NewPostgresStorage(&storage.Config{
-		Host:         config.Database.Host,
-		Port:         config.Database.Port,
-		User:         config.Database.User,
-		Password:     config.Database.Password,
-		DBName:       config.Database.DBName,
-		SSLMode:      config.Database.SSLMode,
-		MaxOpenConns: config.Database.MaxOpenConns,
-		MaxIdleConns: config.Database.MaxIdleConns,
+		Host:         cfg.Database.Host,
+		Port:         cfg.Database.Port,
+		User:         cfg.Database.User,
+		Password:     cfg.Database.Password,
+		DBName:       cfg.Database.DBName,
+		SSLMode:      cfg.Database.SSLMode,
+		MaxOpenConns: cfg.Database.MaxOpenConns,
+		MaxIdleConns: cfg.Database.MaxIdleConns,
 	}, logger)
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to initialize PostgreSQL storage")
@@ -83,11 +62,11 @@ func main() {
 	defer pgStorage.Close()
 
 	redisStorage, err := storage.NewRedisStorage(&storage.RedisConfig{
-		Host:     config.Redis.Host,
-		Port:     config.Redis.Port,
-		Password: config.Redis.Password,
-		DB:       config.Redis.DB,
-		PoolSize: config.Redis.PoolSize,
+		Host:     cfg.Redis.Host,
+		Port:     cfg.Redis.Port,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+		PoolSize: cfg.Redis.PoolSize,
 	}, logger)
 	if err != nil {
 		logger.WithError(err).Fatal("Failed to initialize Redis storage")
@@ -101,21 +80,21 @@ func main() {
 	metricsHandler := handler.NewMetricsHandler(monitorService, logger)
 
 	// 解析超时时间
-	readTimeout, _ := time.ParseDuration(config.Server.ReadTimeout)
-	writeTimeout, _ := time.ParseDuration(config.Server.WriteTimeout)
+	readTimeout, _ := time.ParseDuration(cfg.Server.ReadTimeout)
+	writeTimeout, _ := time.ParseDuration(cfg.Server.WriteTimeout)
 
 	// 创建服务器
 	metricsPort := 0
-	if config.Prometheus.Enabled {
-		metricsPort = config.Prometheus.Port
+	if cfg.Prometheus.Enabled {
+		metricsPort = cfg.Prometheus.Port
 	}
 
 	server := api.NewServer(&api.ServerConfig{
-		Port:         config.Server.Port,
-		Mode:         config.Server.Mode,
+		Port:         cfg.Server.Port,
+		Mode:         cfg.Server.Mode,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
-		JWTSecret:    config.JWT.Secret,
+		JWTSecret:    cfg.JWT.Secret,
 		MetricsPort:  metricsPort,
 	}, metricsHandler, logger)
 
@@ -141,20 +120,6 @@ func main() {
 	}
 
 	logger.Info("Server exited")
-}
-
-func loadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, err
-	}
-
-	return &config, nil
 }
 
 func setupLogger(level, format string) *logrus.Logger {

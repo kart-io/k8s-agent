@@ -121,9 +121,14 @@ build-all: ## Build for all platforms
 	@echo "Build complete for all platforms"
 
 .PHONY: run
-run: ## Run the application locally
+run: ## Run the application locally with default config
 	@echo "Running $(APP_NAME)..."
-	@$(GOCMD) run ./$(CMD_DIR) --config=configs/config.yaml
+	@$(GOCMD) run ./$(CMD_DIR)
+
+.PHONY: run-dev
+run-dev: ## Run the application with development config
+	@echo "Running $(APP_NAME) in development mode..."
+	@$(GOCMD) run ./$(CMD_DIR) -config configs/config-dev.yaml
 
 .PHONY: dev
 dev: ## Run in development mode with auto-reload
@@ -133,7 +138,7 @@ dev: ## Run in development mode with auto-reload
 	else \
 		echo "air not installed. Install with: go install github.com/cosmtrek/air@latest"; \
 		echo "Falling back to simple run..."; \
-		$(MAKE) run; \
+		$(MAKE) run-dev; \
 	fi
 
 .PHONY: docker-build

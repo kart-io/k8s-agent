@@ -2,4 +2,4 @@ module reasoning-service-go
 
 go 1.24
 
-require gopkg.in/yaml.v3 v3.0.1
+require github.com/spf13/viper v1.18.2

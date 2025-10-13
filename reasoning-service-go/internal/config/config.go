@@ -5,142 +5,170 @@ import (
 	"os"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/spf13/viper"
 )
 
 // Config represents the application configuration
 type Config struct {
-	Server      ServerConfig      `yaml:"server"`
-	LLM         LLMConfig         `yaml:"llm"`
-	Analysis    AnalysisConfig    `yaml:"analysis"`
-	Prediction  PredictionConfig  `yaml:"prediction"`
-	Learning    LearningConfig    `yaml:"learning"`
-	Performance PerformanceConfig `yaml:"performance"`
-	Logging     LoggingConfig     `yaml:"logging"`
-	Features    FeaturesConfig    `yaml:"features"`
+	Server      ServerConfig      `mapstructure:"server"`
+	LLM         LLMConfig         `mapstructure:"llm"`
+	Analysis    AnalysisConfig    `mapstructure:"analysis"`
+	Prediction  PredictionConfig  `mapstructure:"prediction"`
+	Learning    LearningConfig    `mapstructure:"learning"`
+	Performance PerformanceConfig `mapstructure:"performance"`
+	Logging     LoggingConfig     `mapstructure:"logging"`
+	Features    FeaturesConfig    `mapstructure:"features"`
 }
 
 // ServerConfig represents server configuration
 type ServerConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	LogLevel string `yaml:"log_level"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	LogLevel string `mapstructure:"log_level"`
 }
 
 // LLMConfig represents LLM provider configuration
 type LLMConfig struct {
-	Enabled   bool              `yaml:"enabled"`
-	Providers []LLMProviderConfig `yaml:"providers"`
+	Enabled   bool                `mapstructure:"enabled"`
+	Providers []LLMProviderConfig `mapstructure:"providers"`
 }
 
 // LLMProviderConfig represents a single LLM provider
 type LLMProviderConfig struct {
-	Name        string  `yaml:"name"`        // "openai", "gemini", "deepseek"
-	APIKey      string  `yaml:"api_key"`     // Can be set via env var
-	BaseURL     string  `yaml:"base_url"`
-	Model       string  `yaml:"model"`
-	MaxTokens   int     `yaml:"max_tokens"`
-	Temperature float64 `yaml:"temperature"`
-	Timeout     int     `yaml:"timeout"` // in seconds
-	Priority    int     `yaml:"priority"` // Higher priority providers are tried first
+	Name        string  `mapstructure:"name"`        // "openai", "gemini", "deepseek"
+	APIKey      string  `mapstructure:"api_key"`     // Can be set via env var
+	BaseURL     string  `mapstructure:"base_url"`
+	Model       string  `mapstructure:"model"`
+	MaxTokens   int     `mapstructure:"max_tokens"`
+	Temperature float64 `mapstructure:"temperature"`
+	Timeout     int     `mapstructure:"timeout"`  // in seconds
+	Priority    int     `mapstructure:"priority"` // Higher priority providers are tried first
 }
 
 // AnalysisConfig represents analysis settings
 type AnalysisConfig struct {
-	MinConfidence       float64 `yaml:"min_confidence"`
-	MaxRecommendations  int     `yaml:"max_recommendations"`
-	IncludeSimilarCases bool    `yaml:"include_similar_cases"`
-	SimilarityThreshold float64 `yaml:"similarity_threshold"`
-	UseLLMFallback      bool    `yaml:"use_llm_fallback"` // Use LLM if rule-based analysis fails
+	MinConfidence       float64 `mapstructure:"min_confidence"`
+	MaxRecommendations  int     `mapstructure:"max_recommendations"`
+	IncludeSimilarCases bool    `mapstructure:"include_similar_cases"`
+	SimilarityThreshold float64 `mapstructure:"similarity_threshold"`
+	UseLLMFallback      bool    `mapstructure:"use_llm_fallback"` // Use LLM if rule-based analysis fails
 }
 
 // PredictionConfig represents prediction settings
 type PredictionConfig struct {
-	TimeWindows       []string          `yaml:"time_windows"`
-	AnomalyDetection  AnomalyConfig     `yaml:"anomaly_detection"`
+	TimeWindows      []string      `mapstructure:"time_windows"`
+	AnomalyDetection AnomalyConfig `mapstructure:"anomaly_detection"`
 }
 
 // AnomalyConfig represents anomaly detection settings
 type AnomalyConfig struct {
-	Contamination float64 `yaml:"contamination"`
-	NEstimators   int     `yaml:"n_estimators"`
+	Contamination float64 `mapstructure:"contamination"`
+	NEstimators   int     `mapstructure:"n_estimators"`
 }
 
 // LearningConfig represents learning system settings
 type LearningConfig struct {
-	EnableFeedback         bool   `yaml:"enable_feedback"`
-	MinSamplesForAccuracy  int    `yaml:"min_samples_for_accuracy"`
-	AccuracyUpdateInterval string `yaml:"accuracy_update_interval"`
-	ExportLearningData     bool   `yaml:"export_learning_data"`
-	ExportPath             string `yaml:"export_path"`
+	EnableFeedback         bool   `mapstructure:"enable_feedback"`
+	MinSamplesForAccuracy  int    `mapstructure:"min_samples_for_accuracy"`
+	AccuracyUpdateInterval string `mapstructure:"accuracy_update_interval"`
+	ExportLearningData     bool   `mapstructure:"export_learning_data"`
+	ExportPath             string `mapstructure:"export_path"`
 }
 
 // PerformanceConfig represents performance settings
 type PerformanceConfig struct {
-	MaxWorkers      int    `yaml:"max_workers"`
-	RequestTimeout  string `yaml:"request_timeout"`
-	MaxContextSize  int    `yaml:"max_context_size"` // Max characters in logs/context
+	MaxWorkers     int    `mapstructure:"max_workers"`
+	RequestTimeout string `mapstructure:"request_timeout"`
+	MaxContextSize int    `mapstructure:"max_context_size"` // Max characters in logs/context
 }
 
 // LoggingConfig represents logging configuration
 type LoggingConfig struct {
-	Level  string         `yaml:"level"`
-	Format string         `yaml:"format"` // "json", "text"
-	Output []string       `yaml:"output"` // "stdout", "stderr", "file"
-	File   FileLogConfig  `yaml:"file"`
+	Level  string        `mapstructure:"level"`
+	Format string        `mapstructure:"format"` // "json", "text"
+	Output []string      `mapstructure:"output"` // "stdout", "stderr", "file"
+	File   FileLogConfig `mapstructure:"file"`
 }
 
 // FileLogConfig represents file logging configuration
 type FileLogConfig struct {
-	Path       string `yaml:"path"`
-	MaxSize    string `yaml:"max_size"`
-	MaxAge     string `yaml:"max_age"`
-	MaxBackups int    `yaml:"max_backups"`
-	Compress   bool   `yaml:"compress"`
+	Path       string `mapstructure:"path"`
+	MaxSize    string `mapstructure:"max_size"`
+	MaxAge     string `mapstructure:"max_age"`
+	MaxBackups int    `mapstructure:"max_backups"`
+	Compress   bool   `mapstructure:"compress"`
 }
 
 // FeaturesConfig represents feature flags
 type FeaturesConfig struct {
-	EnablePrediction       bool `yaml:"enable_prediction"`
-	EnableLearning         bool `yaml:"enable_learning"`
-	EnableKnowledgeGraph   bool `yaml:"enable_knowledge_graph"`
-	EnableAnomalyDetection bool `yaml:"enable_anomaly_detection"`
-	EnableCaseSimilarity   bool `yaml:"enable_case_similarity"`
+	EnablePrediction       bool `mapstructure:"enable_prediction"`
+	EnableLearning         bool `mapstructure:"enable_learning"`
+	EnableKnowledgeGraph   bool `mapstructure:"enable_knowledge_graph"`
+	EnableAnomalyDetection bool `mapstructure:"enable_anomaly_detection"`
+	EnableCaseSimilarity   bool `mapstructure:"enable_case_similarity"`
 }
 
-// Load loads configuration from file
-func Load(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
+// Load loads configuration from file and environment variables
+func Load() (*Config, error) {
+	return LoadFromPath("")
+}
+
+// LoadFromPath loads configuration from a specific file path
+func LoadFromPath(configPath string) (*Config, error) {
+	v := viper.New()
+
+	if configPath != "" {
+		// Use specified config file path
+		v.SetConfigFile(configPath)
+	} else {
+		// Use default config file search
+		v.SetConfigName("config")
+		v.SetConfigType("yaml")
+		v.AddConfigPath("./configs")
+		v.AddConfigPath(".")
+	}
+
+	// Read configuration file
+	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
+	// Allow environment variable overrides
+	v.AutomaticEnv()
+
+	// Apply environment variable overrides before unmarshaling
+	applyEnvOverrides(v)
+
 	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
+	if err := v.Unmarshal(&config); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	// Apply environment variable overrides
-	applyEnvOverrides(&config)
+	// Apply LLM API key overrides from environment variables
+	applyLLMEnvOverrides(&config)
 
 	// Validate configuration
 	if err := validate(&config); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
+		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return &config, nil
 }
 
-// applyEnvOverrides applies environment variable overrides
-func applyEnvOverrides(config *Config) {
-	// Server overrides
-	if host := os.Getenv("SERVER_HOST"); host != "" {
-		config.Server.Host = host
-	}
-	if port := os.Getenv("SERVER_PORT"); port != "" {
-		fmt.Sscanf(port, "%d", &config.Server.Port)
-	}
+// applyEnvOverrides applies environment variable overrides using viper
+func applyEnvOverrides(v *viper.Viper) {
+	// Bind specific environment variables
+	v.BindEnv("server.host", "SERVER_HOST")
+	v.BindEnv("server.port", "SERVER_PORT")
+	v.BindEnv("server.log_level", "SERVER_LOG_LEVEL")
 
+	// Bind LLM API keys - these will be applied after unmarshaling
+	// Note: We handle LLM provider API keys in a post-processing step
+	// since they require iteration over the providers array
+}
+
+// applyLLMEnvOverrides applies LLM API key overrides from environment variables
+func applyLLMEnvOverrides(config *Config) {
 	// LLM API keys from environment
 	for i := range config.LLM.Providers {
 		provider := &config.LLM.Providers[i]
@@ -156,10 +184,9 @@ func applyEnvOverrides(config *Config) {
 				provider.APIKey = apiKey
 			}
 		case "gemini":
-			if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" || os.Getenv("GOOGLE_API_KEY") != "" {
-				if apiKey == "" {
-					apiKey = os.Getenv("GOOGLE_API_KEY")
-				}
+			if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
+				provider.APIKey = apiKey
+			} else if apiKey := os.Getenv("GOOGLE_API_KEY"); apiKey != "" {
 				provider.APIKey = apiKey
 			}
 		case "deepseek":

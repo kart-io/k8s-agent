@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
+	"github.com/kart-io/k8s-agent/orchestrator-service/internal/config"
 	"github.com/kart-io/k8s-agent/orchestrator-service/pkg/types"
 )
 
@@ -20,11 +21,11 @@ type PostgresStore struct {
 
 // NewPostgresStore creates a new MySQL store
 // Note: Kept the name for backward compatibility, but now using MySQL
-func NewPostgresStore(config types.DatabaseConfig, log *zap.Logger) (*PostgresStore, error) {
+func NewPostgresStore(cfg config.DatabaseConfig, log *zap.Logger) (*PostgresStore, error) {
 	// MySQL DSN format
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		config.User, config.Password, config.Host, config.Port, config.Database,
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database,
 	)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -37,9 +38,9 @@ func NewPostgresStore(config types.DatabaseConfig, log *zap.Logger) (*PostgresSt
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	sqlDB.SetMaxOpenConns(config.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(config.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(config.ConnMaxLifetime)
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
 	store := &PostgresStore{
 		db:     db,
