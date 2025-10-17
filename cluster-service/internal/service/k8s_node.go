@@ -13,12 +13,12 @@ import (
 
 // K8sNodeService Node 管理服务
 type K8sNodeService struct {
-	storage        *storage.PostgresStorage
+	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sNodeService 创建新的 Node 服务
-func NewK8sNodeService(storage *storage.PostgresStorage, clusterService *K8sClusterService) *K8sNodeService {
+func NewK8sNodeService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sNodeService {
 	return &K8sNodeService{
 		storage:        storage,
 		clusterService: clusterService,

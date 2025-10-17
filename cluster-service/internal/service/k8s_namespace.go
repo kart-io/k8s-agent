@@ -13,12 +13,12 @@ import (
 
 // K8sNamespaceService 命名空间管理服务
 type K8sNamespaceService struct {
-	storage       *storage.PostgresStorage
+	storage       *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sNamespaceService 创建新的命名空间服务
-func NewK8sNamespaceService(storage *storage.PostgresStorage, clusterService *K8sClusterService) *K8sNamespaceService {
+func NewK8sNamespaceService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sNamespaceService {
 	return &K8sNamespaceService{
 		storage:       storage,
 		clusterService: clusterService,

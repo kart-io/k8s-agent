@@ -68,7 +68,7 @@ func main() {
 	)
 
 	// 初始化数据库
-	pgStorage, err := storage.NewPostgresStorage(&storage.Config{
+	pgStorage, err := storage.NewMySQLStorage(&storage.Config{
 		Host:         cfg.Database.Host,
 		Port:         cfg.Database.Port,
 		User:         cfg.Database.User,
@@ -88,6 +88,12 @@ func main() {
 		"port", cfg.Database.Port,
 		"database", cfg.Database.DBName,
 	)
+
+	// 初始化数据库 schema
+	if err := pgStorage.InitSchema(); err != nil {
+		logger.Fatalw("Failed to initialize database schema", "error", err.Error())
+	}
+	logger.Info("Database schema initialized successfully")
 
 	// 初始化服务层
 	clusterService := service.NewClusterService(pgStorage, logrusLogger)
@@ -206,6 +212,18 @@ func setupLogrusLogger(level, format string) *logrus.Logger {
 
 // initCommonLogger 初始化 common/logger
 func initCommonLogger(cfg *config.Config) error {
+	// 获取服务名称，如果是默认值则使用 cluster-service
+	serviceName := version.Get().ServiceName
+	if serviceName == "" || serviceName == "unknown" || serviceName == "apiserver" {
+		serviceName = "cluster-service"
+	}
+
+	// 获取版本信息
+	gitVersion := version.Get().GitVersion
+	if gitVersion == "" || gitVersion == "unknown" {
+		gitVersion = "v0.0.0-dev"
+	}
+
 	logConfig := &logger.Config{
 		Engine:       "zap",                    // 使用 Zap 引擎（高性能）
 		Level:        cfg.Logging.Level,       // 从配置读取日志级别
@@ -214,8 +232,10 @@ func initCommonLogger(cfg *config.Config) error {
 		EnableCaller: true,                    // 启用调用者信息
 		Development:  cfg.Server.Mode == "debug", // 开发模式
 		InitialFields: map[string]interface{}{
-			"service": version.Get().ServiceName,
-			"version": version.Get().GitVersion,
+			"service.name":    serviceName,  // 覆盖默认的 "unknown"
+			"service.version": gitVersion,   // 覆盖默认的 "unknown"
+			"service":         serviceName,  // 保留兼容字段
+			"version":         gitVersion,   // 保留兼容字段
 		},
 	}
 

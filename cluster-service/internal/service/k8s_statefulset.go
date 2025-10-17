@@ -14,12 +14,12 @@ import (
 
 // K8sStatefulSetService StatefulSet 管理服务
 type K8sStatefulSetService struct {
-	storage        *storage.PostgresStorage
+	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sStatefulSetService 创建新的 StatefulSet 服务
-func NewK8sStatefulSetService(storage *storage.PostgresStorage, clusterService *K8sClusterService) *K8sStatefulSetService {
+func NewK8sStatefulSetService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sStatefulSetService {
 	return &K8sStatefulSetService{
 		storage:        storage,
 		clusterService: clusterService,

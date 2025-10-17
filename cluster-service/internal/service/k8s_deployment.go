@@ -14,12 +14,12 @@ import (
 
 // K8sDeploymentService Deployment 管理服务
 type K8sDeploymentService struct {
-	storage        *storage.PostgresStorage
+	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sDeploymentService 创建新的 Deployment 服务
-func NewK8sDeploymentService(storage *storage.PostgresStorage, clusterService *K8sClusterService) *K8sDeploymentService {
+func NewK8sDeploymentService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sDeploymentService {
 	return &K8sDeploymentService{
 		storage:        storage,
 		clusterService: clusterService,

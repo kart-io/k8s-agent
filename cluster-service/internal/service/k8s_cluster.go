@@ -15,12 +15,12 @@ import (
 
 // K8sClusterService 集群管理服务
 type K8sClusterService struct {
-	storage *storage.PostgresStorage
+	storage *storage.MySQLStorage
 	clients map[string]*k8s.Client // cluster_id -> client
 }
 
 // NewK8sClusterService 创建新的集群服务
-func NewK8sClusterService(storage *storage.PostgresStorage) *K8sClusterService {
+func NewK8sClusterService(storage *storage.MySQLStorage) *K8sClusterService {
 	return &K8sClusterService{
 		storage: storage,
 		clients: make(map[string]*k8s.Client),
@@ -67,7 +67,7 @@ func (s *K8sClusterService) ListClusters(ctx context.Context, offset, limit int)
 		SELECT id, name, description, endpoint, version, status, region, provider, created_at, updated_at
 		FROM clusters
 		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2
+		LIMIT ? OFFSET ?
 	`
 
 	rows, err := s.storage.DB().QueryContext(ctx, query, limit, offset)
@@ -105,7 +105,7 @@ func (s *K8sClusterService) GetCluster(ctx context.Context, clusterID string) (*
 	query := `
 		SELECT id, name, description, endpoint, version, status, region, provider, created_at, updated_at
 		FROM clusters
-		WHERE id = $1
+		WHERE id = ?
 	`
 
 	var cluster ClusterInfo
@@ -172,7 +172,7 @@ func (s *K8sClusterService) CreateCluster(
 
 	query := `
 		INSERT INTO clusters (id, name, description, endpoint, version, status, region, provider, kubeconfig, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	_, err = s.storage.DB().ExecContext(ctx, query,
@@ -212,8 +212,8 @@ func (s *K8sClusterService) UpdateCluster(
 	now := time.Now()
 	query := `
 		UPDATE clusters
-		SET name = $1, description = $2, updated_at = $3
-		WHERE id = $4
+		SET name = ?, description = ?, updated_at = ?
+		WHERE id = ?
 	`
 
 	_, err = s.storage.DB().ExecContext(ctx, query, name, description, now, clusterID)
@@ -228,7 +228,7 @@ func (s *K8sClusterService) UpdateCluster(
 
 // DeleteCluster 删除集群
 func (s *K8sClusterService) DeleteCluster(ctx context.Context, clusterID string) error {
-	query := "DELETE FROM clusters WHERE id = $1"
+	query := "DELETE FROM clusters WHERE id = ?"
 	result, err := s.storage.DB().ExecContext(ctx, query, clusterID)
 	if err != nil {
 		return errors.NewDatabaseError(fmt.Errorf("failed to delete cluster: %w", err))
@@ -311,7 +311,7 @@ func (s *K8sClusterService) getClient(ctx context.Context, clusterID string) (*k
 
 	// 从数据库加载
 	var kubeconfigData string
-	query := "SELECT kubeconfig FROM clusters WHERE id = $1"
+	query := "SELECT kubeconfig FROM clusters WHERE id = ?"
 	err := s.storage.DB().QueryRowContext(ctx, query, clusterID).Scan(&kubeconfigData)
 	if err != nil {
 		return nil, errors.ErrClusterNotFound

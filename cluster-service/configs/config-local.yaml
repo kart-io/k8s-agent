@@ -1,0 +1,24 @@
+# Local Development Configuration (using Docker MySQL)
+
+server:
+  port: 8082
+  mode: debug
+  read_timeout: 30s
+  write_timeout: 30s
+
+database:
+  host: localhost
+  port: 3306
+  user: cluster_user
+  password: cluster_pass
+  dbname: cluster_db
+  sslmode: disable
+  max_open_conns: 10
+  max_idle_conns: 2
+
+jwt:
+  secret: dev-secret-key-not-for-production
+
+logging:
+  level: debug
+  format: text

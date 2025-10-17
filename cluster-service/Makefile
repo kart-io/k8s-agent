@@ -55,6 +55,10 @@ run-dev:
 	@echo "Running $(SERVICE_NAME) with dev config..."
 	@go run cmd/server/main.go -config configs/config.dev.yaml
 
+run-local: ## Run the service with local MySQL config
+	@echo "Running $(SERVICE_NAME) with local config..."
+	@go run cmd/server/main.go -config configs/config-local.yaml
+
 clean:
 	@echo "Cleaning..."
 	@rm -rf bin
@@ -68,6 +72,7 @@ help: ## Display this help message
 	@echo "  make build              - Build the service with version injection"
 	@echo "  make run                - Run the service directly"
 	@echo "  make run-dev            - Run the service with dev config"
+	@echo "  make run-local          - Run the service with local MySQL config"
 	@echo "  make version            - Display version information"
 	@echo "  make test               - Run tests"
 	@echo "  make clean              - Clean build artifacts"

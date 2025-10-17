@@ -13,12 +13,12 @@ import (
 
 // K8sConfigMapService ConfigMap 管理服务
 type K8sConfigMapService struct {
-	storage        *storage.PostgresStorage
+	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sConfigMapService 创建新的 ConfigMap 服务
-func NewK8sConfigMapService(storage *storage.PostgresStorage, clusterService *K8sClusterService) *K8sConfigMapService {
+func NewK8sConfigMapService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sConfigMapService {
 	return &K8sConfigMapService{
 		storage:        storage,
 		clusterService: clusterService,

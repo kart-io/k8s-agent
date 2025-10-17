@@ -13,12 +13,12 @@ import (
 
 // K8sSecretService Secret 管理服务
 type K8sSecretService struct {
-	storage        *storage.PostgresStorage
+	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sSecretService 创建新的 Secret 服务
-func NewK8sSecretService(storage *storage.PostgresStorage, clusterService *K8sClusterService) *K8sSecretService {
+func NewK8sSecretService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sSecretService {
 	return &K8sSecretService{
 		storage:        storage,
 		clusterService: clusterService,

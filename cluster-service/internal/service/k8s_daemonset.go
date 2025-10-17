@@ -14,12 +14,12 @@ import (
 
 // K8sDaemonSetService DaemonSet 管理服务
 type K8sDaemonSetService struct {
-	storage        *storage.PostgresStorage
+	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sDaemonSetService 创建新的 DaemonSet 服务
-func NewK8sDaemonSetService(storage *storage.PostgresStorage, clusterService *K8sClusterService) *K8sDaemonSetService {
+func NewK8sDaemonSetService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sDaemonSetService {
 	return &K8sDaemonSetService{
 		storage:        storage,
 		clusterService: clusterService,

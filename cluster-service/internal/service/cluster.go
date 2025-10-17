@@ -13,12 +13,12 @@ import (
 )
 
 type ClusterService struct {
-	storage *storage.PostgresStorage
+	storage *storage.MySQLStorage
 	clients map[string]*k8s.Client // cluster_id -> client
 	log     *logrus.Logger
 }
 
-func NewClusterService(storage *storage.PostgresStorage, logger *logrus.Logger) *ClusterService {
+func NewClusterService(storage *storage.MySQLStorage, logger *logrus.Logger) *ClusterService {
 	return &ClusterService{
 		storage: storage,
 		clients: make(map[string]*k8s.Client),
@@ -53,7 +53,7 @@ func (s *ClusterService) AddCluster(ctx context.Context, cluster *types.Cluster)
 	// 保存到数据库
 	query := `
 		INSERT INTO clusters (id, name, description, endpoint, version, status, region, provider, kubeconfig, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	_, err = s.storage.DB().ExecContext(ctx, query,
 		cluster.ID, cluster.Name, cluster.Description, cluster.Endpoint,
@@ -184,7 +184,7 @@ func (s *ClusterService) getClient(clusterID string) (*k8s.Client, error) {
 
 	// 从数据库加载
 	var kubeconfigData string
-	query := "SELECT kubeconfig FROM clusters WHERE id = $1"
+	query := "SELECT kubeconfig FROM clusters WHERE id = ?"
 	err := s.storage.DB().QueryRow(query, clusterID).Scan(&kubeconfigData)
 	if err != nil {
 		return nil, fmt.Errorf("cluster not found: %w", err)

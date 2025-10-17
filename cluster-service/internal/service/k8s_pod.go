@@ -15,12 +15,12 @@ import (
 
 // K8sPodService Pod 管理服务
 type K8sPodService struct {
-	storage        *storage.PostgresStorage
+	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sPodService 创建新的 Pod 服务
-func NewK8sPodService(storage *storage.PostgresStorage, clusterService *K8sClusterService) *K8sPodService {
+func NewK8sPodService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sPodService {
 	return &K8sPodService{
 		storage:        storage,
 		clusterService: clusterService,

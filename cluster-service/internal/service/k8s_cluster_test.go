@@ -18,7 +18,7 @@ func TestNewK8sClusterService(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	storage := &storage.PostgresStorage{}
+	storage := storage.NewMySQLStorageWithDB(db, nil)
 	service := NewK8sClusterService(storage)
 
 	assert.NotNil(t, service)
@@ -33,10 +33,8 @@ func TestListClusters(t *testing.T) {
 	defer db.Close()
 
 	// 创建 storage
-	storage := &storage.PostgresStorage{}
-	// 这里需要设置 storage 的 DB 字段（实际实现中需要通过 storage 包的方法）
-
-	service := NewK8sClusterService(storage)
+	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
+	service := NewK8sClusterService(storageInstance)
 
 	// 设置期望的 SQL 查询
 	rows := sqlmock.NewRows([]string{"count"}).AddRow(2)
@@ -55,10 +53,14 @@ func TestListClusters(t *testing.T) {
 
 	ctx := context.Background()
 
-	// 注意：这个测试需要完善 storage 的 mock 实现
-	// 这里仅作为示例展示测试结构
+	// 执行测试（注意：由于 sqlmock 的限制，这里可能需要更详细的设置）
+	clusters, total, err := service.ListClusters(ctx, 0, 10)
 
-	t.Log("Test structure created successfully")
+	// 验证结果
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	assert.Len(t, clusters, 2)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 // TestGetCluster 测试获取集群详情
@@ -86,8 +88,8 @@ func TestGetCluster(t *testing.T) {
 			require.NoError(t, err)
 			defer db.Close()
 
-			storage := &storage.PostgresStorage{}
-			service := NewK8sClusterService(storage)
+			storageInstance := storage.NewMySQLStorageWithDB(db, nil)
+			service := NewK8sClusterService(storageInstance)
 
 			if !tt.wantErr {
 				row := sqlmock.NewRows([]string{
@@ -132,8 +134,8 @@ func TestDeleteCluster(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	storage := &storage.PostgresStorage{}
-	service := NewK8sClusterService(storage)
+	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
+	service := NewK8sClusterService(storageInstance)
 
 	clusterID := "cluster-to-delete"
 
@@ -145,9 +147,8 @@ func TestDeleteCluster(t *testing.T) {
 	ctx := context.Background()
 	err = service.DeleteCluster(ctx, clusterID)
 
-	// 由于我们没有正确设置 storage.DB()，这里会失败
-	// 实际测试中需要正确配置 storage
-	t.Log("Delete cluster test structure created")
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 // TestValidateClusterName 测试集群名称验证
@@ -187,8 +188,8 @@ func BenchmarkListClusters(b *testing.B) {
 	}
 	defer db.Close()
 
-	storage := &storage.PostgresStorage{}
-	service := NewK8sClusterService(storage)
+	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
+	service := NewK8sClusterService(storageInstance)
 
 	// 设置期望
 	for i := 0; i < b.N; i++ {

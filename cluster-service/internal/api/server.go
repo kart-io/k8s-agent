@@ -105,10 +105,10 @@ func (s *Server) setupRoutes() {
 		clusters := v1.Group("/clusters")
 		{
 			clusters.POST("", s.handler.AddCluster)
-			clusters.GET("/:id/health", s.handler.GetClusterHealth)
+			clusters.GET("/:clusterId/health", s.handler.GetClusterHealth)
 
 			// Pod routes
-			clusters.GET("/:cluster_id/namespaces/:namespace/pods", s.handler.GetPods)
+			clusters.GET("/:clusterId/namespaces/:namespace/pods", s.handler.GetPods)
 		}
 	}
 }
@@ -133,8 +133,8 @@ func (s *Server) setupK8sAPIRoutes() {
 		clusters := v1.Group("/clusters")
 		{
 			clusters.POST("", s.handler.AddCluster)
-			clusters.GET("/:id/health", s.handler.GetClusterHealth)
-			clusters.GET("/:cluster_id/namespaces/:namespace/pods", s.handler.GetPods)
+			clusters.GET("/:clusterId/health", s.handler.GetClusterHealth)
+			clusters.GET("/:clusterId/namespaces/:namespace/pods", s.handler.GetPods)
 		}
 	}
 
@@ -148,21 +148,16 @@ func (s *Server) setupK8sAPIRoutes() {
 		{
 			clusters.GET("", s.k8sAPIHandler.ListClusters)              // 获取集群列表
 			clusters.POST("", s.k8sAPIHandler.CreateCluster)            // 创建集群
-			clusters.GET("/:id", s.k8sAPIHandler.GetCluster)            // 获取集群详情
-			clusters.PUT("/:id", s.k8sAPIHandler.UpdateCluster)         // 更新集群
-			clusters.DELETE("/:id", s.k8sAPIHandler.DeleteCluster)      // 删除集群
-			clusters.GET("/:id/health", s.k8sAPIHandler.GetClusterHealthStatus) // 获取集群健康状态
-		}
+			clusters.GET("/:clusterId", s.k8sAPIHandler.GetCluster)            // 获取集群详情
+			clusters.PUT("/:clusterId", s.k8sAPIHandler.UpdateCluster)         // 更新集群
+			clusters.DELETE("/:clusterId", s.k8sAPIHandler.DeleteCluster)      // 删除集群
+			clusters.GET("/:clusterId/health", s.k8sAPIHandler.GetClusterHealthStatus) // 获取集群健康状态
 
-		// ===========================
-		// 命名空间管理 API
-		// ===========================
-		clusterNamespaces := k8sAPI.Group("/clusters/:clusterId/namespaces")
-		{
-			clusterNamespaces.GET("", s.k8sAPIHandler.ListNamespaces)          // 获取命名空间列表
-			clusterNamespaces.POST("", s.k8sAPIHandler.CreateNamespace)        // 创建命名空间
-			clusterNamespaces.GET("/:name", s.k8sAPIHandler.GetNamespace)      // 获取命名空间详情
-			clusterNamespaces.DELETE("/:name", s.k8sAPIHandler.DeleteNamespace) // 删除命名空间
+			// 命名空间管理 API - 放在集群组下
+			clusters.GET("/:clusterId/namespaces", s.k8sAPIHandler.ListNamespaces)          // 获取命名空间列表
+			clusters.POST("/:clusterId/namespaces", s.k8sAPIHandler.CreateNamespace)        // 创建命名空间
+			clusters.GET("/:clusterId/ns/:namespace", s.k8sAPIHandler.GetNamespace)         // 获取命名空间详情 (使用 ns 避免冲突)
+			clusters.DELETE("/:clusterId/ns/:namespace", s.k8sAPIHandler.DeleteNamespace)   // 删除命名空间 (使用 ns 避免冲突)
 		}
 
 		// ===========================
