@@ -134,3 +134,4 @@ models/
 *.dump
 
 auth-service/configs/config-dev.yaml
+cluster-service/configs/config-dev.yaml
