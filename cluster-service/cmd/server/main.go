@@ -15,14 +15,18 @@ import (
 	"github.com/kart-io/k8s-agent/cluster-service/internal/handler"
 	"github.com/kart-io/k8s-agent/cluster-service/internal/service"
 	"github.com/kart-io/k8s-agent/cluster-service/internal/storage"
+	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/version"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	// Parse command-line flags
 	var configPath string
+	var enableK8sAPI bool
 	flag.StringVar(&configPath, "config", "", "Path to configuration file (defaults to ./configs/config.yaml)")
 	flag.StringVar(&configPath, "c", "", "Path to configuration file (shorthand)")
+	flag.BoolVar(&enableK8sAPI, "enable-k8s-api", true, "Enable full K8s API endpoints (default: true)")
 	flag.Parse()
 
 	// Load configuration from config file
@@ -42,8 +46,28 @@ func main() {
 		}
 	}
 
-	logger := setupLogger(cfg.Logging.Level, cfg.Logging.Format)
+	// 初始化 logrus logger（用于兼容现有代码）
+	logrusLogger := setupLogrusLogger(cfg.Logging.Level, cfg.Logging.Format)
 
+	// 初始化 common/logger（用于新代码）
+	if err := initCommonLogger(cfg); err != nil {
+		logrusLogger.WithError(err).Fatal("Failed to initialize common logger")
+	}
+
+	// 获取版本信息
+	versionInfo := version.Get()
+
+	logger.Infow("Application starting",
+		"service", versionInfo.ServiceName,
+		"version", versionInfo.GitVersion,
+		"commit", versionInfo.GitCommit,
+		"branch", versionInfo.GitBranch,
+		"build_date", versionInfo.BuildDate,
+		"config_path", configPath,
+		"enable_k8s_api", enableK8sAPI,
+	)
+
+	// 初始化数据库
 	pgStorage, err := storage.NewPostgresStorage(&storage.Config{
 		Host:         cfg.Database.Host,
 		Port:         cfg.Database.Port,
@@ -53,48 +77,112 @@ func main() {
 		SSLMode:      cfg.Database.SSLMode,
 		MaxOpenConns: cfg.Database.MaxOpenConns,
 		MaxIdleConns: cfg.Database.MaxIdleConns,
-	}, logger)
+	}, logrusLogger)
 	if err != nil {
-		logger.WithError(err).Fatal("Failed to initialize PostgreSQL storage")
+		logger.Fatalw("Failed to initialize PostgreSQL storage", "error", err.Error())
 	}
 	defer pgStorage.Close()
 
-	clusterService := service.NewClusterService(pgStorage, logger)
-	clusterHandler := handler.NewClusterHandler(clusterService, logger)
+	logger.Infow("Database connected",
+		"host", cfg.Database.Host,
+		"port", cfg.Database.Port,
+		"database", cfg.Database.DBName,
+	)
+
+	// 初始化服务层
+	clusterService := service.NewClusterService(pgStorage, logrusLogger)
+	clusterHandler := handler.NewClusterHandler(clusterService, logrusLogger)
 
 	readTimeout, _ := time.ParseDuration(cfg.Server.ReadTimeout)
 	writeTimeout, _ := time.ParseDuration(cfg.Server.WriteTimeout)
 
-	server := api.NewServer(&api.ServerConfig{
+	serverConfig := &api.ServerConfig{
 		Port:         cfg.Server.Port,
 		Mode:         cfg.Server.Mode,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 		JWTSecret:    cfg.JWT.Secret,
-	}, clusterHandler, logger)
+	}
 
+	var server *api.Server
+
+	if enableK8sAPI {
+		// 初始化 K8s API 相关服务
+		k8sClusterService := service.NewK8sClusterService(pgStorage)
+		k8sNamespaceService := service.NewK8sNamespaceService(pgStorage, k8sClusterService)
+		k8sPodService := service.NewK8sPodService(pgStorage, k8sClusterService)
+		k8sDeploymentService := service.NewK8sDeploymentService(pgStorage, k8sClusterService)
+		k8sNodeService := service.NewK8sNodeService(pgStorage, k8sClusterService)
+		k8sServiceService := service.NewK8sServiceService(pgStorage, k8sClusterService)
+		k8sStatefulSetService := service.NewK8sStatefulSetService(pgStorage, k8sClusterService)
+		k8sDaemonSetService := service.NewK8sDaemonSetService(pgStorage, k8sClusterService)
+		k8sConfigMapService := service.NewK8sConfigMapService(pgStorage, k8sClusterService)
+		k8sSecretService := service.NewK8sSecretService(pgStorage, k8sClusterService)
+
+		// 初始化 K8s API 处理器
+		k8sAPIHandler := handler.NewK8sAPIHandler(
+			k8sClusterService,
+			k8sNamespaceService,
+			k8sPodService,
+			k8sDeploymentService,
+			k8sNodeService,
+			k8sServiceService,
+			k8sStatefulSetService,
+			k8sDaemonSetService,
+			k8sConfigMapService,
+			k8sSecretService,
+		)
+
+		// 创建支持完整 K8s API 的服务器
+		server = api.NewServerWithK8sAPI(serverConfig, clusterHandler, k8sAPIHandler, logrusLogger)
+
+		logger.Infow("K8s API enabled",
+			"endpoints", "cluster, namespace, pod, deployment, node, service, statefulset, daemonset, configmap, secret",
+			"base_path", "/api/k8s",
+		)
+	} else {
+		// 创建原有的服务器（保持向后兼容）
+		server = api.NewServer(serverConfig, clusterHandler, logrusLogger)
+		logger.Info("K8s API disabled, using legacy endpoints only")
+	}
+
+	// 启动服务器
 	go func() {
 		if err := server.Start(); err != nil {
-			logger.WithError(err).Fatal("Server failed to start")
+			logger.Fatalw("Server failed to start", "error", err.Error())
 		}
 	}()
 
+	logger.Infow("Cluster service started successfully",
+		"port", cfg.Server.Port,
+		"mode", cfg.Server.Mode,
+	)
+
+	// 等待中断信号
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	sig := <-quit
 
-	logger.Info("Shutting down server...")
+	logger.Infow("Received shutdown signal", "signal", sig.String())
+	logrusLogger.WithField("signal", sig).Info("Shutting down server...")
+
+	// 优雅关闭
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		logger.WithError(err).Error("Server forced to shutdown")
+		logger.Errorw("Server forced to shutdown", "error", err.Error())
+		logrusLogger.WithError(err).Error("Server forced to shutdown")
 	}
 
-	logger.Info("Server exited")
+	// Sync logger before exit
+	logger.Sync()
+	logger.Info("Server exited gracefully")
+	logrusLogger.Info("Server exited")
 }
 
-func setupLogger(level, format string) *logrus.Logger {
+// setupLogrusLogger 设置 logrus logger（保持向后兼容）
+func setupLogrusLogger(level, format string) *logrus.Logger {
 	logger := logrus.New()
 	logLevel, err := logrus.ParseLevel(level)
 	if err != nil {
@@ -114,4 +202,26 @@ func setupLogger(level, format string) *logrus.Logger {
 	}
 
 	return logger
+}
+
+// initCommonLogger 初始化 common/logger
+func initCommonLogger(cfg *config.Config) error {
+	logConfig := &logger.Config{
+		Engine:       "zap",                    // 使用 Zap 引擎（高性能）
+		Level:        cfg.Logging.Level,       // 从配置读取日志级别
+		Format:       cfg.Logging.Format,      // 从配置读取输出格式
+		OutputPaths:  []string{"stdout"},      // 输出到标准输出
+		EnableCaller: true,                    // 启用调用者信息
+		Development:  cfg.Server.Mode == "debug", // 开发模式
+		InitialFields: map[string]interface{}{
+			"service": version.Get().ServiceName,
+			"version": version.Get().GitVersion,
+		},
+	}
+
+	if err := logger.Init(logConfig); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	return nil
 }

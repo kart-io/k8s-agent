@@ -8,6 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kart-io/k8s-agent/cluster-service/internal/handler"
+	handler2 "github.com/kart-io/k8s-agent/cluster-service/internal/handler"
+	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/common/middleware"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,33 +23,80 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	config  *ServerConfig
-	handler *handler.ClusterHandler
-	log     *logrus.Logger
-	engine  *gin.Engine
-	server  *http.Server
+	config         *ServerConfig
+	handler        *handler.ClusterHandler
+	k8sAPIHandler  *handler.K8sAPIHandler
+	versionHandler *handler.VersionHandler
+	log            *logrus.Logger
+	engine         *gin.Engine
+	server         *http.Server
 }
 
+// NewServer 创建新的服务器实例（保持向后兼容）
 func NewServer(config *ServerConfig, handler *handler.ClusterHandler, logger *logrus.Logger) *Server {
 	gin.SetMode(config.Mode)
 	engine := gin.New()
+
+	// 使用基本中间件
 	engine.Use(gin.Recovery())
 	engine.Use(ginLogger(logger))
 
 	s := &Server{
-		config:  config,
-		handler: handler,
-		log:     logger,
-		engine:  engine,
+		config:         config,
+		handler:        handler,
+		versionHandler: handler2.NewVersionHandler(),
+		log:            logger,
+		engine:         engine,
 	}
 
 	s.setupRoutes()
 	return s
 }
 
+// NewServerWithK8sAPI 创建支持完整 K8s API 的服务器实例
+func NewServerWithK8sAPI(
+	config *ServerConfig,
+	handler *handler.ClusterHandler,
+	k8sAPIHandler *handler.K8sAPIHandler,
+	logger *logrus.Logger,
+) *Server {
+	gin.SetMode(config.Mode)
+	engine := gin.New()
+
+	// 使用 common 包中的中间件
+	engine.Use(middleware.Recovery())
+	engine.Use(middleware.RequestID())
+	engine.Use(middleware.RequestLogger())
+	engine.Use(middleware.CORS())
+	engine.Use(middleware.RateLimitByIP(100, 200)) // 每秒 100 个请求，桶容量 200
+	engine.Use(middleware.Timeout(30 * time.Second))
+
+	s := &Server{
+		config:         config,
+		handler:        handler,
+		k8sAPIHandler:  k8sAPIHandler,
+		versionHandler: handler2.NewVersionHandler(),
+		log:            logger,
+		engine:         engine,
+	}
+
+	s.setupK8sAPIRoutes()
+	return s
+}
+
+// setupRoutes 设置原有的路由（保持向后兼容）
 func (s *Server) setupRoutes() {
 	// Health check
 	s.engine.GET("/health", s.handler.HealthCheck)
+
+	// Version endpoints
+	version := s.engine.Group("/version")
+	{
+		version.GET("", s.versionHandler.GetVersion)            // 完整版本信息
+		version.GET("/simple", s.versionHandler.GetVersionSimple) // 简化版本信息
+		version.GET("/text", s.versionHandler.GetVersionText)   // 文本格式
+		version.GET("/json", s.versionHandler.GetVersionJSON)   // JSON 格式
+	}
 
 	// API routes
 	v1 := s.engine.Group("/api/v1")
@@ -63,6 +113,168 @@ func (s *Server) setupRoutes() {
 	}
 }
 
+// setupK8sAPIRoutes 设置完整的 K8s API 路由
+func (s *Server) setupK8sAPIRoutes() {
+	// Health check
+	s.engine.GET("/health", s.handler.HealthCheck)
+
+	// Version endpoints
+	version := s.engine.Group("/version")
+	{
+		version.GET("", s.versionHandler.GetVersion)            // 完整版本信息
+		version.GET("/simple", s.versionHandler.GetVersionSimple) // 简化版本信息
+		version.GET("/text", s.versionHandler.GetVersionText)   // 文本格式
+		version.GET("/json", s.versionHandler.GetVersionJSON)   // JSON 格式
+	}
+
+	// 原有的 v1 API（保持向后兼容）
+	v1 := s.engine.Group("/api/v1")
+	{
+		clusters := v1.Group("/clusters")
+		{
+			clusters.POST("", s.handler.AddCluster)
+			clusters.GET("/:id/health", s.handler.GetClusterHealth)
+			clusters.GET("/:cluster_id/namespaces/:namespace/pods", s.handler.GetPods)
+		}
+	}
+
+	// 新的 K8s API 路由 - 基于 /api/k8s 路径
+	k8sAPI := s.engine.Group("/api/k8s")
+	{
+		// ===========================
+		// 集群管理 API
+		// ===========================
+		clusters := k8sAPI.Group("/clusters")
+		{
+			clusters.GET("", s.k8sAPIHandler.ListClusters)              // 获取集群列表
+			clusters.POST("", s.k8sAPIHandler.CreateCluster)            // 创建集群
+			clusters.GET("/:id", s.k8sAPIHandler.GetCluster)            // 获取集群详情
+			clusters.PUT("/:id", s.k8sAPIHandler.UpdateCluster)         // 更新集群
+			clusters.DELETE("/:id", s.k8sAPIHandler.DeleteCluster)      // 删除集群
+			clusters.GET("/:id/health", s.k8sAPIHandler.GetClusterHealthStatus) // 获取集群健康状态
+		}
+
+		// ===========================
+		// 命名空间管理 API
+		// ===========================
+		clusterNamespaces := k8sAPI.Group("/clusters/:clusterId/namespaces")
+		{
+			clusterNamespaces.GET("", s.k8sAPIHandler.ListNamespaces)          // 获取命名空间列表
+			clusterNamespaces.POST("", s.k8sAPIHandler.CreateNamespace)        // 创建命名空间
+			clusterNamespaces.GET("/:name", s.k8sAPIHandler.GetNamespace)      // 获取命名空间详情
+			clusterNamespaces.DELETE("/:name", s.k8sAPIHandler.DeleteNamespace) // 删除命名空间
+		}
+
+		// ===========================
+		// Pod 管理 API
+		// ===========================
+		pods := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/pods")
+		{
+			pods.GET("", s.k8sAPIHandler.ListPods)              // 获取 Pod 列表
+			pods.GET("/:name", s.k8sAPIHandler.GetPod)          // 获取 Pod 详情
+			pods.DELETE("/:name", s.k8sAPIHandler.DeletePod)    // 删除 Pod
+			pods.GET("/:name/logs", s.k8sAPIHandler.GetPodLogs) // 获取 Pod 日志
+		}
+
+		// ===========================
+		// Deployment 管理 API
+		// ===========================
+		deployments := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/deployments")
+		{
+			deployments.GET("", s.k8sAPIHandler.ListDeployments)                    // 获取 Deployment 列表
+			deployments.GET("/:name", s.k8sAPIHandler.GetDeployment)                // 获取 Deployment 详情
+			deployments.PUT("/:name/scale", s.k8sAPIHandler.ScaleDeployment)        // 扩缩容
+			deployments.POST("/:name/restart", s.k8sAPIHandler.RestartDeployment)   // 重启
+		}
+
+		// ===========================
+		// Node 管理 API
+		// ===========================
+		nodes := k8sAPI.Group("/clusters/:clusterId/nodes")
+		{
+			nodes.GET("", s.k8sAPIHandler.ListNodes)                    // 获取 Node 列表
+			nodes.GET("/:name", s.k8sAPIHandler.GetNode)                // 获取 Node 详情
+			nodes.POST("/:name/cordon", s.k8sAPIHandler.CordonNode)     // 标记为不可调度
+			nodes.POST("/:name/uncordon", s.k8sAPIHandler.UncordonNode) // 标记为可调度
+			nodes.POST("/:name/drain", s.k8sAPIHandler.DrainNode)       // 驱逐 Pod
+		}
+
+		// ===========================
+		// Service 管理 API
+		// ===========================
+		services := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/services")
+		{
+			services.GET("", s.k8sAPIHandler.ListServices)             // 获取 Service 列表
+			services.POST("", s.k8sAPIHandler.CreateService)           // 创建 Service
+			services.GET("/:name", s.k8sAPIHandler.GetService)         // 获取 Service 详情
+			services.PUT("/:name", s.k8sAPIHandler.UpdateService)      // 更新 Service
+			services.DELETE("/:name", s.k8sAPIHandler.DeleteService)   // 删除 Service
+		}
+
+		// ===========================
+		// StatefulSet 管理 API
+		// ===========================
+		statefulsets := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/statefulsets")
+		{
+			statefulsets.GET("", s.k8sAPIHandler.ListStatefulSets)                      // 获取 StatefulSet 列表
+			statefulsets.GET("/:name", s.k8sAPIHandler.GetStatefulSet)                  // 获取 StatefulSet 详情
+			statefulsets.PUT("/:name/scale", s.k8sAPIHandler.ScaleStatefulSet)          // 扩缩容
+			statefulsets.POST("/:name/restart", s.k8sAPIHandler.RestartStatefulSet)     // 重启
+			statefulsets.DELETE("/:name", s.k8sAPIHandler.DeleteStatefulSet)            // 删除
+		}
+
+		// ===========================
+		// DaemonSet 管理 API
+		// ===========================
+		daemonsets := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/daemonsets")
+		{
+			daemonsets.GET("", s.k8sAPIHandler.ListDaemonSets)                      // 获取 DaemonSet 列表
+			daemonsets.GET("/:name", s.k8sAPIHandler.GetDaemonSet)                  // 获取 DaemonSet 详情
+			daemonsets.POST("/:name/restart", s.k8sAPIHandler.RestartDaemonSet)     // 重启
+			daemonsets.DELETE("/:name", s.k8sAPIHandler.DeleteDaemonSet)            // 删除
+		}
+
+		// ===========================
+		// ConfigMap 管理 API
+		// ===========================
+		configmaps := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/configmaps")
+		{
+			configmaps.GET("", s.k8sAPIHandler.ListConfigMaps)                     // 获取 ConfigMap 列表
+			configmaps.GET("/:name", s.k8sAPIHandler.GetConfigMap)                 // 获取 ConfigMap 详情
+			configmaps.POST("", s.k8sAPIHandler.CreateConfigMap)                   // 创建 ConfigMap
+			configmaps.PUT("/:name", s.k8sAPIHandler.UpdateConfigMap)              // 更新 ConfigMap
+			configmaps.DELETE("/:name", s.k8sAPIHandler.DeleteConfigMap)           // 删除 ConfigMap
+		}
+
+		// ===========================
+		// Secret 管理 API
+		// ===========================
+		secrets := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/secrets")
+		{
+			secrets.GET("", s.k8sAPIHandler.ListSecrets)                           // 获取 Secret 列表
+			secrets.GET("/:name", s.k8sAPIHandler.GetSecret)                       // 获取 Secret 详情
+			secrets.POST("", s.k8sAPIHandler.CreateSecret)                         // 创建 Secret
+			secrets.PUT("/:name", s.k8sAPIHandler.UpdateSecret)                    // 更新 Secret
+			secrets.DELETE("/:name", s.k8sAPIHandler.DeleteSecret)                 // 删除 Secret
+		}
+	}
+
+	// 记录注册的路由
+	logger.Infow("K8s API routes registered",
+		"base_path", "/api/k8s",
+		"cluster_endpoints", 6,
+		"namespace_endpoints", 4,
+		"pod_endpoints", 4,
+		"deployment_endpoints", 4,
+		"node_endpoints", 5,
+		"service_endpoints", 5,
+		"statefulset_endpoints", 5,
+		"daemonset_endpoints", 4,
+		"configmap_endpoints", 5,
+		"secret_endpoints", 5,
+	)
+}
+
 func (s *Server) Start() error {
 	addr := fmt.Sprintf(":%d", s.config.Port)
 	s.server = &http.Server{
@@ -73,18 +285,27 @@ func (s *Server) Start() error {
 	}
 
 	s.log.WithField("port", s.config.Port).Info("Starting cluster service")
+	logger.Infow("Server starting",
+		"port", s.config.Port,
+		"mode", s.config.Mode,
+		"read_timeout", s.config.ReadTimeout,
+		"write_timeout", s.config.WriteTimeout,
+	)
+
 	return s.server.ListenAndServe()
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.log.Info("Shutting down server...")
+	logger.Info("Server shutdown initiated")
+
 	if s.server != nil {
 		return s.server.Shutdown(ctx)
 	}
 	return nil
 }
 
-// ginLogger returns a gin middleware that logs requests
+// ginLogger returns a gin middleware that logs requests (用于 logrus 兼容)
 func ginLogger(logger *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
