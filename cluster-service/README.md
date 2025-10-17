@@ -182,6 +182,32 @@ k8s:
 
 ## 快速开始
 
+### 方式 0: 添加集群 (第一步 ⭐新增)
+
+使用提供的脚本快速添加 Kubernetes 集群到管理系统：
+
+```bash
+# 快速添加 Minikube 集群
+./scripts/add-cluster.sh minikube
+
+# 交互式添加任意集群
+./scripts/add-cluster.sh interactive
+
+# 从 JSON 文件添加
+./scripts/add-cluster.sh file cluster-config.json
+
+# 列出已添加的集群
+./scripts/add-cluster.sh list
+```
+
+> 📖 **详细指南**: [集群添加脚本使用指南](./docs/add-cluster-guide.md)
+>
+> 📊 **测试报告**: [API 测试报告](./docs/api-test-report.md)
+>
+> 📋 **配置示例**: [scripts/add-cluster-example.json](./scripts/add-cluster-example.json)
+
+---
+
 ### 方式 1: 快速测试 (推荐)
 
 ```bash
@@ -258,6 +284,8 @@ docker run -d -p 8082:8082 \
 - **[README_DOCS.md](./README_DOCS.md)** ⭐ - 所有文档索引
 - **[CODE_VERIFICATION_REPORT.md](./CODE_VERIFICATION_REPORT.md)** - 代码质量报告
 - **[VERSION_INTEGRATION.md](./VERSION_INTEGRATION.md)** ⭐ 新增 - 版本管理指南
+- **[docs/add-cluster-guide.md](./docs/add-cluster-guide.md)** ⭐ 新增 - 集群添加脚本使用指南
+- **[docs/api-test-report.md](./docs/api-test-report.md)** ⭐ 新增 - API 测试报告
 
 ### 📖 实施文档
 - [API_IMPLEMENTATION_PLAN.md](./API_IMPLEMENTATION_PLAN.md) - 4阶段实现计划
