@@ -427,14 +427,65 @@ func (a *RootCauseAnalyzer) analyzeLLM(ctx context.Context, req *types.AnalysisR
 // getDescription returns a description for a root cause type
 func (a *RootCauseAnalyzer) getDescription(rc types.RootCauseType) string {
 	descriptions := map[types.RootCauseType]string{
-		types.OOMKiller:       "Container was killed due to out of memory (OOM)",
-		types.CPUThrottling:   "Container is experiencing CPU throttling due to resource limits",
-		types.DiskPressure:    "Node or volume is running out of disk space",
-		types.NetworkError:    "Network connectivity or DNS resolution issues",
-		types.ConfigError:     "Configuration error preventing container startup",
-		types.ImagePullError:  "Failed to pull container image",
-		types.VolumeError:     "Failed to mount or access storage volume",
-		types.ResourceLimit:   "Insufficient cluster resources for scheduling",
+		// Pod & Container Level
+		types.OOMKiller:            "Container was killed due to out of memory (OOM)",
+		types.CPUThrottling:        "Container is experiencing CPU throttling due to resource limits",
+		types.ReadinessProbeFailure: "Readiness probe is failing, pod not ready to receive traffic",
+		types.LivenessProbeFailure:  "Liveness probe is failing, pod may be restarted",
+		types.ImagePullError:       "Failed to pull container image",
+		types.ConfigError:          "Configuration error preventing container startup",
+		types.PodStuckPending:      "Pod is stuck in Pending state, unable to be scheduled",
+
+		// Node Level
+		types.NodeNotReady:       "Node is not ready to accept workloads",
+		types.KubeletDown:        "Kubelet agent is down on the node",
+		types.NodeHighCPU:        "Node CPU usage is critically high",
+		types.NodeHighMemory:     "Node memory usage is critically high",
+		types.NodeDiskSpaceLow:   "Node disk space is running low",
+		types.DiskPressure:       "Node is experiencing disk pressure",
+		types.MemoryPressure:     "Node is experiencing memory pressure",
+		types.PIDPressure:        "Node is running out of process IDs",
+		types.NetworkUnavailable: "Node network is unavailable or misconfigured",
+		types.CertificateExpiring: "Certificate is expiring soon",
+
+		// Control Plane Level
+		types.APIServerDown:         "Kubernetes API Server is down or unreachable",
+		types.APIServerHighLatency:  "API Server is experiencing high latency",
+		types.APIServerHighError:    "API Server is returning high error rates",
+		types.ControllerManagerDown: "Controller Manager component is down",
+		types.SchedulerDown:         "Scheduler component is down",
+		types.EtcdInsufficientPeers: "Etcd cluster has insufficient members",
+		types.EtcdHighLatency:       "Etcd is experiencing high latency",
+		types.EtcdLeaderFlapping:    "Etcd leader is changing frequently",
+		types.CoreDNSDown:           "CoreDNS pods are down or unhealthy",
+
+		// Workload Level
+		types.DeploymentReplicasMismatch:  "Deployment replicas don't match desired count",
+		types.DeploymentStuck:             "Deployment rollout is stuck",
+		types.StatefulSetReplicasMismatch: "StatefulSet replicas don't match desired count",
+		types.StatefulSetNotReady:         "StatefulSet is not ready",
+		types.DaemonSetRolloutStuck:       "DaemonSet rollout is stuck on some nodes",
+		types.JobFailed:                   "Batch job execution failed",
+		types.CronJobNotCompleting:        "CronJob is not completing successfully",
+		types.HPAMaxedOut:                 "HPA has reached maximum replica count",
+		types.PDBAtRisk:                   "PodDisruptionBudget is at risk of violation",
+
+		// Storage & Network Level
+		types.PVFillingUp:           "Persistent Volume is filling up",
+		types.PVCPending:            "PersistentVolumeClaim is stuck in Pending state",
+		types.PVFailed:              "Persistent Volume has failed",
+		types.VolumeError:           "Failed to mount or access storage volume",
+		types.IngressControllerDown: "Ingress Controller is down",
+		types.IngressCertExpiring:   "Ingress TLS certificate is expiring",
+		types.NetworkPolicyDenials:  "Network policies are denying traffic",
+		types.NetworkError:          "Network connectivity or DNS resolution issues",
+
+		// Quotas & Monitoring
+		types.ResourceQuotaExceeded:  "Resource quota has been exceeded",
+		types.ResourceLimit:          "Insufficient cluster resources for scheduling",
+		types.PrometheusTargetDown:   "Prometheus target sync is failing",
+		types.PrometheusRuleFailure:  "Prometheus alert rule evaluation failed",
+		types.AlertmanagerConfigBad:  "Alertmanager configuration is inconsistent",
 	}
 
 	if desc, ok := descriptions[rc]; ok {

@@ -6,15 +6,67 @@ import "time"
 type RootCauseType string
 
 const (
-	OOMKiller        RootCauseType = "OOMKiller"
-	CPUThrottling    RootCauseType = "CPUThrottling"
-	DiskPressure     RootCauseType = "DiskPressure"
-	NetworkError     RootCauseType = "NetworkError"
-	ConfigError      RootCauseType = "ConfigError"
-	ImagePullError   RootCauseType = "ImagePullError"
-	VolumeError      RootCauseType = "VolumeError"
-	ResourceLimit    RootCauseType = "ResourceLimit"
-	Unknown          RootCauseType = "Unknown"
+	// Pod & Container Level
+	OOMKiller              RootCauseType = "OOMKiller"              // #25 ContainerOOMKilled
+	CPUThrottling          RootCauseType = "CPUThrottling"          // #26 ContainerCPUThrottlingHigh
+	ReadinessProbeFailure  RootCauseType = "ReadinessProbeFailure"  // #22 KubePodNotReady
+	LivenessProbeFailure   RootCauseType = "LivenessProbeFailure"   // #21 KubePodCrashLooping (partial)
+	ImagePullError         RootCauseType = "ImagePullError"         // #24 ImagePullBackOff
+	ConfigError            RootCauseType = "ConfigError"            // #21 CrashLoopBackOff (config issues)
+	PodStuckPending        RootCauseType = "PodStuckPending"        // #23 KubePodStuckInPending
+
+	// Node Level
+	NodeNotReady           RootCauseType = "NodeNotReady"           // #1 KubeNodeNotReady
+	KubeletDown            RootCauseType = "KubeletDown"            // #2 KubeletDown
+	NodeHighCPU            RootCauseType = "NodeHighCPU"            // #3 NodeHighCpuUsage
+	NodeHighMemory         RootCauseType = "NodeHighMemory"         // #4 NodeHighMemoryUsage
+	NodeDiskSpaceLow       RootCauseType = "NodeDiskSpaceLow"       // #5 NodeFilesystemAlmostOutOfSpace
+	DiskPressure           RootCauseType = "DiskPressure"           // #6 NodeDiskPressure
+	MemoryPressure         RootCauseType = "MemoryPressure"         // #7 NodeMemoryPressure
+	PIDPressure            RootCauseType = "PIDPressure"            // #8 NodePIDPressure
+	NetworkUnavailable     RootCauseType = "NetworkUnavailable"     // #9 NodeNetworkUnavailable
+	CertificateExpiring    RootCauseType = "CertificateExpiring"    // #10-11 Certificate expiration
+
+	// Control Plane Level
+	APIServerDown          RootCauseType = "APIServerDown"          // #12 KubeAPIDown
+	APIServerHighLatency   RootCauseType = "APIServerHighLatency"   // #13 KubeAPILatencyHigh
+	APIServerHighError     RootCauseType = "APIServerHighError"     // #14 KubeAPIErrorRateHigh
+	ControllerManagerDown  RootCauseType = "ControllerManagerDown"  // #15 KubeControllerManagerDown
+	SchedulerDown          RootCauseType = "SchedulerDown"          // #16 KubeSchedulerDown
+	EtcdInsufficientPeers  RootCauseType = "EtcdInsufficientPeers"  // #17 EtcdInsufficientMembers
+	EtcdHighLatency        RootCauseType = "EtcdHighLatency"        // #18 EtcdHighFsyncLatency
+	EtcdLeaderFlapping     RootCauseType = "EtcdLeaderFlapping"     // #19 EtcdLeaderChanges
+	CoreDNSDown            RootCauseType = "CoreDNSDown"            // #20 CoreDNSDown
+
+	// Workload Level
+	DeploymentReplicasMismatch RootCauseType = "DeploymentReplicasMismatch" // #27 KubeDeploymentReplicasMismatch
+	DeploymentStuck            RootCauseType = "DeploymentStuck"            // #28 KubeDeploymentStuck
+	StatefulSetReplicasMismatch RootCauseType = "StatefulSetReplicasMismatch" // #29 KubeStatefulSetReplicasMismatch
+	StatefulSetNotReady        RootCauseType = "StatefulSetNotReady"        // #30 KubeStatefulSetNotReady
+	DaemonSetRolloutStuck      RootCauseType = "DaemonSetRolloutStuck"      // #31 KubeDaemonSetRolloutStuck
+	JobFailed                  RootCauseType = "JobFailed"                  // #32 KubeJobFailed
+	CronJobNotCompleting       RootCauseType = "CronJobNotCompleting"       // #33 CronJobNotCompleting
+	HPAMaxedOut                RootCauseType = "HPAMaxedOut"                // #34 KubeHpaMaxedOut
+	PDBAtRisk                  RootCauseType = "PDBAtRisk"                  // #35 PodDisruptionBudgetAtRisk
+
+	// Storage & Network Level
+	PVFillingUp            RootCauseType = "PVFillingUp"            // #36 KubePersistentVolumeFillingUp
+	PVCPending             RootCauseType = "PVCPending"             // #37 PersistentVolumeClaimPending
+	PVFailed               RootCauseType = "PVFailed"               // #38 PersistentVolumeFailed
+	VolumeError            RootCauseType = "VolumeError"            // General volume issues
+	IngressControllerDown  RootCauseType = "IngressControllerDown"  // #39 IngressControllerDown
+	IngressCertExpiring    RootCauseType = "IngressCertExpiring"    // #40 IngressCertificateExpiration
+	NetworkPolicyDenials   RootCauseType = "NetworkPolicyDenials"   // #41 HighNetworkPolicyDenials
+	NetworkError           RootCauseType = "NetworkError"           // General network issues
+
+	// Quotas & Monitoring
+	ResourceQuotaExceeded  RootCauseType = "ResourceQuotaExceeded"  // #42 ResourceQuotaExceeded
+	ResourceLimit          RootCauseType = "ResourceLimit"          // General resource limits
+	PrometheusTargetDown   RootCauseType = "PrometheusTargetDown"   // #43 PrometheusTargetSyncFailure
+	PrometheusRuleFailure  RootCauseType = "PrometheusRuleFailure"  // #44 PrometheusRuleFailures
+	AlertmanagerConfigBad  RootCauseType = "AlertmanagerConfigBad"  // #45 AlertmanagerConfigInconsistent
+
+	Unknown                RootCauseType = "Unknown"
 )
 
 // AnalysisRequest represents the request for root cause analysis
