@@ -29,17 +29,21 @@ func NewK8sClusterService(storage *storage.MySQLStorage) *K8sClusterService {
 
 // ClusterInfo 集群信息
 type ClusterInfo struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Endpoint    string            `json:"endpoint"`
-	Version     string            `json:"version"`
-	Status      string            `json:"status"`
-	Region      string            `json:"region"`
-	Provider    string            `json:"provider"`
-	Labels      map[string]string `json:"labels"`
-	CreatedAt   time.Time         `json:"createdAt"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Description    string            `json:"description"`
+	Endpoint       string            `json:"endpoint"`
+	Version        string            `json:"version"`
+	Status         string            `json:"status"`
+	Region         string            `json:"region"`
+	Provider       string            `json:"provider"`
+	Labels         map[string]string `json:"labels"`
+	KubeConfig     string            `json:"kubeconfig,omitempty"`
+	NodeCount      int               `json:"nodeCount,omitempty"`
+	PodCount       int               `json:"podCount,omitempty"`
+	NamespaceCount int               `json:"namespaceCount,omitempty"`
+	CreatedAt      time.Time         `json:"createdAt"`
+	UpdatedAt      time.Time         `json:"updatedAt"`
 }
 
 // ClusterHealth 集群健康状态
@@ -97,13 +101,23 @@ func (s *K8sClusterService) ListClusters(ctx context.Context, offset, limit int)
 		clusters = append(clusters, cluster)
 	}
 
+	// 为每个集群填充统计信息
+	for i := range clusters {
+		if err := s.populateClusterStats(ctx, &clusters[i]); err != nil {
+			logger.Warnw("Failed to populate cluster stats for list",
+				"cluster_id", clusters[i].ID,
+				"error", err.Error())
+			// 统计信息获取失败不影响列表的返回，保持字段为零值
+		}
+	}
+
 	return clusters, total, nil
 }
 
 // GetCluster 获取集群详情
 func (s *K8sClusterService) GetCluster(ctx context.Context, clusterID string) (*ClusterInfo, error) {
 	query := `
-		SELECT id, name, description, endpoint, version, status, region, provider, created_at, updated_at
+		SELECT id, name, description, endpoint, version, status, region, provider, kubeconfig, created_at, updated_at
 		FROM clusters
 		WHERE id = ?
 	`
@@ -118,6 +132,7 @@ func (s *K8sClusterService) GetCluster(ctx context.Context, clusterID string) (*
 		&cluster.Status,
 		&cluster.Region,
 		&cluster.Provider,
+		&cluster.KubeConfig,
 		&cluster.CreatedAt,
 		&cluster.UpdatedAt,
 	)
@@ -126,7 +141,44 @@ func (s *K8sClusterService) GetCluster(ctx context.Context, clusterID string) (*
 		return nil, errors.ErrClusterNotFound
 	}
 
+	// 获取集群统计信息
+	if err := s.populateClusterStats(ctx, &cluster); err != nil {
+		logger.Warnw("Failed to populate cluster stats", "cluster_id", clusterID, "error", err.Error())
+		// 统计信息获取失败不影响集群详情的返回
+	}
+
 	return &cluster, nil
+}
+
+// populateClusterStats 填充集群统计信息
+func (s *K8sClusterService) populateClusterStats(ctx context.Context, cluster *ClusterInfo) error {
+	client, err := s.getClient(ctx, cluster.ID)
+	if err != nil {
+		return err
+	}
+
+	// 获取节点数量
+	nodes, err := client.Clientset().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list nodes: %w", err)
+	}
+	cluster.NodeCount = len(nodes.Items)
+
+	// 获取命名空间数量
+	namespaces, err := client.Clientset().CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list namespaces: %w", err)
+	}
+	cluster.NamespaceCount = len(namespaces.Items)
+
+	// 获取 Pod 数量（所有命名空间）
+	pods, err := client.Clientset().CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list pods: %w", err)
+	}
+	cluster.PodCount = len(pods.Items)
+
+	return nil
 }
 
 // CreateCluster 创建集群
@@ -300,6 +352,42 @@ func (s *K8sClusterService) GetClusterHealth(ctx context.Context, clusterID stri
 		RunningPods: runningPods,
 		CheckedAt:   time.Now(),
 	}, nil
+}
+
+// ClusterOption 集群选择器选项
+type ClusterOption struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+
+// GetClusterOptions 获取集群选择器列表
+func (s *K8sClusterService) GetClusterOptions(ctx context.Context) ([]ClusterOption, error) {
+	query := `
+		SELECT id, name
+		FROM clusters
+		ORDER BY name ASC
+	`
+
+	rows, err := s.storage.DB().QueryContext(ctx, query)
+	if err != nil {
+		return nil, errors.NewDatabaseError(fmt.Errorf("failed to query cluster options: %w", err))
+	}
+	defer rows.Close()
+
+	options := make([]ClusterOption, 0)
+	for rows.Next() {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
+			logger.Errorw("Failed to scan cluster option row", "error", err.Error())
+			continue
+		}
+		options = append(options, ClusterOption{
+			Label: name,
+			Value: id,
+		})
+	}
+
+	return options, nil
 }
 
 // getClient 获取集群客户端

@@ -53,7 +53,7 @@ run:
 
 run-dev:
 	@echo "Running $(SERVICE_NAME) with dev config..."
-	@go run cmd/server/main.go -config configs/config.dev.yaml
+	@go run cmd/server/main.go -config configs/config-dev.yaml
 
 run-local: ## Run the service with local MySQL config
 	@echo "Running $(SERVICE_NAME) with local config..."

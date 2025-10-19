@@ -124,6 +124,17 @@ func main() {
 		k8sDaemonSetService := service.NewK8sDaemonSetService(pgStorage, k8sClusterService)
 		k8sConfigMapService := service.NewK8sConfigMapService(pgStorage, k8sClusterService)
 		k8sSecretService := service.NewK8sSecretService(pgStorage, k8sClusterService)
+		k8sEndpointService := service.NewK8sEndpointService(pgStorage, k8sClusterService)
+		k8sPVCService := service.NewK8sPVCService(pgStorage, k8sClusterService)
+		k8sPVService := service.NewK8sPVService(pgStorage, k8sClusterService)
+		k8sEndpointSliceService := service.NewK8sEndpointSliceService(pgStorage, k8sClusterService)
+		k8sHPAService := service.NewK8sHPAService(pgStorage, k8sClusterService)
+		k8sEventService := service.NewK8sEventService(pgStorage, k8sClusterService)
+		k8sRoleBindingService := service.NewK8sRoleBindingService(pgStorage, k8sClusterService)
+		k8sClusterRoleService := service.NewK8sClusterRoleService(pgStorage, k8sClusterService)
+		k8sPriorityClassService := service.NewK8sPriorityClassService(pgStorage, k8sClusterService)
+		k8sRoleService := service.NewK8sRoleService(pgStorage, k8sClusterService)
+		k8sStorageClassService := service.NewK8sStorageClassService(pgStorage, k8sClusterService)
 
 		// 初始化 K8s API 处理器
 		k8sAPIHandler := handler.NewK8sAPIHandler(
@@ -137,13 +148,24 @@ func main() {
 			k8sDaemonSetService,
 			k8sConfigMapService,
 			k8sSecretService,
+			k8sEndpointService,
+			k8sPVCService,
+			k8sPVService,
+			k8sEndpointSliceService,
+			k8sHPAService,
+			k8sEventService,
+			k8sRoleBindingService,
+			k8sClusterRoleService,
+			k8sPriorityClassService,
+			k8sRoleService,
+			k8sStorageClassService,
 		)
 
 		// 创建支持完整 K8s API 的服务器
 		server = api.NewServerWithK8sAPI(serverConfig, clusterHandler, k8sAPIHandler, logrusLogger)
 
 		logger.Infow("K8s API enabled",
-			"endpoints", "cluster, namespace, pod, deployment, node, service, statefulset, daemonset, configmap, secret",
+			"endpoints", "cluster, namespace, pod, deployment, node, service, statefulset, daemonset, configmap, secret, endpoint, pvc, pv, endpointslice, hpa, event, rolebinding, clusterrole, priorityclass",
 			"base_path", "/api/k8s",
 		)
 	} else {

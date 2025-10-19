@@ -39,10 +39,9 @@ func RequestLogger() gin.HandlerFunc {
 			logFields = append(logFields, "error", errorMessage)
 		}
 
-		if statusCode >= 500 {
-			logger.Errorw("Request failed", logFields...)
-		} else if statusCode >= 400 {
-			logger.Warnw("Request client error", logFields...)
+		if statusCode >= 400 {
+			// 4xx 和 5xx 都记录为错误日志
+			logger.Errorw("Request error", logFields...)
 		} else {
 			logger.Infow("Request completed", logFields...)
 		}

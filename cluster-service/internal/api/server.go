@@ -146,8 +146,9 @@ func (s *Server) setupK8sAPIRoutes() {
 		// ===========================
 		clusters := k8sAPI.Group("/clusters")
 		{
-			clusters.GET("", s.k8sAPIHandler.ListClusters)              // 获取集群列表
-			clusters.POST("", s.k8sAPIHandler.CreateCluster)            // 创建集群
+			clusters.GET("", s.k8sAPIHandler.ListClusters)                     // 获取集群列表
+			clusters.GET("/options", s.k8sAPIHandler.GetClusterOptions)        // 获取集群选择器列表
+			clusters.POST("", s.k8sAPIHandler.CreateCluster)                   // 创建集群
 			clusters.GET("/:clusterId", s.k8sAPIHandler.GetCluster)            // 获取集群详情
 			clusters.PUT("/:clusterId", s.k8sAPIHandler.UpdateCluster)         // 更新集群
 			clusters.DELETE("/:clusterId", s.k8sAPIHandler.DeleteCluster)      // 删除集群
@@ -252,6 +253,115 @@ func (s *Server) setupK8sAPIRoutes() {
 			secrets.PUT("/:name", s.k8sAPIHandler.UpdateSecret)                    // 更新 Secret
 			secrets.DELETE("/:name", s.k8sAPIHandler.DeleteSecret)                 // 删除 Secret
 		}
+
+		// ===========================
+		// Endpoints 管理 API
+		// ===========================
+		endpoints := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/endpoints")
+		{
+			endpoints.GET("", s.k8sAPIHandler.ListEndpoints)                       // 获取 Endpoints 列表
+			endpoints.GET("/:name", s.k8sAPIHandler.GetEndpoint)                   // 获取 Endpoint 详情
+			endpoints.DELETE("/:name", s.k8sAPIHandler.DeleteEndpoint)             // 删除 Endpoint
+		}
+
+		// ===========================
+		// PersistentVolumeClaim 管理 API
+		// ===========================
+		pvcs := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/persistentvolumeclaims")
+		{
+			pvcs.GET("", s.k8sAPIHandler.ListPVCs)                                 // 获取 PVC 列表
+			pvcs.GET("/:name", s.k8sAPIHandler.GetPVC)                             // 获取 PVC 详情
+			pvcs.DELETE("/:name", s.k8sAPIHandler.DeletePVC)                       // 删除 PVC
+		}
+
+		// ===========================
+		// PersistentVolume 管理 API (cluster-scoped)
+		// ===========================
+		pvs := k8sAPI.Group("/clusters/:clusterId/persistentvolumes")
+		{
+			pvs.GET("", s.k8sAPIHandler.ListPVs)                                   // 获取 PV 列表
+			pvs.GET("/:name", s.k8sAPIHandler.GetPV)                               // 获取 PV 详情
+			pvs.DELETE("/:name", s.k8sAPIHandler.DeletePV)                         // 删除 PV
+		}
+
+		// ===========================
+		// EndpointSlice 管理 API
+		// ===========================
+		endpointslices := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/endpointslices")
+		{
+			endpointslices.GET("", s.k8sAPIHandler.ListEndpointSlices)             // 获取 EndpointSlice 列表
+			endpointslices.GET("/:name", s.k8sAPIHandler.GetEndpointSlice)         // 获取 EndpointSlice 详情
+			endpointslices.DELETE("/:name", s.k8sAPIHandler.DeleteEndpointSlice)   // 删除 EndpointSlice
+		}
+
+		// ===========================
+		// HorizontalPodAutoscaler 管理 API
+		// ===========================
+		hpas := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/horizontalpodautoscalers")
+		{
+			hpas.GET("", s.k8sAPIHandler.ListHPAs)                                 // 获取 HPA 列表
+			hpas.GET("/:name", s.k8sAPIHandler.GetHPA)                             // 获取 HPA 详情
+			hpas.DELETE("/:name", s.k8sAPIHandler.DeleteHPA)                       // 删除 HPA
+		}
+
+		// ===========================
+		// Event 管理 API
+		// ===========================
+		events := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/events")
+		{
+			events.GET("", s.k8sAPIHandler.ListEvents)                             // 获取 Event 列表 (支持 ?type= 过滤)
+			events.GET("/:name", s.k8sAPIHandler.GetEvent)                         // 获取 Event 详情
+		}
+
+		// ===========================
+		// RoleBinding 管理 API
+		// ===========================
+		rolebindings := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/rolebindings")
+		{
+			rolebindings.GET("", s.k8sAPIHandler.ListRoleBindings)                 // 获取 RoleBinding 列表
+			rolebindings.GET("/:name", s.k8sAPIHandler.GetRoleBinding)             // 获取 RoleBinding 详情
+			rolebindings.DELETE("/:name", s.k8sAPIHandler.DeleteRoleBinding)       // 删除 RoleBinding
+		}
+
+		// ===========================
+		// ClusterRole 管理 API (cluster-scoped)
+		// ===========================
+		clusterroles := k8sAPI.Group("/clusters/:clusterId/clusterroles")
+		{
+			clusterroles.GET("", s.k8sAPIHandler.ListClusterRoles)                 // 获取 ClusterRole 列表
+			clusterroles.GET("/:name", s.k8sAPIHandler.GetClusterRole)             // 获取 ClusterRole 详情
+			clusterroles.DELETE("/:name", s.k8sAPIHandler.DeleteClusterRole)       // 删除 ClusterRole
+		}
+
+		// ===========================
+		// PriorityClass 管理 API (cluster-scoped)
+		// ===========================
+		priorityclasses := k8sAPI.Group("/clusters/:clusterId/priorityclasses")
+		{
+			priorityclasses.GET("", s.k8sAPIHandler.ListPriorityClasses)           // 获取 PriorityClass 列表
+			priorityclasses.GET("/:name", s.k8sAPIHandler.GetPriorityClass)        // 获取 PriorityClass 详情
+			priorityclasses.DELETE("/:name", s.k8sAPIHandler.DeletePriorityClass)  // 删除 PriorityClass
+		}
+
+		// ===========================
+		// Role 管理 API (namespace-scoped)
+		// ===========================
+		roles := k8sAPI.Group("/clusters/:clusterId/namespaces/:namespace/roles")
+		{
+			roles.GET("", s.k8sAPIHandler.ListRoles)              // 获取 Role 列表
+			roles.GET("/:name", s.k8sAPIHandler.GetRole)          // 获取 Role 详情
+			roles.DELETE("/:name", s.k8sAPIHandler.DeleteRole)    // 删除 Role
+		}
+
+		// ===========================
+		// StorageClass 管理 API (cluster-scoped)
+		// ===========================
+		storageclasses := k8sAPI.Group("/clusters/:clusterId/storageclasses")
+		{
+			storageclasses.GET("", s.k8sAPIHandler.ListStorageClasses)           // 获取 StorageClass 列表
+			storageclasses.GET("/:name", s.k8sAPIHandler.GetStorageClass)        // 获取 StorageClass 详情
+			storageclasses.DELETE("/:name", s.k8sAPIHandler.DeleteStorageClass)  // 删除 StorageClass
+		}
 	}
 
 	// 记录注册的路由
@@ -267,6 +377,15 @@ func (s *Server) setupK8sAPIRoutes() {
 		"daemonset_endpoints", 4,
 		"configmap_endpoints", 5,
 		"secret_endpoints", 5,
+		"endpoint_endpoints", 3,
+		"pvc_endpoints", 3,
+		"pv_endpoints", 3,
+		"endpointslice_endpoints", 3,
+		"hpa_endpoints", 3,
+		"event_endpoints", 2,
+		"rolebinding_endpoints", 3,
+		"clusterrole_endpoints", 3,
+		"priorityclass_endpoints", 3,
 	)
 }
 

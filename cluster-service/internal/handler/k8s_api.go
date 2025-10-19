@@ -12,16 +12,27 @@ import (
 // K8sAPIHandler 处理所有 Kubernetes API 请求
 // 基于 /api/k8s 路径的完整 K8s 管理接口
 type K8sAPIHandler struct {
-	clusterService     *service.K8sClusterService
-	namespaceService   *service.K8sNamespaceService
-	podService         *service.K8sPodService
-	deploymentService  *service.K8sDeploymentService
-	nodeService        *service.K8sNodeService
-	serviceService     *service.K8sServiceService
-	statefulsetService *service.K8sStatefulSetService
-	daemonsetService   *service.K8sDaemonSetService
-	configmapService   *service.K8sConfigMapService
-	secretService      *service.K8sSecretService
+	clusterService         *service.K8sClusterService
+	namespaceService       *service.K8sNamespaceService
+	podService             *service.K8sPodService
+	deploymentService      *service.K8sDeploymentService
+	nodeService            *service.K8sNodeService
+	serviceService         *service.K8sServiceService
+	statefulsetService     *service.K8sStatefulSetService
+	daemonsetService       *service.K8sDaemonSetService
+	configmapService       *service.K8sConfigMapService
+	secretService          *service.K8sSecretService
+	endpointService        *service.K8sEndpointService
+	pvcService             *service.K8sPVCService
+	pvService              *service.K8sPVService
+	endpointsliceService   *service.K8sEndpointSliceService
+	hpaService             *service.K8sHPAService
+	eventService           *service.K8sEventService
+	rolebindingService     *service.K8sRoleBindingService
+	clusterroleService     *service.K8sClusterRoleService
+	priorityclassService   *service.K8sPriorityClassService
+	roleService            *service.K8sRoleService
+	storageclassService    *service.K8sStorageClassService
 }
 
 // NewK8sAPIHandler 创建新的 K8s API 处理器
@@ -36,18 +47,40 @@ func NewK8sAPIHandler(
 	daemonsetService *service.K8sDaemonSetService,
 	configmapService *service.K8sConfigMapService,
 	secretService *service.K8sSecretService,
+	endpointService *service.K8sEndpointService,
+	pvcService *service.K8sPVCService,
+	pvService *service.K8sPVService,
+	endpointsliceService *service.K8sEndpointSliceService,
+	hpaService *service.K8sHPAService,
+	eventService *service.K8sEventService,
+	rolebindingService *service.K8sRoleBindingService,
+	clusterroleService *service.K8sClusterRoleService,
+	priorityclassService *service.K8sPriorityClassService,
+	roleService *service.K8sRoleService,
+	storageclassService *service.K8sStorageClassService,
 ) *K8sAPIHandler {
 	return &K8sAPIHandler{
-		clusterService:     clusterService,
-		namespaceService:   namespaceService,
-		podService:         podService,
-		deploymentService:  deploymentService,
-		nodeService:        nodeService,
-		serviceService:     serviceService,
-		statefulsetService: statefulsetService,
-		daemonsetService:   daemonsetService,
-		configmapService:   configmapService,
-		secretService:      secretService,
+		clusterService:       clusterService,
+		namespaceService:     namespaceService,
+		podService:           podService,
+		deploymentService:    deploymentService,
+		nodeService:          nodeService,
+		serviceService:       serviceService,
+		statefulsetService:   statefulsetService,
+		daemonsetService:     daemonsetService,
+		configmapService:     configmapService,
+		secretService:        secretService,
+		endpointService:      endpointService,
+		pvcService:           pvcService,
+		pvService:            pvService,
+		endpointsliceService: endpointsliceService,
+		hpaService:           hpaService,
+		eventService:         eventService,
+		rolebindingService:   rolebindingService,
+		clusterroleService:   clusterroleService,
+		priorityclassService: priorityclassService,
+		roleService:          roleService,
+		storageclassService:  storageclassService,
 	}
 }
 
@@ -83,7 +116,7 @@ func (h *K8sAPIHandler) ListClusters(c *gin.Context) {
 // GetCluster GET /api/k8s/clusters/:id
 // 获取集群详情
 func (h *K8sAPIHandler) GetCluster(c *gin.Context) {
-	clusterID := c.Param("id")
+	clusterID := c.Param("clusterId")
 
 	if err := validator.ValidateClusterID(clusterID); err != nil {
 		response.BadRequest(c, "Invalid cluster ID", err)
@@ -100,6 +133,21 @@ func (h *K8sAPIHandler) GetCluster(c *gin.Context) {
 	}
 
 	response.Success(c, cluster)
+}
+
+// GetClusterOptions GET /api/k8s/clusters/options
+// 获取集群选择器列表（用于下拉选择）
+func (h *K8sAPIHandler) GetClusterOptions(c *gin.Context) {
+	logger.Infow("Getting cluster options")
+
+	options, err := h.clusterService.GetClusterOptions(c.Request.Context())
+	if err != nil {
+		logger.Errorw("Failed to get cluster options", "error", err.Error())
+		response.InternalError(c, "Failed to get cluster options", err)
+		return
+	}
+
+	response.Success(c, options)
 }
 
 // CreateCluster POST /api/k8s/clusters
@@ -154,7 +202,7 @@ func (h *K8sAPIHandler) CreateCluster(c *gin.Context) {
 // UpdateCluster PUT /api/k8s/clusters/:id
 // 更新集群信息
 func (h *K8sAPIHandler) UpdateCluster(c *gin.Context) {
-	clusterID := c.Param("id")
+	clusterID := c.Param("clusterId")
 
 	if err := validator.ValidateClusterID(clusterID); err != nil {
 		response.BadRequest(c, "Invalid cluster ID", err)
@@ -193,7 +241,7 @@ func (h *K8sAPIHandler) UpdateCluster(c *gin.Context) {
 // DeleteCluster DELETE /api/k8s/clusters/:id
 // 删除集群
 func (h *K8sAPIHandler) DeleteCluster(c *gin.Context) {
-	clusterID := c.Param("id")
+	clusterID := c.Param("clusterId")
 
 	if err := validator.ValidateClusterID(clusterID); err != nil {
 		response.BadRequest(c, "Invalid cluster ID", err)
@@ -216,7 +264,7 @@ func (h *K8sAPIHandler) DeleteCluster(c *gin.Context) {
 // GetClusterHealth GET /api/k8s/clusters/:id/health
 // 获取集群健康状态
 func (h *K8sAPIHandler) GetClusterHealthStatus(c *gin.Context) {
-	clusterID := c.Param("id")
+	clusterID := c.Param("clusterId")
 
 	if err := validator.ValidateClusterID(clusterID); err != nil {
 		response.BadRequest(c, "Invalid cluster ID", err)
@@ -1666,5 +1714,1008 @@ func (h *K8sAPIHandler) DeleteSecret(c *gin.Context) {
 
 	response.SuccessWithMessage(c, "Secret deleted successfully", gin.H{
 		"secret": secretName,
+	})
+}
+
+// ===========================
+// Endpoints 管理接口
+// ===========================
+
+// ListEndpoints GET /api/k8s/clusters/:clusterId/namespaces/:namespace/endpoints
+// 获取 Endpoints 列表
+func (h *K8sAPIHandler) ListEndpoints(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing endpoints",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+	)
+
+	endpoints, total, err := h.endpointService.ListEndpoints(
+		c.Request.Context(),
+		clusterID,
+		namespace,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list endpoints",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list endpoints", err)
+		return
+	}
+
+	resp := pagination.NewResponse(endpoints, total, params)
+	response.Success(c, resp)
+}
+
+// GetEndpoint GET /api/k8s/clusters/:clusterId/namespaces/:namespace/endpoints/:name
+// 获取 Endpoint 详情
+func (h *K8sAPIHandler) GetEndpoint(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	endpointName := c.Param("name")
+
+	logger.Infow("Getting endpoint details",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"endpoint", endpointName,
+	)
+
+	endpoint, err := h.endpointService.GetEndpoint(
+		c.Request.Context(),
+		clusterID,
+		namespace,
+		endpointName,
+	)
+	if err != nil {
+		logger.Errorw("Failed to get endpoint",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"endpoint", endpointName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "Endpoint not found", err)
+		return
+	}
+
+	response.Success(c, endpoint)
+}
+
+// DeleteEndpoint DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/endpoints/:name
+// 删除 Endpoint
+func (h *K8sAPIHandler) DeleteEndpoint(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	endpointName := c.Param("name")
+
+	logger.Infow("Deleting endpoint",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"endpoint", endpointName,
+	)
+
+	if err := h.endpointService.DeleteEndpoint(c.Request.Context(), clusterID, namespace, endpointName); err != nil {
+		logger.Errorw("Failed to delete endpoint",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"endpoint", endpointName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete endpoint", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "Endpoint deleted successfully", gin.H{
+		"endpoint": endpointName,
+	})
+}
+
+// ===========================
+// PersistentVolumeClaim 管理接口
+// ===========================
+
+// ListPVCs GET /api/k8s/clusters/:clusterId/namespaces/:namespace/persistentvolumeclaims
+// 获取 PVC 列表
+func (h *K8sAPIHandler) ListPVCs(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing pvcs",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+	)
+
+	pvcs, total, err := h.pvcService.ListPVCs(
+		c.Request.Context(),
+		clusterID,
+		namespace,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list pvcs",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list pvcs", err)
+		return
+	}
+
+	resp := pagination.NewResponse(pvcs, total, params)
+	response.Success(c, resp)
+}
+
+// GetPVC GET /api/k8s/clusters/:clusterId/namespaces/:namespace/persistentvolumeclaims/:name
+// 获取 PVC 详情
+func (h *K8sAPIHandler) GetPVC(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	pvcName := c.Param("name")
+
+	logger.Infow("Getting pvc details",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"pvc", pvcName,
+	)
+
+	pvc, err := h.pvcService.GetPVC(c.Request.Context(), clusterID, namespace, pvcName)
+	if err != nil {
+		logger.Errorw("Failed to get pvc",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"pvc", pvcName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "PVC not found", err)
+		return
+	}
+
+	response.Success(c, pvc)
+}
+
+// DeletePVC DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/persistentvolumeclaims/:name
+// 删除 PVC
+func (h *K8sAPIHandler) DeletePVC(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	pvcName := c.Param("name")
+
+	logger.Infow("Deleting pvc",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"pvc", pvcName,
+	)
+
+	if err := h.pvcService.DeletePVC(c.Request.Context(), clusterID, namespace, pvcName); err != nil {
+		logger.Errorw("Failed to delete pvc",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"pvc", pvcName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete pvc", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "PVC deleted successfully", gin.H{
+		"pvc": pvcName,
+	})
+}
+
+// ===========================
+// PersistentVolume 管理接口
+// ===========================
+
+// ListPVs GET /api/k8s/clusters/:clusterId/persistentvolumes
+// 获取 PV 列表
+func (h *K8sAPIHandler) ListPVs(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing pvs",
+		"cluster_id", clusterID,
+	)
+
+	pvs, total, err := h.pvService.ListPVs(
+		c.Request.Context(),
+		clusterID,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list pvs",
+			"cluster_id", clusterID,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list pvs", err)
+		return
+	}
+
+	resp := pagination.NewResponse(pvs, total, params)
+	response.Success(c, resp)
+}
+
+// GetPV GET /api/k8s/clusters/:clusterId/persistentvolumes/:name
+// 获取 PV 详情
+func (h *K8sAPIHandler) GetPV(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	pvName := c.Param("name")
+
+	logger.Infow("Getting pv details",
+		"cluster_id", clusterID,
+		"pv", pvName,
+	)
+
+	pv, err := h.pvService.GetPV(c.Request.Context(), clusterID, pvName)
+	if err != nil {
+		logger.Errorw("Failed to get pv",
+			"cluster_id", clusterID,
+			"pv", pvName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "PV not found", err)
+		return
+	}
+
+	response.Success(c, pv)
+}
+
+// DeletePV DELETE /api/k8s/clusters/:clusterId/persistentvolumes/:name
+// 删除 PV
+func (h *K8sAPIHandler) DeletePV(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	pvName := c.Param("name")
+
+	logger.Infow("Deleting pv",
+		"cluster_id", clusterID,
+		"pv", pvName,
+	)
+
+	if err := h.pvService.DeletePV(c.Request.Context(), clusterID, pvName); err != nil {
+		logger.Errorw("Failed to delete pv",
+			"cluster_id", clusterID,
+			"pv", pvName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete pv", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "PV deleted successfully", gin.H{
+		"pv": pvName,
+	})
+}
+
+// ===========================
+// EndpointSlice 管理接口
+// ===========================
+
+// ListEndpointSlices GET /api/k8s/clusters/:clusterId/namespaces/:namespace/endpointslices
+// 获取 EndpointSlice 列表
+func (h *K8sAPIHandler) ListEndpointSlices(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing endpointslices",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+	)
+
+	endpointslices, total, err := h.endpointsliceService.ListEndpointSlices(
+		c.Request.Context(),
+		clusterID,
+		namespace,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list endpointslices",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list endpointslices", err)
+		return
+	}
+
+	resp := pagination.NewResponse(endpointslices, total, params)
+	response.Success(c, resp)
+}
+
+// GetEndpointSlice GET /api/k8s/clusters/:clusterId/namespaces/:namespace/endpointslices/:name
+// 获取 EndpointSlice 详情
+func (h *K8sAPIHandler) GetEndpointSlice(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	sliceName := c.Param("name")
+
+	logger.Infow("Getting endpointslice details",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"endpointslice", sliceName,
+	)
+
+	slice, err := h.endpointsliceService.GetEndpointSlice(c.Request.Context(), clusterID, namespace, sliceName)
+	if err != nil {
+		logger.Errorw("Failed to get endpointslice",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"endpointslice", sliceName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "EndpointSlice not found", err)
+		return
+	}
+
+	response.Success(c, slice)
+}
+
+// DeleteEndpointSlice DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/endpointslices/:name
+// 删除 EndpointSlice
+func (h *K8sAPIHandler) DeleteEndpointSlice(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	sliceName := c.Param("name")
+
+	logger.Infow("Deleting endpointslice",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"endpointslice", sliceName,
+	)
+
+	if err := h.endpointsliceService.DeleteEndpointSlice(c.Request.Context(), clusterID, namespace, sliceName); err != nil {
+		logger.Errorw("Failed to delete endpointslice",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"endpointslice", sliceName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete endpointslice", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "EndpointSlice deleted successfully", gin.H{
+		"endpointslice": sliceName,
+	})
+}
+
+// ===========================
+// HorizontalPodAutoscaler 管理接口
+// ===========================
+
+// ListHPAs GET /api/k8s/clusters/:clusterId/namespaces/:namespace/horizontalpodautoscalers
+// 获取 HPA 列表
+func (h *K8sAPIHandler) ListHPAs(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing hpas",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+	)
+
+	hpas, total, err := h.hpaService.ListHPAs(
+		c.Request.Context(),
+		clusterID,
+		namespace,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list hpas",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list hpas", err)
+		return
+	}
+
+	resp := pagination.NewResponse(hpas, total, params)
+	response.Success(c, resp)
+}
+
+// GetHPA GET /api/k8s/clusters/:clusterId/namespaces/:namespace/horizontalpodautoscalers/:name
+// 获取 HPA 详情
+func (h *K8sAPIHandler) GetHPA(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	hpaName := c.Param("name")
+
+	logger.Infow("Getting hpa details",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"hpa", hpaName,
+	)
+
+	hpa, err := h.hpaService.GetHPA(c.Request.Context(), clusterID, namespace, hpaName)
+	if err != nil {
+		logger.Errorw("Failed to get hpa",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"hpa", hpaName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "HPA not found", err)
+		return
+	}
+
+	response.Success(c, hpa)
+}
+
+// DeleteHPA DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/horizontalpodautoscalers/:name
+// 删除 HPA
+func (h *K8sAPIHandler) DeleteHPA(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	hpaName := c.Param("name")
+
+	logger.Infow("Deleting hpa",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"hpa", hpaName,
+	)
+
+	if err := h.hpaService.DeleteHPA(c.Request.Context(), clusterID, namespace, hpaName); err != nil {
+		logger.Errorw("Failed to delete hpa",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"hpa", hpaName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete hpa", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "HPA deleted successfully", gin.H{
+		"hpa": hpaName,
+	})
+}
+
+// ===========================
+// Event 管理接口
+// ===========================
+
+// ListEvents GET /api/k8s/clusters/:clusterId/namespaces/:namespace/events
+// 获取 Event 列表
+func (h *K8sAPIHandler) ListEvents(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	params := pagination.Parse(c)
+
+	// 支持按事件类型过滤
+	eventType := c.Query("type")
+	// 支持按事件原因过滤
+	eventReason := c.Query("reason")
+
+	logger.Infow("Listing events",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"type", eventType,
+		"reason", eventReason,
+	)
+
+	events, total, err := h.eventService.ListEvents(
+		c.Request.Context(),
+		clusterID,
+		namespace,
+		eventType,
+		eventReason,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list events",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list events", err)
+		return
+	}
+
+	resp := pagination.NewResponse(events, total, params)
+	response.Success(c, resp)
+}
+
+// GetEvent GET /api/k8s/clusters/:clusterId/namespaces/:namespace/events/:name
+// 获取 Event 详情
+func (h *K8sAPIHandler) GetEvent(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	eventName := c.Param("name")
+
+	logger.Infow("Getting event details",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"event", eventName,
+	)
+
+	event, err := h.eventService.GetEvent(c.Request.Context(), clusterID, namespace, eventName)
+	if err != nil {
+		logger.Errorw("Failed to get event",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"event", eventName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "Event not found", err)
+		return
+	}
+
+	response.Success(c, event)
+}
+
+// ===========================
+// RoleBinding 管理接口
+// ===========================
+
+// ListRoleBindings GET /api/k8s/clusters/:clusterId/namespaces/:namespace/rolebindings
+// 获取 RoleBinding 列表
+func (h *K8sAPIHandler) ListRoleBindings(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing rolebindings",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+	)
+
+	rolebindings, total, err := h.rolebindingService.ListRoleBindings(
+		c.Request.Context(),
+		clusterID,
+		namespace,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list rolebindings",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list rolebindings", err)
+		return
+	}
+
+	resp := pagination.NewResponse(rolebindings, total, params)
+	response.Success(c, resp)
+}
+
+// GetRoleBinding GET /api/k8s/clusters/:clusterId/namespaces/:namespace/rolebindings/:name
+// 获取 RoleBinding 详情
+func (h *K8sAPIHandler) GetRoleBinding(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	rbName := c.Param("name")
+
+	logger.Infow("Getting rolebinding details",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"rolebinding", rbName,
+	)
+
+	rb, err := h.rolebindingService.GetRoleBinding(c.Request.Context(), clusterID, namespace, rbName)
+	if err != nil {
+		logger.Errorw("Failed to get rolebinding",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"rolebinding", rbName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "RoleBinding not found", err)
+		return
+	}
+
+	response.Success(c, rb)
+}
+
+// DeleteRoleBinding DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/rolebindings/:name
+// 删除 RoleBinding
+func (h *K8sAPIHandler) DeleteRoleBinding(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	rbName := c.Param("name")
+
+	logger.Infow("Deleting rolebinding",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"rolebinding", rbName,
+	)
+
+	if err := h.rolebindingService.DeleteRoleBinding(c.Request.Context(), clusterID, namespace, rbName); err != nil {
+		logger.Errorw("Failed to delete rolebinding",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"rolebinding", rbName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete rolebinding", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "RoleBinding deleted successfully", gin.H{
+		"rolebinding": rbName,
+	})
+}
+
+// ===========================
+// ClusterRole 管理接口
+// ===========================
+
+// ListClusterRoles GET /api/k8s/clusters/:clusterId/clusterroles
+// 获取 ClusterRole 列表
+func (h *K8sAPIHandler) ListClusterRoles(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing clusterroles",
+		"cluster_id", clusterID,
+	)
+
+	clusterroles, total, err := h.clusterroleService.ListClusterRoles(
+		c.Request.Context(),
+		clusterID,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list clusterroles",
+			"cluster_id", clusterID,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list clusterroles", err)
+		return
+	}
+
+	resp := pagination.NewResponse(clusterroles, total, params)
+	response.Success(c, resp)
+}
+
+// GetClusterRole GET /api/k8s/clusters/:clusterId/clusterroles/:name
+// 获取 ClusterRole 详情
+func (h *K8sAPIHandler) GetClusterRole(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	crName := c.Param("name")
+
+	logger.Infow("Getting clusterrole details",
+		"cluster_id", clusterID,
+		"clusterrole", crName,
+	)
+
+	cr, err := h.clusterroleService.GetClusterRole(c.Request.Context(), clusterID, crName)
+	if err != nil {
+		logger.Errorw("Failed to get clusterrole",
+			"cluster_id", clusterID,
+			"clusterrole", crName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "ClusterRole not found", err)
+		return
+	}
+
+	response.Success(c, cr)
+}
+
+// DeleteClusterRole DELETE /api/k8s/clusters/:clusterId/clusterroles/:name
+// 删除 ClusterRole
+func (h *K8sAPIHandler) DeleteClusterRole(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	crName := c.Param("name")
+
+	logger.Infow("Deleting clusterrole",
+		"cluster_id", clusterID,
+		"clusterrole", crName,
+	)
+
+	if err := h.clusterroleService.DeleteClusterRole(c.Request.Context(), clusterID, crName); err != nil {
+		logger.Errorw("Failed to delete clusterrole",
+			"cluster_id", clusterID,
+			"clusterrole", crName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete clusterrole", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "ClusterRole deleted successfully", gin.H{
+		"clusterrole": crName,
+	})
+}
+
+// ===========================
+// PriorityClass 管理接口
+// ===========================
+
+// ListPriorityClasses GET /api/k8s/clusters/:clusterId/priorityclasses
+// 获取 PriorityClass 列表
+func (h *K8sAPIHandler) ListPriorityClasses(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing priorityclasses",
+		"cluster_id", clusterID,
+	)
+
+	priorityclasses, total, err := h.priorityclassService.ListPriorityClasses(
+		c.Request.Context(),
+		clusterID,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list priorityclasses",
+			"cluster_id", clusterID,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list priorityclasses", err)
+		return
+	}
+
+	resp := pagination.NewResponse(priorityclasses, total, params)
+	response.Success(c, resp)
+}
+
+// GetPriorityClass GET /api/k8s/clusters/:clusterId/priorityclasses/:name
+// 获取 PriorityClass 详情
+func (h *K8sAPIHandler) GetPriorityClass(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	pcName := c.Param("name")
+
+	logger.Infow("Getting priorityclass details",
+		"cluster_id", clusterID,
+		"priorityclass", pcName,
+	)
+
+	pc, err := h.priorityclassService.GetPriorityClass(c.Request.Context(), clusterID, pcName)
+	if err != nil {
+		logger.Errorw("Failed to get priorityclass",
+			"cluster_id", clusterID,
+			"priorityclass", pcName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "PriorityClass not found", err)
+		return
+	}
+
+	response.Success(c, pc)
+}
+
+// DeletePriorityClass DELETE /api/k8s/clusters/:clusterId/priorityclasses/:name
+// 删除 PriorityClass
+func (h *K8sAPIHandler) DeletePriorityClass(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	pcName := c.Param("name")
+
+	logger.Infow("Deleting priorityclass",
+		"cluster_id", clusterID,
+		"priorityclass", pcName,
+	)
+
+	if err := h.priorityclassService.DeletePriorityClass(c.Request.Context(), clusterID, pcName); err != nil {
+		logger.Errorw("Failed to delete priorityclass",
+			"cluster_id", clusterID,
+			"priorityclass", pcName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete priorityclass", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "PriorityClass deleted successfully", gin.H{
+		"priorityclass": pcName,
+	})
+}
+
+// ===========================
+// Role 管理接口
+// ===========================
+
+// ListRoles GET /api/k8s/clusters/:clusterId/namespaces/:namespace/roles
+// 获取 Role 列表
+func (h *K8sAPIHandler) ListRoles(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	params := pagination.Parse(c)
+
+	logger.Infow("Listing roles",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+	)
+
+	roles, total, err := h.roleService.ListRoles(
+		c.Request.Context(),
+		clusterID,
+		namespace,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list roles",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to list roles", err)
+		return
+	}
+
+	resp := pagination.NewResponse(roles, total, params)
+	response.Success(c, resp)
+}
+
+// GetRole GET /api/k8s/clusters/:clusterId/namespaces/:namespace/roles/:name
+// 获取 Role 详情
+func (h *K8sAPIHandler) GetRole(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	roleName := c.Param("name")
+
+	logger.Infow("Getting role details",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"role", roleName,
+	)
+
+	role, err := h.roleService.GetRole(c.Request.Context(), clusterID, namespace, roleName)
+	if err != nil {
+		logger.Errorw("Failed to get role",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"role", roleName,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "Role not found", err)
+		return
+	}
+
+	response.Success(c, role)
+}
+
+// DeleteRole DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/roles/:name
+// 删除 Role
+func (h *K8sAPIHandler) DeleteRole(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	namespace := c.Param("namespace")
+	roleName := c.Param("name")
+
+	logger.Infow("Deleting role",
+		"cluster_id", clusterID,
+		"namespace", namespace,
+		"role", roleName,
+	)
+
+	if err := h.roleService.DeleteRole(c.Request.Context(), clusterID, namespace, roleName); err != nil {
+		logger.Errorw("Failed to delete role",
+			"cluster_id", clusterID,
+			"namespace", namespace,
+			"role", roleName,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete role", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "Role deleted successfully", gin.H{
+		"role": roleName,
+	})
+}
+
+
+// ===========================
+// StorageClass 管理接口
+// ===========================
+
+// ListStorageClasses GET /api/k8s/clusters/:clusterId/storageclasses
+// 获取 StorageClass 列表
+func (h *K8sAPIHandler) ListStorageClasses(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	params := pagination.Parse(c)
+
+	if err := validator.ValidateClusterID(clusterID); err != nil {
+		response.BadRequest(c, "Invalid cluster ID", err)
+		return
+	}
+
+	logger.Infow("Listing storageclasses",
+		"cluster_id", clusterID,
+		"page", params.Page,
+	)
+
+	storageClasses, total, err := h.storageclassService.ListStorageClasses(
+		c.Request.Context(),
+		clusterID,
+		params.GetOffset(),
+		params.GetLimit(),
+	)
+	if err != nil {
+		logger.Errorw("Failed to list storageclasses", "cluster_id", clusterID, "error", err.Error())
+		response.InternalError(c, "Failed to list storageclasses", err)
+		return
+	}
+
+	resp := pagination.NewResponse(storageClasses, total, params)
+	response.Success(c, resp)
+}
+
+// GetStorageClass GET /api/k8s/clusters/:clusterId/storageclasses/:name
+// 获取 StorageClass 详情
+func (h *K8sAPIHandler) GetStorageClass(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	name := c.Param("name")
+
+	if err := validator.ValidateClusterID(clusterID); err != nil {
+		response.BadRequest(c, "Invalid cluster ID", err)
+		return
+	}
+
+	if err := validator.ValidateK8sName(name); err != nil {
+		response.BadRequest(c, "Invalid storageclass name", err)
+		return
+	}
+
+	logger.Infow("Getting storageclass details",
+		"cluster_id", clusterID,
+		"storageclass", name,
+	)
+
+	storageClass, err := h.storageclassService.GetStorageClass(c.Request.Context(), clusterID, name)
+	if err != nil {
+		logger.Errorw("Failed to get storageclass",
+			"cluster_id", clusterID,
+			"storageclass", name,
+			"error", err.Error(),
+		)
+		response.NotFound(c, "StorageClass not found", err)
+		return
+	}
+
+	response.Success(c, storageClass)
+}
+
+// DeleteStorageClass DELETE /api/k8s/clusters/:clusterId/storageclasses/:name
+// 删除 StorageClass
+func (h *K8sAPIHandler) DeleteStorageClass(c *gin.Context) {
+	clusterID := c.Param("clusterId")
+	name := c.Param("name")
+
+	if err := validator.ValidateClusterID(clusterID); err != nil {
+		response.BadRequest(c, "Invalid cluster ID", err)
+		return
+	}
+
+	if err := validator.ValidateK8sName(name); err != nil {
+		response.BadRequest(c, "Invalid storageclass name", err)
+		return
+	}
+
+	logger.Infow("Deleting storageclass",
+		"cluster_id", clusterID,
+		"storageclass", name,
+	)
+
+	if err := h.storageclassService.DeleteStorageClass(c.Request.Context(), clusterID, name); err != nil {
+		logger.Errorw("Failed to delete storageclass",
+			"cluster_id", clusterID,
+			"storageclass", name,
+			"error", err.Error(),
+		)
+		response.InternalError(c, "Failed to delete storageclass", err)
+		return
+	}
+
+	response.SuccessWithMessage(c, "StorageClass deleted successfully", gin.H{
+		"storageclass": name,
 	})
 }

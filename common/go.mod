@@ -5,7 +5,6 @@ go 1.23.0
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/kart-io/logger v0.0.0
-	go.uber.org/zap v1.27.0
 	k8s.io/api v0.28.0
 	k8s.io/apimachinery v0.28.0
 )
@@ -38,6 +37,7 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/net v0.40.0 // indirect

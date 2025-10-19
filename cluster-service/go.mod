@@ -8,7 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/uuid v1.6.0
 	github.com/kart-io/k8s-agent/common v0.0.0
-	github.com/kart-io/version v0.0.0
+	github.com/kart-io/version v1.1.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.11.1
@@ -23,9 +23,6 @@ replace github.com/kart-io/k8s-agent/common => ../common
 
 // Local replace for logger package (required by common)
 replace github.com/kart-io/logger => ../../logger
-
-// Local replace for version package
-replace github.com/kart-io/version => ../../version
 
 require (
 	github.com/bytedance/sonic v1.9.1 // indirect
