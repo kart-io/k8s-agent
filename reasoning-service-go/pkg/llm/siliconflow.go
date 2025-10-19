@@ -113,6 +113,14 @@ func (c *SiliconFlowClient) Complete(ctx context.Context, req *CompletionRequest
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+c.config.APIKey)
 
+	// Debug: Print API key length (not the actual key for security)
+	fmt.Printf("[DEBUG] SiliconFlow API Key length: %d, first 10 chars: %s\n", len(c.config.APIKey), func() string {
+		if len(c.config.APIKey) > 10 {
+			return c.config.APIKey[:10] + "..."
+		}
+		return c.config.APIKey
+	}())
+
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
@@ -145,13 +153,7 @@ func (c *SiliconFlowClient) Complete(ctx context.Context, req *CompletionRequest
 func (c *SiliconFlowClient) AnalyzeRootCause(ctx context.Context, event map[string]interface{}, logs string, metrics string) (string, error) {
 	eventJSON, _ := json.MarshalIndent(event, "", "  ")
 
-	systemPrompt := `You are an expert Kubernetes troubleshooting assistant. Analyze the provided event, logs, and metrics to identify the root cause of the issue. Provide a clear, concise analysis with:
-1. Root cause type (e.g., OOMKiller, CPUThrottling, NetworkError, ConfigError, etc.)
-2. Confidence level (0.0-1.0)
-3. Key evidence supporting your analysis
-4. Brief explanation
-
-Format your response as JSON with fields: root_cause_type, confidence, evidence (array), explanation.`
+	systemPrompt := RootCauseAnalysisSystemPrompt
 
 	userPrompt := fmt.Sprintf(`Analyze the following Kubernetes issue:
 
@@ -182,16 +184,7 @@ Provide your root cause analysis.`, string(eventJSON), logs, metrics)
 
 // GenerateRecommendations uses SiliconFlow to generate recommendations
 func (c *SiliconFlowClient) GenerateRecommendations(ctx context.Context, rootCause string, contextInfo string) (string, error) {
-	systemPrompt := `You are an expert Kubernetes operations engineer. Based on the identified root cause, provide actionable recommendations to fix the issue. For each recommendation, include:
-1. Action name
-2. Description
-3. Risk level (low/medium/high)
-4. Impact description
-5. Step-by-step instructions
-6. Rollback steps
-7. Estimated duration
-
-Format your response as JSON array of recommendations.`
+	systemPrompt := RecommendationsSystemPrompt
 
 	userPrompt := fmt.Sprintf(`Root Cause: %s
 

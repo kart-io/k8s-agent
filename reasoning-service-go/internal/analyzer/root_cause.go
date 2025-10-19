@@ -351,9 +351,17 @@ func (a *RootCauseAnalyzer) analyzeLLM(ctx context.Context, req *types.AnalysisR
 		metricsJSON, _ := json.Marshal(req.Context.Metrics)
 		response, err := client.AnalyzeRootCause(ctx, req.Context.Event, req.Context.Logs, string(metricsJSON))
 		if err != nil {
+			fmt.Printf("[DEBUG] LLM %s error: %v\n", client.Provider(), err)
 			lastErr = err
 			continue
 		}
+
+		fmt.Printf("[DEBUG] LLM %s raw response (first 500 chars): %s\n", client.Provider(), func() string {
+			if len(response) > 500 {
+				return response[:500] + "..."
+			}
+			return response
+		}())
 
 		// Parse LLM response
 		var llmResult struct {
@@ -375,7 +383,15 @@ func (a *RootCauseAnalyzer) analyzeLLM(ctx context.Context, req *types.AnalysisR
 			response = strings.TrimSpace(response)
 		}
 
+		fmt.Printf("[DEBUG] LLM response after cleanup (first 500 chars): %s\n", func() string {
+			if len(response) > 500 {
+				return response[:500] + "..."
+			}
+			return response
+		}())
+
 		if err := json.Unmarshal([]byte(response), &llmResult); err != nil {
+			fmt.Printf("[DEBUG] JSON parse error: %v\n", err)
 			// If we can't parse, return the raw response
 			return &analysisResult{
 				RootCauseType: types.Unknown,
@@ -385,6 +401,9 @@ func (a *RootCauseAnalyzer) analyzeLLM(ctx context.Context, req *types.AnalysisR
 				LLMAnalysis:   response,
 			}, nil
 		}
+
+		fmt.Printf("[DEBUG] Parsed LLM result - Type: %s, Confidence: %.2f, Evidence count: %d\n",
+			llmResult.RootCauseType, llmResult.Confidence, len(llmResult.Evidence))
 
 		// Convert string root cause type to typed constant
 		rootCause := types.RootCauseType(llmResult.RootCauseType)

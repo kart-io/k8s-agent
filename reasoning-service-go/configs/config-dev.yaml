@@ -3,13 +3,22 @@
 # Server Configuration
 server:
   host: "0.0.0.0"
-  port: 8082
+  port: 8083
   log_level: "DEBUG"
 
 # LLM Configuration
 llm:
   enabled: true
   providers:
+    - name: "siliconflow"
+      api_key: ""  # Set via SILICONFLOW_API_KEY env var
+      base_url: "https://api.siliconflow.cn/v1"
+      model: "Qwen/Qwen2.5-7B-Instruct"  # Or: deepseek-ai/DeepSeek-V2.5, etc.
+      max_tokens: 2048  # 减少 token 数量以加快响应
+      temperature: 0.7
+      timeout: 15  # 减少超时时间
+      priority: 1
+
     - name: "openai"
       api_key: ""  # Set via OPENAI_API_KEY env var
       base_url: "https://api.openai.com/v1"
@@ -17,24 +26,24 @@ llm:
       max_tokens: 4096
       temperature: 0.7
       timeout: 30
-      priority: 1  # Highest priority
+      priority: 5  # Highest priority
 
     - name: "gemini"
       api_key: ""  # Set via GEMINI_API_KEY or GOOGLE_API_KEY env var
       base_url: "https://generativelanguage.googleapis.com/v1beta"
       model: "gemini-1.5-flash"
-      max_tokens: 8192
+      max_tokens: 2048  # 减少 token 数量以加快响应
       temperature: 0.7
-      timeout: 30
+      timeout: 15  # 减少超时时间
       priority: 2
 
     - name: "deepseek"
       api_key: ""  # Set via DEEPSEEK_API_KEY env var
       base_url: "https://api.deepseek.com/v1"
       model: "deepseek-chat"
-      max_tokens: 4096
+      max_tokens: 2048  # 减少 token 数量以加快响应
       temperature: 0.7
-      timeout: 30
+      timeout: 15  # 减少超时时间
       priority: 3
 
     - name: "ollama"
@@ -46,14 +55,6 @@ llm:
       timeout: 60  # Local inference may take longer
       priority: 4
 
-    - name: "siliconflow"
-      api_key: ""  # Set via SILICONFLOW_API_KEY env var
-      base_url: "https://api.siliconflow.cn/v1"
-      model: "Qwen/Qwen2.5-7B-Instruct"  # Or: deepseek-ai/DeepSeek-V2.5, etc.
-      max_tokens: 4096
-      temperature: 0.7
-      timeout: 30
-      priority: 5
 
     - name: "kimi"
       api_key: ""  # Set via KIMI_API_KEY or MOONSHOT_API_KEY env var

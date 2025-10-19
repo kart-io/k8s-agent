@@ -167,8 +167,6 @@ func (c *GeminiClient) Complete(ctx context.Context, req *CompletionRequest) (*C
 func (c *GeminiClient) AnalyzeRootCause(ctx context.Context, event map[string]interface{}, logs string, metrics string) (string, error) {
 	eventJSON, _ := json.MarshalIndent(event, "", "  ")
 
-	systemPrompt := `You are an expert Kubernetes troubleshooting assistant. Analyze the provided event, logs, and metrics to identify the root cause of the issue.`
-
 	userPrompt := fmt.Sprintf(`%s
 
 Analyze the following Kubernetes issue:
@@ -182,7 +180,7 @@ Logs:
 Metrics:
 %s
 
-Provide your root cause analysis in JSON format with fields: root_cause_type, confidence, evidence (array), explanation.`, systemPrompt, string(eventJSON), logs, metrics)
+Provide your root cause analysis.`, RootCauseAnalysisSystemPrompt, string(eventJSON), logs, metrics)
 
 	resp, err := c.Complete(ctx, &CompletionRequest{
 		Messages: []Message{
@@ -199,8 +197,6 @@ Provide your root cause analysis in JSON format with fields: root_cause_type, co
 
 // GenerateRecommendations uses Gemini to generate recommendations
 func (c *GeminiClient) GenerateRecommendations(ctx context.Context, rootCause string, contextInfo string) (string, error) {
-	systemPrompt := `You are an expert Kubernetes operations engineer. Based on the identified root cause, provide actionable recommendations to fix the issue.`
-
 	userPrompt := fmt.Sprintf(`%s
 
 Root Cause: %s
@@ -208,7 +204,7 @@ Root Cause: %s
 Context:
 %s
 
-Provide recommended actions to fix this issue as JSON array of recommendations with fields: action, description, risk, impact, steps (array), rollback_steps (array), estimated_duration.`, systemPrompt, rootCause, contextInfo)
+Provide recommended actions to fix this issue.`, RecommendationsSystemPrompt, rootCause, contextInfo)
 
 	resp, err := c.Complete(ctx, &CompletionRequest{
 		Messages: []Message{

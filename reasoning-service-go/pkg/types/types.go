@@ -103,6 +103,8 @@ type RootCause struct {
 type Recommendation struct {
 	Action            string   `json:"action"`
 	Description       string   `json:"description"`
+	Command           string   `json:"command,omitempty"`            // kubectl command to execute
+	YAML              string   `json:"yaml,omitempty"`               // YAML configuration example
 	Confidence        float64  `json:"confidence"`
 	Risk              string   `json:"risk"` // "low", "medium", "high"
 	Impact            string   `json:"impact"`
