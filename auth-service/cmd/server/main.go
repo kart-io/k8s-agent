@@ -11,6 +11,7 @@ import (
 	"github.com/kart-io/k8s-agent/auth-service/internal/handler"
 	"github.com/kart-io/k8s-agent/auth-service/internal/middleware"
 	"github.com/kart-io/k8s-agent/auth-service/internal/routes"
+	"github.com/kart-io/k8s-agent/auth-service/internal/service"
 	"github.com/kart-io/k8s-agent/auth-service/internal/storage"
 	forcedlogout "github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout"
 	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/audit"
@@ -129,11 +130,19 @@ func main() {
 		loginURL,
 	)
 
+	// Initialize services
+	userService := service.NewUserService(dbConn)
+	roleService := service.NewRoleService(dbConn)
+	permissionService := service.NewPermissionService(dbConn)
+
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(db, cfg.JWT.Secret, cfg.JWT.ExpiresHours, sessionService)
 	sessionHandler := handler.NewSessionHandler(sessionService)
 	forcedLogoutHandler := handler.NewForcedLogoutHandler(forcedLogoutService)
 	auditHandler := handler.NewAuditHandler(auditService)
+	userHandler := handler.NewUserHandler(userService)
+	roleHandler := handler.NewRoleHandler(roleService)
+	permissionHandler := handler.NewPermissionHandler(permissionService)
 
 	// Initialize middleware
 	jwtMiddleware := middleware.NewJWTMiddleware(cfg.JWT.Secret, sessionService)
@@ -145,7 +154,7 @@ func main() {
 	router.SetTrustedProxies(nil) // Don't trust any proxies in development
 
 	// Or for production with specific proxies:
-  // router.SetTrustedProxies([]string{"127.0.0.1", "10.0.0.0/8"})
+	// router.SetTrustedProxies([]string{"127.0.0.1", "10.0.0.0/8"})
 
 	// Set Gin mode based on config
 	gin.SetMode(cfg.Server.Mode)
@@ -166,6 +175,44 @@ func main() {
 		v1.POST("/login", authHandler.LoginHandler)
 		v1.POST("/logout", jwtMiddleware.JWTAuth(), authHandler.LogoutHandler)
 		v1.GET("/me", jwtMiddleware.JWTAuth(), authHandler.GetCurrentUserHandler)
+		v1.GET("/codes", jwtMiddleware.JWTAuth(), authHandler.GetAccessCodesHandler)
+	}
+
+	// Register user management routes
+	userRoutes := router.Group("/api/v1/users")
+	userRoutes.Use(jwtMiddleware.JWTAuth())
+	{
+		userRoutes.GET("", userHandler.List)
+		userRoutes.GET("/:id", userHandler.GetByID)
+		userRoutes.POST("", userHandler.Create)
+		userRoutes.PUT("/:id", userHandler.Update)
+		userRoutes.DELETE("/:id", userHandler.Delete)
+		userRoutes.POST("/:id/roles", userHandler.AssignRoles)
+	}
+
+	// Register role management routes
+	roleRoutes := router.Group("/api/v1/roles")
+	roleRoutes.Use(jwtMiddleware.JWTAuth())
+	{
+		roleRoutes.GET("", roleHandler.List)
+		roleRoutes.GET("/:id", roleHandler.GetByID)
+		roleRoutes.POST("", roleHandler.Create)
+		roleRoutes.PUT("/:id", roleHandler.Update)
+		roleRoutes.DELETE("/:id", roleHandler.Delete)
+		roleRoutes.POST("/:id/permissions", roleHandler.AssignPermissions)
+		roleRoutes.GET("/:id/permissions", roleHandler.GetPermissions)
+	}
+
+	// Register permission management routes
+	permissionRoutes := router.Group("/api/v1/permissions")
+	permissionRoutes.Use(jwtMiddleware.JWTAuth())
+	{
+		permissionRoutes.GET("", permissionHandler.List)
+		permissionRoutes.GET("/tree", permissionHandler.GetTree)
+		permissionRoutes.GET("/:id", permissionHandler.GetByID)
+		permissionRoutes.POST("", permissionHandler.Create)
+		permissionRoutes.PUT("/:id", permissionHandler.Update)
+		permissionRoutes.DELETE("/:id", permissionHandler.Delete)
 	}
 
 	// Register forced logout routes
@@ -191,9 +238,34 @@ func main() {
 	}
 	fmt.Println("\nRegistered Routes:")
 	fmt.Println("GET    /health                              - Health check")
+	fmt.Println("\nAuthentication:")
 	fmt.Println("POST   /api/v1/auth/login                   - User login")
 	fmt.Println("POST   /api/v1/auth/logout                  - User logout")
 	fmt.Println("GET    /api/v1/auth/me                      - Get current user")
+	fmt.Println("GET    /api/v1/auth/codes                   - Get access permission codes")
+	fmt.Println("\nUser Management:")
+	fmt.Println("GET    /api/v1/users                        - List users")
+	fmt.Println("GET    /api/v1/users/:id                    - Get user by ID")
+	fmt.Println("POST   /api/v1/users                        - Create user")
+	fmt.Println("PUT    /api/v1/users/:id                    - Update user")
+	fmt.Println("DELETE /api/v1/users/:id                    - Delete user")
+	fmt.Println("POST   /api/v1/users/:id/roles              - Assign roles to user")
+	fmt.Println("\nRole Management:")
+	fmt.Println("GET    /api/v1/roles                        - List roles")
+	fmt.Println("GET    /api/v1/roles/:id                    - Get role by ID")
+	fmt.Println("POST   /api/v1/roles                        - Create role")
+	fmt.Println("PUT    /api/v1/roles/:id                    - Update role")
+	fmt.Println("DELETE /api/v1/roles/:id                    - Delete role")
+	fmt.Println("POST   /api/v1/roles/:id/permissions        - Assign permissions to role")
+	fmt.Println("GET    /api/v1/roles/:id/permissions        - Get role permissions")
+	fmt.Println("\nPermission Management:")
+	fmt.Println("GET    /api/v1/permissions                  - List permissions")
+	fmt.Println("GET    /api/v1/permissions/tree             - Get permission tree")
+	fmt.Println("GET    /api/v1/permissions/:id              - Get permission by ID")
+	fmt.Println("POST   /api/v1/permissions                  - Create permission")
+	fmt.Println("PUT    /api/v1/permissions/:id              - Update permission")
+	fmt.Println("DELETE /api/v1/permissions/:id              - Delete permission")
+	fmt.Println("\nForced Logout & Session Management:")
 	for _, route := range forcedLogoutRoutes.PrintRegisteredRoutes() {
 		fmt.Println(route)
 	}

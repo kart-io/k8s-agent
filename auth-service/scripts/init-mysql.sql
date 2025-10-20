@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     avatar VARCHAR(255),
     status INT DEFAULT 1 COMMENT '1: active, 0: disabled',
-    created_at BIGINT NOT NULL COMMENT '创建时间戳(秒)',
-    updated_at BIGINT NOT NULL COMMENT '更新时间戳(秒)',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_username (username),
     INDEX idx_email (email),
     INDEX idx_status (status)
@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS roles (
     description TEXT,
     status INT DEFAULT 1 COMMENT '1: active, 0: disabled',
     sort INT DEFAULT 0,
-    created_at BIGINT NOT NULL COMMENT '创建时间戳(秒)',
-    updated_at BIGINT NOT NULL COMMENT '更新时间戳(秒)',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_code (code),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表';
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS permissions (
     sort INT DEFAULT 0,
     status INT DEFAULT 1 COMMENT '1: active, 0: disabled',
     description TEXT,
-    created_at BIGINT NOT NULL COMMENT '创建时间戳(秒)',
-    updated_at BIGINT NOT NULL COMMENT '更新时间戳(秒)',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_parent_id (parent_id),
     INDEX idx_code (code),
     INDEX idx_type (type),
@@ -84,11 +84,11 @@ CREATE TABLE IF NOT EXISTS api_keys (
     secret VARCHAR(255) NOT NULL,
     user_id VARCHAR(36),
     description TEXT,
-    expires_at BIGINT COMMENT '过期时间戳(秒)',
+    expires_at DATETIME COMMENT '过期时间',
     status INT DEFAULT 1 COMMENT '1: active, 0: disabled',
-    last_used_at BIGINT COMMENT '最后使用时间戳(秒)',
-    created_at BIGINT NOT NULL COMMENT '创建时间戳(秒)',
-    updated_at BIGINT NOT NULL COMMENT '更新时间戳(秒)',
+    last_used_at DATETIME COMMENT '最后使用时间',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_key (`key`),
     INDEX idx_user_id (user_id),
     INDEX idx_status (status)
@@ -96,15 +96,15 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 -- 插入默认超级管理员角色
 INSERT INTO roles (id, name, code, description, status, sort, created_at, updated_at) VALUES
-('role-super-admin', '超级管理员', 'super_admin', '系统超级管理员，拥有所有权限', 1, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('role-admin', '管理员', 'admin', '系统管理员', 1, 2, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('role-user', '普通用户', 'user', '普通用户', 1, 3, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW()))
+('role-super-admin', '超级管理员', 'super_admin', '系统超级管理员，拥有所有权限', 1, 1, NOW(), NOW()),
+('role-admin', '管理员', 'admin', '系统管理员', 1, 2, NOW(), NOW()),
+('role-user', '普通用户', 'user', '普通用户', 1, 3, NOW(), NOW())
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- 插入默认超级管理员用户（密码: admin123，使用 bcrypt 加密）
 -- 注意：这是 "admin123" 的 bcrypt hash
 INSERT INTO users (id, username, password, email, real_name, status, created_at, updated_at) VALUES
-('user-admin', 'admin', '$2a$10$rI5JhXWJIkGKhKqWQqQqJ.MkN5JZ5JQqQqJ.MkN5JZ5JQqQqJ.MkN5', 'admin@example.com', '超级管理员', 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW()))
+('user-admin', 'admin', '$2a$10$rI5JhXWJIkGKhKqWQqQqJ.MkN5JZ5JQqQqJ.MkN5JZ5JQqQqJ.MkN5', 'admin@example.com', '超级管理员', 1, NOW(), NOW())
 ON DUPLICATE KEY UPDATE username=VALUES(username);
 
 -- 关联超级管理员用户和角色
@@ -114,23 +114,23 @@ ON DUPLICATE KEY UPDATE user_id=VALUES(user_id);
 
 -- 插入默认权限 - 系统管理
 INSERT INTO permissions (id, parent_id, name, code, type, path, component, icon, sort, status, created_at, updated_at) VALUES
-('perm-system', '', '系统管理', 'system', 'menu', '/system', 'Layout', 'setting', 1, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-user', 'perm-system', '用户管理', 'user', 'menu', '/system/user', 'system/user/index', 'user', 1, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-user-list', 'perm-user', '用户列表', 'user:list', 'api', '/api/v1/users', 'GET', '', 1, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-user-create', 'perm-user', '创建用户', 'user:create', 'api', '/api/v1/users', 'POST', '', 2, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-user-update', 'perm-user', '更新用户', 'user:update', 'api', '/api/v1/users/*', 'PUT', '', 3, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-user-delete', 'perm-user', '删除用户', 'user:delete', 'api', '/api/v1/users/*', 'DELETE', '', 4, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-role', 'perm-system', '角色管理', 'role', 'menu', '/system/role', 'system/role/index', 'team', 2, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-role-list', 'perm-role', '角色列表', 'role:list', 'api', '/api/v1/roles', 'GET', '', 1, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-role-create', 'perm-role', '创建角色', 'role:create', 'api', '/api/v1/roles', 'POST', '', 2, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-role-update', 'perm-role', '更新角色', 'role:update', 'api', '/api/v1/roles/*', 'PUT', '', 3, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-role-delete', 'perm-role', '删除角色', 'role:delete', 'api', '/api/v1/roles/*', 'DELETE', '', 4, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-role-assign', 'perm-role', '分配权限', 'role:assign', 'api', '/api/v1/roles/*/permissions', 'POST', '', 5, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-permission', 'perm-system', '权限管理', 'permission', 'menu', '/system/permission', 'system/permission/index', 'lock', 3, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-permission-list', 'perm-permission', '权限列表', 'permission:list', 'api', '/api/v1/permissions', 'GET', '', 1, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-permission-create', 'perm-permission', '创建权限', 'permission:create', 'api', '/api/v1/permissions', 'POST', '', 2, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-permission-update', 'perm-permission', '更新权限', 'permission:update', 'api', '/api/v1/permissions/*', 'PUT', '', 3, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW())),
-('perm-permission-delete', 'perm-permission', '删除权限', 'permission:delete', 'api', '/api/v1/permissions/*', 'DELETE', '', 4, 1, UNIX_TIMESTAMP(NOW()), UNIX_TIMESTAMP(NOW()))
+('perm-system', '', '系统管理', 'system', 'menu', '/system', 'Layout', 'setting', 1, 1, NOW(), NOW()),
+('perm-user', 'perm-system', '用户管理', 'user', 'menu', '/system/user', 'system/user/index', 'user', 1, 1, NOW(), NOW()),
+('perm-user-list', 'perm-user', '用户列表', 'user:list', 'api', '/api/v1/users', 'GET', '', 1, 1, NOW(), NOW()),
+('perm-user-create', 'perm-user', '创建用户', 'user:create', 'api', '/api/v1/users', 'POST', '', 2, 1, NOW(), NOW()),
+('perm-user-update', 'perm-user', '更新用户', 'user:update', 'api', '/api/v1/users/*', 'PUT', '', 3, 1, NOW(), NOW()),
+('perm-user-delete', 'perm-user', '删除用户', 'user:delete', 'api', '/api/v1/users/*', 'DELETE', '', 4, 1, NOW(), NOW()),
+('perm-role', 'perm-system', '角色管理', 'role', 'menu', '/system/role', 'system/role/index', 'team', 2, 1, NOW(), NOW()),
+('perm-role-list', 'perm-role', '角色列表', 'role:list', 'api', '/api/v1/roles', 'GET', '', 1, 1, NOW(), NOW()),
+('perm-role-create', 'perm-role', '创建角色', 'role:create', 'api', '/api/v1/roles', 'POST', '', 2, 1, NOW(), NOW()),
+('perm-role-update', 'perm-role', '更新角色', 'role:update', 'api', '/api/v1/roles/*', 'PUT', '', 3, 1, NOW(), NOW()),
+('perm-role-delete', 'perm-role', '删除角色', 'role:delete', 'api', '/api/v1/roles/*', 'DELETE', '', 4, 1, NOW(), NOW()),
+('perm-role-assign', 'perm-role', '分配权限', 'role:assign', 'api', '/api/v1/roles/*/permissions', 'POST', '', 5, 1, NOW(), NOW()),
+('perm-permission', 'perm-system', '权限管理', 'permission', 'menu', '/system/permission', 'system/permission/index', 'lock', 3, 1, NOW(), NOW()),
+('perm-permission-list', 'perm-permission', '权限列表', 'permission:list', 'api', '/api/v1/permissions', 'GET', '', 1, 1, NOW(), NOW()),
+('perm-permission-create', 'perm-permission', '创建权限', 'permission:create', 'api', '/api/v1/permissions', 'POST', '', 2, 1, NOW(), NOW()),
+('perm-permission-update', 'perm-permission', '更新权限', 'permission:update', 'api', '/api/v1/permissions/*', 'PUT', '', 3, 1, NOW(), NOW()),
+('perm-permission-delete', 'perm-permission', '删除权限', 'permission:delete', 'api', '/api/v1/permissions/*', 'DELETE', '', 4, 1, NOW(), NOW())
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- 给超级管理员角色分配所有权限

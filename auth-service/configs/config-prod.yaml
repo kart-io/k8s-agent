@@ -1,0 +1,51 @@
+# Auth Service Production Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8090
+  mode: "release"
+  read_timeout: 10s
+  write_timeout: 10s
+
+database:
+  host: "${DB_HOST:localhost}"
+  port: ${DB_PORT:3306}
+  user: "${DB_USER:root}"
+  password: "${DB_PASSWORD}"
+  dbname: "${DB_NAME:k8s_agent_auth}"
+  charset: "utf8mb4"
+  parse_time: true
+  max_idle_conns: 10
+  max_open_conns: 100
+
+redis:
+  host: "${REDIS_HOST:localhost}"
+  port: ${REDIS_PORT:6379}
+  password: "${REDIS_PASSWORD}"
+  db: ${REDIS_DB:0}
+  pool_size: 20
+
+jwt:
+  secret: "${JWT_SECRET}"  # MUST be set via environment variable
+  expires_hours: ${JWT_EXPIRES_HOURS:24}
+
+logging:
+  engine: "zap"
+  level: "${LOG_LEVEL:info}"
+  format: "json"
+  output: "stdout"
+  otlp:
+    enabled: ${OTLP_ENABLED:false}
+    endpoint: "${OTLP_ENDPOINT:http://localhost:4317}"
+    insecure: ${OTLP_INSECURE:false}
+
+# Email notification configuration for forced logout
+email:
+  enabled: ${EMAIL_ENABLED:false}
+  smtp_host: "${SMTP_HOST}"
+  smtp_port: ${SMTP_PORT:587}
+  smtp_user: "${SMTP_USER}"
+  smtp_password: "${SMTP_PASSWORD}"
+  from_address: "${EMAIL_FROM:noreply@k8s-agent.com}"
+  from_name: "${EMAIL_FROM_NAME:K8s Agent Security}"
+  template_dir: "templates/email"

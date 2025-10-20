@@ -4,6 +4,7 @@ go 1.23.0
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/kart-io/logger v0.0.0
 	k8s.io/api v0.28.0
 	k8s.io/apimachinery v0.28.0

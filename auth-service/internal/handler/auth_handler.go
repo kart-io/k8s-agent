@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/kart-io/k8s-agent/auth-service/pkg/forced-logout/session"
 	"github.com/kart-io/k8s-agent/auth-service/pkg/types"
+	"github.com/kart-io/k8s-agent/common/response"
+	"github.com/kart-io/k8s-agent/common/utils"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -36,9 +36,7 @@ func NewAuthHandler(db *gorm.DB, jwtSecret string, jwtExpiresHours int, sessionS
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var loginReq types.LoginRequest
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request format",
-		})
+		response.BadRequest(c, "Invalid request format", err)
 		return
 	}
 
@@ -46,30 +44,22 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var user types.User
 	if err := h.db.Where("username = ?", loginReq.Username).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid username or password",
-			})
+			response.Unauthorized(c, "Invalid username or password", nil)
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Database error",
-		})
+		response.InternalError(c, "Database error", err)
 		return
 	}
 
 	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid username or password",
-		})
+		response.Unauthorized(c, "Invalid username or password", nil)
 		return
 	}
 
 	// Check if user is active
 	if user.Status != 1 {
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": "User account is disabled",
-		})
+		response.Forbidden(c, "User account is disabled", nil)
 		return
 	}
 
@@ -89,14 +79,12 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(h.jwtSecret)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate token",
-		})
+		response.InternalError(c, "Failed to generate token", err)
 		return
 	}
 
 	// Extract IP address from request
-	ipAddress := h.extractIPAddress(c)
+	ipAddress := utils.ExtractIPAddress(c)
 
 	// Extract User-Agent from headers
 	userAgent := c.GetHeader("User-Agent")
@@ -144,40 +132,14 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	}
 
 	// Return login response with JTI
-	response := types.LoginResponse{
+	loginResponse := types.LoginResponse{
 		Token:     tokenString,
 		JTI:       jti,
 		ExpiresAt: expiresAt,
 		User:      userInfo,
 	}
 
-	c.JSON(http.StatusOK, response)
-}
-
-// extractIPAddress extracts the client IP address from the request
-// Handles X-Forwarded-For, X-Real-IP headers and direct connection
-func (h *AuthHandler) extractIPAddress(c *gin.Context) string {
-	// Check X-Forwarded-For header (may contain multiple IPs)
-	if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
-		// Take the first IP in the chain (original client IP)
-		ips := strings.Split(xff, ",")
-		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0])
-		}
-	}
-
-	// Check X-Real-IP header (single IP)
-	if xri := c.GetHeader("X-Real-IP"); xri != "" {
-		return xri
-	}
-
-	// Fall back to RemoteAddr
-	ip := c.ClientIP()
-	if ip == "" {
-		ip = "Unknown"
-	}
-
-	return ip
+	response.Success(c, loginResponse)
 }
 
 // LogoutHandler handles user logout requests
@@ -186,9 +148,7 @@ func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 	// Extract JTI from token if available
 	// For now, just return success
 	// TODO: Implement session revocation in Phase 4
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Logged out successfully",
-	})
+	response.SuccessWithMessage(c, "Logged out successfully", nil)
 }
 
 // GetCurrentUserHandler returns the current authenticated user's information
@@ -196,17 +156,13 @@ func (h *AuthHandler) GetCurrentUserHandler(c *gin.Context) {
 	// Extract user ID from JWT claims (set by JWT middleware)
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "User not authenticated",
-		})
+		response.Unauthorized(c, "User not authenticated", nil)
 		return
 	}
 
 	var user types.User
 	if err := h.db.Where("id = ?", userID).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "User not found",
-		})
+		response.NotFound(c, "User not found", err)
 		return
 	}
 
@@ -226,5 +182,38 @@ func (h *AuthHandler) GetCurrentUserHandler(c *gin.Context) {
 		Roles:    roles,
 	}
 
-	c.JSON(http.StatusOK, userInfo)
+	response.Success(c, userInfo)
+}
+
+// GetAccessCodesHandler returns an array of permission codes for the authenticated user
+// This is used by the frontend to determine what features/pages the user can access
+func (h *AuthHandler) GetAccessCodesHandler(c *gin.Context) {
+	// Extract user ID from JWT claims (set by JWT middleware)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated", nil)
+		return
+	}
+
+	// Query permission codes for the user through their roles
+	// Join: user_roles -> role_permissions -> permissions
+	var codes []string
+	err := h.db.Table("permissions").
+		Select("DISTINCT permissions.code").
+		Joins("JOIN role_permissions ON permissions.id = role_permissions.permission_id").
+		Joins("JOIN user_roles ON role_permissions.role_id = user_roles.role_id").
+		Where("user_roles.user_id = ? AND permissions.status = 1", userID).
+		Pluck("code", &codes).Error
+
+	if err != nil {
+		response.InternalError(c, "Failed to retrieve access codes", err)
+		return
+	}
+
+	// Return empty array if no permissions found (instead of null)
+	if codes == nil {
+		codes = []string{}
+	}
+
+	response.Success(c, codes)
 }

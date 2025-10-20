@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 # Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CONFIG_FILE="$PROJECT_ROOT/configs/config.yaml"
+CONFIG_FILE="$PROJECT_ROOT/configs/config-dev.yaml"
 SQL_FILE="$SCRIPT_DIR/init-mysql.sql"
 
 echo -e "${GREEN}=== Auth Service MySQL Initialization ===${NC}"

@@ -6,6 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
+	github.com/kart-io/k8s-agent/common v0.0.0
 	github.com/kart-io/logger v0.2.2
 	github.com/kart-io/notifyhub v0.1.9
 	github.com/prometheus/client_golang v1.23.2
@@ -80,3 +81,5 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/kart-io/k8s-agent/common => ../common
