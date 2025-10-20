@@ -190,15 +190,15 @@ func (a *RootCauseAnalyzer) analyzeEvent(event map[string]interface{}) *analysis
 
 	// Direct mapping from event reason
 	reasonMap := map[string]types.RootCauseType{
-		"OOMKilling":           types.OOMKiller,
-		"OOMKilled":            types.OOMKiller,
-		"FailedScheduling":     types.ResourceLimit,
-		"ImagePullBackOff":     types.ImagePullError,
-		"ErrImagePull":         types.ImagePullError,
-		"FailedMount":          types.VolumeError,
-		"FailedAttachVolume":   types.VolumeError,
-		"BackOff":              types.ConfigError,
-		"CrashLoopBackOff":     types.ConfigError,
+		"OOMKilling":         types.OOMKiller,
+		"OOMKilled":          types.OOMKiller,
+		"FailedScheduling":   types.ResourceLimit,
+		"ImagePullBackOff":   types.ImagePullError,
+		"ErrImagePull":       types.ImagePullError,
+		"FailedMount":        types.VolumeError,
+		"FailedAttachVolume": types.VolumeError,
+		"BackOff":            types.ConfigError,
+		"CrashLoopBackOff":   types.ConfigError,
 	}
 
 	rootCause, found := reasonMap[reason]
@@ -428,24 +428,24 @@ func (a *RootCauseAnalyzer) analyzeLLM(ctx context.Context, req *types.AnalysisR
 func (a *RootCauseAnalyzer) getDescription(rc types.RootCauseType) string {
 	descriptions := map[types.RootCauseType]string{
 		// Pod & Container Level
-		types.OOMKiller:            "Container was killed due to out of memory (OOM)",
-		types.CPUThrottling:        "Container is experiencing CPU throttling due to resource limits",
+		types.OOMKiller:             "Container was killed due to out of memory (OOM)",
+		types.CPUThrottling:         "Container is experiencing CPU throttling due to resource limits",
 		types.ReadinessProbeFailure: "Readiness probe is failing, pod not ready to receive traffic",
 		types.LivenessProbeFailure:  "Liveness probe is failing, pod may be restarted",
-		types.ImagePullError:       "Failed to pull container image",
-		types.ConfigError:          "Configuration error preventing container startup",
-		types.PodStuckPending:      "Pod is stuck in Pending state, unable to be scheduled",
+		types.ImagePullError:        "Failed to pull container image",
+		types.ConfigError:           "Configuration error preventing container startup",
+		types.PodStuckPending:       "Pod is stuck in Pending state, unable to be scheduled",
 
 		// Node Level
-		types.NodeNotReady:       "Node is not ready to accept workloads",
-		types.KubeletDown:        "Kubelet agent is down on the node",
-		types.NodeHighCPU:        "Node CPU usage is critically high",
-		types.NodeHighMemory:     "Node memory usage is critically high",
-		types.NodeDiskSpaceLow:   "Node disk space is running low",
-		types.DiskPressure:       "Node is experiencing disk pressure",
-		types.MemoryPressure:     "Node is experiencing memory pressure",
-		types.PIDPressure:        "Node is running out of process IDs",
-		types.NetworkUnavailable: "Node network is unavailable or misconfigured",
+		types.NodeNotReady:        "Node is not ready to accept workloads",
+		types.KubeletDown:         "Kubelet agent is down on the node",
+		types.NodeHighCPU:         "Node CPU usage is critically high",
+		types.NodeHighMemory:      "Node memory usage is critically high",
+		types.NodeDiskSpaceLow:    "Node disk space is running low",
+		types.DiskPressure:        "Node is experiencing disk pressure",
+		types.MemoryPressure:      "Node is experiencing memory pressure",
+		types.PIDPressure:         "Node is running out of process IDs",
+		types.NetworkUnavailable:  "Node network is unavailable or misconfigured",
 		types.CertificateExpiring: "Certificate is expiring soon",
 
 		// Control Plane Level
@@ -481,11 +481,11 @@ func (a *RootCauseAnalyzer) getDescription(rc types.RootCauseType) string {
 		types.NetworkError:          "Network connectivity or DNS resolution issues",
 
 		// Quotas & Monitoring
-		types.ResourceQuotaExceeded:  "Resource quota has been exceeded",
-		types.ResourceLimit:          "Insufficient cluster resources for scheduling",
-		types.PrometheusTargetDown:   "Prometheus target sync is failing",
-		types.PrometheusRuleFailure:  "Prometheus alert rule evaluation failed",
-		types.AlertmanagerConfigBad:  "Alertmanager configuration is inconsistent",
+		types.ResourceQuotaExceeded: "Resource quota has been exceeded",
+		types.ResourceLimit:         "Insufficient cluster resources for scheduling",
+		types.PrometheusTargetDown:  "Prometheus target sync is failing",
+		types.PrometheusRuleFailure: "Prometheus alert rule evaluation failed",
+		types.AlertmanagerConfigBad: "Alertmanager configuration is inconsistent",
 	}
 
 	if desc, ok := descriptions[rc]; ok {

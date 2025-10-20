@@ -129,3 +129,11 @@ features:
   enable_knowledge_graph: false  # Requires Neo4j
   enable_anomaly_detection: true
   enable_case_similarity: true
+
+# Memory System Configuration
+memory:
+  enable_vector_store: true       # 启用向量存储用于相似案例检索
+  vector_store_type: "chroma"     # 向量存储类型: "chroma", "pinecone", "weaviate"
+  vector_store_path: "./data/chroma"  # 向量存储数据路径
+  embedding_model: "text-embedding-ada-002"  # Embedding 模型
+  embedding_provider: "openai"    # Embedding 提供商: "openai", "local"

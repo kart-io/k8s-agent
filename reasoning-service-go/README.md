@@ -2,25 +2,46 @@
 
 **AI-powered root cause analysis service with LLM support**
 
-完整的 Go 语言实现，集成 OpenAI、Google Gemini 和 DeepSeek 大模型，提供智能的 Kubernetes 故障诊断和根因分析。
+完整的 Go 语言实现，基于 **gollm** 和 **LangChainGo** 框架，集成多个 LLM 提供商，提供智能的 Kubernetes 故障诊断和根因分析。
 
 ---
 
 ## ✨ 主要特性
 
-### 🤖 LLM 集成
+### 🤖 统一的 LLM 访问层 (gollm)
 - **多提供商支持**: OpenAI (GPT-4), Google Gemini, DeepSeek, **SiliconFlow**, **Kimi (月之暗面)**, **Ollama (本地部署)**, **自定义 LLM 服务**
-- **自定义 LLM**: 支持任何 OpenAI 兼容的 API（vLLM、FastChat、LocalAI 等）
+- **统一接口**: 通过 `go-llm-proxy` 统一访问所有 LLM 提供商
+- **自动故障转移**: 按优先级自动切换提供商，保证服务可用性
 - **智能后备**: 规则引擎 + LLM 混合分析，自动降级
-- **优先级配置**: 支持多个 LLM 提供商，按优先级尝试
-- **成本优化**: 默认使用 GPT-4o-mini 等高性价比模型
+- **成本优化**: 支持多个模型配置，智能选择最优提供商
 - **私有部署**: 支持 Ollama 本地模型和自建 LLM 服务，数据不出网
 - **国内优化**: SiliconFlow 和 Kimi 国内访问速度快
+- **使用指标**: 实时统计调用次数、成功率、延迟和成本
+
+### 🔗 LangChainGo 架构
+- **Chain**: 模块化的分析链（根因分析链、故障描述链）
+- **Agent**: 智能代理（推理代理、工具代理）
+- **Memory**: 三层记忆系统
+  - **对话记忆**: 会话上下文管理
+  - **向量存储**: 基于语义的相似案例检索
+  - **案例记忆**: 历史故障案例库
+- **Tools**: K8s 工具集成（事件查询、日志获取、指标采集）
+
+### 🔍 Orchestrator 协调器
+- **统一入口**: 协调所有分析组件（Chains、Agents、Memory、Tools）
+- **执行追踪**: 详细记录每个步骤的执行状态和耗时
+- **智能流程**:
+  1. **加载上下文**: 从 Memory 加载对话历史和相似案例
+  2. **根因分析**: 调用根因分析链，利用历史经验
+  3. **生成描述**: 生成人类可读的故障描述
+  4. **保存记忆**: 将分析结果保存到 Memory 供未来使用
+- **灵活配置**: 可独立启用/禁用各个功能模块
+- **超时控制**: 各阶段独立超时配置，防止长时间阻塞
 
 ### 🔍 根因分析
 - **多模态分析**: 综合事件、日志、指标进行分析
 - **规则引擎**: 基于 Kubernetes 最佳实践的模式匹配
-- **智能增强**: LLM 提供深度分析和解释
+- **LLM 增强**: 深度分析和智能推理
 
 ### 💡 智能推荐
 - **规则库**: 预定义的修复动作和步骤
@@ -116,13 +137,14 @@ curl http://localhost:8082/health
   "components": {
     "analyzer": true,
     "recommender": true,
-    "llm": true
+    "llm": true,
+    "orchestrator": true
   },
   "timestamp": "2025-10-03T14:00:00Z"
 }
 ```
 
-### 根因分析
+### 根因分析（传统 API）
 
 ```bash
 curl -X POST http://localhost:8082/api/v1/analyze/root-cause \
@@ -154,54 +176,212 @@ curl -X POST http://localhost:8082/api/v1/analyze/root-cause \
   }'
 ```
 
-**响应**:
-```json
-{
-  "request_id": "req-123",
-  "status": "completed",
-  "result": {
-    "root_cause": {
-      "type": "OOMKiller",
-      "description": "Container was killed due to out of memory (OOM)",
-      "confidence": 0.95,
-      "evidence": [
-        "Event reason: OOMKilled",
-        "Found 2 matching patterns in logs",
-        "Memory usage at 98.5% (critical)"
-      ]
-    },
-    "recommendations": [
+### Orchestrator 分析（新 API）
+
+使用新的 Orchestrator 进行完整的分析流程：
+
+```bash
+curl -X POST http://localhost:8082/api/v1/orchestrator/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "session-123",
+    "failure_type": "pod_failure",
+    "resource_type": "pod",
+    "resource_name": "api-server-7d9f8c",
+    "namespace": "production",
+    "cluster_id": "prod-cluster-1",
+    "error_message": "OOMKilled",
+    "timestamp": "2025-10-03T14:30:00Z",
+    "language": "zh-CN",
+    "detail_level": "detailed",
+    "events": [
       {
-        "action": "increase_memory_limit",
-        "description": "Increase container memory limits to prevent OOM kills",
-        "confidence": 0.90,
-        "risk": "low",
-        "impact": "Prevents future OOM kills, may increase cluster resource usage",
-        "steps": [
-          "Analyze current memory usage patterns",
-          "Calculate recommended memory limit (current + 50%)",
-          "Update Deployment/StatefulSet memory limits",
-          "kubectl apply -f updated-manifest.yaml",
-          "Monitor for OOM recurrence"
-        ],
-        "rollback_steps": [
-          "Revert to previous memory limits",
-          "kubectl rollout undo deployment/<name>"
-        ],
-        "estimated_duration": "5 minutes"
+        "type": "Warning",
+        "reason": "OOMKilled",
+        "message": "Container exceeded memory limit",
+        "last_timestamp": "2025-10-03T14:30:00Z",
+        "source": "kubelet"
       }
     ],
+    "metrics": {
+      "cpu": {
+        "utilization": 0.75,
+        "cores_used": 1.5,
+        "limit": 2.0
+      },
+      "memory": {
+        "utilization": 0.985,
+        "bytes_used": 1020054732,
+        "limit": 1073741824
+      }
+    }
+  }'
+```
+
+**Orchestrator 响应**:
+```json
+{
+  "root_cause": {
+    "root_cause": "Pod OOMKilled due to memory limit exceeded",
     "confidence": 0.95,
-    "evidence": [...],
-    "llm_analysis": "{\n  \"root_cause_type\": \"OOMKiller\",\n  \"confidence\": 0.95,\n  ...\n}"
+    "category": "resource_exhaustion",
+    "reasoning": "Container memory usage reached 98.5% before being killed...",
+    "recommendations": [
+      "Increase memory limit to 2Gi",
+      "Add memory resource requests",
+      "Review application memory leaks"
+    ]
   },
-  "processing_time": 1.234
+  "description": {
+    "title": "内存溢出导致容器被终止",
+    "summary": "生产环境中的 API 服务器容器因内存使用超限被 Kubernetes 强制终止",
+    "affected_components": ["api-server", "database-connection-pool"],
+    "severity": "high",
+    "timeline": ["14:29:30 - 内存使用达到 95%", "14:30:00 - OOMKilled 事件触发"]
+  },
+  "similar_cases": [
+    {
+      "description": "Previous OOM issue in same pod",
+      "root_cause": "Memory leak in cache layer",
+      "similarity": 0.87,
+      "solution": "Fixed by clearing cache periodically"
+    }
+  ],
+  "conversation_count": 3,
+  "execution_steps": [
+    {
+      "step": 1,
+      "name": "load_memory_context",
+      "description": "Load history and similar cases from memory",
+      "status": "success",
+      "duration": "50ms"
+    },
+    {
+      "step": 2,
+      "name": "root_cause_analysis",
+      "description": "Analyze root cause using LLM and rules",
+      "status": "success",
+      "duration": "1.2s"
+    },
+    {
+      "step": 3,
+      "name": "generate_description",
+      "description": "Generate human-readable failure description",
+      "status": "success",
+      "duration": "800ms"
+    },
+    {
+      "step": 4,
+      "name": "save_to_memory",
+      "description": "Save analysis result to memory",
+      "status": "success",
+      "duration": "30ms"
+    }
+  ],
+  "total_latency": "2.08s",
+  "timestamp": "2025-10-03T14:30:02Z"
 }
 ```
+
+### K8s Event 分析
+
+**🎉 统一架构**: `/api/v1/analyze/k8s-event` 端点完全使用 Orchestrator 架构！
+
+K8s Event 分析端点直接使用 Orchestrator 架构，提供：
+- ✅ LLM 自动故障转移
+- ✅ 相似案例检索
+- ✅ 对话上下文记忆
+- ✅ 详细的执行步骤追踪
+- ✅ 多语言故障描述
+
+**使用方法**:
+
+```bash
+curl -X POST http://localhost:8082/api/v1/analyze/k8s-event \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cluster_id": "prod-cluster-1",
+    "event": {
+      "reason": "OOMKilled",
+      "message": "Container exceeded memory limit",
+      "type": "Warning",
+      "involvedObject": {
+        "namespace": "production",
+        "name": "api-server-pod",
+        "kind": "Pod"
+      },
+      "source": {
+        "component": "kubelet"
+      }
+    },
+    "use_llm": true
+  }'
+```
+
+**响应格式**:
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "analysis": "<div class=\"diagnosis-section\">...</div>",
+    "rootCause": "OOMKiller",
+    "confidence": 0.95,
+    "recommendations": [
+      "将 Pod 的内存限制从 512Mi 增加到 1Gi",
+      "检查应用程序是否有内存泄漏"
+    ]
+  }
+}
+```
+
+**必需配置**:
+
+```yaml
+features:
+  use_new_orchestrator: true  # 必须启用
+  use_llm_proxy: true          # 必须启用
+  use_memory_system: true      # 推荐启用
+```
+
+**注意事项**:
+- Orchestrator 必须正确初始化，否则返回 503 错误
+- 需要至少配置一个 LLM 提供商
+- 建议启用 Memory 系统以获得相似案例功能
 
 ---
 
 ## ⚙️ 配置说明
+
+### 功能开关
+
+```yaml
+features:
+  # 新架构功能开关
+  use_new_orchestrator: true   # 启用新的 Orchestrator (推荐)
+  use_llm_proxy: true           # 启用 LLM Proxy Adapter (推荐)
+  use_memory_system: true       # 启用 Memory 系统
+  use_tool_agent: false         # 启用 Tool Agent (实验性)
+
+  # 传统功能开关
+  enable_prediction: false
+  enable_learning: false
+  enable_knowledge_graph: false
+  enable_anomaly_detection: false
+  enable_case_similarity: true
+```
+
+### Memory 系统配置
+
+```yaml
+memory:
+  enable_vector_store: true              # 启用向量存储
+  vector_store_type: "chroma"            # 向量存储类型 (chroma/memory)
+  vector_store_path: "./data/chroma"     # Chroma 数据路径
+  embedding_model: "text-embedding-ada-002"  # Embedding 模型
+  embedding_provider: "openai"           # Embedding 提供商 (openai/local)
+```
 
 ### LLM 提供商配置
 
@@ -276,21 +456,42 @@ reasoning-service-go/
 ├── internal/
 │   ├── api/
 │   │   └── server.go            # HTTP API 服务器
+│   ├── agents/                  # Agent 实现
+│   │   ├── k8s_tool/            # K8s 工具 Agent
+│   │   └── reasoning/           # 推理 Agent
+│   ├── chains/                  # Chain 实现
+│   │   ├── description/         # 故障描述 Chain
+│   │   └── root_cause/          # 根因分析 Chain
+│   ├── memory/                  # Memory 系统
+│   │   ├── manager.go           # Memory 管理器
+│   │   ├── conversation.go      # 对话记忆
+│   │   ├── vectorstore.go       # 向量存储
+│   │   └── embedder.go          # 嵌入向量生成
+│   ├── orchestrator/            # Orchestrator 协调器
+│   │   ├── orchestrator.go      # 核心协调逻辑
+│   │   └── types.go             # 类型定义
 │   ├── analyzer/
-│   │   └── root_cause.go        # 根因分析器
+│   │   └── root_cause.go        # 传统根因分析器（向后兼容）
 │   ├── recommender/
-│   │   └── engine.go            # 推荐引擎
+│   │   └── engine.go            # 推荐引擎（向后兼容）
 │   └── config/
 │       └── config.go            # 配置管理
 ├── pkg/
 │   ├── llm/
-│   │   ├── interface.go         # LLM 客户端接口
-│   │   ├── openai.go            # OpenAI 客户端
-│   │   ├── gemini.go            # Gemini 客户端
-│   │   ├── deepseek.go          # DeepSeek 客户端
-│   │   └── factory.go           # 客户端工厂
+│   │   ├── proxy/               # LLM Proxy 适配器
+│   │   │   ├── adapter.go       # gollm 适配器
+│   │   │   ├── types.go         # 类型定义
+│   │   │   └── metrics.go       # 使用指标
+│   │   ├── interface.go         # LLM 客户端接口（传统）
+│   │   ├── openai.go            # OpenAI 客户端（传统）
+│   │   ├── gemini.go            # Gemini 客户端（传统）
+│   │   └── deepseek.go          # DeepSeek 客户端（传统）
 │   └── types/
 │       └── types.go             # 类型定义
+├── tests/
+│   └── integration/             # 集成测试
+│       ├── orchestrator_test.go # Orchestrator 集成测试
+│       └── testutil/            # 测试工具
 ├── configs/
 │   └── config.yaml              # 配置文件
 ├── go.mod
@@ -435,6 +636,12 @@ func main() {
 
 - [x] **Ollama 本地模型支持** ✅
 - [x] **自定义 LLM 服务支持** ✅
+- [x] **gollm 统一 LLM 访问层** ✅
+- [x] **LangChainGo 架构重构** ✅
+- [x] **Memory 系统（对话+向量+案例）** ✅
+- [x] **Orchestrator 协调器** ✅
+- [ ] 完善 Tool Agent 实现
+- [ ] Chroma 向量数据库集成
 - [ ] 添加故障预测功能
 - [ ] 集成 Neo4j 知识图谱
 - [ ] 实现学习系统（反馈收集）

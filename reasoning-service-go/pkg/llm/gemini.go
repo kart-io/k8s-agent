@@ -59,7 +59,7 @@ type geminiRequest struct {
 		Role string `json:"role,omitempty"`
 	} `json:"contents"`
 	GenerationConfig struct {
-		Temperature   float64 `json:"temperature,omitempty"`
+		Temperature     float64 `json:"temperature,omitempty"`
 		MaxOutputTokens int     `json:"maxOutputTokens,omitempty"`
 	} `json:"generationConfig,omitempty"`
 }

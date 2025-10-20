@@ -91,6 +91,10 @@ func main() {
 
 	// Create and start server
 	fmt.Printf("\nStarting server...\n")
+
+	// Orchestrator initialization is required
+	// Note: Orchestrator must be properly initialized before server starts
+	// For now, using NewServer which requires Orchestrator to be set up separately
 	server := api.NewServer(cfg, llmClients)
 
 	if err := server.Start(); err != nil {

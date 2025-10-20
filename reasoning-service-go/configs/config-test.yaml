@@ -1,0 +1,81 @@
+# Test Configuration for Reasoning Service Integration Tests
+
+# Server Configuration
+server:
+  host: "localhost"
+  port: 8083  # Different port to avoid conflicts
+  log_level: "DEBUG"
+
+# LLM Configuration - Using test providers
+llm:
+  enabled: true
+  providers:
+    # Mock provider for testing (uses environment variable)
+    - name: "test-mock"
+      api_key: "test-api-key-12345"
+      base_url: "http://localhost:8999/v1"  # Mock server
+      model: "test-model"
+      max_tokens: 1024
+      temperature: 0.7
+      timeout: 5
+      priority: 1
+
+# Analysis Settings
+analysis:
+  min_confidence: 0.5  # Lower threshold for testing
+  max_recommendations: 3
+  include_similar_cases: false
+  similarity_threshold: 0.7
+  use_llm_fallback: false  # Disable for predictable tests
+
+# Prediction Settings
+prediction:
+  time_windows:
+    - "1h"
+    - "24h"
+  anomaly_detection:
+    contamination: 0.1
+    n_estimators: 50  # Smaller for faster tests
+
+# Learning Settings
+learning:
+  enable_feedback: false  # Disable for tests
+  min_samples_for_accuracy: 3
+  accuracy_update_interval: "10s"
+  export_learning_data: false
+  export_path: "./tests/integration/testdata/learning"
+
+# Performance Settings
+performance:
+  max_workers: 2  # Reduced for tests
+  request_timeout: "5s"
+  max_context_size: 5000
+
+# Logging
+logging:
+  level: "DEBUG"
+  format: "json"
+  output:
+    - "stdout"
+  file:
+    path: "./tests/integration/testdata/test.log"
+    max_size: "10MB"
+    max_age: "1d"
+    max_backups: 1
+    compress: false
+
+# Feature Flags
+features:
+  enable_prediction: false
+  enable_learning: false
+  enable_knowledge_graph: false
+  enable_anomaly_detection: false
+  enable_case_similarity: false
+
+# Memory System Configuration
+memory:
+  enable_vector_store: true
+  vector_store_type: "chroma"
+  vector_store_path: "./tests/integration/testdata/chroma"
+  embedding_model: "text-embedding-ada-002"
+  embedding_provider: "openai"  # Can be mocked in tests

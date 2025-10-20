@@ -52,10 +52,10 @@ func NewOpenAIClient(config *Config) (*OpenAIClient, error) {
 }
 
 type openAIRequest struct {
-	Model       string                   `json:"model"`
-	Messages    []Message                `json:"messages"`
-	Temperature float64                  `json:"temperature,omitempty"`
-	MaxTokens   int                      `json:"max_tokens,omitempty"`
+	Model       string    `json:"model"`
+	Messages    []Message `json:"messages"`
+	Temperature float64   `json:"temperature,omitempty"`
+	MaxTokens   int       `json:"max_tokens,omitempty"`
 }
 
 type openAIResponse struct {

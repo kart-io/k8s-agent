@@ -135,9 +135,9 @@ func (e *Engine) loadRules() {
   timeoutSeconds: 5
   periodSeconds: 10
   failureThreshold: 3`,
-			Confidence:        0.90,
-			Risk:              "low",
-			Impact:            "Pod 启动时会等待更长时间才被标记为 Ready",
+			Confidence: 0.90,
+			Risk:       "low",
+			Impact:     "Pod 启动时会等待更长时间才被标记为 Ready",
 			Steps: []string{
 				"Analyze current readiness probe configuration",
 				"Increase initialDelaySeconds to allow more startup time",
@@ -163,9 +163,9 @@ func (e *Engine) loadRules() {
   requests:
     cpu: 250m
     memory: 256Mi`,
-			Confidence:        0.75,
-			Risk:              "medium",
-			Impact:            "需要集群有足够可用资源，可能触发 Pod 重新调度",
+			Confidence: 0.75,
+			Risk:       "medium",
+			Impact:     "需要集群有足够可用资源，可能触发 Pod 重新调度",
 			Steps: []string{
 				"Check current resource usage",
 				"Increase CPU and memory limits",
@@ -207,9 +207,9 @@ func (e *Engine) loadRules() {
   timeoutSeconds: 5
   periodSeconds: 10
   failureThreshold: 3`,
-			Confidence:        0.90,
-			Risk:              "low",
-			Impact:            "Pod 启动后会等待更长时间才开始存活检查",
+			Confidence: 0.90,
+			Risk:       "low",
+			Impact:     "Pod 启动后会等待更长时间才开始存活检查",
 			Steps: []string{
 				"Analyze current liveness probe configuration",
 				"Increase initialDelaySeconds to prevent early kills",
@@ -413,9 +413,9 @@ func (e *Engine) loadRules() {
   limits:
     cpu: 500m
     memory: 512Mi`,
-			Confidence:  0.80,
-			Risk:        "medium",
-			Impact:      "Pod 可用资源减少，可能影响性能",
+			Confidence: 0.80,
+			Risk:       "medium",
+			Impact:     "Pod 可用资源减少，可能影响性能",
 			Steps: []string{
 				"Edit deployment resource requests",
 				"Reduce CPU/memory requests",
@@ -465,9 +465,9 @@ func (e *Engine) loadRules() {
 			YAML: `spec:
   maxReplicas: 20  # 从 10 增加到 20
   minReplicas: 2`,
-			Confidence:  0.90,
-			Risk:        "medium",
-			Impact:      "可能消耗更多集群资源",
+			Confidence: 0.90,
+			Risk:       "medium",
+			Impact:     "可能消耗更多集群资源",
 			Steps: []string{
 				"kubectl get hpa",
 				"Edit HPA maxReplicas",
@@ -524,9 +524,9 @@ spec:
   storageClassName: standard
   hostPath:
     path: /data/pv-example`,
-			Confidence:  0.80,
-			Risk:        "medium",
-			Impact:      "创建新的存储资源",
+			Confidence: 0.80,
+			Risk:       "medium",
+			Impact:     "创建新的存储资源",
 			Steps: []string{
 				"Create PV with matching specs",
 				"kubectl apply -f pv.yaml",

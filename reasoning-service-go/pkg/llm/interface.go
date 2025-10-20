@@ -19,7 +19,7 @@ const (
 
 // Message represents a chat message
 type Message struct {
-	Role    string `json:"role"`    // "system", "user", "assistant"
+	Role    string `json:"role"` // "system", "user", "assistant"
 	Content string `json:"content"`
 }
 
@@ -59,11 +59,11 @@ type Client interface {
 
 // Config represents the configuration for LLM client
 type Config struct {
-	Provider   Provider
-	APIKey     string
-	BaseURL    string // Optional custom base URL
-	Model      string // Default model to use
-	MaxTokens  int
+	Provider    Provider
+	APIKey      string
+	BaseURL     string // Optional custom base URL
+	Model       string // Default model to use
+	MaxTokens   int
 	Temperature float64
-	Timeout    int // Request timeout in seconds
+	Timeout     int // Request timeout in seconds
 }

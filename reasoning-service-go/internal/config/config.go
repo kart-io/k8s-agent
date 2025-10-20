@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -18,6 +19,7 @@ type Config struct {
 	Performance PerformanceConfig `mapstructure:"performance"`
 	Logging     LoggingConfig     `mapstructure:"logging"`
 	Features    FeaturesConfig    `mapstructure:"features"`
+	Memory      MemoryConfig      `mapstructure:"memory"` // 新增: Memory 系统配置
 }
 
 // ServerConfig represents server configuration
@@ -35,8 +37,8 @@ type LLMConfig struct {
 
 // LLMProviderConfig represents a single LLM provider
 type LLMProviderConfig struct {
-	Name        string  `mapstructure:"name"`        // "openai", "gemini", "deepseek"
-	APIKey      string  `mapstructure:"api_key"`     // Can be set via env var
+	Name        string  `mapstructure:"name"`    // "openai", "gemini", "deepseek"
+	APIKey      string  `mapstructure:"api_key"` // Can be set via env var
 	BaseURL     string  `mapstructure:"base_url"`
 	Model       string  `mapstructure:"model"`
 	MaxTokens   int     `mapstructure:"max_tokens"`
@@ -108,6 +110,15 @@ type FeaturesConfig struct {
 	EnableCaseSimilarity   bool `mapstructure:"enable_case_similarity"`
 }
 
+// MemoryConfig represents memory system configuration
+type MemoryConfig struct {
+	EnableVectorStore bool   `mapstructure:"enable_vector_store"` // 启用向量存储
+	VectorStoreType   string `mapstructure:"vector_store_type"`   // 向量存储类型: "chroma"
+	VectorStorePath   string `mapstructure:"vector_store_path"`   // 向量存储路径
+	EmbeddingModel    string `mapstructure:"embedding_model"`     // Embedding 模型
+	EmbeddingProvider string `mapstructure:"embedding_provider"`  // Embedding 提供商: "openai", "local"
+}
+
 // Load loads configuration from file and environment variables
 func Load() (*Config, error) {
 	return LoadFromPath("")
@@ -172,49 +183,56 @@ func applyLLMEnvOverrides(config *Config) {
 	// LLM API keys from environment
 	for i := range config.LLM.Providers {
 		provider := &config.LLM.Providers[i]
-		envKey := fmt.Sprintf("%s_API_KEY", provider.Name)
-		// Try uppercase version
-		if apiKey := os.Getenv(envKey); apiKey != "" {
-			provider.APIKey = apiKey
+
+		// Skip if API key is already set in config file
+		if provider.APIKey != "" {
+			continue
 		}
-		// Common environment variable names
+
+		// Try to get API key from environment variables
+		// Priority: specific env var > uppercase provider name
+		var apiKey string
+
 		switch provider.Name {
 		case "openai":
-			if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
-				provider.APIKey = apiKey
-			}
+			apiKey = os.Getenv("OPENAI_API_KEY")
 		case "gemini":
-			if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
-				provider.APIKey = apiKey
-			} else if apiKey := os.Getenv("GOOGLE_API_KEY"); apiKey != "" {
-				provider.APIKey = apiKey
+			apiKey = os.Getenv("GEMINI_API_KEY")
+			if apiKey == "" {
+				apiKey = os.Getenv("GOOGLE_API_KEY")
 			}
 		case "deepseek":
-			if apiKey := os.Getenv("DEEPSEEK_API_KEY"); apiKey != "" {
-				provider.APIKey = apiKey
-			}
+			apiKey = os.Getenv("DEEPSEEK_API_KEY")
 		case "siliconflow":
-			if apiKey := os.Getenv("SILICONFLOW_API_KEY"); apiKey != "" {
-				provider.APIKey = apiKey
-			}
+			apiKey = os.Getenv("SILICONFLOW_API_KEY")
 		case "kimi":
-			if apiKey := os.Getenv("KIMI_API_KEY"); apiKey != "" {
-				provider.APIKey = apiKey
-			} else if apiKey := os.Getenv("MOONSHOT_API_KEY"); apiKey != "" {
-				provider.APIKey = apiKey
+			apiKey = os.Getenv("KIMI_API_KEY")
+			if apiKey == "" {
+				apiKey = os.Getenv("MOONSHOT_API_KEY")
 			}
 		case "custom":
-			if apiKey := os.Getenv("CUSTOM_LLM_API_KEY"); apiKey != "" {
-				provider.APIKey = apiKey
-			}
-			// Also support base URL override
+			apiKey = os.Getenv("CUSTOM_LLM_API_KEY")
+			// Also support base URL override for custom provider
 			if baseURL := os.Getenv("CUSTOM_LLM_BASE_URL"); baseURL != "" {
 				provider.BaseURL = baseURL
 			}
-			// Support model override
+			// Support model override for custom provider
 			if model := os.Getenv("CUSTOM_LLM_MODEL"); model != "" {
 				provider.Model = model
 			}
+		case "ollama":
+			// Ollama typically doesn't require API key (local deployment)
+			apiKey = os.Getenv("OLLAMA_API_KEY")
+		default:
+			// For any other provider, try uppercase version of provider name
+			// e.g., "myapi" -> "MYAPI_API_KEY"
+			envKey := fmt.Sprintf("%s_API_KEY", strings.ToUpper(provider.Name))
+			apiKey = os.Getenv(envKey)
+		}
+
+		// Set API key if found in environment
+		if apiKey != "" {
+			provider.APIKey = apiKey
 		}
 	}
 }
@@ -247,6 +265,25 @@ func validate(config *Config) error {
 				// Warning: API key not set, provider will be skipped
 				fmt.Fprintf(os.Stderr, "Warning: LLM provider %s has no API key, will be skipped\n", provider.Name)
 			}
+		}
+	}
+
+	// Validate Memory configuration (required)
+	if config.Memory.EnableVectorStore {
+		if config.Memory.VectorStoreType == "" {
+			return fmt.Errorf("vector_store_type is required when vector store is enabled")
+		}
+		// 验证支持的向量存储类型
+		validTypes := []string{"chroma", "pinecone", "weaviate"}
+		valid := false
+		for _, t := range validTypes {
+			if config.Memory.VectorStoreType == t {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return fmt.Errorf("invalid vector_store_type: %s (must be one of: chroma, pinecone, weaviate)", config.Memory.VectorStoreType)
 		}
 	}
 
