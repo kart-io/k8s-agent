@@ -88,7 +88,7 @@ type DeleteNamespaceRequest struct {
 // ListPodsRequest 获取 Pod 列表请求
 type ListPodsRequest struct {
 	ClusterID string `form:"clusterId" binding:"required"` // 集群 ID
-	Namespace string `form:"namespace" binding:"required"` // 命名空间
+	Namespace string `form:"namespace"`                    // 命名空间
 }
 
 // GetPodRequest 获取 Pod 详情请求
@@ -122,7 +122,7 @@ type GetPodLogsRequest struct {
 // ListDeploymentsRequest 获取 Deployment 列表请求
 type ListDeploymentsRequest struct {
 	ClusterID string `form:"clusterId" binding:"required"` // 集群 ID
-	Namespace string `form:"namespace" binding:"required"` // 命名空间
+	Namespace string `form:"namespace"`                    // 命名空间
 }
 
 // GetDeploymentRequest 获取 Deployment 详情请求
@@ -190,7 +190,7 @@ type DrainNodeRequest struct {
 // ListServicesRequest 获取 Service 列表请求
 type ListServicesRequest struct {
 	ClusterID string `form:"clusterId" binding:"required"` // 集群 ID
-	Namespace string `form:"namespace" binding:"required"` // 命名空间
+	Namespace string `form:"namespace"`                    // 命名空间
 }
 
 // GetServiceRequest 获取 Service 详情请求
