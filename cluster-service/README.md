@@ -160,17 +160,70 @@ cluster-service/
 
 ## 配置说明
 
+### 数据库配置
+
+项目已从 PostgreSQL 迁移到 **MySQL 8.0**。
+
+#### MySQL 数据库凭据 (本地开发)
+
+使用 `./setup-mysql.sh` 脚本自动设置本地 MySQL 容器，默认凭据如下：
+
+**Root 用户**:
+- 用户名: `root`
+- 密码: `root123`
+
+**应用用户** (推荐):
+- 用户名: `cluster_user`
+- 密码: `cluster_pass`
+
+**数据库信息**:
+- 数据库名: `cluster_db`
+- 主机: `localhost`
+- 端口: `3306`
+- 容器名: `cluster-mysql`
+
+**快速连接命令**:
+```bash
+# 使用应用用户连接
+docker exec -it cluster-mysql mysql -ucluster_user -pcluster_pass cluster_db
+
+# 使用 root 用户连接
+docker exec -it cluster-mysql mysql -uroot -proot123
+
+# 从主机连接
+mysql -h127.0.0.1 -P3306 -ucluster_user -pcluster_pass cluster_db
+```
+
+**管理命令**:
+```bash
+# 启动 MySQL
+docker start cluster-mysql
+
+# 停止 MySQL
+docker stop cluster-mysql
+
+# 查看日志
+docker logs cluster-mysql
+
+# 重新设置数据库
+./setup-mysql.sh
+```
+
+#### 配置文件示例
+
 ```yaml
 server:
   port: 8082
   mode: debug
 
 database:
+  driver: mysql                    # 使用 MySQL
   host: localhost
-  port: 5432
-  user: postgres
-  password: postgres
-  dbname: cluster_db
+  port: 3306                       # MySQL 端口
+  user: cluster_user               # MySQL 用户
+  password: cluster_pass           # MySQL 密码
+  dbname: cluster_db              # 数据库名
+  sslmode: disable
 
 jwt:
   secret: your-secret-key-change-in-production
@@ -179,6 +232,11 @@ k8s:
   config_path: ~/.kube/config
   in_cluster: false
 ```
+
+> 📖 **详细文档**:
+> - [MYSQL_MIGRATION_REPORT.md](./MYSQL_MIGRATION_REPORT.md) - PostgreSQL 到 MySQL 的迁移报告
+> - [MYSQL_TROUBLESHOOTING.md](./MYSQL_TROUBLESHOOTING.md) - MySQL 故障排查指南
+> - [QUICKSTART_GUIDE.md](./QUICKSTART_GUIDE.md) - 快速启动指南
 
 ## 快速开始
 
@@ -211,8 +269,12 @@ k8s:
 ### 方式 1: 快速测试 (推荐)
 
 ```bash
-# 1. 构建服务 (带版本注入)
+# 0. 设置 MySQL 数据库 (首次运行必须)
 cd /home/hellotalk/code/go/src/github.com/kart-io/k8s-agent/cluster-service
+./setup-mysql.sh
+# 等待约 15-30 秒直到 MySQL 就绪
+
+# 1. 构建服务 (带版本注入)
 make build
 
 # 2. 查看版本信息
@@ -221,8 +283,9 @@ make version
 # 3. 配置环境(如果需要)
 # 编辑 configs/config.yaml 或设置环境变量
 
-# 4. 启动服务
-./bin/cluster-service -config configs/config.yaml
+# 4. 启动服务 (使用本地 MySQL 配置)
+make run-local
+# 或使用默认配置: ./bin/cluster-service -config configs/config.yaml
 
 # 5. 测试版本端点 (在另一个终端)
 curl http://localhost:8082/version
@@ -236,6 +299,7 @@ export NAMESPACE="default"
 ```
 
 > 📖 **详细指南**:
+> - [QUICKSTART_GUIDE.md](./QUICKSTART_GUIDE.md) - 完整快速启动指南 (含 MySQL 设置)
 > - [QUICKSTART_TEST.md](./QUICKSTART_TEST.md) - API 测试指南
 > - [VERSION_INTEGRATION.md](./VERSION_INTEGRATION.md) - 版本管理指南
 
@@ -344,7 +408,10 @@ docker run -d -p 8082:8082 \
 
 ## 依赖服务
 
-- PostgreSQL: 存储集群配置信息
+- **MySQL 8.0**: 存储集群配置信息
+  - 本地开发使用 Docker 容器
+  - 使用 `./setup-mysql.sh` 快速设置
+  - 参考上方"配置说明"获取默认凭据
 
 ## 环境变量
 

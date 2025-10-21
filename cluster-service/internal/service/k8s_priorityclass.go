@@ -102,18 +102,24 @@ func (s *K8sPriorityClassService) DeletePriorityClass(ctx context.Context, clust
 
 // convertToPriorityClassInfo 转换 PriorityClass 为 PriorityClassInfo
 func convertToPriorityClassInfo(pc *schedulingv1.PriorityClass) PriorityClassInfo {
+	// 确保 Labels 不为 nil
+	labels := pc.Labels
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
 	preemptionPolicy := ""
 	if pc.PreemptionPolicy != nil {
 		preemptionPolicy = string(*pc.PreemptionPolicy)
 	}
 
 	return PriorityClassInfo{
-		Name:            pc.Name,
-		Value:           pc.Value,
-		GlobalDefault:   pc.GlobalDefault,
+		Name:             pc.Name,
+		Value:            pc.Value,
+		GlobalDefault:    pc.GlobalDefault,
 		PreemptionPolicy: preemptionPolicy,
-		Description:     pc.Description,
-		Labels:          pc.Labels,
-		CreatedAt:       pc.CreationTimestamp.Format("2006-01-02T15:04:05Z"),
+		Description:      pc.Description,
+		Labels:           labels,
+		CreatedAt:        pc.CreationTimestamp.Format("2006-01-02T15:04:05Z"),
 	}
 }

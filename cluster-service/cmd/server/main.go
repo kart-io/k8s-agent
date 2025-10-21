@@ -23,10 +23,8 @@ import (
 func main() {
 	// Parse command-line flags
 	var configPath string
-	var enableK8sAPI bool
 	flag.StringVar(&configPath, "config", "", "Path to configuration file (defaults to ./configs/config.yaml)")
 	flag.StringVar(&configPath, "c", "", "Path to configuration file (shorthand)")
-	flag.BoolVar(&enableK8sAPI, "enable-k8s-api", true, "Enable full K8s API endpoints (default: true)")
 	flag.Parse()
 
 	// Load configuration from config file
@@ -64,7 +62,6 @@ func main() {
 		"branch", versionInfo.GitBranch,
 		"build_date", versionInfo.BuildDate,
 		"config_path", configPath,
-		"enable_k8s_api", enableK8sAPI,
 	)
 
 	// 初始化数据库
@@ -110,69 +107,79 @@ func main() {
 		JWTSecret:    cfg.JWT.Secret,
 	}
 
-	var server *api.Server
+	// 初始化 K8s API 相关服务
+	k8sClusterService := service.NewK8sClusterService(pgStorage)
+	k8sNamespaceService := service.NewK8sNamespaceService(pgStorage, k8sClusterService)
+	k8sPodService := service.NewK8sPodService(pgStorage, k8sClusterService)
+	k8sDeploymentService := service.NewK8sDeploymentService(pgStorage, k8sClusterService)
+	k8sNodeService := service.NewK8sNodeService(pgStorage, k8sClusterService)
+	k8sServiceService := service.NewK8sServiceService(pgStorage, k8sClusterService)
+	k8sStatefulSetService := service.NewK8sStatefulSetService(pgStorage, k8sClusterService)
+	k8sDaemonSetService := service.NewK8sDaemonSetService(pgStorage, k8sClusterService)
+	k8sConfigMapService := service.NewK8sConfigMapService(pgStorage, k8sClusterService)
+	k8sSecretService := service.NewK8sSecretService(pgStorage, k8sClusterService)
+	k8sEndpointService := service.NewK8sEndpointService(pgStorage, k8sClusterService)
+	k8sPVCService := service.NewK8sPVCService(pgStorage, k8sClusterService)
+	k8sPVService := service.NewK8sPVService(pgStorage, k8sClusterService)
+	k8sEndpointSliceService := service.NewK8sEndpointSliceService(pgStorage, k8sClusterService)
+	k8sHPAService := service.NewK8sHPAService(pgStorage, k8sClusterService)
+	k8sEventService := service.NewK8sEventService(pgStorage, k8sClusterService)
+	k8sRoleBindingService := service.NewK8sRoleBindingService(pgStorage, k8sClusterService)
+	k8sClusterRoleService := service.NewK8sClusterRoleService(pgStorage, k8sClusterService)
+	k8sPriorityClassService := service.NewK8sPriorityClassService(pgStorage, k8sClusterService)
+	k8sRoleService := service.NewK8sRoleService(pgStorage, k8sClusterService)
+	k8sStorageClassService := service.NewK8sStorageClassService(pgStorage, k8sClusterService)
+	k8sJobService := service.NewK8sJobService(pgStorage, k8sClusterService)
+	k8sCronJobService := service.NewK8sCronJobService(pgStorage, k8sClusterService)
+	k8sIngressService := service.NewK8sIngressService(pgStorage, k8sClusterService)
+	k8sNetworkPolicyService := service.NewK8sNetworkPolicyService(pgStorage, k8sClusterService)
+	k8sReplicaSetService := service.NewK8sReplicaSetService(pgStorage, k8sClusterService)
+	k8sLimitRangeService := service.NewK8sLimitRangeService(pgStorage, k8sClusterService)
+	k8sServiceAccountService := service.NewK8sServiceAccountService(pgStorage, k8sClusterService)
+	k8sClusterRoleBindingService := service.NewK8sClusterRoleBindingService(pgStorage, k8sClusterService)
+	k8sResourceQuotaService := service.NewK8sResourceQuotaService(pgStorage, k8sClusterService)
 
-	if enableK8sAPI {
-		// 初始化 K8s API 相关服务
-		k8sClusterService := service.NewK8sClusterService(pgStorage)
-		k8sNamespaceService := service.NewK8sNamespaceService(pgStorage, k8sClusterService)
-		k8sPodService := service.NewK8sPodService(pgStorage, k8sClusterService)
-		k8sDeploymentService := service.NewK8sDeploymentService(pgStorage, k8sClusterService)
-		k8sNodeService := service.NewK8sNodeService(pgStorage, k8sClusterService)
-		k8sServiceService := service.NewK8sServiceService(pgStorage, k8sClusterService)
-		k8sStatefulSetService := service.NewK8sStatefulSetService(pgStorage, k8sClusterService)
-		k8sDaemonSetService := service.NewK8sDaemonSetService(pgStorage, k8sClusterService)
-		k8sConfigMapService := service.NewK8sConfigMapService(pgStorage, k8sClusterService)
-		k8sSecretService := service.NewK8sSecretService(pgStorage, k8sClusterService)
-		k8sEndpointService := service.NewK8sEndpointService(pgStorage, k8sClusterService)
-		k8sPVCService := service.NewK8sPVCService(pgStorage, k8sClusterService)
-		k8sPVService := service.NewK8sPVService(pgStorage, k8sClusterService)
-		k8sEndpointSliceService := service.NewK8sEndpointSliceService(pgStorage, k8sClusterService)
-		k8sHPAService := service.NewK8sHPAService(pgStorage, k8sClusterService)
-		k8sEventService := service.NewK8sEventService(pgStorage, k8sClusterService)
-		k8sRoleBindingService := service.NewK8sRoleBindingService(pgStorage, k8sClusterService)
-		k8sClusterRoleService := service.NewK8sClusterRoleService(pgStorage, k8sClusterService)
-		k8sPriorityClassService := service.NewK8sPriorityClassService(pgStorage, k8sClusterService)
-		k8sRoleService := service.NewK8sRoleService(pgStorage, k8sClusterService)
-		k8sStorageClassService := service.NewK8sStorageClassService(pgStorage, k8sClusterService)
+	// 初始化 K8s API 处理器
+	k8sAPIHandler := handler.NewK8sAPIHandler(
+		k8sClusterService,
+		k8sNamespaceService,
+		k8sPodService,
+		k8sDeploymentService,
+		k8sNodeService,
+		k8sServiceService,
+		k8sStatefulSetService,
+		k8sDaemonSetService,
+		k8sConfigMapService,
+		k8sSecretService,
+		k8sEndpointService,
+		k8sPVCService,
+		k8sPVService,
+		k8sEndpointSliceService,
+		k8sHPAService,
+		k8sEventService,
+		k8sRoleBindingService,
+		k8sClusterRoleService,
+		k8sPriorityClassService,
+		k8sRoleService,
+		k8sStorageClassService,
+		k8sJobService,
+		k8sCronJobService,
+		k8sIngressService,
+		k8sNetworkPolicyService,
+		k8sReplicaSetService,
+		k8sLimitRangeService,
+		k8sServiceAccountService,
+		k8sClusterRoleBindingService,
+		k8sResourceQuotaService,
+	)
 
-		// 初始化 K8s API 处理器
-		k8sAPIHandler := handler.NewK8sAPIHandler(
-			k8sClusterService,
-			k8sNamespaceService,
-			k8sPodService,
-			k8sDeploymentService,
-			k8sNodeService,
-			k8sServiceService,
-			k8sStatefulSetService,
-			k8sDaemonSetService,
-			k8sConfigMapService,
-			k8sSecretService,
-			k8sEndpointService,
-			k8sPVCService,
-			k8sPVService,
-			k8sEndpointSliceService,
-			k8sHPAService,
-			k8sEventService,
-			k8sRoleBindingService,
-			k8sClusterRoleService,
-			k8sPriorityClassService,
-			k8sRoleService,
-			k8sStorageClassService,
-		)
+	// 创建服务器实例
+	server := api.NewServer(serverConfig, clusterHandler, k8sAPIHandler, logrusLogger)
 
-		// 创建支持完整 K8s API 的服务器
-		server = api.NewServerWithK8sAPI(serverConfig, clusterHandler, k8sAPIHandler, logrusLogger)
-
-		logger.Infow("K8s API enabled",
-			"endpoints", "cluster, namespace, pod, deployment, node, service, statefulset, daemonset, configmap, secret, endpoint, pvc, pv, endpointslice, hpa, event, rolebinding, clusterrole, priorityclass",
-			"base_path", "/api/k8s",
-		)
-	} else {
-		// 创建原有的服务器（保持向后兼容）
-		server = api.NewServer(serverConfig, clusterHandler, logrusLogger)
-		logger.Info("K8s API disabled, using legacy endpoints only")
-	}
+	logger.Infow("K8s API enabled",
+		"endpoints", "cluster, namespace, pod, deployment, node, service, statefulset, daemonset, configmap, secret, endpoint, pvc, pv, endpointslice, hpa, event, rolebinding, clusterrole, priorityclass",
+		"base_path", "/api/k8s",
+	)
 
 	// 启动服务器
 	go func() {

@@ -297,6 +297,34 @@ make run
 
 ## 配置说明
 
+### 数据库配置
+
+auth-service 使用 MySQL 8.0 作为数据库，与 cluster-service 共享同一个 MySQL 容器。
+
+#### MySQL 数据库凭据
+
+**容器名称**: `cluster-mysql`
+**端口**: `3306`
+
+**Root 用户** (推荐):
+- 用户名: `root`
+- 密码: `root123`
+
+**数据库信息**:
+- 数据库名: `user_auth`
+- 字符集: `utf8mb4`
+
+**快速连接命令**:
+```bash
+# 使用 Docker 连接
+docker exec -it cluster-mysql mysql -uroot -proot123 user_auth
+
+# 从主机连接
+mysql -h127.0.0.1 -P3306 -uroot -proot123 user_auth
+```
+
+> 📖 **详细说明**: 查看 [DATABASE_FIX_REPORT.md](./DATABASE_FIX_REPORT.md) 了解数据库配置详情
+
 ### 配置文件
 
 编辑 `configs/config.yaml` 文件：
@@ -309,8 +337,8 @@ database:
   host: localhost
   port: 3306        # MySQL 端口
   user: root
-  password: root
-  dbname: k8s_agent_auth
+  password: root123  # ✅ 正确的密码
+  dbname: user_auth  # ✅ 数据库名
   charset: utf8mb4
   parse_time: true
 
@@ -322,6 +350,14 @@ jwt:
   secret: "your-secret-key"  # JWT 密钥，生产环境必须修改
   expires_hours: 24          # Token 过期时间（小时）
 ```
+
+**配置文件说明**:
+- `config.yaml` - 默认配置（已更新密码为 `root123`）
+- `config-dev.yaml` - 开发环境配置（调试模式，详细日志）
+- `config-local.yaml` - 本地开发配置（与 config-dev.yaml 相同）
+- `config-prod.yaml` - 生产环境配置
+
+**推荐使用**: 开发时使用 `config-dev.yaml` 或 `config-local.yaml`
 
 ### 环境变量配置
 

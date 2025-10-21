@@ -102,10 +102,10 @@ INSERT INTO roles (id, name, code, description, status, sort, created_at, update
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- 插入默认超级管理员用户（密码: admin123，使用 bcrypt 加密）
--- 注意：这是 "admin123" 的 bcrypt hash
+-- 注意：这是 "admin123" 的 bcrypt hash (使用 go run scripts/hash_password.go admin123 生成)
 INSERT INTO users (id, username, password, email, real_name, status, created_at, updated_at) VALUES
-('user-admin', 'admin', '$2a$10$rI5JhXWJIkGKhKqWQqQqJ.MkN5JZ5JQqQqJ.MkN5JZ5JQqQqJ.MkN5', 'admin@example.com', '超级管理员', 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE username=VALUES(username);
+('user-admin', 'admin', '$2a$10$fSA0jhcFVnG..gkMmi5Ypug2YFwjVHCd7rveiwp6XUJGpYlHQ5ZSK', 'admin@example.com', '超级管理员', 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE password=VALUES(password);
 
 -- 关联超级管理员用户和角色
 INSERT INTO user_roles (user_id, role_id) VALUES

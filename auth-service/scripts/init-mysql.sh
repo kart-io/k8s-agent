@@ -65,16 +65,41 @@ echo "  User: $DB_USER"
 echo "  Database: $DB_NAME"
 echo ""
 
-# Build MySQL connection string
-MYSQL_CMD="mysql -h $DB_HOST -P $DB_PORT -u $DB_USER"
+# Determine connection method based on config
+# If host is 'localhost' or '127.0.0.1', check if we can use docker exec or TCP
+if [ "$DB_HOST" = "localhost" ] || [ "$DB_HOST" = "127.0.0.1" ]; then
+    # Try to detect if MySQL is in Docker container
+    if docker ps 2>/dev/null | grep -q cluster-mysql; then
+        echo -e "${GREEN}✓ Detected MySQL in Docker container 'cluster-mysql'${NC}"
+        echo -e "${YELLOW}Using Docker exec for connection...${NC}"
 
-# Add password if provided
-if [ -n "$DB_PASSWORD" ]; then
-    MYSQL_CMD="$MYSQL_CMD -p$DB_PASSWORD"
-    echo -e "${YELLOW}Note: Using password from config.yaml${NC}"
+        # Use Docker exec to run MySQL commands
+        if [ -n "$DB_PASSWORD" ]; then
+            MYSQL_CMD="docker exec -i cluster-mysql mysql -u $DB_USER -p$DB_PASSWORD"
+        else
+            MYSQL_CMD="docker exec -i cluster-mysql mysql -u $DB_USER"
+        fi
+    else
+        # No Docker container found, try TCP connection to localhost
+        echo -e "${YELLOW}Connecting to MySQL via TCP protocol...${NC}"
+        MYSQL_CMD="mysql -h $DB_HOST -P $DB_PORT -u $DB_USER --protocol=TCP"
+
+        if [ -n "$DB_PASSWORD" ]; then
+            MYSQL_CMD="$MYSQL_CMD -p$DB_PASSWORD"
+        fi
+    fi
 else
-    echo -e "${YELLOW}Note: No password configured, you may be prompted for one${NC}"
+    # Remote MySQL server - use standard TCP connection
+    echo -e "${YELLOW}Connecting to remote MySQL at ${DB_HOST}:${DB_PORT}...${NC}"
+    MYSQL_CMD="mysql -h $DB_HOST -P $DB_PORT -u $DB_USER"
+
+    if [ -n "$DB_PASSWORD" ]; then
+        MYSQL_CMD="$MYSQL_CMD -p$DB_PASSWORD"
+    fi
 fi
+
+# Display connection method
+echo -e "${GREEN}Connection method: ${NC}${MYSQL_CMD% -p*}"  # Hide password in output
 
 # Execute SQL script
 echo -e "${GREEN}Executing initialization script...${NC}"
