@@ -110,11 +110,3 @@ logging:
     max_age: "7d"
     max_backups: 3
     compress: false
-
-# Feature Flags
-features:
-  enable_prediction: true
-  enable_learning: true
-  enable_knowledge_graph: false  # Requires Neo4j
-  enable_anomaly_detection: true
-  enable_case_similarity: true

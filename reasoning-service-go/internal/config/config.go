@@ -18,8 +18,7 @@ type Config struct {
 	Learning    LearningConfig    `mapstructure:"learning"`
 	Performance PerformanceConfig `mapstructure:"performance"`
 	Logging     LoggingConfig     `mapstructure:"logging"`
-	Features    FeaturesConfig    `mapstructure:"features"`
-	Memory      MemoryConfig      `mapstructure:"memory"` // 新增: Memory 系统配置
+	Memory      MemoryConfig      `mapstructure:"memory"` // Memory 系统配置
 }
 
 // ServerConfig represents server configuration
@@ -99,15 +98,6 @@ type FileLogConfig struct {
 	MaxAge     string `mapstructure:"max_age"`
 	MaxBackups int    `mapstructure:"max_backups"`
 	Compress   bool   `mapstructure:"compress"`
-}
-
-// FeaturesConfig represents feature flags
-type FeaturesConfig struct {
-	EnablePrediction       bool `mapstructure:"enable_prediction"`
-	EnableLearning         bool `mapstructure:"enable_learning"`
-	EnableKnowledgeGraph   bool `mapstructure:"enable_knowledge_graph"`
-	EnableAnomalyDetection bool `mapstructure:"enable_anomaly_detection"`
-	EnableCaseSimilarity   bool `mapstructure:"enable_case_similarity"`
 }
 
 // MemoryConfig represents memory system configuration

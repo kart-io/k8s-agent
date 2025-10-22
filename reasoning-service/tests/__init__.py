@@ -1,3 +1,0 @@
-"""
-Reasoning Service Test Suite
-"""

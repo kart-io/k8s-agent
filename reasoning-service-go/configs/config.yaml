@@ -122,14 +122,6 @@ logging:
     max_backups: 10
     compress: true
 
-# Feature Flags
-features:
-  enable_prediction: true
-  enable_learning: true
-  enable_knowledge_graph: false  # Requires Neo4j
-  enable_anomaly_detection: true
-  enable_case_similarity: true
-
 # Memory System Configuration
 memory:
   enable_vector_store: true       # 启用向量存储用于相似案例检索

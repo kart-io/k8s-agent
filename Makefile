@@ -11,7 +11,7 @@ DOCKER_NAMESPACE ?= aetherius
 COLLECT_AGENT_DIR := collect-agent
 AGENT_MANAGER_DIR := agent-manager
 ORCHESTRATOR_DIR := orchestrator-service
-REASONING_DIR := reasoning-service
+REASONING_DIR := reasoning-service-go
 
 # Colors for output
 COLOR_RESET := \033[0m

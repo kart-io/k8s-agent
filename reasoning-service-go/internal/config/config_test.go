@@ -219,13 +219,6 @@ analysis:
   similarity_threshold: 0.8
   use_llm_fallback: true
 
-features:
-  enable_prediction: false
-  enable_learning: false
-  enable_knowledge_graph: false
-  enable_anomaly_detection: false
-  enable_case_similarity: false
-
 memory:
   enable_vector_store: false
   vector_store_type: "chroma"

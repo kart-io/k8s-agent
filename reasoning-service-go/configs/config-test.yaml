@@ -64,14 +64,6 @@ logging:
     max_backups: 1
     compress: false
 
-# Feature Flags
-features:
-  enable_prediction: false
-  enable_learning: false
-  enable_knowledge_graph: false
-  enable_anomaly_detection: false
-  enable_case_similarity: false
-
 # Memory System Configuration
 memory:
   enable_vector_store: true
