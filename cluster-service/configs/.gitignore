@@ -1,8 +1,0 @@
-# Ignore local configuration overrides
-config.local.yaml
-*.local.yaml
-
-# Ignore sensitive files
-*.key
-*.pem
-*.crt

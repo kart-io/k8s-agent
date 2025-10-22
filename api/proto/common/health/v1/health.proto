@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package common.health.v1;
+
+option go_package = "github.com/kart-io/k8s-agent/protos/gen/common/health/v1;healthv1";
+
+import "google/protobuf/timestamp.proto";
+
+// Health 健康检查服务
+service Health {
+  // Check 检查服务健康状态
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse) {}
+
+  // Watch 监听服务健康状态变化
+  rpc Watch(HealthCheckRequest) returns (stream HealthCheckResponse) {}
+}
+
+// HealthCheckRequest 健康检查请求
+message HealthCheckRequest {
+  // service 服务名称 (可选，空表示检查整体服务)
+  string service = 1;
+}
+
+// HealthCheckResponse 健康检查响应
+message HealthCheckResponse {
+  // ServingStatus 服务状态枚举
+  enum ServingStatus {
+    // UNKNOWN 未知状态
+    UNKNOWN = 0;
+    // SERVING 服务正常
+    SERVING = 1;
+    // NOT_SERVING 服务不可用
+    NOT_SERVING = 2;
+    // SERVICE_UNKNOWN 服务不存在
+    SERVICE_UNKNOWN = 3;
+  }
+
+  // status 服务状态
+  ServingStatus status = 1;
+
+  // message 状态描述信息
+  string message = 2;
+
+  // timestamp 检查时间
+  google.protobuf.Timestamp timestamp = 3;
+}

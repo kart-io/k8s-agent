@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 )
 
 // Application 定义应用程序接口
@@ -21,13 +21,13 @@ type Application interface {
 }
 
 // LoggerInitFunc 日志初始化函数类型
-type LoggerInitFunc func(opts Options) (*zap.Logger, error)
+type LoggerInitFunc func(opts Options) (core.Logger, error)
 
 // ApplicationRunner 应用程序运行器
 type ApplicationRunner struct {
 	opts       Options
 	app        Application
-	logger     *zap.Logger
+	logger     core.Logger
 	loggerInit LoggerInitFunc
 }
 
@@ -49,7 +49,6 @@ func (r *ApplicationRunner) Run() error {
 			return fmt.Errorf("failed to initialize logger: %w", err)
 		}
 		r.logger = logger
-		defer logger.Sync()
 	}
 
 	// 2. 创建上下文
@@ -77,7 +76,7 @@ func (r *ApplicationRunner) Run() error {
 	select {
 	case sig := <-sigCh:
 		if r.logger != nil {
-			r.logger.Info("Received signal, shutting down", zap.String("signal", sig.String()))
+			r.logger.Infow("Received signal, shutting down", "signal", sig.String())
 		}
 		cancel()
 		return r.app.Shutdown(context.Background())

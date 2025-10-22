@@ -9,7 +9,8 @@ common/
 ├── config/            # 统一配置结构和 Options 模式
 ├── db/                # 数据库客户端 (MySQL, Redis)
 ├── mq/                # 消息队列客户端 (NATS)
-├── server/            # HTTP 服务器 (Gin)
+├── server/            # HTTP/gRPC 服务器 (Gin, gRPC)
+├── proto/             # Protobuf 定义和生成的代码 (使用 buf 管理)
 ├── response/          # 统一的 API 响应格式
 ├── errors/            # 错误码和错误处理
 ├── pagination/        # 分页功能
@@ -17,6 +18,7 @@ common/
 ├── k8sutils/          # Kubernetes 资源转换工具
 ├── validator/         # 数据验证工具
 ├── middleware/        # Gin 中间件
+├── examples/          # 使用示例
 └── README.md          # 本文档
 ```
 
@@ -143,9 +145,11 @@ natsClient.Subscribe(ctx, "subject", func(msg *nats.Msg) {
 
 ---
 
-### 4. server - HTTP 服务器
+### 4. server - HTTP/gRPC 服务器
 
-提供 Gin HTTP 服务器封装。
+提供 Gin HTTP 服务器和 gRPC 服务器封装，均使用 Option 模式配置。
+
+#### HTTP 服务器 (Gin)
 
 **使用示例**:
 
@@ -158,11 +162,68 @@ ginServer := server.NewGinServer(logger,
 )
 
 // 注册路由
-ginServer.Router.GET("/health", handleHealth)
+ginServer.Engine.GET("/health", handleHealth)
 
 // 启动服务器
-ginServer.Start()
+ginServer.Run()
 ```
+
+#### gRPC 服务器 ⭐ NEW
+
+**特性**：
+- 使用 Option 模式配置，与其他组件保持一致
+- 内置健康检查服务（gRPC Health Checking Protocol）
+- 内置反射服务（方便调试）
+- 支持拦截器（日志、恢复、请求ID等）
+- 支持 TLS/mTLS
+- 完整的连接管理（KeepAlive、超时等）
+- 优雅关闭
+
+**使用示例**:
+
+```go
+import "github.com/kart-io/k8s-agent/common/server"
+
+// 创建 gRPC 服务器（使用 Option 模式）
+grpcServer, err := server.NewGRPCServer(logger,
+    server.WithGRPCPort(9090),
+    server.WithGRPCReflection(true),
+    server.WithGRPCHealthCheck(true),
+    // 添加拦截器
+    server.WithGRPCUnaryInterceptor(server.LoggingUnaryInterceptor(logger)),
+    server.WithGRPCUnaryInterceptor(server.RecoveryUnaryInterceptor(logger)),
+)
+
+// 注册你的服务
+// pb.RegisterYourServiceServer(grpcServer.Server(), yourServiceImpl)
+
+// 启动服务器
+grpcServer.Run()
+```
+
+**配置选项**（26个）：
+- `WithGRPCHost` - 监听地址（默认: 0.0.0.0）
+- `WithGRPCPort` - 监听端口（默认: 9090）
+- `WithGRPCMaxRecvMsgSize` - 最大接收消息大小（默认: 4MB）
+- `WithGRPCMaxSendMsgSize` - 最大发送消息大小（默认: 4MB）
+- `WithGRPCConnectionTimeout` - 连接超时（默认: 120s）
+- `WithGRPCKeepAliveTime` - KeepAlive 时间间隔（默认: 30s）
+- `WithGRPCKeepAliveTimeout` - KeepAlive 超时（默认: 10s）
+- `WithGRPCMaxConnectionIdle` - 最大连接空闲时间（默认: 5m）
+- `WithGRPCMaxConnectionAge` - 最大连接存活时间（默认: 30m）
+- `WithGRPCMaxConnectionAgeGrace` - 连接关闭宽限时间（默认: 5s）
+- `WithGRPCReflection` - 启用反射服务（默认: true）
+- `WithGRPCHealthCheck` - 启用健康检查（默认: true）
+- `WithGRPCTLS` - 设置 TLS 配置
+- `WithGRPCUnaryInterceptor` - 添加一元拦截器
+- `WithGRPCStreamInterceptor` - 添加流拦截器
+
+**内置拦截器**：
+- `LoggingUnaryInterceptor` / `LoggingStreamInterceptor` - 请求日志
+- `RecoveryUnaryInterceptor` / `RecoveryStreamInterceptor` - Panic 恢复
+- `RequestIDUnaryInterceptor` / `RequestIDStreamInterceptor` - 请求 ID
+
+**详细文档**: 参见 [GRPC_GUIDE.md](./GRPC_GUIDE.md)
 
 ---
 
@@ -554,13 +615,80 @@ func ListClusters(c *gin.Context) {
 }
 ```
 
+---
+
+### 10. proto - Protobuf 定义和代码生成 ⭐ NEW
+
+提供 gRPC 服务的 Protobuf 定义，使用 [buf](https://buf.build) 工具管理。
+
+**目录结构**：
+```
+proto/
+├── buf.yaml              # buf 主配置
+├── buf.gen.yaml          # 代码生成配置
+├── buf.work.yaml         # workspace 配置
+├── common/
+│   ├── health/v1/        # 健康检查服务定义
+│   └── example/v1/       # 示例服务定义
+└── gen/                  # 生成的 Go 代码
+```
+
+**快速开始**：
+
+```bash
+# 1. 安装 buf
+brew install bufbuild/buf/buf
+# 或
+go install github.com/bufbuild/buf/cmd/buf@latest
+
+# 2. 生成代码
+cd common/proto
+buf generate
+
+# 或使用 Makefile
+cd common
+make proto-gen
+```
+
+**定义新服务**：
+
+1. 在 `proto/myservice/v1/` 下创建 `.proto` 文件
+2. 运行 `make proto-gen` 生成代码
+3. 实现生成的接口
+4. 注册到 gRPC 服务器
+
+**完整指南**: 参见 [GRPC_GUIDE.md](./GRPC_GUIDE.md)
+
+**Makefile 命令**：
+```bash
+make proto-gen          # 生成代码
+make proto-lint         # 检查 lint
+make proto-format       # 格式化
+make proto-breaking     # 检查破坏性变更
+make proto-clean        # 清理生成的代码
+```
+
 ## 最佳实践
 
+### HTTP/REST API
 1. **统一响应格式**: 所有 API 都应使用 `response` 包的方法返回响应
 2. **结构化日志**: 使用 `logger` 包记录日志，避免使用 `fmt.Println`
 3. **错误处理**: 使用 `errors` 包创建和处理错误，保持错误码一致
 4. **参数验证**: 使用 `validator` 包验证输入参数
 5. **中间件组合**: 合理使用中间件，保持代码简洁
+
+### gRPC 服务
+1. **使用 buf 管理 Protobuf**: 使用 `buf` 而不是直接使用 `protoc`，确保代码一致性
+2. **版本化 API**: Protobuf 定义应该按版本组织（如 `v1`, `v2`）
+3. **添加拦截器**: 至少添加日志和恢复拦截器，生产环境建议添加监控和追踪
+4. **启用健康检查**: 生产环境必须启用健康检查，便于 K8s 探针使用
+5. **合理设置超时**: 根据业务场景设置合适的连接超时和请求超时
+6. **优雅关闭**: 使用 `Shutdown()` 方法优雅关闭，而不是直接 `Stop()`
+
+### 通用建议
+1. **使用 Option 模式**: 所有组件初始化都应使用 Option 模式，保持 API 一致性
+2. **错误处理**: 不要忽略错误，合理记录和传播错误信息
+3. **资源清理**: 使用 `defer` 确保资源被正确关闭
 
 ## 版本说明
 

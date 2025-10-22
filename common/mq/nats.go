@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 )
 
 // NATSOptions NATS 配置选项
@@ -61,11 +61,11 @@ func defaultNATSOptions() *NATSOptions {
 // NATSClient NATS 客户端
 type NATSClient struct {
 	Conn   *nats.Conn
-	logger *zap.Logger
+	logger core.Logger
 }
 
 // NewNATS 创建 NATS 连接
-func NewNATS(log *zap.Logger, opts ...NATSOption) (*NATSClient, error) {
+func NewNATS(log core.Logger, opts ...NATSOption) (*NATSClient, error) {
 	// 应用默认配置
 	options := defaultNATSOptions()
 
@@ -80,14 +80,14 @@ func NewNATS(log *zap.Logger, opts ...NATSOption) (*NATSClient, error) {
 		nats.ReconnectBufSize(options.reconnectBufSize),
 		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
 			if err != nil {
-				log.Error("NATS disconnected", zap.Error(err))
+				log.Errorw("NATS disconnected", "error", err)
 			}
 		}),
 		nats.ReconnectHandler(func(nc *nats.Conn) {
-			log.Info("NATS reconnected", zap.String("url", nc.ConnectedUrl()))
+			log.Infow("NATS reconnected", "url", nc.ConnectedUrl())
 		}),
 		nats.ClosedHandler(func(nc *nats.Conn) {
-			log.Warn("NATS connection closed")
+			log.Warnw("NATS connection closed")
 		}),
 	}
 
@@ -96,11 +96,11 @@ func NewNATS(log *zap.Logger, opts ...NATSOption) (*NATSClient, error) {
 		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
 	}
 
-	log.Info("NATS connected", zap.String("url", options.url))
+	log.Infow("NATS connected", "url", options.url)
 
 	return &NATSClient{
 		Conn:   conn,
-		logger: log.With(zap.String("component", "nats")),
+		logger: log.With("component", "nats"),
 	}, nil
 }
 
@@ -109,7 +109,7 @@ func (c *NATSClient) Publish(subject string, data []byte) error {
 	if err := c.Conn.Publish(subject, data); err != nil {
 		return fmt.Errorf("failed to publish to %s: %w", subject, err)
 	}
-	c.logger.Debug("Published message", zap.String("subject", subject), zap.Int("bytes", len(data)))
+	c.logger.Debugw("Published message", "subject", subject, "bytes", len(data))
 	return nil
 }
 
@@ -124,7 +124,7 @@ func (c *NATSClient) Subscribe(subject string, handler nats.MsgHandler) (*nats.S
 	if err != nil {
 		return nil, fmt.Errorf("failed to subscribe to %s: %w", subject, err)
 	}
-	c.logger.Info("Subscribed to subject", zap.String("subject", subject))
+	c.logger.Infow("Subscribed to subject", "subject", subject)
 	return sub, nil
 }
 
@@ -134,7 +134,7 @@ func (c *NATSClient) QueueSubscribe(subject string, queue string, handler nats.M
 	if err != nil {
 		return nil, fmt.Errorf("failed to queue subscribe to %s: %w", subject, err)
 	}
-	c.logger.Info("Queue subscribed", zap.String("subject", subject), zap.String("queue", queue))
+	c.logger.Infow("Queue subscribed", "subject", subject, "queue", queue)
 	return sub, nil
 }
 
@@ -157,7 +157,7 @@ func (c *NATSClient) Health(ctx context.Context) error {
 
 // Close 关闭连接
 func (c *NATSClient) Close() error {
-	c.logger.Info("Closing NATS connection")
+	c.logger.Infow("Closing NATS connection")
 	c.Conn.Close()
 	return nil
 }

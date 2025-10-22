@@ -1,0 +1,82 @@
+# Agent Manager Service Configuration
+
+# HTTP server configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+  mode: "release"  # debug, release, test
+  read_timeout: 30s
+  write_timeout: 30s
+  idle_timeout: 60s
+  graceful_stop: 30s
+
+# gRPC server configuration
+grpc:
+  enable: true                      # 启用 gRPC 服务
+  host: "0.0.0.0"
+  port: 9090
+  max_recv_msg_size: 10485760       # 10MB
+  max_send_msg_size: 10485760       # 10MB
+  connection_timeout: 120s
+  keep_alive_time: 30s
+  keep_alive_timeout: 10s
+  max_connection_idle: 300s          # 5 minutes
+  max_connection_age: 1800s          # 30 minutes
+  max_connection_age_grace: 5s
+  enable_reflection: true           # 启用反射服务（开发环境）
+  enable_health_check: true         # 启用健康检查
+
+# Database configuration (MySQL)
+database:
+  host: "localhost"
+  port: 3306
+  user: "root"
+  password: "password"
+  database: "agent_manager"
+  ssl_mode: "disable"
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 1h
+  auto_migrate: true
+
+# Redis configuration
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 5
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+
+# NATS configuration
+nats:
+  url: "nats://localhost:4222"
+  cluster_id: "agent-manager-cluster"
+  max_reconnect: 10
+  reconnect_wait: 2s
+  ping_interval: 20s
+  max_pings_out: 2
+  enable_jetstream: false
+  reconnect_buf_size: 1048576
+
+# Logging configuration
+logging:
+  level: "info"  # debug, info, warn, error, fatal
+  format: "json"  # json, text
+  output:
+    - "stdout"
+  engine: "zap"  # zap, slog
+  development: false
+  enable_caller: true
+  otlp_endpoint: ""
+  otlp_insecure: false
+
+# Metrics configuration
+metrics:
+  enabled: true
+  path: "/metrics"
+  port: 9091  # Changed from 9090 to avoid conflict with gRPC
+  retention_days: 30
+  aggregation_interval: 1m

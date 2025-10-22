@@ -51,9 +51,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
 dist/
+bin/
 downloads/
 eggs/
 .eggs/
@@ -133,5 +133,5 @@ data/
 models/
 *.dump
 
-auth-service/configs/config-dev.yaml
-cluster-service/configs/config-dev.yaml
+# Configurations
+configs/**/config-dev.yaml

@@ -1,0 +1,200 @@
+syntax = "proto3";
+
+package agentmanager.agent.v1;
+
+option go_package = "github.com/kart-io/k8s-agent/protos/gen/agentmanager/agent/v1;agentv1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// AgentService Agent 管理服务
+service AgentService {
+  // ListAgents 列出所有 Agents
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/grpc/agents"
+    };
+  }
+
+  // GetAgent 获取 Agent 详情
+  rpc GetAgent(GetAgentRequest) returns (Agent) {
+    option (google.api.http) = {
+      get: "/api/v1/grpc/agents/{agent_id}"
+    };
+  }
+
+  // RegisterAgent Agent 注册
+  rpc RegisterAgent(RegisterAgentRequest) returns (Agent) {
+    option (google.api.http) = {
+      post: "/api/v1/grpc/agents/register"
+      body: "*"
+    };
+  }
+
+  // UpdateAgentHeartbeat 更新 Agent 心跳
+  rpc UpdateAgentHeartbeat(UpdateAgentHeartbeatRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/grpc/agents/{agent_id}/heartbeat"
+      body: "*"
+    };
+  }
+
+  // DeregisterAgent Agent 注销
+  rpc DeregisterAgent(DeregisterAgentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/grpc/agents/{agent_id}"
+    };
+  }
+
+  // GetAgentMetrics 获取 Agent 指标
+  rpc GetAgentMetrics(GetAgentMetricsRequest) returns (AgentMetrics) {
+    option (google.api.http) = {
+      get: "/api/v1/grpc/agents/{agent_id}/metrics"
+    };
+  }
+}
+
+// Agent Agent 信息
+message Agent {
+  // agent_id Agent ID
+  string agent_id = 1;
+
+  // cluster_id 集群 ID
+  string cluster_id = 2;
+
+  // cluster_name 集群名称
+  string cluster_name = 3;
+
+  // version Agent 版本
+  string version = 4;
+
+  // hostname 主机名
+  string hostname = 5;
+
+  // status Agent 状态
+  AgentStatus status = 6;
+
+  // last_heartbeat 最后心跳时间
+  google.protobuf.Timestamp last_heartbeat = 7;
+
+  // registered_at 注册时间
+  google.protobuf.Timestamp registered_at = 8;
+
+  // metadata 元数据
+  map<string, string> metadata = 9;
+
+  // capabilities 能力列表
+  repeated string capabilities = 10;
+}
+
+// AgentStatus Agent 状态枚举
+enum AgentStatus {
+  // AGENT_STATUS_UNSPECIFIED 未指定
+  AGENT_STATUS_UNSPECIFIED = 0;
+  // AGENT_STATUS_ONLINE 在线
+  AGENT_STATUS_ONLINE = 1;
+  // AGENT_STATUS_OFFLINE 离线
+  AGENT_STATUS_OFFLINE = 2;
+  // AGENT_STATUS_ERROR 错误
+  AGENT_STATUS_ERROR = 3;
+}
+
+// ListAgentsRequest 列出 Agents 请求
+message ListAgentsRequest {
+  // cluster_id 集群 ID 过滤
+  string cluster_id = 1;
+
+  // status 状态过滤
+  AgentStatus status = 2;
+
+  // page_size 每页数量
+  int32 page_size = 3;
+
+  // page_token 分页标记
+  string page_token = 4;
+}
+
+// ListAgentsResponse 列出 Agents 响应
+message ListAgentsResponse {
+  // agents Agent 列表
+  repeated Agent agents = 1;
+
+  // next_page_token 下一页标记
+  string next_page_token = 2;
+
+  // total_count 总数
+  int32 total_count = 3;
+}
+
+// GetAgentRequest 获取 Agent 请求
+message GetAgentRequest {
+  // agent_id Agent ID
+  string agent_id = 1;
+}
+
+// RegisterAgentRequest 注册 Agent 请求
+message RegisterAgentRequest {
+  // agent_id Agent ID
+  string agent_id = 1;
+
+  // cluster_id 集群 ID
+  string cluster_id = 2;
+
+  // cluster_name 集群名称
+  string cluster_name = 3;
+
+  // version Agent 版本
+  string version = 4;
+
+  // hostname 主机名
+  string hostname = 5;
+
+  // metadata 元数据
+  map<string, string> metadata = 6;
+
+  // capabilities 能力列表
+  repeated string capabilities = 7;
+}
+
+// UpdateAgentHeartbeatRequest 更新心跳请求
+message UpdateAgentHeartbeatRequest {
+  // agent_id Agent ID
+  string agent_id = 1;
+
+  // metrics 指标数据
+  AgentMetrics metrics = 2;
+}
+
+// DeregisterAgentRequest 注销 Agent 请求
+message DeregisterAgentRequest {
+  // agent_id Agent ID
+  string agent_id = 1;
+}
+
+// GetAgentMetricsRequest 获取指标请求
+message GetAgentMetricsRequest {
+  // agent_id Agent ID
+  string agent_id = 1;
+}
+
+// AgentMetrics Agent 指标
+message AgentMetrics {
+  // cpu_usage CPU 使用率
+  double cpu_usage = 1;
+
+  // memory_usage 内存使用率
+  double memory_usage = 2;
+
+  // disk_usage 磁盘使用率
+  double disk_usage = 3;
+
+  // event_count 事件数量
+  int64 event_count = 4;
+
+  // command_count 命令数量
+  int64 command_count = 5;
+
+  // timestamp 时间戳
+  google.protobuf.Timestamp timestamp = 6;
+}

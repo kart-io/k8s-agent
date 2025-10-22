@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/common/middleware"
 )
@@ -83,11 +83,11 @@ func defaultGinServerOptions() *GinServerOptions {
 type GinServer struct {
 	Engine *gin.Engine
 	Server *http.Server
-	logger *zap.Logger
+	logger core.Logger
 }
 
 // NewGinServer 创建 Gin 服务器
-func NewGinServer(log *zap.Logger, opts ...GinServerOption) *GinServer {
+func NewGinServer(log core.Logger, opts ...GinServerOption) *GinServer {
 	// 应用默认配置
 	options := defaultGinServerOptions()
 
@@ -118,13 +118,13 @@ func NewGinServer(log *zap.Logger, opts ...GinServerOption) *GinServer {
 	return &GinServer{
 		Engine: engine,
 		Server: server,
-		logger: log.With(zap.String("component", "http-server")),
+		logger: log.With("component", "http-server"),
 	}
 }
 
 // Run 启动服务器
 func (s *GinServer) Run() error {
-	s.logger.Info("Starting HTTP server", zap.String("addr", s.Server.Addr))
+	s.logger.Infow("Starting HTTP server", "addr", s.Server.Addr)
 	if err := s.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
@@ -133,7 +133,7 @@ func (s *GinServer) Run() error {
 
 // RunTLS 启动 HTTPS 服务器
 func (s *GinServer) RunTLS(certFile string, keyFile string) error {
-	s.logger.Info("Starting HTTPS server", zap.String("addr", s.Server.Addr))
+	s.logger.Infow("Starting HTTPS server", "addr", s.Server.Addr)
 	if err := s.Server.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("failed to start TLS server: %w", err)
 	}
@@ -142,10 +142,10 @@ func (s *GinServer) RunTLS(certFile string, keyFile string) error {
 
 // Shutdown 优雅关闭
 func (s *GinServer) Shutdown(ctx context.Context) error {
-	s.logger.Info("Shutting down HTTP server")
+	s.logger.Infow("Shutting down HTTP server")
 	if err := s.Server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown server: %w", err)
 	}
-	s.logger.Info("HTTP server stopped")
+	s.logger.Infow("HTTP server stopped")
 	return nil
 }
