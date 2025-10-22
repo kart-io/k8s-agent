@@ -30,8 +30,8 @@ func Execute() {
 
 // run runs the agent-manager service
 func run(opts *config.Options) error {
-	// Initialize logger using kart-io/logger
-	log, err := logger.InitFromOptions(opts.Logging)
+	// Initialize logger with automatic version injection
+	log, err := logger.InitFromOptionsWithVersion(opts.Logging)
 	if err != nil {
 		return fmt.Errorf("failed to init logger: %w", err)
 	}

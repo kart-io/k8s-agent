@@ -6,6 +6,15 @@ VERSION?=v1.0.0
 GO_FILES=$(shell find . -name '*.go' -not -path "./vendor/*")
 MAIN_PATH=cmd/server/main.go
 
+# Version injection variables (using kart-io/version package)
+SERVICE_NAME := agent-manager
+GIT_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "unknown")
+GIT_COMMIT := $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH := $(shell git branch --show-current 2>/dev/null || echo "unknown")
+BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+GO_VERSION := $(shell go version | awk '{print $$3}')
+PLATFORM := $(shell uname -s)/$(shell uname -m)
+
 # Docker image configuration
 DOCKER_REGISTRY ?= aetherius
 IMAGE_NAME ?= $(APP_NAME)
@@ -15,12 +24,28 @@ PLATFORMS ?= linux/amd64,linux/arm64
 DOCKER_IMAGE = $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 DOCKER_IMAGE_ENV = $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)-$(ENV)
 
-# Build settings
-LDFLAGS=-ldflags "-X main.version=$(VERSION)"
+# Build settings with version injection
+LDFLAGS=-ldflags "\
+	-X 'github.com/kart-io/version.serviceName=$(SERVICE_NAME)' \
+	-X 'github.com/kart-io/version.gitVersion=$(GIT_VERSION)' \
+	-X 'github.com/kart-io/version.gitCommit=$(GIT_COMMIT)' \
+	-X 'github.com/kart-io/version.gitBranch=$(GIT_BRANCH)' \
+	-X 'github.com/kart-io/version.buildDate=$(BUILD_DATE)' \
+	-X 'github.com/kart-io/version.goVersion=$(GO_VERSION)' \
+	-X 'github.com/kart-io/version.platform=$(PLATFORM)'"
 BUILD_DIR=./bin
 
 help: ## Display this help screen
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+version: ## Display version information
+	@echo "Service Name:  $(SERVICE_NAME)"
+	@echo "Git Version:   $(GIT_VERSION)"
+	@echo "Git Commit:    $(GIT_COMMIT)"
+	@echo "Git Branch:    $(GIT_BRANCH)"
+	@echo "Build Date:    $(BUILD_DATE)"
+	@echo "Go Version:    $(GO_VERSION)"
+	@echo "Platform:      $(PLATFORM)"
 
 deps: ## Install dependencies
 	@echo "Installing dependencies..."
@@ -34,15 +59,15 @@ build: deps ## Build the application
 
 run: ## Run the application
 	@echo "Running $(APP_NAME)..."
-	@go run $(MAIN_PATH) --config configs/config.yaml
+	@go run $(LDFLAGS) $(MAIN_PATH) --config configs/config.yaml
 
 run-dev: ## Run with development config
 	@echo "Running $(APP_NAME) with development config..."
-	@go run $(MAIN_PATH) --config configs/config-dev.yaml
+	@go run $(LDFLAGS) $(MAIN_PATH) --config configs/config-dev.yaml
 
 run-config: ## Run with custom config (CONFIG=path/to/config.yaml)
 	@echo "Running $(APP_NAME) with custom config..."
-	@go run $(MAIN_PATH) --config $(CONFIG)
+	@go run $(LDFLAGS) $(MAIN_PATH) --config $(CONFIG)
 
 run-env: ## Run with environment variables
 	@echo "Running $(APP_NAME) with environment variables..."
