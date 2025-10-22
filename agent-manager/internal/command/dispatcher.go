@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/agent-manager/internal/agent"
 	"github.com/kart-io/k8s-agent/agent-manager/internal/nats"
@@ -21,7 +21,7 @@ type Dispatcher struct {
 	cache    *storage.RedisStore
 	registry *agent.Registry
 	nats     *nats.Server
-	logger   *zap.Logger
+	logger   core.Logger
 
 	// Command tracking
 	mu              sync.RWMutex
@@ -41,14 +41,14 @@ func NewDispatcher(
 	cache *storage.RedisStore,
 	registry *agent.Registry,
 	natsServer *nats.Server,
-	logger *zap.Logger,
+	logger core.Logger,
 ) *Dispatcher {
 	return &Dispatcher{
 		store:           store,
 		cache:           cache,
 		registry:        registry,
 		nats:            natsServer,
-		logger:          logger.With(zap.String("component", "command-dispatcher")),
+		logger:          logger.With("component", "command-dispatcher"),
 		pendingCommands: make(map[string]*types.Command),
 		commandTimeouts: make(map[string]*time.Timer),
 	}
@@ -105,7 +105,7 @@ func (d *Dispatcher) DispatchCommand(ctx context.Context, cmd *types.Command) er
 
 	// Update status to sent
 	if err := d.updateCommandStatus(ctx, cmd.ID, types.CommandStatusSent); err != nil {
-		d.logger.Warn("Failed to update command status", zap.Error(err))
+		d.logger.Warnw("Failed to update command status", "error", err)
 	}
 
 	// Setup timeout
@@ -115,11 +115,11 @@ func (d *Dispatcher) DispatchCommand(ctx context.Context, cmd *types.Command) er
 	d.commandsIssued++
 	d.mu.Unlock()
 
-	d.logger.Info("Command dispatched",
-		zap.String("command_id", cmd.ID),
-		zap.String("cluster_id", cmd.ClusterID),
-		zap.String("type", cmd.Type),
-		zap.Duration("timeout", cmd.Timeout))
+	d.logger.Infow("Command dispatched",
+		"command_id", cmd.ID,
+		"cluster_id", cmd.ClusterID,
+		"type", cmd.Type,
+		"timeout", cmd.Timeout)
 
 	return nil
 }
@@ -146,7 +146,7 @@ func (d *Dispatcher) HandleCommandResult(ctx context.Context, result *types.Comm
 	}
 
 	if err := d.updateCommandStatus(ctx, result.CommandID, status); err != nil {
-		d.logger.Warn("Failed to update command status", zap.Error(err))
+		d.logger.Warnw("Failed to update command status", "error", err)
 	}
 
 	// Cancel timeout timer
@@ -157,10 +157,10 @@ func (d *Dispatcher) HandleCommandResult(ctx context.Context, result *types.Comm
 	delete(d.pendingCommands, result.CommandID)
 	d.mu.Unlock()
 
-	d.logger.Info("Command result processed",
-		zap.String("command_id", result.CommandID),
-		zap.String("status", result.Status),
-		zap.Duration("execution_time", result.ExecutionTime))
+	d.logger.Infow("Command result processed",
+		"command_id", result.CommandID,
+		"status", result.Status,
+		"execution_time", result.ExecutionTime)
 
 	return nil
 }
@@ -242,13 +242,13 @@ func (d *Dispatcher) cancelCommandTimeout(commandID string) {
 func (d *Dispatcher) handleCommandTimeout(commandID string) {
 	ctx := context.Background()
 
-	d.logger.Warn("Command timeout", zap.String("command_id", commandID))
+	d.logger.Warnw("Command timeout", "command_id", commandID)
 
 	// Update status
 	if err := d.updateCommandStatus(ctx, commandID, types.CommandStatusTimeout); err != nil {
-		d.logger.Error("Failed to update timeout status",
-			zap.String("command_id", commandID),
-			zap.Error(err))
+		d.logger.Errorw("Failed to update timeout status",
+			"command_id", commandID,
+			"error", err)
 	}
 
 	// Remove from pending

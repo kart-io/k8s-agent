@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/agent-manager/internal/storage"
 	"github.com/kart-io/k8s-agent/agent-manager/pkg/types"
@@ -19,7 +19,7 @@ type Processor struct {
 	store  *storage.PostgresStore
 	cache  *storage.RedisStore
 	nats   *nats.Conn
-	logger *zap.Logger
+	logger core.Logger
 
 	// Processing pipeline
 	filters    []EventFilter
@@ -49,13 +49,13 @@ func NewProcessor(
 	store *storage.PostgresStore,
 	cache *storage.RedisStore,
 	natsConn *nats.Conn,
-	logger *zap.Logger,
+	logger core.Logger,
 ) *Processor {
 	p := &Processor{
 		store:  store,
 		cache:  cache,
 		nats:   natsConn,
-		logger: logger.With(zap.String("component", "event-processor")),
+		logger: logger.With("component", "event-processor"),
 	}
 
 	// Initialize components
@@ -84,9 +84,9 @@ func (p *Processor) ProcessEvent(ctx context.Context, event *types.Event) error 
 			p.eventsFiltered++
 			p.mu.Unlock()
 
-			p.logger.Debug("Event filtered",
-				zap.String("event_id", event.ID),
-				zap.String("reason", "filter"))
+			p.logger.Debugw("Event filtered",
+				"event_id", event.ID,
+				"reason", "filter")
 			return nil
 		}
 	}
@@ -94,9 +94,9 @@ func (p *Processor) ProcessEvent(ctx context.Context, event *types.Event) error 
 	// Enrich event
 	for _, enricher := range p.enrichers {
 		if err := enricher.Enrich(ctx, event); err != nil {
-			p.logger.Warn("Failed to enrich event",
-				zap.String("event_id", event.ID),
-				zap.Error(err))
+			p.logger.Warnw("Failed to enrich event",
+				"event_id", event.ID,
+				"error", err)
 		}
 	}
 
@@ -117,9 +117,9 @@ func (p *Processor) ProcessEvent(ctx context.Context, event *types.Event) error 
 	// Check if event is critical
 	if p.isCriticalEvent(event) {
 		if err := p.handleCriticalEvent(ctx, event); err != nil {
-			p.logger.Error("Failed to handle critical event",
-				zap.String("event_id", event.ID),
-				zap.Error(err))
+			p.logger.Errorw("Failed to handle critical event",
+				"event_id", event.ID,
+				"error", err)
 		}
 	}
 
@@ -130,11 +130,11 @@ func (p *Processor) ProcessEvent(ctx context.Context, event *types.Event) error 
 	p.eventsProcessed++
 	p.mu.Unlock()
 
-	p.logger.Info("Event processed",
-		zap.String("event_id", event.ID),
-		zap.String("cluster_id", event.ClusterID),
-		zap.String("severity", event.Severity),
-		zap.String("reason", event.Reason))
+	p.logger.Infow("Event processed",
+		"event_id", event.ID,
+		"cluster_id", event.ClusterID,
+		"severity", event.Severity,
+		"reason", event.Reason)
 
 	return nil
 }
@@ -253,7 +253,7 @@ func (e *ClusterEnricher) Enrich(ctx context.Context, event *types.Event) error 
 
 // Aggregator aggregates related events
 type Aggregator struct {
-	logger *zap.Logger
+	logger core.Logger
 	mu     sync.RWMutex
 	groups map[string]*EventGroup
 }
@@ -267,9 +267,9 @@ type EventGroup struct {
 	Count     int
 }
 
-func NewAggregator(logger *zap.Logger) *Aggregator {
+func NewAggregator(logger core.Logger) *Aggregator {
 	return &Aggregator{
-		logger: logger.With(zap.String("component", "event-aggregator")),
+		logger: logger.With("component", "event-aggregator"),
 		groups: make(map[string]*EventGroup),
 	}
 }
@@ -318,13 +318,13 @@ func (a *Aggregator) GetStatistics() map[string]interface{} {
 // InternalPublisher publishes events to internal event bus
 type InternalPublisher struct {
 	conn   *nats.Conn
-	logger *zap.Logger
+	logger core.Logger
 }
 
-func NewInternalPublisher(conn *nats.Conn, logger *zap.Logger) *InternalPublisher {
+func NewInternalPublisher(conn *nats.Conn, logger core.Logger) *InternalPublisher {
 	return &InternalPublisher{
 		conn:   conn,
-		logger: logger.With(zap.String("component", "internal-publisher")),
+		logger: logger.With("component", "internal-publisher"),
 	}
 }
 
@@ -341,10 +341,10 @@ func (p *InternalPublisher) Publish(ctx context.Context, event types.InternalEve
 		return fmt.Errorf("failed to publish internal event: %w", err)
 	}
 
-	p.logger.Info("Internal event published",
-		zap.String("type", event.Type),
-		zap.String("cluster_id", event.ClusterID),
-		zap.String("subject", subject))
+	p.logger.Infow("Internal event published",
+		"type", event.Type,
+		"cluster_id", event.ClusterID,
+		"subject", subject)
 
 	return nil
 }

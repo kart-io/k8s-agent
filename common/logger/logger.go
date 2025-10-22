@@ -1,20 +1,22 @@
 package logger
 
 import (
+	"github.com/kart-io/k8s-agent/common/config"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/logger/core"
 	"github.com/kart-io/logger/option"
 )
 
 // Config 日志配置（简化版，适配 kart-io/logger）
+// Deprecated: Use config.LoggingOptions instead
 type Config struct {
-	Engine       string   `yaml:"engine" json:"engine"`             // 引擎：zap, slog
-	Level        string   `yaml:"level" json:"level"`               // 日志级别：debug, info, warn, error, fatal
-	Format       string   `yaml:"format" json:"format"`             // 日志格式：json, console
-	OutputPaths  []string `yaml:"output_paths" json:"output_paths"` // 输出路径：stdout, stderr, 或文件路径
-	Development  bool     `yaml:"development" json:"development"`   // 是否为开发模式
-	EnableCaller bool     `yaml:"enable_caller" json:"enable_caller"` // 是否显示调用者信息
-	OTLPEndpoint string   `yaml:"otlp_endpoint" json:"otlp_endpoint"` // OTLP 端点（可选）
+	Engine        string                 `yaml:"engine" json:"engine"`                 // 引擎：zap, slog
+	Level         string                 `yaml:"level" json:"level"`                   // 日志级别：debug, info, warn, error, fatal
+	Format        string                 `yaml:"format" json:"format"`                 // 日志格式：json, console
+	OutputPaths   []string               `yaml:"output_paths" json:"output_paths"`     // 输出路径：stdout, stderr, 或文件路径
+	Development   bool                   `yaml:"development" json:"development"`       // 是否为开发模式
+	EnableCaller  bool                   `yaml:"enable_caller" json:"enable_caller"`   // 是否显示调用者信息
+	OTLPEndpoint  string                 `yaml:"otlp_endpoint" json:"otlp_endpoint"`   // OTLP 端点（可选）
 	InitialFields map[string]interface{} `yaml:"initial_fields" json:"initial_fields"` // 初始字段
 }
 
@@ -31,6 +33,7 @@ func DefaultConfig() *Config {
 }
 
 // Init 初始化日志（使用 kart-io/logger）
+// Deprecated: Use InitFromOptions instead
 func Init(config *Config) error {
 	if config == nil {
 		config = DefaultConfig()
@@ -47,12 +50,79 @@ func Init(config *Config) error {
 	}
 
 	// 添加初始字段
-	if config.InitialFields != nil && len(config.InitialFields) > 0 {
+	if len(config.InitialFields) > 0 {
 		opt.WithInitialFields(config.InitialFields)
 	}
 
 	// 创建 logger
 	coreLogger, err := logger.New(opt)
+	if err != nil {
+		return err
+	}
+
+	// 设置为全局 logger
+	logger.SetGlobal(coreLogger)
+	return nil
+}
+
+// InitFromOptions 从 config.LoggingOptions 初始化日志
+func InitFromOptions(opts *config.LoggingOptions) (core.Logger, error) {
+	if opts == nil {
+		opts = config.NewLoggingOptions()
+	}
+
+	// 转换为 kart-io/logger 的配置
+	opt := &option.LogOption{
+		Engine:            opts.Engine,
+		Level:             opts.Level,
+		Format:            opts.Format,
+		OutputPaths:       opts.OutputPaths,
+		Development:       opts.Development,
+		DisableCaller:     opts.DisableCaller,
+		DisableStacktrace: opts.DisableStacktrace,
+		OTLPEndpoint:      opts.OTLPEndpoint,
+	}
+
+	// 添加初始字段
+	if len(opts.InitialFields) > 0 {
+		opt.WithInitialFields(opts.InitialFields)
+	}
+
+	// 设置 OTLP 配置
+	if opts.OTLP != nil {
+		opt.OTLP = &option.OTLPOption{
+			Enabled:  opts.OTLP.Enabled,
+			Endpoint: opts.OTLP.Endpoint,
+			Protocol: opts.OTLP.Protocol,
+			Timeout:  opts.OTLP.Timeout,
+			Headers:  opts.OTLP.Headers,
+			Insecure: opts.OTLP.Insecure,
+		}
+	}
+
+	// 设置 Rotation 配置
+	if opts.Rotation != nil {
+		opt.Rotation = &option.RotationOption{
+			MaxSize:        opts.Rotation.MaxSize,
+			MaxAge:         opts.Rotation.MaxAge,
+			MaxBackups:     opts.Rotation.MaxBackups,
+			Compress:       opts.Rotation.Compress,
+			RotateInterval: opts.Rotation.RotateInterval,
+		}
+	}
+
+	// 创建 logger
+	coreLogger, err := logger.New(opt)
+	if err != nil {
+		return nil, err
+	}
+
+	return coreLogger, nil
+}
+
+// InitGlobalFromOptions 从 config.LoggingOptions 初始化全局日志
+func InitGlobalFromOptions(opts *config.LoggingOptions) error {
+	coreLogger, err := InitFromOptions(opts)
 	if err != nil {
 		return err
 	}

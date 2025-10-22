@@ -9,7 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/agent-manager/internal/agent"
 	"github.com/kart-io/k8s-agent/agent-manager/internal/command"
@@ -23,7 +23,7 @@ type Server struct {
 	config     types.ServerConfig
 	router     *gin.Engine
 	httpServer *http.Server
-	logger     *zap.Logger
+	logger     core.Logger
 
 	// Components
 	registry       *agent.Registry
@@ -44,19 +44,15 @@ func NewServer(
 	dispatcher *command.Dispatcher,
 	store *storage.PostgresStore,
 	cache *storage.RedisStore,
-	logger *zap.Logger,
+	logger core.Logger,
 ) *Server {
-	// Set gin mode
-	if logger.Core().Enabled(zap.DebugLevel) {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	// Set gin mode to release by default
+	gin.SetMode(gin.ReleaseMode)
 
 	return &Server{
 		config:         config,
 		router:         gin.New(),
-		logger:         logger.With(zap.String("component", "api-server")),
+		logger:         logger.With("component", "api-server"),
 		registry:       registry,
 		eventProcessor: eventProcessor,
 		dispatcher:     dispatcher,
@@ -83,7 +79,7 @@ func (s *Server) Start() error {
 		WriteTimeout: s.config.WriteTimeout,
 	}
 
-	s.logger.Info("Starting API server", zap.String("addr", addr))
+	s.logger.Infow("Starting API server", "addr", addr)
 
 	// Start server
 	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -95,7 +91,7 @@ func (s *Server) Start() error {
 
 // Stop stops the API server gracefully
 func (s *Server) Stop() error {
-	s.logger.Info("Stopping API server")
+	s.logger.Infow("Stopping API server")
 
 	ctx, cancel := context.WithTimeout(context.Background(), s.config.GracefulStop)
 	defer cancel()
@@ -104,7 +100,7 @@ func (s *Server) Stop() error {
 		return fmt.Errorf("server forced to shutdown: %w", err)
 	}
 
-	s.logger.Info("API server stopped")
+	s.logger.Infow("API server stopped")
 
 	return nil
 }
@@ -517,7 +513,7 @@ func (s *Server) handleGetCommandEvents(c *gin.Context) {
 
 	// 查询所有关联的事件
 	var events []*types.Event
-	if err := s.store.DB().WithContext(c.Request.Context()).
+	if err := s.store.DB.WithContext(c.Request.Context()).
 		Where("command_id = ?", commandID).
 		Order("timestamp DESC").
 		Find(&events).Error; err != nil {
@@ -547,7 +543,7 @@ func (s *Server) handleListPendingCommands(c *gin.Context) {
 
 	// Query database for commands with filters
 	var commands []*types.Command
-	query := s.store.DB().WithContext(c.Request.Context())
+	query := s.store.DB.WithContext(c.Request.Context())
 
 	if clusterID != "" {
 		query = query.Where("cluster_id = ?", clusterID)
@@ -625,7 +621,7 @@ func (s *Server) handleGetOperationEvents(c *gin.Context) {
 
 	// 查询所有关联的事件
 	var events []*types.Event
-	if err := s.store.DB().WithContext(c.Request.Context()).
+	if err := s.store.DB.WithContext(c.Request.Context()).
 		Where("correlation_id = ?", correlationID).
 		Order("timestamp DESC").
 		Find(&events).Error; err != nil {
@@ -657,12 +653,12 @@ func (s *Server) correlateEventsToOperation(correlationID, clusterID, namespace,
 	for {
 		select {
 		case <-timeout:
-			s.logger.Debug("Operation correlation timeout", zap.String("correlation_id", correlationID))
+			s.logger.Debugw("Operation correlation timeout", "correlation_id", correlationID)
 			return
 		case <-ticker.C:
 			// Find recent events (last 5 seconds) that match cluster and namespace
 			var recentEvents []*types.Event
-			query := s.store.DB().
+			query := s.store.DB.
 				Where("cluster_id = ?", clusterID).
 				Where("timestamp >= ?", startTime).
 				Where("correlation_id IS NULL OR correlation_id = ''")
@@ -672,9 +668,9 @@ func (s *Server) correlateEventsToOperation(correlationID, clusterID, namespace,
 			}
 
 			if err := query.Find(&recentEvents).Error; err != nil {
-				s.logger.Error("Failed to query events for correlation",
-					zap.Error(err),
-					zap.String("correlation_id", correlationID))
+				s.logger.Errorw("Failed to query events for correlation",
+					"error", err,
+					"correlation_id", correlationID)
 				continue
 			}
 
@@ -684,15 +680,15 @@ func (s *Server) correlateEventsToOperation(correlationID, clusterID, namespace,
 			for _, event := range recentEvents {
 				event.CorrelationID = correlationID // 设置事件的关联ID为操作ID
 				event.TriggeredBy = user            // 记录触发者
-				if err := s.store.DB().Save(event).Error; err != nil {
-					s.logger.Error("Failed to update event correlation",
-						zap.Error(err),
-						zap.String("event_id", event.ID))
+				if err := s.store.DB.Save(event).Error; err != nil {
+					s.logger.Errorw("Failed to update event correlation",
+						"error", err,
+						"event_id", event.ID)
 				} else {
-					s.logger.Debug("Event correlated to operation",
-						zap.String("event_id", event.ID),
-						zap.String("correlation_id", correlationID),
-						zap.String("reason", event.Reason))
+					s.logger.Debugw("Event correlated to operation",
+						"event_id", event.ID,
+						"correlation_id", correlationID,
+						"reason", event.Reason)
 				}
 			}
 		}
@@ -715,12 +711,12 @@ func (s *Server) correlateEventsToCommand(commandID, clusterID, namespace, issue
 	for {
 		select {
 		case <-timeout:
-			s.logger.Debug("Command correlation timeout", zap.String("command_id", commandID))
+			s.logger.Debugw("Command correlation timeout", "command_id", commandID)
 			return
 		case <-ticker.C:
 			// 查找最近的事件并关联到命令
 			var recentEvents []*types.Event
-			query := s.store.DB().
+			query := s.store.DB.
 				Where("cluster_id = ?", clusterID).
 				Where("timestamp >= ?", startTime).
 				Where("command_id IS NULL OR command_id = ''")
@@ -730,9 +726,9 @@ func (s *Server) correlateEventsToCommand(commandID, clusterID, namespace, issue
 			}
 
 			if err := query.Find(&recentEvents).Error; err != nil {
-				s.logger.Error("Failed to query events for command correlation",
-					zap.Error(err),
-					zap.String("command_id", commandID))
+				s.logger.Errorw("Failed to query events for command correlation",
+					"error", err,
+					"command_id", commandID)
 				continue
 			}
 
@@ -742,15 +738,15 @@ func (s *Server) correlateEventsToCommand(commandID, clusterID, namespace, issue
 			for _, event := range recentEvents {
 				event.CommandID = commandID  // 设置事件的命令ID
 				event.TriggeredBy = issuedBy // 记录触发者
-				if err := s.store.DB().Save(event).Error; err != nil {
-					s.logger.Error("Failed to update event command correlation",
-						zap.Error(err),
-						zap.String("event_id", event.ID))
+				if err := s.store.DB.Save(event).Error; err != nil {
+					s.logger.Errorw("Failed to update event command correlation",
+						"error", err,
+						"event_id", event.ID)
 				} else {
-					s.logger.Debug("Event correlated to command",
-						zap.String("event_id", event.ID),
-						zap.String("command_id", commandID),
-						zap.String("reason", event.Reason))
+					s.logger.Debugw("Event correlated to command",
+						"event_id", event.ID,
+						"command_id", commandID,
+						"reason", event.Reason)
 				}
 			}
 		}
@@ -767,12 +763,12 @@ func (s *Server) loggingMiddleware() gin.HandlerFunc {
 
 		duration := time.Since(start)
 
-		s.logger.Info("HTTP request",
-			zap.String("method", c.Request.Method),
-			zap.String("path", c.Request.URL.Path),
-			zap.Int("status", c.Writer.Status()),
-			zap.Duration("duration", duration),
-			zap.String("client_ip", c.ClientIP()))
+		s.logger.Infow("HTTP request",
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"status", c.Writer.Status(),
+			"duration", duration,
+			"client_ip", c.ClientIP())
 	}
 }
 

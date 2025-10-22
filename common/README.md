@@ -1,24 +1,172 @@
 # Common Package
 
-通用功能包，提供 k8s-agent 项目中所有服务共享的核心功能。
+通用功能包,提供 k8s-agent 项目中所有服务共享的核心功能。
 
 ## 目录结构
 
 ```
 common/
+├── config/            # 统一配置结构和 Options 模式
+├── db/                # 数据库客户端 (MySQL, Redis)
+├── mq/                # 消息队列客户端 (NATS)
+├── server/            # HTTP 服务器 (Gin)
 ├── response/          # 统一的 API 响应格式
 ├── errors/            # 错误码和错误处理
 ├── pagination/        # 分页功能
-├── logger/            # 日志工具（基于 Zap）
+├── logger/            # 日志工具 (基于 Zap)
 ├── k8sutils/          # Kubernetes 资源转换工具
 ├── validator/         # 数据验证工具
 ├── middleware/        # Gin 中间件
 └── README.md          # 本文档
 ```
 
-## 模块说明
+## 核心模块
 
-### 1. response - API 响应格式
+### 1. config - 统一配置结构 ⭐ NEW
+
+提供项目统一的配置结构和 Functional Options 模式。
+
+**支持的配置类型**:
+- `ServerConfig` - HTTP 服务器配置 (7 个 Options)
+- `DatabaseConfig` - MySQL/PostgreSQL 配置 (10 个 Options)
+- `RedisConfig` - Redis 缓存配置 (10 个 Options)
+- `NATSConfig` - NATS 消息队列配置 (8 个 Options)
+- `LoggingConfig` - 日志系统配置 (7 个 Options)
+- `JWTConfig` - JWT 认证配置 (2 个 Options)
+- `MetricsConfig` - Prometheus 指标配置 (5 个 Options)
+- `CORSConfig` - CORS 跨域配置 (4 个 Options)
+
+**总计**: 53 个配置函数,支持所有服务的通用配置需求。
+
+**使用示例**:
+
+```go
+import "github.com/kart-io/k8s-agent/common/config"
+
+// 使用 Options 模式创建配置
+serverCfg := config.DefaultServerConfig(
+    config.WithServerPort(8080),
+    config.WithServerMode("release"),
+)
+
+dbCfg := config.DefaultDatabaseConfig(
+    config.WithDBHost("mysql.example.com"),
+    config.WithDBName("myapp"),
+    config.WithDBUser("app_user"),
+    config.WithDBPassword("secure_password"),
+)
+
+redisCfg := config.DefaultRedisConfig(
+    config.WithRedisAddr("redis.example.com:6379"),
+)
+```
+
+**详细文档**: 查看 [config/README.md](./config/README.md)
+
+---
+
+### 2. db - 数据库客户端
+
+提供 MySQL 和 Redis 客户端的封装,使用 Options 模式。
+
+#### MySQL 客户端
+
+**使用示例**:
+
+```go
+import "github.com/kart-io/k8s-agent/common/db"
+
+mysqlClient, err := db.NewMySQL(logger,
+    db.WithHost("localhost"),
+    db.WithPort(3306),
+    db.WithDatabase("myapp"),
+    db.WithUser("root"),
+    db.WithPassword("password"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+defer mysqlClient.Close()
+
+// 访问 GORM DB 实例
+mysqlClient.DB.Create(&user)
+```
+
+#### Redis 客户端
+
+**使用示例**:
+
+```go
+import "github.com/kart-io/k8s-agent/common/db"
+
+redisClient, err := db.NewRedis(logger,
+    db.WithAddr("localhost:6379"),
+    db.WithRedisPassword("password"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+defer redisClient.Close()
+
+// 访问 Redis 客户端
+redisClient.Client.Set(ctx, "key", "value", 0)
+```
+
+---
+
+### 3. mq - 消息队列客户端
+
+提供 NATS 消息队列客户端封装。
+
+**使用示例**:
+
+```go
+import "github.com/kart-io/k8s-agent/common/mq"
+
+natsClient, err := mq.NewNATS(logger,
+    mq.WithNATSURL("nats://localhost:4222"),
+    mq.WithNATSMaxReconnects(10),
+)
+if err != nil {
+    log.Fatal(err)
+}
+defer natsClient.Close()
+
+// 发布消息
+natsClient.Publish(ctx, "subject", []byte("message"))
+
+// 订阅消息
+natsClient.Subscribe(ctx, "subject", func(msg *nats.Msg) {
+    // 处理消息
+})
+```
+
+---
+
+### 4. server - HTTP 服务器
+
+提供 Gin HTTP 服务器封装。
+
+**使用示例**:
+
+```go
+import "github.com/kart-io/k8s-agent/common/server"
+
+ginServer := server.NewGinServer(logger,
+    server.WithGinPort(8080),
+    server.WithGinMode("release"),
+)
+
+// 注册路由
+ginServer.Router.GET("/health", handleHealth)
+
+// 启动服务器
+ginServer.Start()
+```
+
+---
+
+### 5. response - API 响应格式
 
 提供统一的 HTTP 响应格式，符合 API 文档规范。
 

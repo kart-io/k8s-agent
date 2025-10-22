@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/agent-manager/internal/storage"
 	"github.com/kart-io/k8s-agent/agent-manager/pkg/types"
@@ -16,7 +16,7 @@ import (
 type Registry struct {
 	store  *storage.PostgresStore
 	cache  *storage.RedisStore
-	logger *zap.Logger
+	logger core.Logger
 	mu     sync.RWMutex
 	agents map[string]*types.Agent // In-memory cache
 	stopCh chan struct{}
@@ -35,12 +35,12 @@ type Registry struct {
 func NewRegistry(
 	store *storage.PostgresStore,
 	cache *storage.RedisStore,
-	logger *zap.Logger,
+	logger core.Logger,
 ) *Registry {
 	return &Registry{
 		store:            store,
 		cache:            cache,
-		logger:           logger.With(zap.String("component", "agent-registry")),
+		logger:           logger.With("component", "agent-registry"),
 		agents:           make(map[string]*types.Agent),
 		stopCh:           make(chan struct{}),
 		heartbeatTimeout: 60 * time.Second, // 2x heartbeat interval
@@ -89,9 +89,9 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 		agent.RegisteredAt = existing.RegisteredAt
 		agent.UpdatedAt = time.Now()
 
-		r.logger.Info("Agent re-registered",
-			zap.String("agent_id", agent.ID),
-			zap.String("cluster_id", agent.ClusterID))
+		r.logger.Infow("Agent re-registered",
+			"agent_id", agent.ID,
+			"cluster_id", agent.ClusterID)
 	} else {
 		// New agent - keep the ID if provided, otherwise it will be empty and database will fail
 		// The ID should come from the registration message
@@ -104,10 +104,10 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 		agent.ConnectionInfo.ConnectedAt = time.Now()
 		agent.ConnectionInfo.LastSeen = time.Now()
 
-		r.logger.Info("New agent registered",
-			zap.String("agent_id", agent.ID),
-			zap.String("cluster_id", agent.ClusterID),
-			zap.String("version", agent.Version))
+		r.logger.Infow("New agent registered",
+			"agent_id", agent.ID,
+			"cluster_id", agent.ClusterID,
+			"version", agent.Version)
 
 		r.registrationCount++
 	}
@@ -119,12 +119,12 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 
 	// Cache in Redis (30-minute TTL)
 	if err := r.cache.CacheAgent(ctx, agent, 30*time.Minute); err != nil {
-		r.logger.Warn("Failed to cache agent", zap.Error(err))
+		r.logger.Warnw("Failed to cache agent", "error", err)
 	}
 
 	// Mark as online in Redis (2-minute TTL)
 	if err := r.cache.SetAgentOnline(ctx, agent.ID, 2*time.Minute); err != nil {
-		r.logger.Warn("Failed to set agent online", zap.Error(err))
+		r.logger.Warnw("Failed to set agent online", "error", err)
 	}
 
 	// Store in memory
@@ -132,9 +132,9 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 
 	// Create or update cluster record
 	if err := r.ensureCluster(ctx, agent); err != nil {
-		r.logger.Warn("Failed to ensure cluster",
-			zap.String("cluster_id", agent.ClusterID),
-			zap.Error(err))
+		r.logger.Warnw("Failed to ensure cluster",
+			"cluster_id", agent.ClusterID,
+			"error", err)
 		// Don't fail agent registration if cluster creation fails
 	}
 
@@ -157,7 +157,7 @@ func (r *Registry) UnregisterAgent(ctx context.Context, agentID string) error {
 	// Remove from memory
 	delete(r.agents, agentID)
 
-	r.logger.Info("Agent unregistered", zap.String("agent_id", agentID))
+	r.logger.Infow("Agent unregistered", "agent_id", agentID)
 
 	return nil
 }
@@ -202,7 +202,7 @@ func (r *Registry) GetAgent(ctx context.Context, agentID string) (*types.Agent, 
 	// Check Redis cache
 	agent, err := r.cache.GetCachedAgent(ctx, agentID)
 	if err != nil {
-		r.logger.Warn("Failed to get agent from cache", zap.Error(err))
+		r.logger.Warnw("Failed to get agent from cache", "error", err)
 	}
 	if agent != nil {
 		// Add to memory cache
@@ -285,7 +285,7 @@ func (r *Registry) loadAgents(ctx context.Context) error {
 		r.agents[agent.ID] = agent
 	}
 
-	r.logger.Info("Loaded agents from database", zap.Int("count", len(agents)))
+	r.logger.Infow("Loaded agents from database", "count", len(agents))
 
 	return nil
 }
@@ -319,10 +319,10 @@ func (r *Registry) checkHeartbeats() {
 		// Check if heartbeat is stale
 		if now.Sub(agent.LastHeartbeat) > r.heartbeatTimeout {
 			if agent.Status == types.AgentStatusOnline {
-				r.logger.Warn("Agent heartbeat timeout",
-					zap.String("agent_id", agentID),
-					zap.String("cluster_id", agent.ClusterID),
-					zap.Duration("last_heartbeat", now.Sub(agent.LastHeartbeat)))
+				r.logger.Warnw("Agent heartbeat timeout",
+					"agent_id", agentID,
+					"cluster_id", agent.ClusterID,
+					"last_heartbeat", now.Sub(agent.LastHeartbeat))
 
 				// Update status to offline
 				agent.Status = types.AgentStatusOffline
@@ -330,9 +330,9 @@ func (r *Registry) checkHeartbeats() {
 
 				// Update in database
 				if err := r.store.UpdateAgentStatus(ctx, agentID, types.AgentStatusOffline); err != nil {
-					r.logger.Error("Failed to update agent status",
-						zap.String("agent_id", agentID),
-						zap.Error(err))
+					r.logger.Errorw("Failed to update agent status",
+						"agent_id", agentID,
+						"error", err)
 				}
 			}
 		}
@@ -369,15 +369,15 @@ func (r *Registry) performCleanup() {
 		if agent.Status == types.AgentStatusOffline {
 			offlineDuration := now.Sub(agent.LastHeartbeat)
 			if offlineDuration > threshold {
-				r.logger.Info("Cleaning up stale agent",
-					zap.String("agent_id", agentID),
-					zap.Duration("offline_duration", offlineDuration))
+				r.logger.Infow("Cleaning up stale agent",
+					"agent_id", agentID,
+					"offline_duration", offlineDuration)
 
 				// Delete from database
 				if err := r.store.DeleteAgent(ctx, agentID); err != nil {
-					r.logger.Error("Failed to delete agent",
-						zap.String("agent_id", agentID),
-						zap.Error(err))
+					r.logger.Errorw("Failed to delete agent",
+						"agent_id", agentID,
+						"error", err)
 					continue
 				}
 

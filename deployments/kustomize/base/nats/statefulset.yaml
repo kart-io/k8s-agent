@@ -17,6 +17,7 @@ spec:
         app: nats
         component: message-queue
     spec:
+      enableServiceLinks: false  # Prevent Kubernetes service env vars pollution
       containers:
       - name: nats
         image: nats:2.10-alpine

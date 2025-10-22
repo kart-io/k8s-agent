@@ -6,11 +6,10 @@ namespace: aetherius
 resources:
 - statefulset.yaml
 - service.yaml
+- secret.yaml
 
 labels:
 - pairs:
     app.kubernetes.io/name: neo4j
     app.kubernetes.io/component: graph-db
     app.kubernetes.io/part-of: aetherius
-
-# Secret will be created in overlays

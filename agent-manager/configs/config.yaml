@@ -1,54 +1,66 @@
-# Aetherius Agent Manager Configuration
+# Agent Manager Service Configuration
 
 # HTTP server configuration
 server:
   host: "0.0.0.0"
   port: 8080
+  mode: "release"  # debug, release, test
   read_timeout: 30s
   write_timeout: 30s
-  graceful_stop: 10s
+  idle_timeout: 60s
+  graceful_stop: 30s
 
-# NATS configuration
-nats:
-  url: "nats://localhost:4222"
-  cluster_id: "agent-manager"
-  max_reconnect: -1  # Unlimited retries
-  reconnect_wait: 2s
-  ping_interval: 20s
-  max_pings_out: 3
-  enable_jetstream: false
-
-# PostgreSQL configuration
+# Database configuration (MySQL)
 database:
   host: "localhost"
-  port: 5432
-  user: "postgres"
-  password: "dev-postgres-password"
-  database: "aetherius"
+  port: 3306
+  user: "root"
+  password: "password"
+  database: "agent_manager"
   ssl_mode: "disable"
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: 300s
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 1h
+  auto_migrate: true
 
 # Redis configuration
 redis:
   addr: "localhost:6379"
-  password: "dev-redis-password"
+  password: ""
   db: 0
   pool_size: 10
-  min_idle_conns: 3
+  min_idle_conns: 5
   dial_timeout: 5s
   read_timeout: 3s
   write_timeout: 3s
 
+# NATS configuration
+nats:
+  url: "nats://localhost:4222"
+  cluster_id: "agent-manager-cluster"
+  max_reconnect: 10
+  reconnect_wait: 2s
+  ping_interval: 20s
+  max_pings_out: 2
+  enable_jetstream: false
+  reconnect_buf_size: 1048576
+
 # Logging configuration
 logging:
-  level: "debug"  # debug, info, warn, error
-  format: "json"  # json, console
-  output_path: "stdout"  # stdout, stderr, or file path
+  level: "info"  # debug, info, warn, error, fatal
+  format: "json"  # json, text
+  output:
+    - "stdout"
+  engine: "zap"  # zap, slog
+  development: false
+  enable_caller: true
+  otlp_endpoint: ""
+  otlp_insecure: false
 
 # Metrics configuration
 metrics:
   enabled: true
   path: "/metrics"
-  port: 8080
+  port: 9090
+  retention_days: 30
+  aggregation_interval: 1m

@@ -1,9 +1,10 @@
-.PHONY: help build run test clean docker-build docker-push deploy deps lint fmt
+.PHONY: help build run test clean docker-build docker-push deploy deps lint fmt run-dev run-config run-env
 
 # Variables
 APP_NAME=agent-manager
 VERSION?=v1.0.0
 GO_FILES=$(shell find . -name '*.go' -not -path "./vendor/*")
+MAIN_PATH=cmd/server/main.go
 
 # Docker image configuration
 DOCKER_REGISTRY ?= aetherius
@@ -33,11 +34,23 @@ build: deps ## Build the application
 
 run: ## Run the application
 	@echo "Running $(APP_NAME)..."
-	@go run ./cmd/server
+	@go run $(MAIN_PATH) --config configs/config.yaml
 
 run-dev: ## Run with development config
 	@echo "Running $(APP_NAME) with development config..."
-	@go run ./cmd/server -c configs/config-dev.yaml
+	@go run $(MAIN_PATH) --config configs/config-dev.yaml
+
+run-config: ## Run with custom config (CONFIG=path/to/config.yaml)
+	@echo "Running $(APP_NAME) with custom config..."
+	@go run $(MAIN_PATH) --config $(CONFIG)
+
+run-env: ## Run with environment variables
+	@echo "Running $(APP_NAME) with environment variables..."
+	@AGENT_MANAGER_SERVER_PORT=8080 \
+	AGENT_MANAGER_DATABASE_HOST=localhost \
+	AGENT_MANAGER_DATABASE_PASSWORD=password \
+	AGENT_MANAGER_REDIS_ADDR=localhost:6379 \
+	go run $(MAIN_PATH)
 
 dev: ## Run in development mode with hot reload
 	@echo "Running in development mode..."

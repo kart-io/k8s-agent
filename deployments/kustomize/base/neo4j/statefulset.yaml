@@ -17,6 +17,7 @@ spec:
         app: neo4j
         component: graph-db
     spec:
+      enableServiceLinks: false  # Prevent Kubernetes service env vars pollution
       containers:
       - name: neo4j
         image: neo4j:5-community

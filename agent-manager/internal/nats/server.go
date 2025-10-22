@@ -8,18 +8,85 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/agent-manager/internal/agent"
 	"github.com/kart-io/k8s-agent/agent-manager/internal/event"
 	"github.com/kart-io/k8s-agent/agent-manager/pkg/types"
 )
 
+// ServerOptions NATS Server 配置选项
+type ServerOptions struct {
+	url             string
+	maxReconnect    int
+	reconnectWait   time.Duration
+	pingInterval    time.Duration
+	maxPingsOut     int
+	enableJetStream bool
+}
+
+// ServerOption NATS Server 配置选项函数
+type ServerOption func(*ServerOptions)
+
+// WithURL 设置 NATS 服务器地址
+func WithURL(url string) ServerOption {
+	return func(o *ServerOptions) {
+		o.url = url
+	}
+}
+
+// WithMaxReconnect 设置最大重连次数
+func WithMaxReconnect(n int) ServerOption {
+	return func(o *ServerOptions) {
+		o.maxReconnect = n
+	}
+}
+
+// WithReconnectWait 设置重连等待时间
+func WithReconnectWait(d time.Duration) ServerOption {
+	return func(o *ServerOptions) {
+		o.reconnectWait = d
+	}
+}
+
+// WithPingInterval 设置 Ping 间隔时间
+func WithPingInterval(d time.Duration) ServerOption {
+	return func(o *ServerOptions) {
+		o.pingInterval = d
+	}
+}
+
+// WithMaxPingsOut 设置最大未响应 Ping 数量
+func WithMaxPingsOut(n int) ServerOption {
+	return func(o *ServerOptions) {
+		o.maxPingsOut = n
+	}
+}
+
+// WithEnableJetStream 启用 JetStream
+func WithEnableJetStream(enable bool) ServerOption {
+	return func(o *ServerOptions) {
+		o.enableJetStream = enable
+	}
+}
+
+// defaultServerOptions 返回默认 NATS Server 配置
+func defaultServerOptions() *ServerOptions {
+	return &ServerOptions{
+		url:             "nats://localhost:4222",
+		maxReconnect:    10,
+		reconnectWait:   2 * time.Second,
+		pingInterval:    20 * time.Second,
+		maxPingsOut:     2,
+		enableJetStream: false,
+	}
+}
+
 // Server manages NATS server connection and subscriptions
 type Server struct {
-	conn   *nats.Conn
-	logger *zap.Logger
-	config types.NATSConfig
+	conn    *nats.Conn
+	logger  core.Logger
+	options *ServerOptions
 
 	// Components
 	registry       *agent.Registry
@@ -39,23 +106,31 @@ type Server struct {
 
 // NewServer creates a new NATS server instance
 func NewServer(
-	config types.NATSConfig,
 	registry *agent.Registry,
 	eventProcessor *event.Processor,
-	logger *zap.Logger,
+	logger core.Logger,
+	opts ...ServerOption,
 ) *Server {
+	// 应用默认配置
+	options := defaultServerOptions()
+
+	// 应用用户配置
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	return &Server{
-		config:         config,
+		options:        options,
 		registry:       registry,
 		eventProcessor: eventProcessor,
-		logger:         logger.With(zap.String("component", "nats-server")),
+		logger:         logger.With("component", "nats-server"),
 		stopCh:         make(chan struct{}),
 	}
 }
 
 // Start starts the NATS server and subscriptions
 func (s *Server) Start(ctx context.Context) error {
-	s.logger.Info("Starting NATS server", zap.String("url", s.config.URL))
+	s.logger.Infow("Starting NATS server", "url", s.options.url)
 
 	// Connect to NATS
 	if err := s.connect(); err != nil {
@@ -87,7 +162,7 @@ func (s *Server) Stop() error {
 	s.mu.Lock()
 	for _, sub := range s.subscriptions {
 		if err := sub.Unsubscribe(); err != nil {
-			s.logger.Warn("Failed to unsubscribe", zap.Error(err))
+			s.logger.Warnw("Failed to unsubscribe", "error", err)
 		}
 	}
 	s.subscriptions = nil
@@ -107,22 +182,22 @@ func (s *Server) Stop() error {
 func (s *Server) connect() error {
 	opts := []nats.Option{
 		nats.Name("agent-manager"),
-		nats.MaxReconnects(s.config.MaxReconnect),
-		nats.ReconnectWait(s.config.ReconnectWait),
-		nats.PingInterval(s.config.PingInterval),
-		nats.MaxPingsOutstanding(s.config.MaxPingsOut),
+		nats.MaxReconnects(s.options.maxReconnect),
+		nats.ReconnectWait(s.options.reconnectWait),
+		nats.PingInterval(s.options.pingInterval),
+		nats.MaxPingsOutstanding(s.options.maxPingsOut),
 		nats.DisconnectErrHandler(s.handleDisconnect),
 		nats.ReconnectHandler(s.handleReconnect),
 		nats.ErrorHandler(s.handleError),
 	}
 
-	conn, err := nats.Connect(s.config.URL, opts...)
+	conn, err := nats.Connect(s.options.url, opts...)
 	if err != nil {
 		return err
 	}
 
 	s.conn = conn
-	s.logger.Info("Connected to NATS", zap.String("url", s.config.URL))
+	s.logger.Infow("Connected to NATS", "url", s.options.url)
 
 	return nil
 }
@@ -172,7 +247,7 @@ func (s *Server) subscribeRegister() error {
 	s.subscriptions = append(s.subscriptions, sub)
 	s.mu.Unlock()
 
-	s.logger.Info("Subscribed to agent registration", zap.String("subject", subject))
+	s.logger.Infow("Subscribed to agent registration", "subject", subject)
 
 	return nil
 }
@@ -192,7 +267,7 @@ func (s *Server) subscribeHeartbeat() error {
 	s.subscriptions = append(s.subscriptions, sub)
 	s.mu.Unlock()
 
-	s.logger.Info("Subscribed to agent heartbeat", zap.String("subject", subject))
+	s.logger.Infow("Subscribed to agent heartbeat", "subject", subject)
 
 	return nil
 }
@@ -212,7 +287,7 @@ func (s *Server) subscribeEvents() error {
 	s.subscriptions = append(s.subscriptions, sub)
 	s.mu.Unlock()
 
-	s.logger.Info("Subscribed to agent events", zap.String("subject", subject))
+	s.logger.Infow("Subscribed to agent events", "subject", subject)
 
 	return nil
 }
@@ -232,7 +307,7 @@ func (s *Server) subscribeMetrics() error {
 	s.subscriptions = append(s.subscriptions, sub)
 	s.mu.Unlock()
 
-	s.logger.Info("Subscribed to agent metrics", zap.String("subject", subject))
+	s.logger.Infow("Subscribed to agent metrics", "subject", subject)
 
 	return nil
 }
@@ -252,7 +327,7 @@ func (s *Server) subscribeResults() error {
 	s.subscriptions = append(s.subscriptions, sub)
 	s.mu.Unlock()
 
-	s.logger.Info("Subscribed to command results", zap.String("subject", subject))
+	s.logger.Infow("Subscribed to command results", "subject", subject)
 
 	return nil
 }
@@ -266,7 +341,7 @@ func (s *Server) handleRegister(msg *nats.Msg) {
 	// Unmarshal into a generic map to extract both agent and cluster info
 	var rawData map[string]interface{}
 	if err := json.Unmarshal(msg.Data, &rawData); err != nil {
-		s.logger.Error("Failed to unmarshal register message", zap.Error(err))
+		s.logger.Errorw("Failed to unmarshal register message", "error", err)
 		s.errorCount++
 		return
 	}
@@ -278,16 +353,16 @@ func (s *Server) handleRegister(msg *nats.Msg) {
 	// Unmarshal again into Agent struct
 	var agentInfo types.Agent
 	if err := json.Unmarshal(msg.Data, &agentInfo); err != nil {
-		s.logger.Error("Failed to unmarshal register message", zap.Error(err))
+		s.logger.Errorw("Failed to unmarshal register message", "error", err)
 		s.errorCount++
 		return
 	}
 
 	ctx := context.Background()
 	if err := s.registry.RegisterAgent(ctx, &agentInfo); err != nil {
-		s.logger.Error("Failed to register agent",
-			zap.String("cluster_id", agentInfo.ClusterID),
-			zap.Error(err))
+		s.logger.Errorw("Failed to register agent",
+			"cluster_id", agentInfo.ClusterID,
+			"error", err)
 		s.errorCount++
 		return
 	}
@@ -295,15 +370,15 @@ func (s *Server) handleRegister(msg *nats.Msg) {
 	// Update cluster with K8s information if provided
 	if k8sVersion != "" || apiServer != "" {
 		if err := s.registry.UpdateClusterInfo(ctx, agentInfo.ClusterID, k8sVersion, apiServer); err != nil {
-			s.logger.Warn("Failed to update cluster info",
-				zap.String("cluster_id", agentInfo.ClusterID),
-				zap.Error(err))
+			s.logger.Warnw("Failed to update cluster info",
+				"cluster_id", agentInfo.ClusterID,
+				"error", err)
 		}
 	}
 
-	s.logger.Info("Agent registered successfully",
-		zap.String("agent_id", agentInfo.ID),
-		zap.String("cluster_id", agentInfo.ClusterID))
+	s.logger.Infow("Agent registered successfully",
+		"agent_id", agentInfo.ID,
+		"cluster_id", agentInfo.ClusterID)
 
 	// Send acknowledgment
 	ack := map[string]interface{}{
@@ -324,23 +399,23 @@ func (s *Server) handleHeartbeat(msg *nats.Msg) {
 	}
 
 	if err := json.Unmarshal(msg.Data, &heartbeat); err != nil {
-		s.logger.Error("Failed to unmarshal heartbeat message", zap.Error(err))
+		s.logger.Errorw("Failed to unmarshal heartbeat message", "error", err)
 		s.errorCount++
 		return
 	}
 
 	ctx := context.Background()
 	if err := s.registry.UpdateHeartbeat(ctx, heartbeat.AgentID); err != nil {
-		s.logger.Warn("Failed to update heartbeat",
-			zap.String("agent_id", heartbeat.AgentID),
-			zap.Error(err))
+		s.logger.Warnw("Failed to update heartbeat",
+			"agent_id", heartbeat.AgentID,
+			"error", err)
 		s.errorCount++
 		return
 	}
 
-	s.logger.Debug("Heartbeat received",
-		zap.String("agent_id", heartbeat.AgentID),
-		zap.String("cluster_id", heartbeat.ClusterID))
+	s.logger.Debugw("Heartbeat received",
+		"agent_id", heartbeat.AgentID,
+		"cluster_id", heartbeat.ClusterID)
 }
 
 // handleEvent handles agent event messages
@@ -349,25 +424,25 @@ func (s *Server) handleEvent(msg *nats.Msg) {
 
 	var event types.Event
 	if err := json.Unmarshal(msg.Data, &event); err != nil {
-		s.logger.Error("Failed to unmarshal event message", zap.Error(err))
+		s.logger.Errorw("Failed to unmarshal event message", "error", err)
 		s.errorCount++
 		return
 	}
 
 	ctx := context.Background()
 	if err := s.eventProcessor.ProcessEvent(ctx, &event); err != nil {
-		s.logger.Error("Failed to process event",
-			zap.String("event_id", event.ID),
-			zap.String("cluster_id", event.ClusterID),
-			zap.Error(err))
+		s.logger.Errorw("Failed to process event",
+			"event_id", event.ID,
+			"cluster_id", event.ClusterID,
+			"error", err)
 		s.errorCount++
 		return
 	}
 
-	s.logger.Debug("Event processed",
-		zap.String("event_id", event.ID),
-		zap.String("cluster_id", event.ClusterID),
-		zap.String("severity", event.Severity))
+	s.logger.Debugw("Event processed",
+		"event_id", event.ID,
+		"cluster_id", event.ClusterID,
+		"severity", event.Severity)
 }
 
 // handleMetrics handles agent metrics messages
@@ -377,7 +452,7 @@ func (s *Server) handleMetrics(msg *nats.Msg) {
 	// Parse as generic map to access Data field from collect-agent
 	var rawMetrics map[string]interface{}
 	if err := json.Unmarshal(msg.Data, &rawMetrics); err != nil {
-		s.logger.Error("Failed to unmarshal metrics message", zap.Error(err))
+		s.logger.Errorw("Failed to unmarshal metrics message", "error", err)
 		s.errorCount++
 		return
 	}
@@ -408,15 +483,15 @@ func (s *Server) handleMetrics(msg *nats.Msg) {
 	// Update cluster metrics
 	ctx := context.Background()
 	if err := s.registry.UpdateClusterMetrics(ctx, clusterID, nodeCount, podCount); err != nil {
-		s.logger.Warn("Failed to update cluster metrics",
-			zap.String("cluster_id", clusterID),
-			zap.Error(err))
+		s.logger.Warnw("Failed to update cluster metrics",
+			"cluster_id", clusterID,
+			"error", err)
 	}
 
-	s.logger.Debug("Metrics received and processed",
-		zap.String("cluster_id", clusterID),
-		zap.Int("node_count", nodeCount),
-		zap.Int("pod_count", podCount))
+	s.logger.Debugw("Metrics received and processed",
+		"cluster_id", clusterID,
+		"node_count", nodeCount,
+		"pod_count", podCount)
 }
 
 // handleResult handles command result messages
@@ -425,16 +500,16 @@ func (s *Server) handleResult(msg *nats.Msg) {
 
 	var result types.CommandResult
 	if err := json.Unmarshal(msg.Data, &result); err != nil {
-		s.logger.Error("Failed to unmarshal result message", zap.Error(err))
+		s.logger.Errorw("Failed to unmarshal result message", "error", err)
 		s.errorCount++
 		return
 	}
 
 	// TODO: Process command result
-	s.logger.Info("Command result received",
-		zap.String("command_id", result.CommandID),
-		zap.String("cluster_id", result.ClusterID),
-		zap.String("status", result.Status))
+	s.logger.Infow("Command result received",
+		"command_id", result.CommandID,
+		"cluster_id", result.ClusterID,
+		"status", result.Status)
 }
 
 // PublishCommand publishes a command to an agent
@@ -452,10 +527,10 @@ func (s *Server) PublishCommand(clusterID string, cmd *types.Command) error {
 	}
 
 	s.messagesSent++
-	s.logger.Info("Command published",
-		zap.String("command_id", cmd.ID),
-		zap.String("cluster_id", clusterID),
-		zap.String("subject", subject))
+	s.logger.Infow("Command published",
+		"command_id", cmd.ID,
+		"cluster_id", clusterID,
+		"subject", subject)
 
 	return nil
 }
@@ -464,12 +539,12 @@ func (s *Server) PublishCommand(clusterID string, cmd *types.Command) error {
 func (s *Server) sendResponse(msg *nats.Msg, response interface{}) {
 	data, err := json.Marshal(response)
 	if err != nil {
-		s.logger.Error("Failed to marshal response", zap.Error(err))
+		s.logger.Errorw("Failed to marshal response", "error", err)
 		return
 	}
 
 	if err := msg.Respond(data); err != nil {
-		s.logger.Error("Failed to send response", zap.Error(err))
+		s.logger.Errorw("Failed to send response", "error", err)
 		return
 	}
 
@@ -479,20 +554,20 @@ func (s *Server) sendResponse(msg *nats.Msg, response interface{}) {
 // Connection event handlers
 
 func (s *Server) handleDisconnect(conn *nats.Conn, err error) {
-	s.logger.Warn("Disconnected from NATS",
-		zap.Error(err),
-		zap.String("url", s.config.URL))
+	s.logger.Warnw("Disconnected from NATS",
+		"error", err,
+		"url", s.options.url)
 }
 
 func (s *Server) handleReconnect(conn *nats.Conn) {
-	s.logger.Info("Reconnected to NATS",
-		zap.String("url", conn.ConnectedUrl()))
+	s.logger.Infow("Reconnected to NATS",
+		"url", conn.ConnectedUrl())
 }
 
 func (s *Server) handleError(conn *nats.Conn, sub *nats.Subscription, err error) {
-	s.logger.Error("NATS error",
-		zap.Error(err),
-		zap.String("subject", sub.Subject))
+	s.logger.Errorw("NATS error",
+		"error", err,
+		"subject", sub.Subject)
 	s.errorCount++
 }
 
@@ -544,4 +619,9 @@ func (s *Server) Health() error {
 		return fmt.Errorf("connection lost")
 	}
 	return nil
+}
+
+// GetConnection returns the underlying NATS connection
+func (s *Server) GetConnection() *nats.Conn {
+	return s.conn
 }

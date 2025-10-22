@@ -2,84 +2,47 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"go.uber.org/zap"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/agent-manager/pkg/types"
+	"github.com/kart-io/k8s-agent/common/db"
 )
 
 // PostgresStore implements storage using MySQL
 // Note: Kept the name for backward compatibility, but now using MySQL
 type PostgresStore struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	*db.MySQLClient // Embed common MySQL client
+	logger          core.Logger
 }
 
 // NewPostgresStore creates a new MySQL store
 // Note: Kept the name for backward compatibility, but now using MySQL
-func NewPostgresStore(config types.DatabaseConfig, log *zap.Logger) (*PostgresStore, error) {
-	// MySQL DSN format
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		config.User, config.Password, config.Host, config.Port, config.Database,
+func NewPostgresStore(config types.DatabaseConfig, log core.Logger) (*PostgresStore, error) {
+	// Create MySQL client using common package with Options pattern
+	mysqlClient, err := db.NewMySQL(log,
+		db.WithHost(config.Host),
+		db.WithPort(config.Port),
+		db.WithUser(config.User),
+		db.WithPassword(config.Password),
+		db.WithDatabase(config.Database),
+		db.WithMaxOpenConns(config.MaxOpenConns),
+		db.WithMaxIdleConns(config.MaxIdleConns),
+		db.WithConnMaxLifetime(config.ConnMaxLifetime),
+		db.WithLogLevel("info"),
 	)
-
-	// Configure GORM logger
-	gormLogger := logger.Default
-	if config.Host != "" {
-		gormLogger = logger.Default.LogMode(logger.Info)
-	}
-
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: gormLogger,
-	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database instance: %w", err)
-	}
-
-	// Set connection pool settings
-	sqlDB.SetMaxOpenConns(config.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(config.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(config.ConnMaxLifetime)
-
-	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := sqlDB.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, err
 	}
 
 	store := &PostgresStore{
-		db:     db,
-		logger: log.With(zap.String("component", "postgres")),
+		MySQLClient: mysqlClient,
+		logger:      log.With("component", "postgres"),
 	}
 
 	// Auto-migrate schemas
-	if err := store.migrate(); err != nil {
-		return nil, fmt.Errorf("failed to migrate database: %w", err)
-	}
-
-	store.logger.Info("PostgreSQL store initialized",
-		zap.String("host", config.Host),
-		zap.String("database", config.Database))
-
-	return store, nil
-}
-
-// migrate runs database migrations
-func (s *PostgresStore) migrate() error {
-	return s.db.AutoMigrate(
+	if err := store.AutoMigrate(
 		&types.Agent{},
 		&types.Event{},
 		&types.Metrics{},
@@ -88,25 +51,28 @@ func (s *PostgresStore) migrate() error {
 		&types.Cluster{},
 		&types.AlertRule{},
 		&types.Alert{},
-	)
-}
+	); err != nil {
+		return nil, err
+	}
 
-// DB returns the underlying GORM database instance
-func (s *PostgresStore) DB() *gorm.DB {
-	return s.db
+	store.logger.Infow("PostgreSQL store initialized",
+		"host", config.Host,
+		"database", config.Database)
+
+	return store, nil
 }
 
 // Agent operations
 
 // SaveAgent saves an agent to the database
 func (s *PostgresStore) SaveAgent(ctx context.Context, agent *types.Agent) error {
-	return s.db.WithContext(ctx).Save(agent).Error
+	return s.DB.WithContext(ctx).Save(agent).Error
 }
 
 // GetAgent retrieves an agent by ID
 func (s *PostgresStore) GetAgent(ctx context.Context, id string) (*types.Agent, error) {
 	var agent types.Agent
-	if err := s.db.WithContext(ctx).First(&agent, "id = ?", id).Error; err != nil {
+	if err := s.DB.WithContext(ctx).First(&agent, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &agent, nil
@@ -115,7 +81,7 @@ func (s *PostgresStore) GetAgent(ctx context.Context, id string) (*types.Agent, 
 // GetAgentByClusterID retrieves an agent by cluster ID
 func (s *PostgresStore) GetAgentByClusterID(ctx context.Context, clusterID string) (*types.Agent, error) {
 	var agent types.Agent
-	if err := s.db.WithContext(ctx).First(&agent, "cluster_id = ?", clusterID).Error; err != nil {
+	if err := s.DB.WithContext(ctx).First(&agent, "cluster_id = ?", clusterID).Error; err != nil {
 		return nil, err
 	}
 	return &agent, nil
@@ -124,7 +90,7 @@ func (s *PostgresStore) GetAgentByClusterID(ctx context.Context, clusterID strin
 // ListAgents lists all agents
 func (s *PostgresStore) ListAgents(ctx context.Context, status *types.AgentStatus) ([]*types.Agent, error) {
 	var agents []*types.Agent
-	query := s.db.WithContext(ctx)
+	query := s.DB.WithContext(ctx)
 
 	if status != nil {
 		query = query.Where("status = ?", *status)
@@ -138,7 +104,7 @@ func (s *PostgresStore) ListAgents(ctx context.Context, status *types.AgentStatu
 
 // UpdateAgentStatus updates agent status
 func (s *PostgresStore) UpdateAgentStatus(ctx context.Context, id string, status types.AgentStatus) error {
-	return s.db.WithContext(ctx).Model(&types.Agent{}).
+	return s.DB.WithContext(ctx).Model(&types.Agent{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"status":     status,
@@ -148,27 +114,27 @@ func (s *PostgresStore) UpdateAgentStatus(ctx context.Context, id string, status
 
 // UpdateAgentHeartbeat updates agent heartbeat timestamp
 func (s *PostgresStore) UpdateAgentHeartbeat(ctx context.Context, id string) error {
-	return s.db.WithContext(ctx).Model(&types.Agent{}).
+	return s.DB.WithContext(ctx).Model(&types.Agent{}).
 		Where("id = ?", id).
 		Update("last_heartbeat", time.Now()).Error
 }
 
 // DeleteAgent deletes an agent
 func (s *PostgresStore) DeleteAgent(ctx context.Context, id string) error {
-	return s.db.WithContext(ctx).Delete(&types.Agent{}, "id = ?", id).Error
+	return s.DB.WithContext(ctx).Delete(&types.Agent{}, "id = ?", id).Error
 }
 
 // Event operations
 
 // SaveEvent saves an event to the database
 func (s *PostgresStore) SaveEvent(ctx context.Context, event *types.Event) error {
-	return s.db.WithContext(ctx).Create(event).Error
+	return s.DB.WithContext(ctx).Create(event).Error
 }
 
 // GetEvent retrieves an event by ID
 func (s *PostgresStore) GetEvent(ctx context.Context, id string) (*types.Event, error) {
 	var event types.Event
-	if err := s.db.WithContext(ctx).First(&event, "id = ?", id).Error; err != nil {
+	if err := s.DB.WithContext(ctx).First(&event, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &event, nil
@@ -177,7 +143,7 @@ func (s *PostgresStore) GetEvent(ctx context.Context, id string) (*types.Event, 
 // ListEvents lists events with filters
 func (s *PostgresStore) ListEvents(ctx context.Context, filter EventFilter) ([]*types.Event, error) {
 	var events []*types.Event
-	query := s.db.WithContext(ctx)
+	query := s.DB.WithContext(ctx)
 
 	if filter.ClusterID != "" {
 		query = query.Where("cluster_id = ?", filter.ClusterID)
@@ -216,13 +182,13 @@ type EventFilter struct {
 
 // SaveCommand saves a command to the database
 func (s *PostgresStore) SaveCommand(ctx context.Context, cmd *types.Command) error {
-	return s.db.WithContext(ctx).Create(cmd).Error
+	return s.DB.WithContext(ctx).Create(cmd).Error
 }
 
 // GetCommand retrieves a command by ID
 func (s *PostgresStore) GetCommand(ctx context.Context, id string) (*types.Command, error) {
 	var cmd types.Command
-	if err := s.db.WithContext(ctx).First(&cmd, "id = ?", id).Error; err != nil {
+	if err := s.DB.WithContext(ctx).First(&cmd, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &cmd, nil
@@ -230,7 +196,7 @@ func (s *PostgresStore) GetCommand(ctx context.Context, id string) (*types.Comma
 
 // UpdateCommandStatus updates command status
 func (s *PostgresStore) UpdateCommandStatus(ctx context.Context, id string, status types.CommandStatus) error {
-	return s.db.WithContext(ctx).Model(&types.Command{}).
+	return s.DB.WithContext(ctx).Model(&types.Command{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"status":     status,
@@ -240,13 +206,13 @@ func (s *PostgresStore) UpdateCommandStatus(ctx context.Context, id string, stat
 
 // SaveCommandResult saves a command result
 func (s *PostgresStore) SaveCommandResult(ctx context.Context, result *types.CommandResult) error {
-	return s.db.WithContext(ctx).Create(result).Error
+	return s.DB.WithContext(ctx).Create(result).Error
 }
 
 // GetCommandResult retrieves a command result
 func (s *PostgresStore) GetCommandResult(ctx context.Context, commandID string) (*types.CommandResult, error) {
 	var result types.CommandResult
-	if err := s.db.WithContext(ctx).First(&result, "command_id = ?", commandID).Error; err != nil {
+	if err := s.DB.WithContext(ctx).First(&result, "command_id = ?", commandID).Error; err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -256,13 +222,13 @@ func (s *PostgresStore) GetCommandResult(ctx context.Context, commandID string) 
 
 // SaveCluster saves a cluster to the database
 func (s *PostgresStore) SaveCluster(ctx context.Context, cluster *types.Cluster) error {
-	return s.db.WithContext(ctx).Save(cluster).Error
+	return s.DB.WithContext(ctx).Save(cluster).Error
 }
 
 // GetCluster retrieves a cluster by ID
 func (s *PostgresStore) GetCluster(ctx context.Context, id string) (*types.Cluster, error) {
 	var cluster types.Cluster
-	if err := s.db.WithContext(ctx).First(&cluster, "id = ?", id).Error; err != nil {
+	if err := s.DB.WithContext(ctx).First(&cluster, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &cluster, nil
@@ -271,7 +237,7 @@ func (s *PostgresStore) GetCluster(ctx context.Context, id string) (*types.Clust
 // ListClusters lists all clusters
 func (s *PostgresStore) ListClusters(ctx context.Context) ([]*types.Cluster, error) {
 	var clusters []*types.Cluster
-	if err := s.db.WithContext(ctx).Order("created_at DESC").Find(&clusters).Error; err != nil {
+	if err := s.DB.WithContext(ctx).Order("created_at DESC").Find(&clusters).Error; err != nil {
 		return nil, err
 	}
 	return clusters, nil
@@ -279,7 +245,7 @@ func (s *PostgresStore) ListClusters(ctx context.Context) ([]*types.Cluster, err
 
 // UpdateClusterHealth updates cluster health
 func (s *PostgresStore) UpdateClusterHealth(ctx context.Context, id string, health types.ClusterHealth) error {
-	return s.db.WithContext(ctx).Model(&types.Cluster{}).
+	return s.DB.WithContext(ctx).Model(&types.Cluster{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"health":     health,
@@ -289,23 +255,5 @@ func (s *PostgresStore) UpdateClusterHealth(ctx context.Context, id string, heal
 
 // DeleteCluster deletes a cluster
 func (s *PostgresStore) DeleteCluster(ctx context.Context, id string) error {
-	return s.db.WithContext(ctx).Delete(&types.Cluster{}, "id = ?", id).Error
-}
-
-// Close closes the database connection
-func (s *PostgresStore) Close() error {
-	sqlDB, err := s.db.DB()
-	if err != nil {
-		return err
-	}
-	return sqlDB.Close()
-}
-
-// Health checks database health
-func (s *PostgresStore) Health(ctx context.Context) error {
-	sqlDB, err := s.db.DB()
-	if err != nil {
-		return err
-	}
-	return sqlDB.PingContext(ctx)
+	return s.DB.WithContext(ctx).Delete(&types.Cluster{}, "id = ?", id).Error
 }
