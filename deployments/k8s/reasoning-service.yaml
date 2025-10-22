@@ -8,17 +8,12 @@ data:
     server:
       host: "0.0.0.0"
       port: 8082
-      log_level: "INFO"
+      log_level: "info"
 
     neo4j:
       uri: "bolt://aetherius-neo4j:7687"
       user: "neo4j"
       max_connections: 50
-
-    models:
-      path: "/app/models"
-      enable_gpu: false
-      cache_size: 1000
 
     knowledge_base:
       path: "/app/data/knowledge"
@@ -62,7 +57,7 @@ spec:
     spec:
       containers:
       - name: reasoning
-        image: aetherius/reasoning-service:latest
+        image: aetherius/reasoning-service-go:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -83,42 +78,38 @@ spec:
         - name: SERVER_PORT
           value: "8082"
         - name: LOG_LEVEL
-          value: "INFO"
+          value: "info"
         volumeMounts:
         - name: config
           mountPath: /app/configs
           readOnly: true
-        - name: models
-          mountPath: /app/models
         - name: knowledge
           mountPath: /app/data/knowledge
         livenessProbe:
           httpGet:
             path: /health
             port: http
-          initialDelaySeconds: 60
+          initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
             path: /health
             port: http
-          initialDelaySeconds: 30
+          initialDelaySeconds: 15
           periodSeconds: 5
           timeoutSeconds: 3
         resources:
           requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
             cpu: 2000m
             memory: 4Gi
-          limits:
-            cpu: 8000m
-            memory: 16Gi
       volumes:
       - name: config
         configMap:
           name: reasoning-config
-      - name: models
-        emptyDir: {}
       - name: knowledge
         persistentVolumeClaim:
           claimName: reasoning-knowledge-pvc

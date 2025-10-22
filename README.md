@@ -179,7 +179,7 @@ make run
 
 AI 驱动的根因分析、故障预测和智能推荐。
 
-- **技术栈**: Python 3.11+, FastAPI, PyTorch, scikit-learn, Neo4j
+- **技术栈**: Go 1.24+, Gin, Neo4j, OpenAI/Gemini/DeepSeek API
 - **核心功能**:
   - 根因分析引擎 (多模态: 事件+日志+指标)
   - 推荐引擎 (30+ 修复建议规则)
@@ -187,11 +187,11 @@ AI 驱动的根因分析、故障预测和智能推荐。
   - 知识图谱 (历史案例存储)
   - 持续学习系统
 - **API 端口**: 8082
-- **文档**: [Reasoning Service README](reasoning-service/README.md)
+- **文档**: [Reasoning Service README](reasoning-service-go/README.md)
 
 ```bash
-cd reasoning-service
-make install
+cd reasoning-service-go
+make build
 make run
 ```
 
@@ -202,7 +202,6 @@ make run
 ### 环境要求
 
 - **Go**: 1.21+
-- **Python**: 3.11+
 - **Docker**: 20.10+
 - **Kubernetes**: 1.23+
 - **MySQL**: 8.0+
@@ -229,7 +228,7 @@ cd agent-manager && make run
 cd orchestrator-service && make run
 
 # Terminal 3: Reasoning Service
-cd reasoning-service && make dev
+cd reasoning-service-go && make dev
 
 # Terminal 4: Collect Agent (可选)
 cd collect-agent && make run
@@ -247,7 +246,7 @@ cd orchestrator-service
 make docker-build
 
 # Reasoning Service
-cd reasoning-service
+cd reasoning-service-go
 make docker-build
 
 # Collect Agent
@@ -422,7 +421,7 @@ make docker-build
 - [Collect Agent](collect-agent/README.md)
 - [Agent Manager](agent-manager/README.md)
 - [Orchestrator Service](orchestrator-service/README.md)
-- [Reasoning Service](reasoning-service/README.md)
+- [Reasoning Service](reasoning-service-go/README.md)
 
 ---
 

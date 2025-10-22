@@ -56,10 +56,10 @@ Layer 4: Reasoning Service (AI 智能层)
 ### Layer 4: Reasoning Service
 
 - **Purpose**: AI-driven root cause analysis and intelligent recommendations
-- **Tech**: Python 3.11+ (legacy in `reasoning-service/`), **Go 1.24+ (active in `reasoning-service-go/`)**
+- **Tech**: Go 1.24+, Gin, Neo4j, OpenAI/Gemini/DeepSeek API
 - **Functions**: Root cause analysis, recommendation engine (30+ rules), prediction engine, knowledge graph (Neo4j), continuous learning
 - **API Port**: 8082
-- **Location**: `reasoning-service-go/` (active), `reasoning-service/` (legacy Python)
+- **Location**: `reasoning-service-go/`
 
 ### Supporting Services
 
@@ -265,13 +265,7 @@ All Go services follow a consistent internal structure:
 - **ORM**: GORM (for services using it)
 - **Logging**: Logrus (structured logging)
 - **Authentication**: JWT (golang-jwt/jwt/v5)
-
-### Backend (Python Service - Legacy)
-
-- **Python Version**: 3.11+
-- **Web Framework**: FastAPI
-- **ML Libraries**: PyTorch, scikit-learn
-- **Graph Database**: Neo4j 5+
+- **AI Integration**: OpenAI/Gemini/DeepSeek API (reasoning-service-go)
 
 ### Infrastructure
 
@@ -499,8 +493,7 @@ k8s-agent/
 │   └── kustomize/
 ├── agent-manager/            # Go module
 ├── orchestrator-service/     # Go module
-├── reasoning-service-go/     # Go module (active)
-├── reasoning-service/        # Python (legacy)
+├── reasoning-service-go/     # Go module (AI智能层)
 ├── auth-service/             # Go module
 ├── gateway-service/          # Go module
 ├── monitor-service/          # Go module
@@ -513,7 +506,7 @@ k8s-agent/
 ## Quick Start for New Developers
 
 ```bash
-# 1. Install prerequisites (Go 1.21+, Docker, Python 3.11+)
+# 1. Install prerequisites (Go 1.21+, Docker)
 make dev-setup
 
 # 2. Start dependencies (MySQL, Redis, NATS, Neo4j)
@@ -535,7 +528,7 @@ make docker-compose-up
 ## Important Notes
 
 - **Database Migration**: Project has migrated from PostgreSQL to MySQL 8.0+
-- **Reasoning Service**: The Go implementation (`reasoning-service-go/`) is active; Python version (`reasoning-service/`) is legacy
+- **Reasoning Service**: Fully implemented in Go (`reasoning-service-go/`) with AI API integration (OpenAI/Gemini/DeepSeek)
 - **Configuration Files**: Always use `-c` or `-config` flag for non-default configs
 - **Multi-platform Support**: All Docker builds support linux/amd64 and linux/arm64
 - **Authentication**: Auth service provides JWT authentication and forced logout capabilities

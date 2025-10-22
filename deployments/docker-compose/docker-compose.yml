@@ -143,10 +143,10 @@ services:
       timeout: 5s
       retries: 3
 
-  # Reasoning Service
+  # Reasoning Service (Go)
   reasoning-service:
     build:
-      context: ../../reasoning-service
+      context: ../../reasoning-service-go
       dockerfile: Dockerfile
     container_name: aetherius-reasoning
     environment:
@@ -155,7 +155,7 @@ services:
       - NEO4J_PASSWORD=neo4j_pass
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8082
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=info
     ports:
       - "8082:8082"
     depends_on:
@@ -165,11 +165,11 @@ services:
       - aetherius
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8082/health')"]
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8082/health"]
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 60s
+      start_period: 30s
 
 networks:
   aetherius:

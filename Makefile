@@ -58,7 +58,7 @@ deps: ## Install all dependencies
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) deps
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) deps
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) deps
-	@cd $(REASONING_DIR) && pip install -r requirements.txt
+	@$(MAKE) -C $(REASONING_DIR) deps
 	@echo "$(COLOR_GREEN)✓ All dependencies installed$(COLOR_RESET)"
 
 .PHONY: build
@@ -67,6 +67,7 @@ build: ## Build all services
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) build
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) build
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) build
+	@$(MAKE) -C $(REASONING_DIR) build
 	@echo "$(COLOR_GREEN)✓ All services built$(COLOR_RESET)"
 
 .PHONY: clean
@@ -75,7 +76,7 @@ clean: ## Clean all build artifacts
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) clean
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) clean
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) clean
-	@cd $(REASONING_DIR) && $(MAKE) clean
+	@$(MAKE) -C $(REASONING_DIR) clean
 	@echo "$(COLOR_GREEN)✓ Cleanup complete$(COLOR_RESET)"
 
 # ============================================================================
@@ -88,7 +89,7 @@ test: ## Run tests for all services
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) test
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) test
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) test
-	@cd $(REASONING_DIR) && pytest tests/ -v
+	@$(MAKE) -C $(REASONING_DIR) test
 	@echo "$(COLOR_GREEN)✓ All tests passed$(COLOR_RESET)"
 
 .PHONY: test-coverage
@@ -97,7 +98,7 @@ test-coverage: ## Generate coverage reports for all services
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) test-coverage
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) test-coverage
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) test-coverage
-	@cd $(REASONING_DIR) && pytest tests/ -v --cov=internal --cov-report=html
+	@$(MAKE) -C $(REASONING_DIR) test-coverage
 	@echo "$(COLOR_GREEN)✓ Coverage reports generated$(COLOR_RESET)"
 
 # ============================================================================
@@ -110,7 +111,7 @@ fmt: ## Format all code
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) fmt
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) fmt
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) fmt
-	@cd $(REASONING_DIR) && black internal/ pkg/ cmd/ && isort internal/ pkg/ cmd/
+	@$(MAKE) -C $(REASONING_DIR) fmt
 	@echo "$(COLOR_GREEN)✓ Code formatted$(COLOR_RESET)"
 
 .PHONY: lint
@@ -119,7 +120,7 @@ lint: ## Run linters on all code
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) lint
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) lint
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) lint
-	@cd $(REASONING_DIR) && pylint internal/ pkg/ cmd/ || true
+	@$(MAKE) -C $(REASONING_DIR) lint || true
 	@echo "$(COLOR_GREEN)✓ Linting complete$(COLOR_RESET)"
 
 .PHONY: vet
@@ -140,7 +141,7 @@ docker-build: ## Build all Docker images
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) docker-build VERSION=$(VERSION)
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) docker-build VERSION=$(VERSION)
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) docker-build VERSION=$(VERSION)
-	@cd $(REASONING_DIR) && docker build -t $(DOCKER_REGISTRY)/$(DOCKER_NAMESPACE)/reasoning-service:$(VERSION) .
+	@$(MAKE) -C $(REASONING_DIR) docker-build VERSION=$(VERSION)
 	@echo "$(COLOR_GREEN)✓ All Docker images built$(COLOR_RESET)"
 
 .PHONY: docker-buildx
@@ -169,7 +170,7 @@ docker-push: ## Push all Docker images to registry
 	@$(MAKE) -C $(COLLECT_AGENT_DIR) docker-push VERSION=$(VERSION)
 	@$(MAKE) -C $(AGENT_MANAGER_DIR) docker-push VERSION=$(VERSION)
 	@$(MAKE) -C $(ORCHESTRATOR_DIR) docker-push VERSION=$(VERSION)
-	@docker push $(DOCKER_REGISTRY)/$(DOCKER_NAMESPACE)/reasoning-service:$(VERSION)
+	@$(MAKE) -C $(REASONING_DIR) docker-push VERSION=$(VERSION)
 	@echo "$(COLOR_GREEN)✓ All Docker images pushed$(COLOR_RESET)"
 
 .PHONY: docker-compose-up
@@ -322,8 +323,6 @@ dev-setup: ## Setup development environment
 	@go install github.com/cosmtrek/air@latest
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	@go install github.com/securego/gosec/v2/cmd/gosec@latest
-	@echo "Installing Python dependencies..."
-	@pip install black isort pylint pytest pytest-cov
 	@echo "$(COLOR_GREEN)✓ Development environment ready$(COLOR_RESET)"
 
 .PHONY: dev-start
