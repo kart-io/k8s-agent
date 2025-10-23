@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/internal/auth/config"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/auth/logger"
 	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"gorm.io/driver/mysql"
@@ -19,7 +19,7 @@ type PostgresDB struct {
 
 // NewPostgresDB creates a new MySQL connection using GORM
 // Note: Kept the name for backward compatibility, but now using MySQL
-func NewPostgresDB(cfg *config.DatabaseConfig) (*PostgresDB, error) {
+func NewPostgresDB(cfg *commonoptions.DatabaseOptions) (*PostgresDB, error) {
 	// Build connection string (DSN) for MySQL
 	// Format: user:password@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
 	dsn := fmt.Sprintf(
@@ -28,7 +28,7 @@ func NewPostgresDB(cfg *config.DatabaseConfig) (*PostgresDB, error) {
 		cfg.Password,
 		cfg.Host,
 		cfg.Port,
-		cfg.DBName,
+		cfg.Database,
 	)
 
 	// Get kart-io/logger instance for GORM

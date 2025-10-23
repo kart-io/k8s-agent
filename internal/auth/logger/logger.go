@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"github.com/kart-io/k8s-agent/internal/auth/config"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/logger/core"
 	"github.com/kart-io/logger/option"
@@ -10,7 +10,7 @@ import (
 var globalLogger core.Logger
 
 // Init initializes the kart-io/logger with configuration
-func Init(cfg *config.LoggingConfig) error {
+func Init(cfg *commonoptions.LoggingOptions) error {
 	// Create logger configuration
 	logOption := &option.LogOption{
 		Engine: cfg.Engine, // "zap" or "slog"
@@ -19,21 +19,16 @@ func Init(cfg *config.LoggingConfig) error {
 	}
 
 	// Set output paths
-	switch cfg.Output {
-	case "", "stdout":
+	if len(cfg.OutputPaths) > 0 {
+		logOption.OutputPaths = cfg.OutputPaths
+	} else {
 		logOption.OutputPaths = []string{"stdout"}
-	case "stderr":
-		logOption.OutputPaths = []string{"stderr"}
-	default:
-		// File path
-		logOption.OutputPaths = []string{cfg.Output}
 	}
 
 	// Configure OTLP if enabled
-	if cfg.OTLP.Enabled {
+	if cfg.OTLP != nil && cfg.OTLP.Enabled != nil && *cfg.OTLP.Enabled {
 		logOption.OTLP = &option.OTLPOption{
 			Endpoint: cfg.OTLP.Endpoint,
-			Insecure: cfg.OTLP.Insecure,
 		}
 	}
 
@@ -47,11 +42,16 @@ func Init(cfg *config.LoggingConfig) error {
 	logger.SetGlobal(log)
 	globalLogger = log
 
+	otlpEnabled := false
+	if cfg.OTLP != nil && cfg.OTLP.Enabled != nil {
+		otlpEnabled = *cfg.OTLP.Enabled
+	}
+
 	logger.Infow("Logger initialized",
 		"engine", cfg.Engine,
 		"level", cfg.Level,
 		"format", cfg.Format,
-		"otlp_enabled", cfg.OTLP.Enabled,
+		"otlp_enabled", otlpEnabled,
 	)
 
 	return nil

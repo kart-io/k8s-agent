@@ -9,7 +9,6 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
-	github.com/kart-io/k8s-agent/auth-service v0.0.0-20251022111434-e80b13267c84
 	github.com/kart-io/k8s-agent/common v0.0.0
 	github.com/kart-io/logger v0.2.2
 	github.com/kart-io/version v1.1.0

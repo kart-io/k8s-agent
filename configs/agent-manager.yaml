@@ -1,0 +1,75 @@
+# Agent Manager Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  graceful_stop: 30s
+
+# gRPC 服务器配置
+grpc:
+  # 启用 gRPC 服务器
+  enable: true
+  # 监听地址
+  host: "0.0.0.0"
+  # 监听端口
+  port: 9090
+  # 最大接收消息大小（字节）
+  max_recv_msg_size: 10485760  # 10MB
+  # 最大发送消息大小（字节）
+  max_send_msg_size: 10485760  # 10MB
+  # 连接超时
+  connection_timeout: 2m
+  # KeepAlive 时间间隔
+  keep_alive_time: 30s
+  # KeepAlive 超时
+  keep_alive_timeout: 10s
+  # 最大连接空闲时间
+  max_connection_idle: 5m
+  # 最大连接存活时间
+  max_connection_age: 30m
+  # 连接关闭宽限时间
+  max_connection_age_grace: 5s
+  # 启用 gRPC 反射服务（用于开发调试）
+  enable_reflection: true
+  # 启用 gRPC 健康检查服务
+  enable_health_check: true
+
+database:
+  host: "localhost"
+  port: 3306
+  user: "aetherius"
+  password: "aetherius123"
+  database: "aetherius"
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 1h
+  auto_migrate: true
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 5
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+
+nats:
+  url: "nats://localhost:4222"
+  max_reconnect: 10
+  reconnect_wait: 2s
+  ping_interval: 30s
+  max_pings_out: 3
+
+logging:
+  level: "info"
+  format: "json"
+  output_path: "stdout"
+
+metrics:
+  enabled: true
+  path: "/metrics"
+  port: 9091

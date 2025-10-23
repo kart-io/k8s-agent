@@ -6,107 +6,34 @@ import (
 	"strings"
 	"time"
 
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/spf13/viper"
+)
+
+// Type aliases for backward compatibility
+type (
+	LLMConfig         = commonoptions.LLMOptions
+	LLMProviderConfig = commonoptions.LLMProviderConfig
+	MemoryConfig      = commonoptions.MemoryOptions
+	AnalysisConfig    = commonoptions.AnalysisOptions
+	PredictionConfig  = commonoptions.PredictionOptions
+	LearningConfig    = commonoptions.LearningOptions
+	PerformanceConfig = commonoptions.PerformanceOptions
+	ServerConfig      = commonoptions.ServerOptions
+	LoggingConfig     = commonoptions.LoggingOptions
+	AnomalyConfig     = commonoptions.AnomalyOptions
 )
 
 // Config represents the application configuration
 type Config struct {
-	Server      ServerConfig      `mapstructure:"server"`
-	LLM         LLMConfig         `mapstructure:"llm"`
-	Analysis    AnalysisConfig    `mapstructure:"analysis"`
-	Prediction  PredictionConfig  `mapstructure:"prediction"`
-	Learning    LearningConfig    `mapstructure:"learning"`
-	Performance PerformanceConfig `mapstructure:"performance"`
-	Logging     LoggingConfig     `mapstructure:"logging"`
-	Memory      MemoryConfig      `mapstructure:"memory"` // Memory 系统配置
-}
-
-// ServerConfig represents server configuration
-type ServerConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	LogLevel string `mapstructure:"log_level"`
-}
-
-// LLMConfig represents LLM provider configuration
-type LLMConfig struct {
-	Enabled   bool                `mapstructure:"enabled"`
-	Providers []LLMProviderConfig `mapstructure:"providers"`
-}
-
-// LLMProviderConfig represents a single LLM provider
-type LLMProviderConfig struct {
-	Name        string  `mapstructure:"name"`    // "openai", "gemini", "deepseek"
-	APIKey      string  `mapstructure:"api_key"` // Can be set via env var
-	BaseURL     string  `mapstructure:"base_url"`
-	Model       string  `mapstructure:"model"`
-	MaxTokens   int     `mapstructure:"max_tokens"`
-	Temperature float64 `mapstructure:"temperature"`
-	Timeout     int     `mapstructure:"timeout"`  // in seconds
-	Priority    int     `mapstructure:"priority"` // Higher priority providers are tried first
-}
-
-// AnalysisConfig represents analysis settings
-type AnalysisConfig struct {
-	MinConfidence       float64 `mapstructure:"min_confidence"`
-	MaxRecommendations  int     `mapstructure:"max_recommendations"`
-	IncludeSimilarCases bool    `mapstructure:"include_similar_cases"`
-	SimilarityThreshold float64 `mapstructure:"similarity_threshold"`
-	UseLLMFallback      bool    `mapstructure:"use_llm_fallback"` // Use LLM if rule-based analysis fails
-}
-
-// PredictionConfig represents prediction settings
-type PredictionConfig struct {
-	TimeWindows      []string      `mapstructure:"time_windows"`
-	AnomalyDetection AnomalyConfig `mapstructure:"anomaly_detection"`
-}
-
-// AnomalyConfig represents anomaly detection settings
-type AnomalyConfig struct {
-	Contamination float64 `mapstructure:"contamination"`
-	NEstimators   int     `mapstructure:"n_estimators"`
-}
-
-// LearningConfig represents learning system settings
-type LearningConfig struct {
-	EnableFeedback         bool   `mapstructure:"enable_feedback"`
-	MinSamplesForAccuracy  int    `mapstructure:"min_samples_for_accuracy"`
-	AccuracyUpdateInterval string `mapstructure:"accuracy_update_interval"`
-	ExportLearningData     bool   `mapstructure:"export_learning_data"`
-	ExportPath             string `mapstructure:"export_path"`
-}
-
-// PerformanceConfig represents performance settings
-type PerformanceConfig struct {
-	MaxWorkers     int    `mapstructure:"max_workers"`
-	RequestTimeout string `mapstructure:"request_timeout"`
-	MaxContextSize int    `mapstructure:"max_context_size"` // Max characters in logs/context
-}
-
-// LoggingConfig represents logging configuration
-type LoggingConfig struct {
-	Level  string        `mapstructure:"level"`
-	Format string        `mapstructure:"format"` // "json", "text"
-	Output []string      `mapstructure:"output"` // "stdout", "stderr", "file"
-	File   FileLogConfig `mapstructure:"file"`
-}
-
-// FileLogConfig represents file logging configuration
-type FileLogConfig struct {
-	Path       string `mapstructure:"path"`
-	MaxSize    string `mapstructure:"max_size"`
-	MaxAge     string `mapstructure:"max_age"`
-	MaxBackups int    `mapstructure:"max_backups"`
-	Compress   bool   `mapstructure:"compress"`
-}
-
-// MemoryConfig represents memory system configuration
-type MemoryConfig struct {
-	EnableVectorStore bool   `mapstructure:"enable_vector_store"` // 启用向量存储
-	VectorStoreType   string `mapstructure:"vector_store_type"`   // 向量存储类型: "chroma"
-	VectorStorePath   string `mapstructure:"vector_store_path"`   // 向量存储路径
-	EmbeddingModel    string `mapstructure:"embedding_model"`     // Embedding 模型
-	EmbeddingProvider string `mapstructure:"embedding_provider"`  // Embedding 提供商: "openai", "local"
+	Server      commonoptions.ServerOptions      `mapstructure:"server"`
+	LLM         commonoptions.LLMOptions         `mapstructure:"llm"`
+	Analysis    commonoptions.AnalysisOptions    `mapstructure:"analysis"`
+	Prediction  commonoptions.PredictionOptions  `mapstructure:"prediction"`
+	Learning    commonoptions.LearningOptions    `mapstructure:"learning"`
+	Performance commonoptions.PerformanceOptions `mapstructure:"performance"`
+	Logging     commonoptions.LoggingOptions     `mapstructure:"logging"`
+	Memory      commonoptions.MemoryOptions      `mapstructure:"memory"`
 }
 
 // Load loads configuration from file and environment variables
@@ -229,51 +156,44 @@ func applyLLMEnvOverrides(config *Config) {
 
 // validate validates the configuration
 func validate(config *Config) error {
-	if config.Server.Port <= 0 || config.Server.Port > 65535 {
-		return fmt.Errorf("invalid server port: %d", config.Server.Port)
+	if err := config.Server.Validate(); err != nil {
+		return fmt.Errorf("server validation failed: %w", err)
 	}
 
-	if config.Analysis.MinConfidence < 0 || config.Analysis.MinConfidence > 1 {
-		return fmt.Errorf("invalid min_confidence: %f (must be between 0 and 1)", config.Analysis.MinConfidence)
+	if err := config.LLM.Validate(); err != nil {
+		return fmt.Errorf("llm validation failed: %w", err)
 	}
 
-	if config.Analysis.MaxRecommendations < 1 {
-		return fmt.Errorf("max_recommendations must be at least 1")
+	if err := config.Analysis.Validate(); err != nil {
+		return fmt.Errorf("analysis validation failed: %w", err)
 	}
 
-	// Validate LLM providers if enabled
+	if err := config.Prediction.Validate(); err != nil {
+		return fmt.Errorf("prediction validation failed: %w", err)
+	}
+
+	if err := config.Learning.Validate(); err != nil {
+		return fmt.Errorf("learning validation failed: %w", err)
+	}
+
+	if err := config.Performance.Validate(); err != nil {
+		return fmt.Errorf("performance validation failed: %w", err)
+	}
+
+	if err := config.Logging.Validate(); err != nil {
+		return fmt.Errorf("logging validation failed: %w", err)
+	}
+
+	if err := config.Memory.Validate(); err != nil {
+		return fmt.Errorf("memory validation failed: %w", err)
+	}
+
+	// 额外的环境变量警告（针对 LLM providers）
 	if config.LLM.Enabled {
-		if len(config.LLM.Providers) == 0 {
-			return fmt.Errorf("LLM is enabled but no providers configured")
-		}
-
-		for i, provider := range config.LLM.Providers {
-			if provider.Name == "" {
-				return fmt.Errorf("provider %d: name is required", i)
-			}
+		for _, provider := range config.LLM.Providers {
 			if provider.APIKey == "" {
-				// Warning: API key not set, provider will be skipped
 				fmt.Fprintf(os.Stderr, "Warning: LLM provider %s has no API key, will be skipped\n", provider.Name)
 			}
-		}
-	}
-
-	// Validate Memory configuration (required)
-	if config.Memory.EnableVectorStore {
-		if config.Memory.VectorStoreType == "" {
-			return fmt.Errorf("vector_store_type is required when vector store is enabled")
-		}
-		// 验证支持的向量存储类型
-		validTypes := []string{"chroma", "pinecone", "weaviate"}
-		valid := false
-		for _, t := range validTypes {
-			if config.Memory.VectorStoreType == t {
-				valid = true
-				break
-			}
-		}
-		if !valid {
-			return fmt.Errorf("invalid vector_store_type: %s (must be one of: chroma, pinecone, weaviate)", config.Memory.VectorStoreType)
 		}
 	}
 
@@ -282,11 +202,7 @@ func validate(config *Config) error {
 
 // GetRequestTimeout returns the request timeout duration
 func (c *Config) GetRequestTimeout() time.Duration {
-	duration, err := time.ParseDuration(c.Performance.RequestTimeout)
-	if err != nil {
-		return 30 * time.Second // Default
-	}
-	return duration
+	return c.Performance.GetRequestTimeoutDuration()
 }
 
 // GetAccuracyUpdateInterval returns the accuracy update interval duration

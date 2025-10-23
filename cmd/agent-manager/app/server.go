@@ -14,6 +14,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/agent-manager/command"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/config"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/event"
+	agentgrpc "github.com/kart-io/k8s-agent/internal/agent-manager/grpc"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/nats"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/k8s-agent/pkg/types"
@@ -32,6 +33,7 @@ type Server struct {
 	natsServer     *nats.Server
 	dispatcher     *command.Dispatcher
 	apiServer      *api.Server
+	grpcServer     *agentgrpc.Server
 }
 
 // NewServer creates a new server instance
@@ -54,6 +56,15 @@ func (s *Server) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to start NATS server: %w", err)
 	}
 	defer s.natsServer.Stop()
+
+	// Start gRPC server if enabled
+	if s.opts.GRPC.Enable {
+		go func() {
+			if err := s.grpcServer.Start(ctx); err != nil {
+				s.logger.Errorw("gRPC server error", "error", err)
+			}
+		}()
+	}
 
 	// Start API server
 	errCh := make(chan error, 1) // Error channel for API server
@@ -116,6 +127,31 @@ func (s *Server) initialize(ctx context.Context) error {
 		s.redisStore,
 		s.logger,
 	)
+
+	// Initialize gRPC server if enabled
+	if s.opts.GRPC.Enable {
+		grpcOpts := &agentgrpc.ServerOptions{
+			Host:             s.opts.GRPC.Host,
+			Port:             s.opts.GRPC.Port,
+			MaxRecvMsgSize:   s.opts.GRPC.MaxRecvMsgSize,
+			MaxSendMsgSize:   s.opts.GRPC.MaxSendMsgSize,
+			KeepaliveTime:    s.opts.GRPC.KeepAliveTime,
+			KeepaliveTimeout: s.opts.GRPC.KeepAliveTimeout,
+			Registry:         s.registry,
+			Dispatcher:       s.dispatcher,
+			Store:            s.pgStore,
+		}
+
+		grpcServer, err := agentgrpc.NewServer(grpcOpts, s.logger)
+		if err != nil {
+			return fmt.Errorf("failed to create gRPC server: %w", err)
+		}
+		s.grpcServer = grpcServer
+
+		s.logger.Infow("gRPC server initialized",
+			"address", grpcServer.Address(),
+		)
+	}
 
 	return nil
 }
@@ -212,6 +248,13 @@ func (s *Server) shutdown() error {
 	if s.apiServer != nil {
 		if err := s.apiServer.Stop(); err != nil {
 			s.logger.Warnw("Failed to stop API server", "error", err)
+		}
+	}
+
+	// Stop gRPC server
+	if s.grpcServer != nil {
+		if err := s.grpcServer.Stop(); err != nil {
+			s.logger.Warnw("Failed to stop gRPC server", "error", err)
 		}
 	}
 

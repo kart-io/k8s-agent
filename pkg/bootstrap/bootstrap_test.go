@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger"
+	"github.com/kart-io/logger/option"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,11 +49,12 @@ func (m *mockInitializer) HealthCheck(ctx context.Context) error {
 }
 
 func TestBootstrap(t *testing.T) {
-	logger := logrus.New()
-	logger.SetLevel(logrus.WarnLevel)
+	// Create kart-io/logger instance for testing
+	log, err := logger.New(option.DefaultLogOption())
+	require.NoError(t, err)
 
 	t.Run("Initialize in priority order", func(t *testing.T) {
-		b := bootstrap.New(logger)
+		b := bootstrap.New(log)
 
 		init1 := &mockInitializer{name: "init1", priority: 300}
 		init2 := &mockInitializer{name: "init2", priority: 100}
@@ -73,7 +75,7 @@ func TestBootstrap(t *testing.T) {
 	})
 
 	t.Run("Initialize error stops process", func(t *testing.T) {
-		b := bootstrap.New(logger)
+		b := bootstrap.New(log)
 
 		init1 := &mockInitializer{name: "init1", priority: 100}
 		init2 := &mockInitializer{name: "init2", priority: 200, initErr: errors.New("init failed")}
@@ -95,7 +97,7 @@ func TestBootstrap(t *testing.T) {
 	})
 
 	t.Run("Shutdown in reverse order", func(t *testing.T) {
-		b := bootstrap.New(logger)
+		b := bootstrap.New(log)
 
 		init1 := &mockInitializer{name: "init1", priority: 100}
 		init2 := &mockInitializer{name: "init2", priority: 200}
@@ -118,7 +120,7 @@ func TestBootstrap(t *testing.T) {
 	})
 
 	t.Run("HealthCheck", func(t *testing.T) {
-		b := bootstrap.New(logger)
+		b := bootstrap.New(log)
 
 		init1 := &mockInitializer{name: "init1", priority: 100}
 		b.Register(init1)
@@ -133,11 +135,12 @@ func TestBootstrap(t *testing.T) {
 }
 
 func TestFuncInitializer(t *testing.T) {
-	logger := logrus.New()
-	logger.SetLevel(logrus.WarnLevel)
+	// Create kart-io/logger instance for testing
+	log, err := logger.New(option.DefaultLogOption())
+	require.NoError(t, err)
 
 	t.Run("Function initializer", func(t *testing.T) {
-		b := bootstrap.New(logger)
+		b := bootstrap.New(log)
 
 		initCalled := false
 		closeCalled := false
@@ -169,8 +172,9 @@ func TestFuncInitializer(t *testing.T) {
 }
 
 func TestRetryInitializer(t *testing.T) {
-	logger := logrus.New()
-	logger.SetLevel(logrus.WarnLevel)
+	// Create kart-io/logger instance for testing
+	log, err := logger.New(option.DefaultLogOption())
+	require.NoError(t, err)
 
 	t.Run("Retry on failure", func(t *testing.T) {
 		attempts := 0
@@ -192,7 +196,7 @@ func TestRetryInitializer(t *testing.T) {
 
 		retry := bootstrap.NewRetryInitializer(mock, 5, time.Millisecond*10)
 
-		b := bootstrap.New(logger)
+		b := bootstrap.New(log)
 		b.Register(retry)
 
 		ctx := context.Background()
@@ -210,7 +214,7 @@ func TestRetryInitializer(t *testing.T) {
 
 		retry := bootstrap.NewRetryInitializer(mock, 2, time.Millisecond*10)
 
-		b := bootstrap.New(logger)
+		b := bootstrap.New(log)
 		b.Register(retry)
 
 		ctx := context.Background()

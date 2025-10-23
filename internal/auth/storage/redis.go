@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/internal/auth/config"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -15,9 +15,9 @@ type RedisClient struct {
 }
 
 // NewRedisClient creates a new Redis client
-func NewRedisClient(cfg *config.RedisConfig) (*RedisClient, error) {
+func NewRedisClient(cfg *commonoptions.RedisOptions) (*RedisClient, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
+		Addr:     cfg.Addr,
 		Password: cfg.Password,
 		DB:       cfg.DB,
 		PoolSize: cfg.PoolSize,

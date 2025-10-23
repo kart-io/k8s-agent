@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/auth-service/internal/model"
-	"github.com/kart-io/k8s-agent/auth-service/internal/storage"
+	"github.com/kart-io/k8s-agent/internal/auth/model"
+	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 

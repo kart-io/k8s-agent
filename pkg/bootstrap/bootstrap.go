@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 // Initializer represents a component that needs initialization.
@@ -42,15 +42,16 @@ type Bootstrap struct {
 	initializers []Initializer
 	closers      []Closer
 	healthChecks []HealthChecker
-	logger       *logrus.Logger
+	logger       core.Logger
 	mu           sync.RWMutex
 	initialized  bool
 }
 
 // New creates a new Bootstrap instance.
-func New(logger *logrus.Logger) *Bootstrap {
+func New(logger core.Logger) *Bootstrap {
 	if logger == nil {
-		logger = logrus.New()
+		// 如果没有提供 logger,使用默认的 noop logger
+		logger = core.NewNoOpLogger(nil)
 	}
 
 	return &Bootstrap{
@@ -111,21 +112,27 @@ func (b *Bootstrap) Initialize(ctx context.Context) error {
 
 	// Initialize each component
 	for _, init := range sortedInits {
-		b.logger.Infof("Initializing %s (priority: %d)", init.Name(), init.Priority())
+		b.logger.Infow("Initializing component",
+			"name", init.Name(),
+			"priority", init.Priority(),
+		)
 
 		start := time.Now()
 		if err := init.Initialize(ctx); err != nil {
 			return fmt.Errorf("failed to initialize %s: %w", init.Name(), err)
 		}
 
-		b.logger.Infof("Initialized %s in %v", init.Name(), time.Since(start))
+		b.logger.Infow("Component initialized",
+			"name", init.Name(),
+			"duration", time.Since(start),
+		)
 	}
 
 	b.mu.Lock()
 	b.initialized = true
 	b.mu.Unlock()
 
-	b.logger.Info("All components initialized successfully")
+	b.logger.Infow("All components initialized successfully")
 	return nil
 }
 
@@ -147,14 +154,20 @@ func (b *Bootstrap) Shutdown(ctx context.Context) error {
 			name = init.Name()
 		}
 
-		b.logger.Infof("Shutting down %s", name)
+		b.logger.Infow("Shutting down component", "name", name)
 
 		start := time.Now()
 		if err := closer.Close(ctx); err != nil {
-			b.logger.Errorf("Failed to close %s: %v", name, err)
+			b.logger.Errorw("Failed to close component",
+				"name", name,
+				"error", err,
+			)
 			errors = append(errors, err)
 		} else {
-			b.logger.Infof("Closed %s in %v", name, time.Since(start))
+			b.logger.Infow("Component closed",
+				"name", name,
+				"duration", time.Since(start),
+			)
 		}
 	}
 
@@ -162,7 +175,7 @@ func (b *Bootstrap) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("shutdown completed with %d errors", len(errors))
 	}
 
-	b.logger.Info("All components shut down successfully")
+	b.logger.Infow("All components shut down successfully")
 	return nil
 }
 
@@ -214,14 +227,14 @@ func (b *Bootstrap) Run(ctx context.Context, runFunc func() error) error {
 	select {
 	case err := <-errChan:
 		if err != nil {
-			b.logger.Errorf("Application error: %v", err)
+			b.logger.Errorw("Application error", "error", err)
 		}
 	case sig := <-sigChan:
-		b.logger.Infof("Received signal: %v", sig)
+		b.logger.Infow("Received signal", "signal", sig.String())
 	}
 
 	// Graceful shutdown
-	b.logger.Info("Starting graceful shutdown...")
+	b.logger.Infow("Starting graceful shutdown...")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
