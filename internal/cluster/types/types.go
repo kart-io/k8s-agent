@@ -48,24 +48,24 @@ type Node struct {
 
 // NodeCondition 节点状态条件
 type NodeCondition struct {
-	Type    string    `json:"type"`
-	Status  string    `json:"status"`
-	Reason  string    `json:"reason"`
-	Message string    `json:"message"`
+	Type               string    `json:"type"`
+	Status             string    `json:"status"`
+	Reason             string    `json:"reason"`
+	Message            string    `json:"message"`
 	LastTransitionTime time.Time `json:"last_transition_time"`
 }
 
 // Pod Pod 信息
 type Pod struct {
-	Name        string            `json:"name"`
-	Namespace   string            `json:"namespace"`
-	Status      string            `json:"status"`
-	Phase       string            `json:"phase"`
-	NodeName    string            `json:"node_name"`
-	PodIP       string            `json:"pod_ip"`
-	Labels      map[string]string `json:"labels"`
-	Containers  []Container       `json:"containers"`
-	CreatedAt   time.Time         `json:"created_at"`
+	Name       string            `json:"name"`
+	Namespace  string            `json:"namespace"`
+	Status     string            `json:"status"`
+	Phase      string            `json:"phase"`
+	NodeName   string            `json:"node_name"`
+	PodIP      string            `json:"pod_ip"`
+	Labels     map[string]string `json:"labels"`
+	Containers []Container       `json:"containers"`
+	CreatedAt  time.Time         `json:"created_at"`
 }
 
 // Container 容器信息
@@ -92,13 +92,13 @@ type Deployment struct {
 
 // DeploymentCreate 创建 Deployment 请求
 type DeploymentCreate struct {
-	Name      string            `json:"name" binding:"required"`
-	Namespace string            `json:"namespace" binding:"required"`
-	Replicas  int32             `json:"replicas" binding:"required"`
-	Image     string            `json:"image" binding:"required"`
-	Labels    map[string]string `json:"labels"`
-	Env       []EnvVar          `json:"env"`
-	Ports     []ContainerPort   `json:"ports"`
+	Name      string               `json:"name" binding:"required"`
+	Namespace string               `json:"namespace" binding:"required"`
+	Replicas  int32                `json:"replicas" binding:"required"`
+	Image     string               `json:"image" binding:"required"`
+	Labels    map[string]string    `json:"labels"`
+	Env       []EnvVar             `json:"env"`
+	Ports     []ContainerPort      `json:"ports"`
 	Resources ResourceRequirements `json:"resources"`
 }
 

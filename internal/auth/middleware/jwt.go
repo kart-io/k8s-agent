@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
 	commonmiddleware "github.com/kart-io/k8s-agent/common/middleware"
+	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
 )
 
 // JWTMiddleware wraps the common JWT middleware with session service

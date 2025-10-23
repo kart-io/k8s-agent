@@ -9,14 +9,15 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/kart-io/k8s-agent/common/config"
+	config "github.com/kart-io/k8s-agent/common/options"
+	configoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger/core"
 )
 
 // InterceptorConfig 拦截器配置
 type InterceptorConfig struct {
 	Logger        core.Logger
-	LoggingConfig *config.LoggingOptions
+	LoggingConfig *configoptions.LoggingOptions
 }
 
 // LoggingUnaryInterceptor 一元 RPC 日志拦截器

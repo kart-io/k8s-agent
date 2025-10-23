@@ -38,9 +38,9 @@ func MetricsHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"metrics":    metrics,
-		"uptime":     time.Since(startTime).Seconds(),
-		"timestamp":  time.Now().Unix(),
+		"metrics":   metrics,
+		"uptime":    time.Since(startTime).Seconds(),
+		"timestamp": time.Now().Unix(),
 	})
 }
 

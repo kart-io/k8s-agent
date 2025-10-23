@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kart-io/k8s-agent/internal/cluster/k8s"
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/k8s"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

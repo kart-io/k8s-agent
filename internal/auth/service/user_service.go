@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
-	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"gorm.io/gorm"
 )

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,15 +27,15 @@ func NewK8sIngressService(storage *storage.MySQLStorage, clusterService *K8sClus
 
 // IngressInfo Ingress 信息
 type IngressInfo struct {
-	Name              string                  `json:"name"`
-	Namespace         string                  `json:"namespace"`
-	IngressClassName  *string                 `json:"ingressClassName,omitempty"`
-	Rules             []IngressRule           `json:"rules"`
-	TLS               []IngressTLS            `json:"tls,omitempty"`
-	LoadBalancerIPs   []string                `json:"loadBalancerIPs,omitempty"`
-	Labels            map[string]string       `json:"labels"`
-	Annotations       map[string]string       `json:"annotations"`
-	CreatedAt         string                  `json:"createdAt"`
+	Name             string            `json:"name"`
+	Namespace        string            `json:"namespace"`
+	IngressClassName *string           `json:"ingressClassName,omitempty"`
+	Rules            []IngressRule     `json:"rules"`
+	TLS              []IngressTLS      `json:"tls,omitempty"`
+	LoadBalancerIPs  []string          `json:"loadBalancerIPs,omitempty"`
+	Labels           map[string]string `json:"labels"`
+	Annotations      map[string]string `json:"annotations"`
+	CreatedAt        string            `json:"createdAt"`
 }
 
 // IngressRule Ingress 规则
@@ -46,10 +46,10 @@ type IngressRule struct {
 
 // IngressPath Ingress 路径
 type IngressPath struct {
-	Path        string             `json:"path"`
-	PathType    string             `json:"pathType"`
-	ServiceName string             `json:"serviceName"`
-	ServicePort int32              `json:"servicePort"`
+	Path        string `json:"path"`
+	PathType    string `json:"pathType"`
+	ServiceName string `json:"serviceName"`
+	ServicePort int32  `json:"servicePort"`
 }
 
 // IngressTLS Ingress TLS 配置

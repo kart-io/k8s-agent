@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,15 +27,15 @@ func NewK8sNetworkPolicyService(storage *storage.MySQLStorage, clusterService *K
 
 // NetworkPolicyInfo NetworkPolicy 信息
 type NetworkPolicyInfo struct {
-	Name        string                    `json:"name"`
-	Namespace   string                    `json:"namespace"`
-	PodSelector map[string]string         `json:"podSelector"`
-	PolicyTypes []string                  `json:"policyTypes"`
+	Name        string                     `json:"name"`
+	Namespace   string                     `json:"namespace"`
+	PodSelector map[string]string          `json:"podSelector"`
+	PolicyTypes []string                   `json:"policyTypes"`
 	Ingress     []NetworkPolicyIngressRule `json:"ingress,omitempty"`
 	Egress      []NetworkPolicyEgressRule  `json:"egress,omitempty"`
-	Labels      map[string]string         `json:"labels"`
-	Annotations map[string]string         `json:"annotations"`
-	CreatedAt   string                    `json:"createdAt"`
+	Labels      map[string]string          `json:"labels"`
+	Annotations map[string]string          `json:"annotations"`
+	CreatedAt   string                     `json:"createdAt"`
 }
 
 // NetworkPolicyIngressRule Ingress 规则

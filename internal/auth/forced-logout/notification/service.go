@@ -13,16 +13,16 @@ import (
 
 // Service orchestrates notification delivery and tracking
 type Service struct {
-	repo         Repository
-	emailClient  email.Client
+	repo           Repository
+	emailClient    email.Client
 	templateEngine *TemplateEngine
 }
 
 // NewService creates a new notification service
 func NewService(repo Repository, emailClient email.Client, templateEngine *TemplateEngine) *Service {
 	return &Service{
-		repo:         repo,
-		emailClient:  emailClient,
+		repo:           repo,
+		emailClient:    emailClient,
 		templateEngine: templateEngine,
 	}
 }

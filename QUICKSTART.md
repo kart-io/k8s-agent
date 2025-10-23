@@ -1,478 +1,331 @@
-# 快速启动指南
+# 🚀 Aetherius (k8s-agent) 快速启动指南
 
-本指南帮助您快速启动和测试重构后的 K8s Agent 项目 (前端 + 后端)。
+基于 OneX v2 最佳实践构建的企业级 Kubernetes 智能运维平台
 
----
+## ⚡ 快速开始 (5 分钟)
 
-## 前置要求
+### 1. 环境要求
 
-### 后端
 - Go 1.21+
-- 可访问的 Kubernetes 集群 (可选)
+- Docker 20.10+
+- Make 4.0+
+- kubectl 1.23+ (可选)
 
-### 前端
-- Node.js 16+
-- npm 或 yarn
+### 2. 一键安装
+
+```bash
+# 克隆项目
+git clone https://github.com/kart-io/k8s-agent.git
+cd k8s-agent
+
+# 自动化安装（推荐）
+./scripts/install.sh --type development
+
+# 或者手动安装
+./scripts/env-setup.sh
+make tools.install
+```
+
+### 3. 快速启动
+
+```bash
+# 启动所有依赖服务
+cd deployments/docker-compose
+docker-compose up -d mysql redis nats neo4j
+
+# 返回项目根目录
+cd ../..
+
+# 启动开发服务器（热重载）
+make dev
+
+# 或启动特定服务
+cd agent-manager && make run-dev
+```
+
+### 4. 验证安装
+
+```bash
+# 检查工具链
+make tools.verify
+
+# 查看项目信息
+make info
+
+# 查看项目统计
+make stats
+
+# 运行测试
+make go.test
+```
+
+## 📊 常用命令
+
+### 开发工作流
+
+```bash
+# 代码格式化
+make go.fmt
+
+# 代码检查
+make go.lint
+make go.vet
+
+# 运行测试
+make go.test                 # 单元测试
+make go.test.coverage        # 带覆盖率
+make go.test.integration     # 集成测试
+
+# 热重载开发
+make dev                     # 所有服务
+cd <service> && make dev     # 单个服务
+```
+
+### 构建和部署
+
+```bash
+# 构建二进制
+make go.build                # 所有服务
+make go.build.agent-manager  # 单个服务
+
+# Docker 构建
+make docker.build            # 本地构建
+make docker.buildx           # 多平台构建
+make docker.buildx.push      # 构建并推送
+
+# Kubernetes 部署
+make k8s.lint                # Lint manifests
+make k8s.validate            # 验证 manifests
+make k8s.apply               # 部署到集群
+make k8s.status              # 查看状态
+```
+
+### 代码生成
+
+```bash
+# Protocol Buffer
+make proto.generate          # 生成 Proto 代码
+make proto.lint              # Lint Proto 文件
+
+# Mocks 和文档
+make gen.mocks               # 生成测试 mocks
+make gen.docs                # 生成文档
+make gen.swagger             # 生成 Swagger 文档
+```
+
+### 数据库管理
+
+```bash
+make db.create               # 创建数据库
+make db.migrate              # 运行迁移
+make db.seed                 # 填充测试数据
+make db.backup               # 备份数据库
+make db.reset                # 重置数据库
+```
+
+### 质量和安全
+
+```bash
+# 代码质量
+make quality.check           # 运行所有质量检查
+make quality.report          # 生成质量报告
+
+# 安全扫描
+make security.scan           # 运行所有安全扫描
+make security.gosec          # Go 安全扫描
+make security.trivy          # Docker 镜像扫描
+
+# 性能分析
+make perf.benchmark          # 运行基准测试
+make perf.profile            # 性能分析
+```
+
+### 版本管理
+
+```bash
+make version.info            # 查看版本信息
+make version.bump.patch      # 升级 patch 版本
+make version.bump.minor      # 升级 minor 版本
+make version.bump.major      # 升级 major 版本
+make version.changelog       # 生成 changelog
+make version.release TYPE=minor  # 完整发布流程
+```
+
+### CI/CD
+
+```bash
+# 运行完整 CI 流水线
+./scripts/ci-helper.sh full
+
+# 运行单个步骤
+./scripts/ci-helper.sh setup
+./scripts/ci-helper.sh lint
+./scripts/ci-helper.sh test
+./scripts/ci-helper.sh build
+
+# 部署到环境
+./scripts/ci-helper.sh deploy staging
+./scripts/ci-helper.sh deploy production
+```
+
+## 📂 项目结构
+
+```
+k8s-agent/
+├── api/proto/               # Protocol Buffer 定义
+├── build/                   # 构建产物
+├── cmd/                     # 服务入口点
+│   ├── agent-manager/
+│   ├── orchestrator/
+│   ├── reasoning/
+│   └── ...
+├── configs/                 # 配置文件
+├── deployments/             # 部署清单
+│   ├── docker-compose/
+│   ├── k8s/
+│   └── kustomize/
+├── docs/                    # 文档
+├── internal/                # 内部包
+├── pkg/                     # 公共包
+├── scripts/                 # 脚本和工具
+│   ├── make-rules/          # Make 规则
+│   └── lib/                 # 脚本库
+└── test/                    # 测试工具
+```
+
+## 🎯 核心服务
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| agent-manager | 8080 | 中央控制层 - Agent 管理 |
+| orchestrator-service | 8081 | 任务编排层 - 工作流引擎 |
+| reasoning-service-go | 8082 | AI 智能层 - 根因分析 |
+| auth-service | 8083 | 认证服务 - JWT 认证 |
+| gateway-service | 8084 | API 网关 - Traefik 集成 |
+
+## 🔧 配置管理
+
+### 环境变量
+
+```bash
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑配置
+vim .env
+
+# 关键配置
+ENVIRONMENT=development
+AGENT_MANAGER_PORT=8080
+ORCHESTRATOR_PORT=8081
+REASONING_PORT=8082
+```
+
+### 配置文件
+
+```bash
+# 服务配置（按环境）
+configs/<service>/
+├── config.yaml          # 默认配置
+├── config-dev.yaml      # 开发环境
+├── config-test.yaml     # 测试环境
+├── config-staging.yaml  # 预发布环境
+└── config-prod.yaml     # 生产环境
+```
+
+## 🐛 常见问题
+
+### 工具未安装
+
+```bash
+# 安装所有开发工具
+make tools.install
+
+# 验证工具链
+make tools.verify
+```
+
+### 依赖问题
+
+```bash
+# 更新依赖
+make go.mod.tidy
+
+# 检查过时依赖
+make deps.check
+
+# 更新所有依赖
+make deps.update
+```
+
+### 构建错误
+
+```bash
+# 清理并重新构建
+make clean
+make go.build
+
+# 清理所有缓存
+make clean.all
+make clean.cache
+```
+
+### 测试失败
+
+```bash
+# 运行特定服务测试
+make go.test.agent-manager
+
+# 查看详细输出
+cd <service> && go test -v ./...
+
+# 带覆盖率
+make go.test.coverage
+```
+
+## 📚 更多资源
+
+- [完整文档](docs/)
+- [API 文档](docs/api/)
+- [架构设计](docs/architecture/)
+- [开发指南](DEVELOPMENT.md)
+- [贡献指南](CONTRIBUTING.md)
+- [安全策略](SECURITY.md)
+
+## 🆘 获取帮助
+
+```bash
+# 查看所有可用命令
+make help
+
+# 查看项目信息
+make info
+
+# 查看项目统计
+make stats
+
+# 查看版本信息
+make version.info
+```
+
+### 在线支持
+
+- **Issues**: https://github.com/kart-io/k8s-agent/issues
+- **Discussions**: https://github.com/kart-io/k8s-agent/discussions
+- **Email**: dev@kart.io
+- **Security**: security@kart.io
+
+## ⭐ 特性亮点
+
+✅ **100% OneX v2 对齐** - 完全遵循最佳实践  
+✅ **122 个 Make Targets** - 全面的自动化工具链  
+✅ **58 个 Linters** - 企业级代码质量  
+✅ **热重载开发** - 极致开发体验  
+✅ **自动化 CI/CD** - 完整流水线  
+✅ **Kubernetes 就绪** - 生产级部署  
+✅ **安全扫描** - 内置安全检查  
+✅ **性能优化** - 基准测试和分析
 
 ---
 
-## 一、后端快速启动
-
-### 1. 进入项目目录
-
-```bash
-cd /home/hellotalk/code/go/src/github.com/kart-io/k8s-agent/cluster-service
-```
-
-### 2. 安装依赖
-
-```bash
-go mod tidy
-```
-
-### 3. 编译项目
-
-```bash
-go build -o bin/cluster-service ./cmd/server
-```
-
-### 4. 运行服务
-
-```bash
-./bin/cluster-service
-```
-
-服务将在 `http://localhost:8080` 启动。
-
-### 5. 测试 API
-
-**使用测试脚本**:
-```bash
-./scripts/test_query_params_api.sh
-```
-
-**手动测试**:
-```bash
-# 测试集群 API
-curl -X GET "http://localhost:8080/api/k8s/clusters"
-
-# 测试 Pod API (需要真实的集群和 namespace)
-curl -X GET "http://localhost:8080/api/k8s/pods?clusterId=default-cluster&namespace=default"
-```
-
----
-
-## 二、前端快速启动
-
-### 1. 进入项目目录
-
-```bash
-cd /home/hellotalk/code/web-k8s-agent-web/apps/web-k8s
-```
-
-### 2. 安装依赖
-
-```bash
-npm install
-```
-
-### 3. 配置环境变量
-
-创建或编辑 `.env.development`:
-
-```env
-# API 基础地址
-VITE_API_BASE_URL=http://127.0.0.1:8080
-
-# 是否使用 Mock 数据 (推荐先用 Mock 测试)
-VITE_USE_K8S_MOCK=true
-
-# 应用配置
-VITE_APP_TITLE=K8s Management Platform
-VITE_APP_PORT=5670
-```
-
-### 4. 启动开发服务器
-
-```bash
-npm run dev
-```
-
-前端将在 `http://localhost:5670` 启动。
-
-### 5. 访问应用
-
-在浏览器中打开 `http://localhost:5670`
-
----
-
-## 三、使用 Mock 数据测试 (推荐首选)
-
-### 为什么使用 Mock?
-
-- ✅ 无需配置真实的 Kubernetes 集群
-- ✅ 快速验证前端功能
-- ✅ 测试各种数据场景
-- ✅ 独立于后端进行开发
-
-### 启用 Mock
-
-**方式 1: 环境变量** (推荐)
-
-`.env.development`:
-```env
-VITE_USE_K8S_MOCK=true
-```
-
-**方式 2: 在 API 函数中集成**
-
-编辑 `src/api/k8s/index.ts`,在每个 API 函数中添加:
-
-```typescript
-import { mockGetPods } from './mock'
-
-export function getPods(params?: PageParams): Promise<PageResponse<Pod>> {
-  // 检查环境变量
-  if (import.meta.env.VITE_USE_K8S_MOCK === 'true') {
-    return mockGetPods(params || {})
-  }
-
-  // 调用真实 API
-  const clusterId = getClusterId()
-  return http.get('/api/k8s/pods', {
-    params: { clusterId, ...params }
-  })
-}
-```
-
-### Mock 数据说明
-
-Mock 系统提供以下测试数据:
-- **4 个 Namespace**: default, kube-system, kube-public, production
-- **3 个 Pod**: nginx-deployment-xxx, redis-master-0, coredns-xxx
-- **2 个 Deployment**: nginx-deployment, api-server
-- **2 个 Node**: node-1 (m5.large), node-2 (m5.xlarge)
-- **2 个 Service**: nginx-service, kubernetes
-- **其他资源**: Event, ConfigMap, Secret 等
-
----
-
-## 四、前后端联调测试
-
-### 1. 启动后端
-
-```bash
-cd k8s-agent/cluster-service
-./bin/cluster-service &
-```
-
-### 2. 配置前端连接真实后端
-
-`.env.development`:
-```env
-# 连接真实后端
-VITE_API_BASE_URL=http://127.0.0.1:8080
-
-# 禁用 Mock
-VITE_USE_K8S_MOCK=false
-```
-
-### 3. 启动前端
-
-```bash
-cd web-k8s-agent-web/apps/web-k8s
-npm run dev
-```
-
-### 4. 测试集成
-
-1. 在浏览器打开 `http://localhost:5670`
-2. 打开 Chrome DevTools > Network 面板
-3. 刷新页面,检查 API 请求:
-   - 请求 URL 格式: `/api/k8s/xxx?clusterId=xxx&...`
-   - 响应状态: 200 OK
-   - 响应数据格式正确
-
----
-
-## 五、测试集群切换功能
-
-### 1. 使用 ClusterSelector 组件
-
-在任意页面中添加:
-
-```vue
-<template>
-  <div>
-    <ClusterSelector />
-    <!-- 您的页面内容 -->
-  </div>
-</template>
-
-<script setup lang="ts">
-import ClusterSelector from '@/components/ClusterSelector.vue'
-</script>
-```
-
-### 2. 手动切换集群
-
-在浏览器控制台:
-
-```javascript
-// 切换到另一个集群
-const clusterStore = window.__PINIA__.state.value.cluster
-clusterStore.currentClusterId = 'another-cluster-id'
-
-// 检查是否生效
-console.log(localStorage.getItem('currentClusterId'))
-```
-
-### 3. 验证 API 调用
-
-切换集群后,检查 Network 面板中新的 API 请求是否包含新的 `clusterId` 参数。
-
----
-
-## 六、常见测试场景
-
-### 场景 1: 测试 Pod 列表
-
-```bash
-# 后端 (使用 cURL)
-curl -X GET "http://localhost:8080/api/k8s/pods?clusterId=default-cluster&namespace=default&page=1&pageSize=20"
-
-# 前端 (在组件中)
-const pods = await getPods({
-  namespace: 'default',
-  page: 1,
-  pageSize: 20
-})
-```
-
-### 场景 2: 测试 Pod 详情
-
-```bash
-# 后端
-curl -X GET "http://localhost:8080/api/k8s/pod?clusterId=default-cluster&namespace=default&name=nginx-pod"
-
-# 前端
-const pod = await getPod('default', 'nginx-pod')
-```
-
-### 场景 3: 测试 Pod 日志
-
-```bash
-# 后端
-curl -X GET "http://localhost:8080/api/k8s/pod/logs?clusterId=default-cluster&namespace=default&name=nginx-pod&container=nginx&tailLines=100"
-
-# 前端
-const logs = await getPodLogs('default', 'nginx-pod', 'nginx', 100)
-```
-
-### 场景 4: 测试 Deployment 扩缩容
-
-```bash
-# 后端
-curl -X PUT "http://localhost:8080/api/k8s/deployment/scale?clusterId=default-cluster&namespace=default&name=nginx-deployment" \
-  -H "Content-Type: application/json" \
-  -d '{"replicas": 5}'
-
-# 前端
-const deployment = await scaleDeployment('default', 'nginx-deployment', 5)
-```
-
----
-
-## 七、故障排查
-
-### 问题 1: 前端无法连接后端
-
-**症状**: Network 面板显示 `ERR_CONNECTION_REFUSED`
-
-**解决方案**:
-1. 检查后端是否运行: `curl http://localhost:8080/api/k8s/clusters`
-2. 检查 `.env.development` 中的 `VITE_API_BASE_URL`
-3. 检查防火墙设置
-
-### 问题 2: API 返回 400 Bad Request
-
-**症状**: 响应消息 "Invalid query parameters"
-
-**解决方案**:
-1. 检查 clusterId 是否传递
-2. 检查必需参数是否缺失 (namespace, name 等)
-3. 查看浏览器控制台错误消息
-4. 检查 Network 面板中的请求 URL
-
-### 问题 3: 集群 ID 始终是 default-cluster
-
-**症状**: 无法切换集群
-
-**解决方案**:
-1. 检查 `src/stores/cluster.ts` 是否正确导入
-2. 检查 Pinia 是否正确初始化
-3. 在控制台检查: `window.__PINIA__.state.value.cluster`
-4. 清除 localStorage: `localStorage.clear()`
-
-### 问题 4: Mock 数据不生效
-
-**症状**: 即使设置了 `VITE_USE_K8S_MOCK=true` 仍然调用真实 API
-
-**解决方案**:
-1. 确认在 API 函数中添加了 Mock 检查代码
-2. 重启开发服务器: `npm run dev`
-3. 检查环境变量: `console.log(import.meta.env.VITE_USE_K8S_MOCK)`
-
-### 问题 5: TypeScript 类型错误
-
-**症状**: IDE 显示类型错误
-
-**解决方案**:
-1. 重新安装依赖: `npm install`
-2. 重启 IDE 的 TypeScript 服务器
-3. 检查 `src/api/k8s/types.ts` 是否正确
-
----
-
-## 八、性能测试
-
-### 1. 后端性能
-
-```bash
-# 使用 Apache Bench 测试
-ab -n 1000 -c 10 "http://localhost:8080/api/k8s/clusters"
-
-# 使用 hey 测试
-hey -n 1000 -c 10 "http://localhost:8080/api/k8s/clusters"
-```
-
-### 2. 前端性能
-
-1. 打开 Chrome DevTools > Performance
-2. 点击 Record
-3. 进行一些操作 (列表加载、切换集群等)
-4. 停止 Record,分析性能瓶颈
-
-### 3. 网络性能
-
-在 Network 面板:
-- 检查 API 响应时间
-- 检查数据大小
-- 检查并发请求数量
-
----
-
-## 九、生产部署准备
-
-### 1. 前端生产构建
-
-```bash
-cd web-k8s-agent-web/apps/web-k8s
-
-# 配置生产环境变量
-cat > .env.production << EOF
-VITE_API_BASE_URL=https://api.your-domain.com
-VITE_USE_K8S_MOCK=false
-EOF
-
-# 构建
-npm run build
-
-# 构建产物在 dist/ 目录
-ls -lh dist/
-```
-
-### 2. 后端生产构建
-
-```bash
-cd k8s-agent/cluster-service
-
-# 使用版本信息构建
-go build -ldflags "
-  -X 'main.Version=v1.0.0'
-  -X 'main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)'
-  -X 'main.GitCommit=$(git rev-parse HEAD)'
-" -o bin/cluster-service ./cmd/server
-
-# 检查二进制
-./bin/cluster-service --version
-```
-
-### 3. Docker 部署 (可选)
-
-**后端 Dockerfile**:
-```dockerfile
-FROM golang:1.21 AS builder
-WORKDIR /app
-COPY . .
-RUN go mod tidy && go build -o cluster-service ./cmd/server
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/cluster-service .
-EXPOSE 8080
-CMD ["./cluster-service"]
-```
-
-**前端 Dockerfile**:
-```dockerfile
-FROM node:18 AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
----
-
-## 十、下一步
-
-### 立即可做
-
-- [x] ✅ 启动后端服务
-- [x] ✅ 启动前端服务 (使用 Mock)
-- [ ] ⏳ 测试前端 UI 功能
-- [ ] ⏳ 集成 Mock 到所有 API 函数
-- [ ] ⏳ 前后端联调测试
-
-### 生产前必做
-
-- [ ] 完整的集成测试
-- [ ] 性能测试和优化
-- [ ] 安全审计
-- [ ] 文档完善
-- [ ] 监控和日志配置
-
-### 可选优化
-
-- [ ] 添加单元测试
-- [ ] 实现 API 缓存
-- [ ] 添加国际化支持
-- [ ] 优化打包大小
-- [ ] 实现 PWA 支持
-
----
-
-## 参考文档
-
-- **完整重构总结**: `k8s-agent/COMPLETE_REFACTORING_SUMMARY.md`
-- **后端迁移指南**: `k8s-agent/docs/API_MIGRATION_QUERY_PARAMS.md`
-- **前端重构总结**: `web-k8s-agent-web/apps/web-k8s/FRONTEND_REFACTORING_SUMMARY.md`
-- **前端集成指南**: `web-k8s-agent-web/apps/web-k8s/INTEGRATION_GUIDE.md`
-- **API 配置文档**: `web-k8s-agent-web/apps/web-k8s/API_CONFIG.md`
-
----
-
-**版本**: 1.0.0
-**最后更新**: 2025-10-21
-**作者**: Claude Code (AI Assistant)
-
-祝您使用愉快! 🚀
+**Made with ❤️ following OneX v2 patterns**

@@ -2,12 +2,12 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/internal/cluster/service"
-	"github.com/kart-io/k8s-agent/internal/cluster/types"
 	"github.com/kart-io/k8s-agent/common/logger"
 	"github.com/kart-io/k8s-agent/common/pagination"
 	"github.com/kart-io/k8s-agent/common/response"
 	"github.com/kart-io/k8s-agent/common/validator"
+	"github.com/kart-io/k8s-agent/internal/cluster/service"
+	"github.com/kart-io/k8s-agent/internal/cluster/types"
 	batchv1 "k8s.io/api/batch/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 )
@@ -15,31 +15,31 @@ import (
 // K8sAPIHandler 处理所有 Kubernetes API 请求
 // 基于 /api/k8s 路径的完整 K8s 管理接口
 type K8sAPIHandler struct {
-	clusterService         *service.K8sClusterService
-	namespaceService       *service.K8sNamespaceService
-	podService             *service.K8sPodService
-	deploymentService      *service.K8sDeploymentService
-	nodeService            *service.K8sNodeService
-	serviceService         *service.K8sServiceService
-	statefulsetService     *service.K8sStatefulSetService
-	daemonsetService       *service.K8sDaemonSetService
-	configmapService       *service.K8sConfigMapService
-	secretService          *service.K8sSecretService
-	endpointService        *service.K8sEndpointService
-	pvcService             *service.K8sPVCService
-	pvService              *service.K8sPVService
-	endpointsliceService   *service.K8sEndpointSliceService
-	hpaService             *service.K8sHPAService
-	eventService           *service.K8sEventService
-	rolebindingService     *service.K8sRoleBindingService
-	clusterroleService     *service.K8sClusterRoleService
-	priorityclassService   *service.K8sPriorityClassService
-	roleService            *service.K8sRoleService
-	storageclassService    *service.K8sStorageClassService
-	jobService             *service.K8sJobService
-	cronjobService         *service.K8sCronJobService
-	ingressService         *service.K8sIngressService
-	networkpolicyService   *service.K8sNetworkPolicyService
+	clusterService            *service.K8sClusterService
+	namespaceService          *service.K8sNamespaceService
+	podService                *service.K8sPodService
+	deploymentService         *service.K8sDeploymentService
+	nodeService               *service.K8sNodeService
+	serviceService            *service.K8sServiceService
+	statefulsetService        *service.K8sStatefulSetService
+	daemonsetService          *service.K8sDaemonSetService
+	configmapService          *service.K8sConfigMapService
+	secretService             *service.K8sSecretService
+	endpointService           *service.K8sEndpointService
+	pvcService                *service.K8sPVCService
+	pvService                 *service.K8sPVService
+	endpointsliceService      *service.K8sEndpointSliceService
+	hpaService                *service.K8sHPAService
+	eventService              *service.K8sEventService
+	rolebindingService        *service.K8sRoleBindingService
+	clusterroleService        *service.K8sClusterRoleService
+	priorityclassService      *service.K8sPriorityClassService
+	roleService               *service.K8sRoleService
+	storageclassService       *service.K8sStorageClassService
+	jobService                *service.K8sJobService
+	cronjobService            *service.K8sCronJobService
+	ingressService            *service.K8sIngressService
+	networkpolicyService      *service.K8sNetworkPolicyService
 	replicasetService         *service.K8sReplicaSetService
 	limitrangeService         *service.K8sLimitRangeService
 	serviceaccountService     *service.K8sServiceAccountService
@@ -2828,7 +2828,6 @@ func (h *K8sAPIHandler) DeleteRole(c *gin.Context) {
 	})
 }
 
-
 // ===========================
 // StorageClass 管理接口
 // ===========================
@@ -4032,4 +4031,3 @@ func (h *K8sAPIHandler) DeleteResourceQuota(c *gin.Context) {
 		"resourcequota": resourcequotaName,
 	})
 }
-

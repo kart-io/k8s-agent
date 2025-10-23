@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/kart-io/k8s-agent/common/config"
+	config "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger/core"
 )
 
@@ -150,8 +150,8 @@ func defaultGRPCServerOptions() *GRPCServerOptions {
 	return &GRPCServerOptions{
 		host:                  "0.0.0.0",
 		port:                  9090,
-		maxRecvMsgSize:        4 * 1024 * 1024,  // 4MB
-		maxSendMsgSize:        4 * 1024 * 1024,  // 4MB
+		maxRecvMsgSize:        4 * 1024 * 1024, // 4MB
+		maxSendMsgSize:        4 * 1024 * 1024, // 4MB
 		connectionTimeout:     120 * time.Second,
 		keepAliveTime:         30 * time.Second,
 		keepAliveTimeout:      10 * time.Second,

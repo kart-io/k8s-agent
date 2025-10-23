@@ -4,23 +4,23 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // K8sNamespaceService 命名空间管理服务
 type K8sNamespaceService struct {
-	storage       *storage.MySQLStorage
+	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
 // NewK8sNamespaceService 创建新的命名空间服务
 func NewK8sNamespaceService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sNamespaceService {
 	return &K8sNamespaceService{
-		storage:       storage,
+		storage:        storage,
 		clusterService: clusterService,
 	}
 }

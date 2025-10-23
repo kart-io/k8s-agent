@@ -77,12 +77,12 @@ type CORSConfig struct {
 // DefaultCORSConfig 默认 CORS 配置
 func DefaultCORSConfig() CORSConfig {
 	return CORSConfig{
-		AllowAllOrigins: true,
-		AllowMethods:    []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-		AllowHeaders:    []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Request-ID"},
-		ExposeHeaders:   []string{"X-Request-ID"},
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Request-ID"},
+		ExposeHeaders:    []string{"X-Request-ID"},
 		AllowCredentials: true,
-		MaxAge:          43200, // 12 hours
+		MaxAge:           43200, // 12 hours
 	}
 }
 

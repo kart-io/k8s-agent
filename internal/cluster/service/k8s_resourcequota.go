@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,14 +27,14 @@ func NewK8sResourceQuotaService(storage *storage.MySQLStorage, clusterService *K
 
 // ResourceQuotaInfo ResourceQuota 信息
 type ResourceQuotaInfo struct {
-	Name        string                  `json:"name"`
-	Namespace   string                  `json:"namespace"`
-	Hard        map[string]string       `json:"hard"`
-	Used        map[string]string       `json:"used"`
-	Scopes      []string                `json:"scopes,omitempty"`
-	Labels      map[string]string       `json:"labels"`
-	Annotations map[string]string       `json:"annotations"`
-	CreatedAt   string                  `json:"createdAt"`
+	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace"`
+	Hard        map[string]string `json:"hard"`
+	Used        map[string]string `json:"used"`
+	Scopes      []string          `json:"scopes,omitempty"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	CreatedAt   string            `json:"createdAt"`
 }
 
 // ListResourceQuotas 获取 ResourceQuota 列表

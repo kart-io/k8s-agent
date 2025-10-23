@@ -15,11 +15,11 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/chains/description"
 	"github.com/kart-io/k8s-agent/internal/reasoning/chains/root_cause"
 	"github.com/kart-io/k8s-agent/internal/reasoning/config"
+	"github.com/kart-io/k8s-agent/internal/reasoning/llm"
+	"github.com/kart-io/k8s-agent/internal/reasoning/llm/proxy"
 	"github.com/kart-io/k8s-agent/internal/reasoning/memory"
 	"github.com/kart-io/k8s-agent/internal/reasoning/orchestrator"
 	"github.com/kart-io/k8s-agent/internal/reasoning/recommender"
-	"github.com/kart-io/k8s-agent/internal/reasoning/llm"
-	"github.com/kart-io/k8s-agent/internal/reasoning/llm/proxy"
 	"github.com/kart-io/k8s-agent/internal/reasoning/types"
 )
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,14 +27,14 @@ func NewK8sServiceAccountService(storage *storage.MySQLStorage, clusterService *
 
 // ServiceAccountInfo ServiceAccount 信息
 type ServiceAccountInfo struct {
-	Name                     string            `json:"name"`
-	Namespace                string            `json:"namespace"`
-	Secrets                  int               `json:"secrets"`
-	ImagePullSecrets         int               `json:"imagePullSecrets"`
-	AutomountServiceAccount  *bool             `json:"automountServiceAccountToken,omitempty"`
-	Labels                   map[string]string `json:"labels"`
-	Annotations              map[string]string `json:"annotations"`
-	CreatedAt                string            `json:"createdAt"`
+	Name                    string            `json:"name"`
+	Namespace               string            `json:"namespace"`
+	Secrets                 int               `json:"secrets"`
+	ImagePullSecrets        int               `json:"imagePullSecrets"`
+	AutomountServiceAccount *bool             `json:"automountServiceAccountToken,omitempty"`
+	Labels                  map[string]string `json:"labels"`
+	Annotations             map[string]string `json:"annotations"`
+	CreatedAt               string            `json:"createdAt"`
 }
 
 // ListServiceAccounts 获取 ServiceAccount 列表

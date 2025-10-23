@@ -3,9 +3,9 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"log"
 	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 	llmclient "github.com/kart-io/k8s-agent/internal/reasoning/llm"
+	"log"
 	"sort"
 	"sync"
 	"time"
@@ -23,14 +23,14 @@ type ProxyAdapter struct {
 
 // ProviderClient 单个提供商客户端
 type ProviderClient struct {
-	name       string                    // 提供商名称
-	priority   int                       // 优先级 (数值越小优先级越高)
-	client     interface{}               // gollm 客户端或原生 LLM 客户端
-	useGollm   bool                      // 是否使用 gollm
-	config     *config.LLMProviderConfig // 提供商配置
-	healthy    bool                      // 健康状态
-	lastErr    string                    // 最后一次错误信息
-	lastCheck  time.Time                 // 最后一次检查时间
+	name      string                    // 提供商名称
+	priority  int                       // 优先级 (数值越小优先级越高)
+	client    interface{}               // gollm 客户端或原生 LLM 客户端
+	useGollm  bool                      // 是否使用 gollm
+	config    *config.LLMProviderConfig // 提供商配置
+	healthy   bool                      // 健康状态
+	lastErr   string                    // 最后一次错误信息
+	lastCheck time.Time                 // 最后一次检查时间
 }
 
 // NewProxyAdapter 创建新的代理适配器

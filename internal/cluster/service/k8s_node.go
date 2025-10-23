@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,22 +27,22 @@ func NewK8sNodeService(storage *storage.MySQLStorage, clusterService *K8sCluster
 
 // NodeInfo Node 信息
 type NodeInfo struct {
-	Name              string                       `json:"name"`
-	Status            string                       `json:"status"`
-	Roles             []string                     `json:"roles"`
-	Version           string                       `json:"version"`
-	InternalIP        string                       `json:"internalIP"`
-	ExternalIP        string                       `json:"externalIP"`
-	OSImage           string                       `json:"osImage"`
-	KernelVersion     string                       `json:"kernelVersion"`
-	ContainerRuntime  string                       `json:"containerRuntime"`
-	Capacity          map[string]string            `json:"capacity"`
-	Allocatable       map[string]string            `json:"allocatable"`
-	Conditions        []NodeCondition              `json:"conditions"`
-	Labels            map[string]string            `json:"labels"`
-	Annotations       map[string]string            `json:"annotations"`
-	Taints            []NodeTaint                  `json:"taints"`
-	CreatedAt         string                       `json:"createdAt"`
+	Name             string            `json:"name"`
+	Status           string            `json:"status"`
+	Roles            []string          `json:"roles"`
+	Version          string            `json:"version"`
+	InternalIP       string            `json:"internalIP"`
+	ExternalIP       string            `json:"externalIP"`
+	OSImage          string            `json:"osImage"`
+	KernelVersion    string            `json:"kernelVersion"`
+	ContainerRuntime string            `json:"containerRuntime"`
+	Capacity         map[string]string `json:"capacity"`
+	Allocatable      map[string]string `json:"allocatable"`
+	Conditions       []NodeCondition   `json:"conditions"`
+	Labels           map[string]string `json:"labels"`
+	Annotations      map[string]string `json:"annotations"`
+	Taints           []NodeTaint       `json:"taints"`
+	CreatedAt        string            `json:"createdAt"`
 }
 
 // NodeCondition Node 条件

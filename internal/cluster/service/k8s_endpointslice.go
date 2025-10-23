@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,13 +26,13 @@ func NewK8sEndpointSliceService(storage *storage.MySQLStorage, clusterService *K
 
 // EndpointSliceInfo EndpointSlice 信息
 type EndpointSliceInfo struct {
-	Name         string            `json:"name"`
-	Namespace    string            `json:"namespace"`
-	AddressType  string            `json:"addressType"`
-	EndpointCount int              `json:"endpointCount"`
-	PortCount    int               `json:"portCount"`
-	Labels       map[string]string `json:"labels,omitempty"`
-	CreatedAt    string            `json:"createdAt"`
+	Name          string            `json:"name"`
+	Namespace     string            `json:"namespace"`
+	AddressType   string            `json:"addressType"`
+	EndpointCount int               `json:"endpointCount"`
+	PortCount     int               `json:"portCount"`
+	Labels        map[string]string `json:"labels,omitempty"`
+	CreatedAt     string            `json:"createdAt"`
 }
 
 // ListEndpointSlices 获取 EndpointSlice 列表

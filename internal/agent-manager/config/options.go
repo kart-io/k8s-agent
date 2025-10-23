@@ -1,31 +1,31 @@
 package config
 
 import (
-	"github.com/kart-io/k8s-agent/common/config"
+	configoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/spf13/pflag"
 )
 
 // Options defines options for agent-manager service
 type Options struct {
-	Server   *config.ServerOptions   `json:"server" mapstructure:"server"`
-	GRPC     *config.GRPCOptions     `json:"grpc" mapstructure:"grpc"`
-	Database *config.DatabaseOptions `json:"database" mapstructure:"database"`
-	Redis    *config.RedisOptions    `json:"redis" mapstructure:"redis"`
-	NATS     *config.NATSOptions     `json:"nats" mapstructure:"nats"`
-	Logging  *config.LoggingOptions  `json:"logging" mapstructure:"logging"`
-	Metrics  *config.MetricsOptions  `json:"metrics" mapstructure:"metrics"`
+	Server   *configoptions.ServerOptions   `json:"server" mapstructure:"server"`
+	GRPC     *configoptions.GRPCOptions     `json:"grpc" mapstructure:"grpc"`
+	Database *configoptions.DatabaseOptions `json:"database" mapstructure:"database"`
+	Redis    *configoptions.RedisOptions    `json:"redis" mapstructure:"redis"`
+	NATS     *configoptions.NATSOptions     `json:"nats" mapstructure:"nats"`
+	Logging  *configoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
+	Metrics  *configoptions.MetricsOptions  `json:"metrics" mapstructure:"metrics"`
 }
 
 // NewOptions creates a new Options instance with default values
 func NewOptions() *Options {
 	return &Options{
-		Server:   config.NewServerOptions(),
-		GRPC:     config.NewGRPCOptions(),
-		Database: config.NewDatabaseOptions(),
-		Redis:    config.NewRedisOptions(),
-		NATS:     config.NewNATSOptions(),
-		Logging:  config.NewLoggingOptions(),
-		Metrics:  config.NewMetricsOptions(),
+		Server:   configoptions.NewServerOptions(),
+		GRPC:     configoptions.NewGRPCOptions(),
+		Database: configoptions.NewDatabaseOptions(),
+		Redis:    configoptions.NewRedisOptions(),
+		NATS:     configoptions.NewNATSOptions(),
+		Logging:  configoptions.NewLoggingOptions(),
+		Metrics:  configoptions.NewMetricsOptions(),
 	}
 }
 

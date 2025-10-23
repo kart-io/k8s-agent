@@ -21,15 +21,15 @@ func (h *VersionHandler) GetVersion(c *gin.Context) {
 
 	// 返回版本信息
 	response.Success(c, gin.H{
-		"service_name":    info.ServiceName,
-		"git_version":     info.GitVersion,
-		"git_commit":      info.GitCommit,
-		"git_branch":      info.GitBranch,
-		"git_tree_state":  info.GitTreeState,
-		"build_date":      info.BuildDate,
-		"go_version":      info.GoVersion,
-		"compiler":        info.Compiler,
-		"platform":        info.Platform,
+		"service_name":   info.ServiceName,
+		"git_version":    info.GitVersion,
+		"git_commit":     info.GitCommit,
+		"git_branch":     info.GitBranch,
+		"git_tree_state": info.GitTreeState,
+		"build_date":     info.BuildDate,
+		"go_version":     info.GoVersion,
+		"compiler":       info.Compiler,
+		"platform":       info.Platform,
 	})
 }
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -28,17 +28,17 @@ func NewK8sServiceService(storage *storage.MySQLStorage, clusterService *K8sClus
 
 // ServiceInfo Service 信息
 type ServiceInfo struct {
-	Name         string            `json:"name"`
-	Namespace    string            `json:"namespace"`
-	Type         string            `json:"type"`
-	ClusterIP    string            `json:"clusterIP"`
-	ExternalIPs  []string          `json:"externalIPs"`
-	LoadBalancerIP string          `json:"loadBalancerIP,omitempty"`
-	Ports        []ServicePort     `json:"ports"`
-	Selector     map[string]string `json:"selector"`
-	Labels       map[string]string `json:"labels"`
-	Annotations  map[string]string `json:"annotations"`
-	CreatedAt    string            `json:"createdAt"`
+	Name           string            `json:"name"`
+	Namespace      string            `json:"namespace"`
+	Type           string            `json:"type"`
+	ClusterIP      string            `json:"clusterIP"`
+	ExternalIPs    []string          `json:"externalIPs"`
+	LoadBalancerIP string            `json:"loadBalancerIP,omitempty"`
+	Ports          []ServicePort     `json:"ports"`
+	Selector       map[string]string `json:"selector"`
+	Labels         map[string]string `json:"labels"`
+	Annotations    map[string]string `json:"annotations"`
+	CreatedAt      string            `json:"createdAt"`
 }
 
 // ServicePort Service 端口

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,8 +30,8 @@ type SecretInfo struct {
 	Name        string            `json:"name"`
 	Namespace   string            `json:"namespace"`
 	Type        string            `json:"type"`
-	Data        map[string][]byte `json:"data,omitempty"`        // 实际数据（Base64 编码）
-	StringData  map[string]string `json:"stringData,omitempty"`  // 字符串数据（用于显示）
+	Data        map[string][]byte `json:"data,omitempty"`       // 实际数据（Base64 编码）
+	StringData  map[string]string `json:"stringData,omitempty"` // 字符串数据（用于显示）
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
 	CreatedAt   string            `json:"createdAt"`
@@ -41,9 +41,9 @@ type SecretInfo struct {
 type CreateSecretRequest struct {
 	Name        string            `json:"name" binding:"required"`
 	Namespace   string            `json:"namespace" binding:"required"`
-	Type        string            `json:"type"`                  // Opaque, kubernetes.io/tls, etc.
-	Data        map[string][]byte `json:"data,omitempty"`        // Base64 编码的数据
-	StringData  map[string]string `json:"stringData,omitempty"`  // 明文数据（会自动编码）
+	Type        string            `json:"type"`                 // Opaque, kubernetes.io/tls, etc.
+	Data        map[string][]byte `json:"data,omitempty"`       // Base64 编码的数据
+	StringData  map[string]string `json:"stringData,omitempty"` // 明文数据（会自动编码）
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
 }

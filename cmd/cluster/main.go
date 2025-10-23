@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kart-io/k8s-agent/common/logger"
 	"github.com/kart-io/k8s-agent/internal/cluster/api"
 	"github.com/kart-io/k8s-agent/internal/cluster/config"
 	"github.com/kart-io/k8s-agent/internal/cluster/handler"
 	"github.com/kart-io/k8s-agent/internal/cluster/service"
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
-	"github.com/kart-io/k8s-agent/common/logger"
 	"github.com/kart-io/version"
 	"github.com/sirupsen/logrus"
 )
@@ -254,17 +254,17 @@ func initCommonLogger(cfg *config.Config) error {
 	}
 
 	logConfig := &logger.Config{
-		Engine:       "zap",                    // 使用 Zap 引擎（高性能）
-		Level:        cfg.Logging.Level,       // 从配置读取日志级别
-		Format:       cfg.Logging.Format,      // 从配置读取输出格式
-		OutputPaths:  []string{"stdout"},      // 输出到标准输出
-		EnableCaller: true,                    // 启用调用者信息
+		Engine:       "zap",                      // 使用 Zap 引擎（高性能）
+		Level:        cfg.Logging.Level,          // 从配置读取日志级别
+		Format:       cfg.Logging.Format,         // 从配置读取输出格式
+		OutputPaths:  []string{"stdout"},         // 输出到标准输出
+		EnableCaller: true,                       // 启用调用者信息
 		Development:  cfg.Server.Mode == "debug", // 开发模式
 		InitialFields: map[string]interface{}{
-			"service.name":    serviceName,  // 覆盖默认的 "unknown"
-			"service.version": gitVersion,   // 覆盖默认的 "unknown"
-			"service":         serviceName,  // 保留兼容字段
-			"version":         gitVersion,   // 保留兼容字段
+			"service.name":    serviceName, // 覆盖默认的 "unknown"
+			"service.version": gitVersion,  // 覆盖默认的 "unknown"
+			"service":         serviceName, // 保留兼容字段
+			"version":         gitVersion,  // 保留兼容字段
 		},
 	}
 

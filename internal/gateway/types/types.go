@@ -51,9 +51,9 @@ type HealthStatus struct {
 
 // MetricsData 监控数据
 type MetricsData struct {
-	TotalRequests   int64             `json:"total_requests"`
-	SuccessRequests int64             `json:"success_requests"`
-	FailedRequests  int64             `json:"failed_requests"`
-	AvgLatency      float64           `json:"avg_latency_ms"`
-	ServiceMetrics  map[string]int64  `json:"service_metrics"`
+	TotalRequests   int64            `json:"total_requests"`
+	SuccessRequests int64            `json:"success_requests"`
+	FailedRequests  int64            `json:"failed_requests"`
+	AvgLatency      float64          `json:"avg_latency_ms"`
+	ServiceMetrics  map[string]int64 `json:"service_metrics"`
 }

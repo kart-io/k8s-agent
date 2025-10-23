@@ -81,7 +81,7 @@ func (h *ClusterHandler) GetPods(c *gin.Context) {
 // HealthCheck handles GET /health
 func (h *ClusterHandler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
+		"status":  "ok",
 		"service": "cluster-service",
 	})
 }

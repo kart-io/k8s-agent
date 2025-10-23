@@ -7,8 +7,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
-	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/types"
+	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
 )
 
 // Manager manages diagnostic strategies

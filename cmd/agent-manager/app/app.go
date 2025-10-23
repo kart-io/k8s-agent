@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/agent-manager/config"
-	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/agent-manager/config"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 )
 
 // Execute runs the agent-manager command

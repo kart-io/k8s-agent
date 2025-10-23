@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,20 +27,20 @@ func NewK8sJobService(storage *storage.MySQLStorage, clusterService *K8sClusterS
 
 // JobInfo Job 信息
 type JobInfo struct {
-	Name              string            `json:"name"`
-	Namespace         string            `json:"namespace"`
-	Completions       *int32            `json:"completions"`
-	Parallelism       *int32            `json:"parallelism"`
-	Active            int32             `json:"active"`
-	Succeeded         int32             `json:"succeeded"`
-	Failed            int32             `json:"failed"`
-	CompletionTime    string            `json:"completionTime,omitempty"`
-	StartTime         string            `json:"startTime,omitempty"`
-	Selector          map[string]string `json:"selector"`
-	Labels            map[string]string `json:"labels"`
-	BackoffLimit      *int32            `json:"backoffLimit"`
-	TTLSecondsAfterFinished *int32      `json:"ttlSecondsAfterFinished,omitempty"`
-	CreatedAt         string            `json:"createdAt"`
+	Name                    string            `json:"name"`
+	Namespace               string            `json:"namespace"`
+	Completions             *int32            `json:"completions"`
+	Parallelism             *int32            `json:"parallelism"`
+	Active                  int32             `json:"active"`
+	Succeeded               int32             `json:"succeeded"`
+	Failed                  int32             `json:"failed"`
+	CompletionTime          string            `json:"completionTime,omitempty"`
+	StartTime               string            `json:"startTime,omitempty"`
+	Selector                map[string]string `json:"selector"`
+	Labels                  map[string]string `json:"labels"`
+	BackoffLimit            *int32            `json:"backoffLimit"`
+	TTLSecondsAfterFinished *int32            `json:"ttlSecondsAfterFinished,omitempty"`
+	CreatedAt               string            `json:"createdAt"`
 }
 
 // ListJobs 获取 Job 列表
@@ -142,17 +142,17 @@ func (s *K8sJobService) DeleteJob(ctx context.Context, clusterID, namespace, job
 // convertJobInfo 转换 Job 信息
 func (s *K8sJobService) convertJobInfo(job *batchv1.Job) JobInfo {
 	jobInfo := JobInfo{
-		Name:              job.Name,
-		Namespace:         job.Namespace,
-		Completions:       job.Spec.Completions,
-		Parallelism:       job.Spec.Parallelism,
-		Active:            job.Status.Active,
-		Succeeded:         job.Status.Succeeded,
-		Failed:            job.Status.Failed,
-		Labels:            job.Labels,
-		BackoffLimit:      job.Spec.BackoffLimit,
+		Name:                    job.Name,
+		Namespace:               job.Namespace,
+		Completions:             job.Spec.Completions,
+		Parallelism:             job.Spec.Parallelism,
+		Active:                  job.Status.Active,
+		Succeeded:               job.Status.Succeeded,
+		Failed:                  job.Status.Failed,
+		Labels:                  job.Labels,
+		BackoffLimit:            job.Spec.BackoffLimit,
 		TTLSecondsAfterFinished: job.Spec.TTLSecondsAfterFinished,
-		CreatedAt:         job.CreationTimestamp.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:               job.CreationTimestamp.Format("2006-01-02T15:04:05Z"),
 	}
 
 	if job.Spec.Selector != nil {

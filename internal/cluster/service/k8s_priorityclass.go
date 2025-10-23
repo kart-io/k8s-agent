@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	schedulingv1 "k8s.io/api/scheduling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,13 +26,13 @@ func NewK8sPriorityClassService(storage *storage.MySQLStorage, clusterService *K
 
 // PriorityClassInfo PriorityClass 信息
 type PriorityClassInfo struct {
-	Name            string            `json:"name"`
-	Value           int32             `json:"value"`
-	GlobalDefault   bool              `json:"globalDefault"`
-	PreemptionPolicy string           `json:"preemptionPolicy,omitempty"`
-	Description     string            `json:"description,omitempty"`
-	Labels          map[string]string `json:"labels,omitempty"`
-	CreatedAt       string            `json:"createdAt"`
+	Name             string            `json:"name"`
+	Value            int32             `json:"value"`
+	GlobalDefault    bool              `json:"globalDefault"`
+	PreemptionPolicy string            `json:"preemptionPolicy,omitempty"`
+	Description      string            `json:"description,omitempty"`
+	Labels           map[string]string `json:"labels,omitempty"`
+	CreatedAt        string            `json:"createdAt"`
 }
 
 // ListPriorityClasses 获取 PriorityClass 列表

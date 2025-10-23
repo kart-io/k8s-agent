@@ -1,14 +1,14 @@
 package logger
 
 import (
-	"github.com/kart-io/k8s-agent/common/config"
+	config "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/logger/core"
 	"github.com/kart-io/logger/option"
 )
 
 // Config 日志配置（简化版，适配 kart-io/logger）
-// Deprecated: Use config.LoggingOptions instead
+// Deprecated: Use options.LoggingOptions instead
 type Config struct {
 	Engine        string                 `yaml:"engine" json:"engine"`                 // 引擎：zap, slog
 	Level         string                 `yaml:"level" json:"level"`                   // 日志级别：debug, info, warn, error, fatal
@@ -65,7 +65,7 @@ func Init(config *Config) error {
 	return nil
 }
 
-// InitFromOptions 从 config.LoggingOptions 初始化日志
+// InitFromOptions 从 options.LoggingOptions 初始化日志
 func InitFromOptions(opts *config.LoggingOptions) (core.Logger, error) {
 	if opts == nil {
 		opts = config.NewLoggingOptions()
@@ -120,7 +120,7 @@ func InitFromOptions(opts *config.LoggingOptions) (core.Logger, error) {
 	return coreLogger, nil
 }
 
-// InitGlobalFromOptions 从 config.LoggingOptions 初始化全局日志
+// InitGlobalFromOptions 从 options.LoggingOptions 初始化全局日志
 func InitGlobalFromOptions(opts *config.LoggingOptions) error {
 	coreLogger, err := InitFromOptions(opts)
 	if err != nil {

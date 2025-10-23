@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,18 +28,18 @@ func NewK8sStatefulSetService(storage *storage.MySQLStorage, clusterService *K8s
 
 // StatefulSetInfo StatefulSet 信息
 type StatefulSetInfo struct {
-	Name              string            `json:"name"`
-	Namespace         string            `json:"namespace"`
-	Replicas          int32             `json:"replicas"`
-	ReadyReplicas     int32             `json:"readyReplicas"`
-	CurrentReplicas   int32             `json:"currentReplicas"`
-	UpdatedReplicas   int32             `json:"updatedReplicas"`
-	ServiceName       string            `json:"serviceName"`
-	Selector          map[string]string `json:"selector"`
-	Labels            map[string]string `json:"labels"`
-	UpdateStrategy    string            `json:"updateStrategy"`
-	Partition         int32             `json:"partition,omitempty"`
-	CreatedAt         string            `json:"createdAt"`
+	Name            string            `json:"name"`
+	Namespace       string            `json:"namespace"`
+	Replicas        int32             `json:"replicas"`
+	ReadyReplicas   int32             `json:"readyReplicas"`
+	CurrentReplicas int32             `json:"currentReplicas"`
+	UpdatedReplicas int32             `json:"updatedReplicas"`
+	ServiceName     string            `json:"serviceName"`
+	Selector        map[string]string `json:"selector"`
+	Labels          map[string]string `json:"labels"`
+	UpdateStrategy  string            `json:"updateStrategy"`
+	Partition       int32             `json:"partition,omitempty"`
+	CreatedAt       string            `json:"createdAt"`
 }
 
 // ListStatefulSets 获取 StatefulSet 列表

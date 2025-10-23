@@ -1,4 +1,6 @@
-# Binaries
+# Build outputs
+_output/
+bin/
 *.exe
 *.exe~
 *.dll
@@ -9,9 +11,11 @@
 collect-agent/collect-agent
 agent-manager/agent-manager
 orchestrator-service/orchestrator-service
+reasoning-service-go/reasoning-service-go
 
 # Go workspace file
 go.work
+go.work.sum
 
 # Test binary, built with `go test -c`
 *.test
@@ -20,12 +24,15 @@ go.work
 *.out
 coverage.out
 coverage.html
+*.coverprofile
 
 # Dependency directories
 vendor/
+third_party/
 
 # Go cache
 .cache/
+go-build/
 
 # IDE
 .vscode/
@@ -135,3 +142,17 @@ models/
 
 # Configurations
 configs/**/config-dev.yaml
+configs/**/config-local.yaml
+
+# Air (hot reload)
+tmp/
+.air_tmp/
+# Proto 管理 (新结构：proto 源文件和生成代码在 pkg/api 同一位置)
+# 不忽略 proto 源文件和生成的代码（都提交到仓库）
+# !pkg/api/**/*.proto
+# !pkg/api/**/*.pb.go
+
+# 可选：如果想要从源码生成，可以忽略生成的文件
+# pkg/api/**/*.pb.go
+# pkg/api/**/*.pb.gw.go
+# pkg/api/docs/swagger/*.json

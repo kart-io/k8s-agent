@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/internal/auth/config"
-	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"github.com/kart-io/k8s-agent/internal/auth/logger"
+	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

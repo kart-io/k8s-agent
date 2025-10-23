@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,15 +26,15 @@ func NewK8sHPAService(storage *storage.MySQLStorage, clusterService *K8sClusterS
 
 // HPAInfo HPA 信息
 type HPAInfo struct {
-	Name              string            `json:"name"`
-	Namespace         string            `json:"namespace"`
-	ScaleTargetRef    string            `json:"scaleTargetRef"`
-	MinReplicas       int32             `json:"minReplicas"`
-	MaxReplicas       int32             `json:"maxReplicas"`
-	CurrentReplicas   int32             `json:"currentReplicas"`
-	DesiredReplicas   int32             `json:"desiredReplicas"`
-	Labels            map[string]string `json:"labels,omitempty"`
-	CreatedAt         string            `json:"createdAt"`
+	Name            string            `json:"name"`
+	Namespace       string            `json:"namespace"`
+	ScaleTargetRef  string            `json:"scaleTargetRef"`
+	MinReplicas     int32             `json:"minReplicas"`
+	MaxReplicas     int32             `json:"maxReplicas"`
+	CurrentReplicas int32             `json:"currentReplicas"`
+	DesiredReplicas int32             `json:"desiredReplicas"`
+	Labels          map[string]string `json:"labels,omitempty"`
+	CreatedAt       string            `json:"createdAt"`
 }
 
 // ListHPAs 获取 HPA 列表

@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
-	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"github.com/kart-io/k8s-agent/common/response"
 	"github.com/kart-io/k8s-agent/common/utils"
+	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
+	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )

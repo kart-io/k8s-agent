@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,22 +27,22 @@ func NewK8sLimitRangeService(storage *storage.MySQLStorage, clusterService *K8sC
 
 // LimitRangeInfo LimitRange 信息
 type LimitRangeInfo struct {
-	Name        string                 `json:"name"`
-	Namespace   string                 `json:"namespace"`
-	Limits      []LimitRangeItemInfo   `json:"limits"`
-	Labels      map[string]string      `json:"labels"`
-	Annotations map[string]string      `json:"annotations"`
-	CreatedAt   string                 `json:"createdAt"`
+	Name        string               `json:"name"`
+	Namespace   string               `json:"namespace"`
+	Limits      []LimitRangeItemInfo `json:"limits"`
+	Labels      map[string]string    `json:"labels"`
+	Annotations map[string]string    `json:"annotations"`
+	CreatedAt   string               `json:"createdAt"`
 }
 
 // LimitRangeItemInfo LimitRange 限制项
 type LimitRangeItemInfo struct {
-	Type                 string                       `json:"type"`
-	Max                  map[string]string            `json:"max,omitempty"`
-	Min                  map[string]string            `json:"min,omitempty"`
-	Default              map[string]string            `json:"default,omitempty"`
-	DefaultRequest       map[string]string            `json:"defaultRequest,omitempty"`
-	MaxLimitRequestRatio map[string]string            `json:"maxLimitRequestRatio,omitempty"`
+	Type                 string            `json:"type"`
+	Max                  map[string]string `json:"max,omitempty"`
+	Min                  map[string]string `json:"min,omitempty"`
+	Default              map[string]string `json:"default,omitempty"`
+	DefaultRequest       map[string]string `json:"defaultRequest,omitempty"`
+	MaxLimitRequestRatio map[string]string `json:"maxLimitRequestRatio,omitempty"`
 }
 
 // ListLimitRanges 获取 LimitRange 列表

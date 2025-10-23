@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -48,11 +48,11 @@ type EndpointSubset struct {
 
 // EndpointInfo Endpoints 信息
 type EndpointInfo struct {
-	Name      string                `json:"name"`
-	Namespace string                `json:"namespace"`
-	Subsets   []EndpointSubset      `json:"subsets,omitempty"`
-	Labels    map[string]string     `json:"labels,omitempty"`
-	CreatedAt string                `json:"createdAt"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Subsets   []EndpointSubset  `json:"subsets,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"`
+	CreatedAt string            `json:"createdAt"`
 }
 
 // ListEndpoints 获取 Endpoints 列表
