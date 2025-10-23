@@ -1,0 +1,313 @@
+# Uplift configuration for k8s-agent project
+# Semantic versioning automation and changelog generation
+# Docs: https://upliftci.dev/
+
+# Git configuration
+git:
+  # Tag prefix for releases
+  tagPrefix: v
+
+  # Push tags automatically
+  pushTags: true
+
+  # Push to remote
+  pushRemote: origin
+
+  # Branch to use for releases
+  releaseBranch: master
+
+  # Create annotated tags
+  annotatedTags: true
+
+# Versioning configuration
+versioning:
+  # Semantic versioning scheme
+  scheme: semver
+
+  # Version file path
+  file: VERSION
+
+  # Initial version if file doesn't exist
+  initial: 1.0.0
+
+  # Metadata format
+  metadata:
+    # Include git commit
+    gitCommit: true
+    # Include build timestamp
+    buildDate: true
+    # Include git branch
+    gitBranch: false
+
+# Commit message parsing
+commits:
+  # Use Conventional Commits standard
+  conventionalCommits: true
+
+  # Types that trigger version bumps
+  types:
+    # Major version (breaking changes)
+    - name: BREAKING CHANGE
+      bump: major
+      changelog: true
+      title: "⚠️ Breaking Changes"
+
+    # Minor version (new features)
+    - name: feat
+      bump: minor
+      changelog: true
+      title: "✨ Features"
+
+    # Patch version (bug fixes)
+    - name: fix
+      bump: patch
+      changelog: true
+      title: "🐛 Bug Fixes"
+
+    # Patch version (performance improvements)
+    - name: perf
+      bump: patch
+      changelog: true
+      title: "⚡ Performance Improvements"
+
+    # No version bump (refactoring)
+    - name: refactor
+      bump: none
+      changelog: true
+      title: "♻️ Code Refactoring"
+
+    # No version bump (documentation)
+    - name: docs
+      bump: none
+      changelog: true
+      title: "📚 Documentation"
+
+    # No version bump (tests)
+    - name: test
+      bump: none
+      changelog: true
+      title: "✅ Tests"
+
+    # No version bump (build system)
+    - name: build
+      bump: none
+      changelog: true
+      title: "🔧 Build System"
+
+    # No version bump (CI)
+    - name: ci
+      bump: none
+      changelog: true
+      title: "👷 CI/CD"
+
+    # No version bump (chores)
+    - name: chore
+      bump: none
+      changelog: false
+      title: "🔨 Chores"
+
+    # No version bump (style)
+    - name: style
+      bump: none
+      changelog: false
+      title: "💄 Style"
+
+    # Patch version (revert)
+    - name: revert
+      bump: patch
+      changelog: true
+      title: "⏪ Reverts"
+
+# Changelog configuration
+changelog:
+  # Changelog file path
+  file: CHANGELOG.md
+
+  # Generate changelog on every bump
+  generate: true
+
+  # Keep existing changelog content
+  append: true
+
+  # Sort commits by type
+  sort: type
+
+  # Include commit scope
+  includeScope: true
+
+  # Include commit body
+  includeBody: false
+
+  # Include commit footer
+  includeFooter: true
+
+  # Include all commits
+  includeAll: false
+
+  # Group commits by type
+  groupByType: true
+
+  # Format for changelog entries
+  format: |
+    ### {{ .Type }}{{ if .Scope }} ({{ .Scope }}){{ end }}
+    {{ range .Commits }}
+    - {{ .Message }} ([{{ .ShortHash }}]({{ $.RepoURL }}/commit/{{ .Hash }})){{ if .Author }} by @{{ .Author }}{{ end }}
+    {{ end }}
+
+  # Changelog header template
+  header: |
+    # Changelog
+
+    All notable changes to this project will be documented in this file.
+
+    The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+    and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+  # Release entry template
+  releaseTemplate: |
+    ## [{{ .Version }}] - {{ .Date }}
+
+    {{ if .BreakingChanges }}
+    ### ⚠️ BREAKING CHANGES
+    {{ range .BreakingChanges }}
+    - {{ .Message }}
+    {{ end }}
+    {{ end }}
+
+    {{ .Content }}
+
+# Hooks - run commands at specific stages
+hooks:
+  # Before version bump
+  before:
+    - name: "Run tests"
+      command: "make go.test"
+      continueOnError: false
+
+    - name: "Run linters"
+      command: "make go.lint"
+      continueOnError: false
+
+    - name: "Generate proto files"
+      command: "make proto.generate"
+      continueOnError: false
+
+  # After version bump
+  after:
+    - name: "Update go.mod"
+      command: "make go.mod.tidy"
+      continueOnError: false
+
+    - name: "Build binaries"
+      command: "make go.build"
+      continueOnError: false
+
+    - name: "Build Docker images"
+      command: "make docker.build VERSION={{ .Version }}"
+      continueOnError: true
+
+  # Before git tag
+  beforeTag:
+    - name: "Commit changes"
+      command: "git add VERSION CHANGELOG.md"
+      continueOnError: false
+
+  # After git tag
+  afterTag:
+    - name: "Push changes"
+      command: "git push origin {{ .ReleaseBranch }}"
+      continueOnError: false
+
+    - name: "Push tags"
+      command: "git push origin {{ .Version }}"
+      continueOnError: false
+
+# Repository configuration
+repository:
+  # Repository URL
+  url: https://github.com/kart-io/k8s-agent
+
+  # Issue tracker URL template
+  issueURL: https://github.com/kart-io/k8s-agent/issues/{{ .Number }}
+
+  # Pull request URL template
+  prURL: https://github.com/kart-io/k8s-agent/pull/{{ .Number }}
+
+# Environment configuration
+env:
+  # Environment-specific settings
+  production:
+    requireCleanWorkingTree: true
+    requireTests: true
+    requireLint: true
+
+  staging:
+    requireCleanWorkingTree: true
+    requireTests: true
+    requireLint: false
+
+  development:
+    requireCleanWorkingTree: false
+    requireTests: false
+    requireLint: false
+
+# Notification configuration (optional)
+notifications:
+  # Slack notification
+  slack:
+    enabled: false
+    webhookURL: ""
+    channel: "#releases"
+    message: "🚀 Released {{ .Version }}"
+
+  # Email notification
+  email:
+    enabled: false
+    from: "noreply@kart.io"
+    to:
+      - "dev@kart.io"
+    subject: "Release {{ .Version }}"
+
+# Output configuration
+output:
+  # Verbose output
+  verbose: false
+
+  # Colored output
+  color: true
+
+  # Output format (text, json)
+  format: text
+
+# Validation rules
+validation:
+  # Require specific files to exist
+  requiredFiles:
+    - VERSION
+    - CHANGELOG.md
+    - README.md
+    - go.mod
+
+  # Require specific labels on commits
+  requiredLabels: []
+
+  # Maximum commits per release
+  maxCommits: 1000
+
+  # Minimum commits per release
+  minCommits: 1
+
+# Integration with CI/CD
+ci:
+  # Detect CI environment
+  autoDetect: true
+
+  # GitHub Actions specific
+  github:
+    enabled: true
+    createRelease: true
+    uploadAssets: true
+
+  # GitLab CI specific
+  gitlab:
+    enabled: false

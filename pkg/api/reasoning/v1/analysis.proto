@@ -1,0 +1,239 @@
+// reasoning/analysis.proto
+// Reasoning Service AI 分析 API 定义
+
+syntax = "proto3";
+
+package reasoning.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/reasoning/v1;reasoningv1";
+
+// 根因分析请求
+message RootCauseAnalysisRequest {
+  // 事件 ID
+  string event_id = 1;
+
+  // 事件描述
+  string event_description = 2;
+
+  // 事件上下文（事件、日志、指标等）
+  AnalysisContext context = 3;
+
+  // 分析选项
+  AnalysisOptions options = 4;
+}
+
+// 分析上下文
+message AnalysisContext {
+  // K8s 事件列表
+  repeated string events = 1;
+
+  // 日志数据
+  repeated string logs = 2;
+
+  // 指标数据（JSON 格式）
+  google.protobuf.Struct metrics = 3;
+
+  // 资源状态（JSON 格式）
+  google.protobuf.Struct resources = 4;
+
+  // 历史案例 ID
+  repeated string related_cases = 5;
+}
+
+// 分析选项
+message AnalysisOptions {
+  // 是否使用知识图谱
+  bool use_knowledge_graph = 1;
+
+  // 是否包含历史案例
+  bool include_historical_cases = 2;
+
+  // AI 模型选择
+  string model = 3;
+
+  // 分析深度
+  enum Depth {
+    DEPTH_UNSPECIFIED = 0;
+    SHALLOW = 1;          // 浅层分析
+    MEDIUM = 2;           // 中等深度
+    DEEP = 3;             // 深度分析
+  }
+  Depth depth = 4;
+
+  // 超时设置（秒）
+  int32 timeout = 5;
+}
+
+// 根因分析响应
+message RootCauseAnalysisResponse {
+  // 分析 ID
+  string analysis_id = 1;
+
+  // 根因分析结果
+  RootCause root_cause = 2;
+
+  // 修复建议
+  repeated Recommendation recommendations = 3;
+
+  // 相似历史案例
+  repeated HistoricalCase similar_cases = 4;
+
+  // 分析置信度（0-1）
+  float confidence = 5;
+
+  // 分析时长（毫秒）
+  int64 duration_ms = 6;
+}
+
+// 根因
+message RootCause {
+  // 根因类型
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    RESOURCE_EXHAUSTION = 1;      // 资源耗尽
+    CONFIGURATION_ERROR = 2;      // 配置错误
+    NETWORK_ISSUE = 3;            // 网络问题
+    PERMISSION_DENIED = 4;        // 权限问题
+    IMAGE_PULL_ERROR = 5;         // 镜像拉取错误
+    CRASH_LOOP = 6;               // 崩溃循环
+    DEPENDENCY_FAILURE = 7;       // 依赖失败
+    UNKNOWN = 99;                 // 未知
+  }
+  Type type = 1;
+
+  // 根因描述
+  string description = 2;
+
+  // 影响范围
+  string impact = 3;
+
+  // 根因证据
+  repeated Evidence evidences = 4;
+
+  // 置信度（0-1）
+  float confidence = 5;
+}
+
+// 证据
+message Evidence {
+  // 证据类型
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    EVENT = 1;            // 事件
+    LOG = 2;              // 日志
+    METRIC = 3;           // 指标
+    RESOURCE_STATE = 4;   // 资源状态
+  }
+  Type type = 1;
+
+  // 证据内容
+  string content = 2;
+
+  // 证据来源
+  string source = 3;
+
+  // 时间戳
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// 修复建议
+message Recommendation {
+  // 建议 ID
+  string id = 1;
+
+  // 建议类型
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    MANUAL = 1;           // 手动修复
+    AUTOMATED = 2;        // 自动修复
+    PREVENTIVE = 3;       // 预防性措施
+  }
+  Type type = 2;
+
+  // 建议标题
+  string title = 3;
+
+  // 建议描述
+  string description = 4;
+
+  // 修复步骤
+  repeated string steps = 5;
+
+  // 命令示例
+  repeated string commands = 6;
+
+  // 优先级（1-5，5 最高）
+  int32 priority = 7;
+
+  // 预期效果
+  string expected_result = 8;
+
+  // 风险评估
+  string risk_assessment = 9;
+}
+
+// 历史案例
+message HistoricalCase {
+  // 案例 ID
+  string id = 1;
+
+  // 案例标题
+  string title = 2;
+
+  // 案例描述
+  string description = 3;
+
+  // 根因
+  RootCause root_cause = 4;
+
+  // 解决方案
+  string solution = 5;
+
+  // 相似度（0-1）
+  float similarity = 6;
+
+  // 案例发生时间
+  google.protobuf.Timestamp occurred_at = 7;
+}
+
+// 保存案例请求
+message SaveCaseRequest {
+  // 事件 ID
+  string event_id = 1;
+
+  // 分析 ID
+  string analysis_id = 2;
+
+  // 采用的解决方案
+  string solution = 3;
+
+  // 解决结果
+  enum Result {
+    RESULT_UNSPECIFIED = 0;
+    SUCCESSFUL = 1;       // 成功
+    PARTIALLY_SUCCESSFUL = 2;  // 部分成功
+    FAILED = 3;           // 失败
+  }
+  Result result = 4;
+
+  // 反馈信息
+  string feedback = 5;
+}
+
+// 保存案例响应
+message SaveCaseResponse {
+  string case_id = 1;
+  bool success = 2;
+}
+
+// Reasoning Service 定义
+service ReasoningService {
+  // 根因分析
+  rpc RootCauseAnalysis(RootCauseAnalysisRequest) returns (RootCauseAnalysisResponse);
+
+  // 保存历史案例
+  rpc SaveCase(SaveCaseRequest) returns (SaveCaseResponse);
+}

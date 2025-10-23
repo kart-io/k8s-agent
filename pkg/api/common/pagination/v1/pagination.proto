@@ -1,0 +1,44 @@
+// common/pagination/v1/pagination.proto
+// 分页通用消息定义
+
+syntax = "proto3";
+
+package common.pagination.v1;
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/common/pagination/v1;paginationv1";
+
+// 分页请求参数
+message PaginationRequest {
+  // 页码（从 1 开始）
+  int32 page = 1;
+
+  // 每页大小
+  int32 page_size = 2;
+
+  // 排序字段
+  string order_by = 3;
+
+  // 排序方向：asc/desc
+  string order_direction = 4;
+}
+
+// 分页响应元数据
+message PaginationMetadata {
+  // 当前页码
+  int32 page = 1;
+
+  // 每页大小
+  int32 page_size = 2;
+
+  // 总记录数
+  int64 total = 3;
+
+  // 总页数
+  int32 total_pages = 4;
+
+  // 是否有下一页
+  bool has_next = 5;
+
+  // 是否有上一页
+  bool has_prev = 6;
+}

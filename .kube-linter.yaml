@@ -1,0 +1,173 @@
+# KubeLinter configuration for k8s-agent project
+# Validates Kubernetes manifests for security and best practices
+# Docs: https://docs.kubelinter.io/
+
+checks:
+  # Enable best practice checks
+  addAllBuiltIn: true
+
+  # Disable specific checks if needed
+  exclude:
+    # Allow missing resource limits in development
+    - "no-resource-limits"
+    # Allow latest tag in dev environments
+    - "latest-tag"
+    # Allow privileged containers for specific use cases
+    # - "privileged-container"
+
+  # Include additional checks
+  include:
+    - "required-label-owner"
+    - "required-label-app"
+    - "no-deprecated-api"
+    - "env-var-secret"
+    - "minimum-replicas"
+    - "pdb-max-unavailable"
+    - "pdb-min-available"
+
+customChecks:
+  # Require specific labels on all resources
+  - name: "required-labels"
+    template: "required-label"
+    params:
+      labels:
+        - "app.kubernetes.io/name"
+        - "app.kubernetes.io/component"
+        - "app.kubernetes.io/version"
+    remediation: "Add required labels to all Kubernetes resources"
+    scope:
+      objectKinds:
+        - "Deployment"
+        - "StatefulSet"
+        - "DaemonSet"
+        - "Service"
+
+  # Ensure resource requests are set
+  - name: "resource-requests-required"
+    template: "pod-template"
+    params:
+      containerRequirements:
+        - field: "resources.requests.cpu"
+          required: true
+        - field: "resources.requests.memory"
+          required: true
+    remediation: "Set resource requests for all containers"
+    scope:
+      objectKinds:
+        - "Deployment"
+        - "StatefulSet"
+        - "DaemonSet"
+
+  # Ensure health checks are configured
+  - name: "health-checks-required"
+    template: "pod-template"
+    params:
+      containerRequirements:
+        - field: "livenessProbe"
+          required: true
+        - field: "readinessProbe"
+          required: true
+    remediation: "Configure liveness and readiness probes"
+    scope:
+      objectKinds:
+        - "Deployment"
+        - "StatefulSet"
+
+  # Ensure SecurityContext is set
+  - name: "security-context-required"
+    template: "pod-template"
+    params:
+      containerRequirements:
+        - field: "securityContext.runAsNonRoot"
+          required: true
+        - field: "securityContext.readOnlyRootFilesystem"
+          required: false
+    remediation: "Configure security context for containers"
+    scope:
+      objectKinds:
+        - "Deployment"
+        - "StatefulSet"
+        - "DaemonSet"
+
+# Ignore paths
+ignorePaths:
+  # Ignore test manifests
+  - "test/**/*.yaml"
+  - "test/**/*.yml"
+
+  # Ignore examples
+  - "examples/**/*.yaml"
+  - "examples/**/*.yml"
+
+  # Ignore temporary files
+  - "**/*.tmp.yaml"
+  - "**/*.tmp.yml"
+
+# Severity configuration
+severity:
+  error:
+    - "no-deprecated-api"
+    - "privileged-container"
+    - "run-as-non-root"
+    - "sensitive-host-mounts"
+    - "host-network"
+
+  warning:
+    - "no-resource-limits"
+    - "no-resource-requests"
+    - "no-liveness-probe"
+    - "no-readiness-probe"
+
+  info:
+    - "latest-tag"
+    - "minimum-replicas"
+
+# Output format
+format: plain
+
+# Only show errors and warnings by default
+showSeverity: true
+
+# Enable colored output
+color: true
+
+# Configuration for specific object types
+objectTypes:
+  Deployment:
+    minReplicas: 2
+    maxReplicas: 10
+
+  StatefulSet:
+    minReplicas: 3
+
+  Service:
+    requireLoadBalancer: false
+
+  Ingress:
+    requireTLS: true
+
+# Environment-specific configurations
+env:
+  development:
+    strictness: "medium"
+    allowLatestTag: true
+    requireResourceLimits: false
+
+  staging:
+    strictness: "high"
+    allowLatestTag: false
+    requireResourceLimits: true
+
+  production:
+    strictness: "strict"
+    allowLatestTag: false
+    requireResourceLimits: true
+    requirePodDisruptionBudget: true
+
+# Integration with CI/CD
+ci:
+  failOnError: true
+  failOnWarning: false
+  generateReport: true
+  reportFormat: "json"
+  reportPath: "./kube-linter-report.json"

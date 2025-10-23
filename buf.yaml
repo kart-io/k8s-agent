@@ -1,0 +1,35 @@
+# buf.yaml - 根目录 Buf 配置
+# Proto 文件和生成代码在同一位置 (pkg/api)
+
+version: v2
+
+# 模块配置 - 指向 pkg/api 目录
+modules:
+  - path: pkg/api
+    name: buf.build/kart-io/k8s-agent
+
+# 依赖管理
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/grpc-ecosystem/grpc-gateway
+  - buf.build/envoyproxy/protoc-gen-validate
+
+# Lint 规则配置
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX  # 允许不使用版本后缀
+  enum_zero_value_suffix: _UNSPECIFIED
+  rpc_allow_same_request_response: false
+  rpc_allow_google_protobuf_empty_requests: true
+  rpc_allow_google_protobuf_empty_responses: true
+  service_suffix: Service
+
+# Breaking change 检查配置
+breaking:
+  use:
+    - FILE
+  except:
+    - EXTENSION_MESSAGE_NO_DELETE
+    - FIELD_SAME_JSON_NAME

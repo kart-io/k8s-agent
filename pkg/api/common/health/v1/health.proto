@@ -1,0 +1,46 @@
+// common/health/health.proto
+// 健康检查通用消息定义
+
+syntax = "proto3";
+
+package common.health.v1;
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/common/health/v1;healthv1";
+
+// 健康检查请求
+message HealthCheckRequest {
+  // 服务名称
+  string service = 1;
+}
+
+// 健康检查响应
+message HealthCheckResponse {
+  // 健康状态枚举
+  enum ServingStatus {
+    SERVING_STATUS_UNSPECIFIED = 0;
+    SERVING = 1;       // 服务正常
+    NOT_SERVING = 2;   // 服务不可用
+    UNKNOWN = 3;       // 状态未知
+  }
+
+  // 当前服务状态
+  ServingStatus status = 1;
+
+  // 状态描述
+  string message = 2;
+
+  // 健康检查时间戳
+  int64 timestamp = 3;
+
+  // 服务版本
+  string version = 4;
+}
+
+// 健康检查服务定义
+service HealthService {
+  // 检查服务健康状态
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+
+  // 健康状态监听（流式）
+  rpc Watch(HealthCheckRequest) returns (stream HealthCheckResponse);
+}

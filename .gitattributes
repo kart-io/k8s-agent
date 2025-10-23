@@ -1,0 +1,171 @@
+# Git attributes for k8s-agent project
+# https://git-scm.com/docs/gitattributes
+
+# Auto detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# Source code
+*.go text diff=go
+*.proto text diff=proto
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Scripts
+*.py text diff=python
+*.js text
+*.ts text
+*.jsx text
+*.tsx text
+
+# Configuration files
+*.yaml text
+*.yml text
+*.json text
+*.toml text
+*.ini text
+*.conf text
+*.config text
+
+# Documentation
+*.md text diff=markdown
+*.txt text
+*.adoc text
+*.rst text
+
+# Templates
+*.tmpl text
+*.tpl text
+
+# Web files
+*.html text diff=html
+*.css text diff=css
+*.scss text
+*.sass text
+
+# Docker files
+Dockerfile text
+*.dockerfile text
+docker-compose*.yml text
+docker-compose*.yaml text
+
+# Makefile
+Makefile text
+*.mk text
+*.mak text
+
+# Git files
+.gitignore text
+.gitattributes text
+.gitmodules text
+.gitkeep text
+
+# CI/CD
+.travis.yml text
+.gitlab-ci.yml text
+.github/**/*.yml text
+.github/**/*.yaml text
+appveyor.yml text
+*.jenkinsfile text
+
+# Binary files
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.a binary
+*.o binary
+*.obj binary
+*.lib binary
+*.pyc binary
+*.pyo binary
+*.pyd binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.tgz binary
+*.bz2 binary
+*.7z binary
+*.rar binary
+
+# Images
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.svg text
+*.eps binary
+*.pdf binary
+
+# Fonts
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# Audio/Video
+*.mp3 binary
+*.mp4 binary
+*.wav binary
+*.mov binary
+*.avi binary
+
+# Certificates and keys
+*.pem text
+*.key text
+*.crt text
+*.cer binary
+*.p12 binary
+*.pfx binary
+
+# Database
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Compiled protobuf
+*.pb.go linguist-generated=true
+*.pb.gw.go linguist-generated=true
+
+# Generated files
+gen/** linguist-generated=true
+generated/** linguist-generated=true
+**/gen/** linguist-generated=true
+**/generated/** linguist-generated=true
+api/proto/gen/** linguist-generated=true
+
+# Vendored code
+vendor/** linguist-vendored=true
+third_party/** linguist-vendored=true
+
+# Documentation generated
+docs/api/** linguist-documentation=true
+*.swagger.json linguist-generated=true
+
+# Large files
+*.bin binary
+*.dat binary
+
+# Export ignore (files not included in exports)
+.gitattributes export-ignore
+.gitignore export-ignore
+.github export-ignore
+.vscode export-ignore
+.idea export-ignore
+*.test export-ignore
+test/** export-ignore
+docs/images/** export-ignore
+
+# Merge strategies
+*.lock merge=binary
+go.sum merge=union
+package-lock.json merge=union
+yarn.lock merge=union
+
+# Diff settings
+*.go diff=golang
+*.proto diff
+*.md diff=markdown

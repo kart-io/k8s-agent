@@ -1,0 +1,945 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "common/pagination/v1/pagination.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "AgentService"
+    },
+    {
+      "name": "CommandService"
+    },
+    {
+      "name": "HealthService"
+    },
+    {
+      "name": "WorkflowService"
+    },
+    {
+      "name": "ReasoningService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "AnalysisOptionsDepth": {
+      "type": "string",
+      "enum": [
+        "DEPTH_UNSPECIFIED",
+        "SHALLOW",
+        "MEDIUM",
+        "DEEP"
+      ],
+      "default": "DEPTH_UNSPECIFIED",
+      "description": "- SHALLOW: 浅层分析\n - MEDIUM: 中等深度\n - DEEP: 深度分析",
+      "title": "分析深度"
+    },
+    "HealthCheckResponseServingStatus": {
+      "type": "string",
+      "enum": [
+        "SERVING_STATUS_UNSPECIFIED",
+        "SERVING",
+        "NOT_SERVING",
+        "UNKNOWN"
+      ],
+      "default": "SERVING_STATUS_UNSPECIFIED",
+      "description": "- SERVING: 服务正常\n - NOT_SERVING: 服务不可用\n - UNKNOWN: 状态未知",
+      "title": "健康状态枚举"
+    },
+    "SaveCaseRequestResult": {
+      "type": "string",
+      "enum": [
+        "RESULT_UNSPECIFIED",
+        "SUCCESSFUL",
+        "PARTIALLY_SUCCESSFUL",
+        "FAILED"
+      ],
+      "default": "RESULT_UNSPECIFIED",
+      "description": "- SUCCESSFUL: 成功\n - PARTIALLY_SUCCESSFUL: 部分成功\n - FAILED: 失败",
+      "title": "解决结果"
+    },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\nThe JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "v1Agent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Agent ID"
+        },
+        "name": {
+          "type": "string",
+          "title": "Agent 名称"
+        },
+        "clusterId": {
+          "type": "string",
+          "title": "集群 ID"
+        },
+        "clusterName": {
+          "type": "string",
+          "title": "集群名称"
+        },
+        "version": {
+          "type": "string",
+          "title": "Agent 版本"
+        },
+        "status": {
+          "$ref": "#/definitions/v1AgentStatus"
+        },
+        "lastHeartbeat": {
+          "type": "string",
+          "format": "date-time",
+          "title": "最后心跳时间"
+        },
+        "registeredAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "注册时间"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Agent 元数据"
+        }
+      },
+      "title": "Agent 信息"
+    },
+    "v1AgentStatus": {
+      "type": "string",
+      "enum": [
+        "STATUS_UNSPECIFIED",
+        "ONLINE",
+        "OFFLINE",
+        "UNHEALTHY",
+        "INITIALIZING"
+      ],
+      "default": "STATUS_UNSPECIFIED",
+      "description": "- ONLINE: 在线\n - OFFLINE: 离线\n - UNHEALTHY: 不健康\n - INITIALIZING: 初始化中",
+      "title": "Agent 状态"
+    },
+    "v1AnalysisContext": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "K8s 事件列表"
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "日志数据"
+        },
+        "metrics": {
+          "type": "object",
+          "title": "指标数据（JSON 格式）"
+        },
+        "resources": {
+          "type": "object",
+          "title": "资源状态（JSON 格式）"
+        },
+        "relatedCases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "历史案例 ID"
+        }
+      },
+      "title": "分析上下文"
+    },
+    "v1AnalysisOptions": {
+      "type": "object",
+      "properties": {
+        "useKnowledgeGraph": {
+          "type": "boolean",
+          "title": "是否使用知识图谱"
+        },
+        "includeHistoricalCases": {
+          "type": "boolean",
+          "title": "是否包含历史案例"
+        },
+        "model": {
+          "type": "string",
+          "title": "AI 模型选择"
+        },
+        "depth": {
+          "$ref": "#/definitions/AnalysisOptionsDepth"
+        },
+        "timeout": {
+          "type": "integer",
+          "format": "int32",
+          "title": "超时设置（秒）"
+        }
+      },
+      "title": "分析选项"
+    },
+    "v1CancelCommandResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "取消命令响应"
+    },
+    "v1Command": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "命令 ID"
+        },
+        "agentId": {
+          "type": "string",
+          "title": "Agent ID"
+        },
+        "type": {
+          "$ref": "#/definitions/v1CommandType"
+        },
+        "content": {
+          "type": "string",
+          "title": "命令内容"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "命令参数"
+        },
+        "status": {
+          "$ref": "#/definitions/v1CommandStatus"
+        },
+        "result": {
+          "type": "string",
+          "title": "命令结果"
+        },
+        "error": {
+          "type": "string",
+          "title": "错误信息"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "创建时间"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "开始执行时间"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "完成时间"
+        },
+        "timeout": {
+          "type": "integer",
+          "format": "int32",
+          "title": "超时设置（秒）"
+        }
+      },
+      "title": "命令定义"
+    },
+    "v1CommandStatus": {
+      "type": "string",
+      "enum": [
+        "STATUS_UNSPECIFIED",
+        "PENDING",
+        "RUNNING",
+        "SUCCESS",
+        "FAILED",
+        "TIMEOUT",
+        "CANCELLED"
+      ],
+      "default": "STATUS_UNSPECIFIED",
+      "description": "- PENDING: 待执行\n - RUNNING: 执行中\n - SUCCESS: 成功\n - FAILED: 失败\n - TIMEOUT: 超时\n - CANCELLED: 已取消",
+      "title": "命令状态"
+    },
+    "v1CommandType": {
+      "type": "string",
+      "enum": [
+        "TYPE_UNSPECIFIED",
+        "KUBECTL",
+        "DIAGNOSTIC",
+        "REMEDIATION",
+        "CUSTOM"
+      ],
+      "default": "TYPE_UNSPECIFIED",
+      "description": "- KUBECTL: kubectl 命令\n - DIAGNOSTIC: 诊断命令\n - REMEDIATION: 修复命令\n - CUSTOM: 自定义命令",
+      "title": "命令类型"
+    },
+    "v1CreateWorkflowResponse": {
+      "type": "object",
+      "properties": {
+        "workflow": {
+          "$ref": "#/definitions/v1Workflow"
+        }
+      },
+      "title": "创建工作流响应"
+    },
+    "v1Evidence": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/v1EvidenceType"
+        },
+        "content": {
+          "type": "string",
+          "title": "证据内容"
+        },
+        "source": {
+          "type": "string",
+          "title": "证据来源"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "title": "时间戳"
+        }
+      },
+      "title": "证据"
+    },
+    "v1EvidenceType": {
+      "type": "string",
+      "enum": [
+        "TYPE_UNSPECIFIED",
+        "EVENT",
+        "LOG",
+        "METRIC",
+        "RESOURCE_STATE"
+      ],
+      "default": "TYPE_UNSPECIFIED",
+      "description": "- EVENT: 事件\n - LOG: 日志\n - METRIC: 指标\n - RESOURCE_STATE: 资源状态",
+      "title": "证据类型"
+    },
+    "v1ExecuteCommandResponse": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "$ref": "#/definitions/v1Command"
+        }
+      },
+      "title": "执行命令响应"
+    },
+    "v1ExecuteWorkflowResponse": {
+      "type": "object",
+      "properties": {
+        "execution": {
+          "$ref": "#/definitions/v1WorkflowExecution"
+        }
+      },
+      "title": "执行工作流响应"
+    },
+    "v1GetAgentResponse": {
+      "type": "object",
+      "properties": {
+        "agent": {
+          "$ref": "#/definitions/v1Agent"
+        }
+      },
+      "title": "获取 Agent 响应"
+    },
+    "v1GetCommandStatusResponse": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "$ref": "#/definitions/v1Command"
+        }
+      },
+      "title": "获取命令状态响应"
+    },
+    "v1GetExecutionStatusResponse": {
+      "type": "object",
+      "properties": {
+        "execution": {
+          "$ref": "#/definitions/v1WorkflowExecution"
+        }
+      },
+      "title": "获取执行状态响应"
+    },
+    "v1GetWorkflowResponse": {
+      "type": "object",
+      "properties": {
+        "workflow": {
+          "$ref": "#/definitions/v1Workflow"
+        }
+      },
+      "title": "获取工作流响应"
+    },
+    "v1HealthCheckResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/HealthCheckResponseServingStatus",
+          "title": "当前服务状态"
+        },
+        "message": {
+          "type": "string",
+          "title": "状态描述"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "int64",
+          "title": "健康检查时间戳"
+        },
+        "version": {
+          "type": "string",
+          "title": "服务版本"
+        }
+      },
+      "title": "健康检查响应"
+    },
+    "v1HeartbeatResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "nextHeartbeatInterval": {
+          "type": "string",
+          "format": "int64",
+          "title": "下次心跳间隔（秒）"
+        }
+      },
+      "title": "Agent 心跳响应"
+    },
+    "v1HistoricalCase": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "案例 ID"
+        },
+        "title": {
+          "type": "string",
+          "title": "案例标题"
+        },
+        "description": {
+          "type": "string",
+          "title": "案例描述"
+        },
+        "rootCause": {
+          "$ref": "#/definitions/v1RootCause",
+          "title": "根因"
+        },
+        "solution": {
+          "type": "string",
+          "title": "解决方案"
+        },
+        "similarity": {
+          "type": "number",
+          "format": "float",
+          "title": "相似度（0-1）"
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "案例发生时间"
+        }
+      },
+      "title": "历史案例"
+    },
+    "v1ListAgentsResponse": {
+      "type": "object",
+      "properties": {
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Agent"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出 Agent 响应"
+    },
+    "v1ListWorkflowsResponse": {
+      "type": "object",
+      "properties": {
+        "workflows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Workflow"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出工作流响应"
+    },
+    "v1PaginationMetadata": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "format": "int32",
+          "title": "当前页码"
+        },
+        "pageSize": {
+          "type": "integer",
+          "format": "int32",
+          "title": "每页大小"
+        },
+        "total": {
+          "type": "string",
+          "format": "int64",
+          "title": "总记录数"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32",
+          "title": "总页数"
+        },
+        "hasNext": {
+          "type": "boolean",
+          "title": "是否有下一页"
+        },
+        "hasPrev": {
+          "type": "boolean",
+          "title": "是否有上一页"
+        }
+      },
+      "title": "分页响应元数据"
+    },
+    "v1PaginationRequest": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "format": "int32",
+          "title": "页码（从 1 开始）"
+        },
+        "pageSize": {
+          "type": "integer",
+          "format": "int32",
+          "title": "每页大小"
+        },
+        "orderBy": {
+          "type": "string",
+          "title": "排序字段"
+        },
+        "orderDirection": {
+          "type": "string",
+          "title": "排序方向：asc/desc"
+        }
+      },
+      "title": "分页请求参数"
+    },
+    "v1Recommendation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "建议 ID"
+        },
+        "type": {
+          "$ref": "#/definitions/v1RecommendationType"
+        },
+        "title": {
+          "type": "string",
+          "title": "建议标题"
+        },
+        "description": {
+          "type": "string",
+          "title": "建议描述"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "修复步骤"
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "命令示例"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int32",
+          "title": "优先级（1-5，5 最高）"
+        },
+        "expectedResult": {
+          "type": "string",
+          "title": "预期效果"
+        },
+        "riskAssessment": {
+          "type": "string",
+          "title": "风险评估"
+        }
+      },
+      "title": "修复建议"
+    },
+    "v1RecommendationType": {
+      "type": "string",
+      "enum": [
+        "TYPE_UNSPECIFIED",
+        "MANUAL",
+        "AUTOMATED",
+        "PREVENTIVE"
+      ],
+      "default": "TYPE_UNSPECIFIED",
+      "description": "- MANUAL: 手动修复\n - AUTOMATED: 自动修复\n - PREVENTIVE: 预防性措施",
+      "title": "建议类型"
+    },
+    "v1RegisterAgentResponse": {
+      "type": "object",
+      "properties": {
+        "agent": {
+          "$ref": "#/definitions/v1Agent"
+        },
+        "token": {
+          "type": "string",
+          "title": "Agent 认证 Token"
+        }
+      },
+      "title": "Agent 注册响应"
+    },
+    "v1RootCause": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/v1RootCauseType"
+        },
+        "description": {
+          "type": "string",
+          "title": "根因描述"
+        },
+        "impact": {
+          "type": "string",
+          "title": "影响范围"
+        },
+        "evidences": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Evidence"
+          },
+          "title": "根因证据"
+        },
+        "confidence": {
+          "type": "number",
+          "format": "float",
+          "title": "置信度（0-1）"
+        }
+      },
+      "title": "根因"
+    },
+    "v1RootCauseAnalysisResponse": {
+      "type": "object",
+      "properties": {
+        "analysisId": {
+          "type": "string",
+          "title": "分析 ID"
+        },
+        "rootCause": {
+          "$ref": "#/definitions/v1RootCause",
+          "title": "根因分析结果"
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Recommendation"
+          },
+          "title": "修复建议"
+        },
+        "similarCases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1HistoricalCase"
+          },
+          "title": "相似历史案例"
+        },
+        "confidence": {
+          "type": "number",
+          "format": "float",
+          "title": "分析置信度（0-1）"
+        },
+        "durationMs": {
+          "type": "string",
+          "format": "int64",
+          "title": "分析时长（毫秒）"
+        }
+      },
+      "title": "根因分析响应"
+    },
+    "v1RootCauseType": {
+      "type": "string",
+      "enum": [
+        "TYPE_UNSPECIFIED",
+        "RESOURCE_EXHAUSTION",
+        "CONFIGURATION_ERROR",
+        "NETWORK_ISSUE",
+        "PERMISSION_DENIED",
+        "IMAGE_PULL_ERROR",
+        "CRASH_LOOP",
+        "DEPENDENCY_FAILURE",
+        "UNKNOWN"
+      ],
+      "default": "TYPE_UNSPECIFIED",
+      "description": "- RESOURCE_EXHAUSTION: 资源耗尽\n - CONFIGURATION_ERROR: 配置错误\n - NETWORK_ISSUE: 网络问题\n - PERMISSION_DENIED: 权限问题\n - IMAGE_PULL_ERROR: 镜像拉取错误\n - CRASH_LOOP: 崩溃循环\n - DEPENDENCY_FAILURE: 依赖失败\n - UNKNOWN: 未知",
+      "title": "根因类型"
+    },
+    "v1SaveCaseResponse": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "保存案例响应"
+    },
+    "v1UnregisterAgentResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "注销 Agent 响应"
+    },
+    "v1Workflow": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "工作流 ID"
+        },
+        "name": {
+          "type": "string",
+          "title": "工作流名称"
+        },
+        "description": {
+          "type": "string",
+          "title": "工作流描述"
+        },
+        "version": {
+          "type": "string",
+          "title": "工作流版本"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1WorkflowStep"
+          },
+          "title": "工作流步骤"
+        },
+        "status": {
+          "$ref": "#/definitions/v1WorkflowStatus"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "创建时间"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "更新时间"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "元数据"
+        }
+      },
+      "title": "工作流定义"
+    },
+    "v1WorkflowExecution": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "执行 ID"
+        },
+        "workflowId": {
+          "type": "string",
+          "title": "工作流 ID"
+        },
+        "eventId": {
+          "type": "string",
+          "title": "触发事件 ID"
+        },
+        "status": {
+          "$ref": "#/definitions/v1WorkflowExecutionStatus"
+        },
+        "currentStep": {
+          "type": "string",
+          "title": "当前步骤"
+        },
+        "context": {
+          "type": "object",
+          "title": "执行上下文"
+        },
+        "result": {
+          "type": "string",
+          "title": "执行结果"
+        },
+        "error": {
+          "type": "string",
+          "title": "错误信息"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "开始时间"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "完成时间"
+        }
+      },
+      "title": "工作流执行"
+    },
+    "v1WorkflowExecutionStatus": {
+      "type": "string",
+      "enum": [
+        "STATUS_UNSPECIFIED",
+        "PENDING",
+        "RUNNING",
+        "SUCCESS",
+        "FAILED",
+        "CANCELLED",
+        "TIMEOUT"
+      ],
+      "default": "STATUS_UNSPECIFIED",
+      "description": "- PENDING: 待执行\n - RUNNING: 执行中\n - SUCCESS: 成功\n - FAILED: 失败\n - CANCELLED: 已取消\n - TIMEOUT: 超时",
+      "title": "执行状态"
+    },
+    "v1WorkflowStatus": {
+      "type": "string",
+      "enum": [
+        "STATUS_UNSPECIFIED",
+        "DRAFT",
+        "ACTIVE",
+        "INACTIVE",
+        "ARCHIVED"
+      ],
+      "default": "STATUS_UNSPECIFIED",
+      "description": "- DRAFT: 草稿\n - ACTIVE: 激活\n - INACTIVE: 停用\n - ARCHIVED: 归档",
+      "title": "工作流状态"
+    },
+    "v1WorkflowStep": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "步骤 ID"
+        },
+        "name": {
+          "type": "string",
+          "title": "步骤名称"
+        },
+        "type": {
+          "$ref": "#/definitions/v1WorkflowStepType"
+        },
+        "config": {
+          "type": "object",
+          "title": "步骤配置（JSON 格式）"
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "下一步骤 ID"
+        },
+        "condition": {
+          "type": "string",
+          "title": "条件表达式"
+        },
+        "timeout": {
+          "type": "integer",
+          "format": "int32",
+          "title": "超时设置（秒）"
+        },
+        "retryCount": {
+          "type": "integer",
+          "format": "int32",
+          "title": "重试次数"
+        }
+      },
+      "title": "工作流步骤"
+    },
+    "v1WorkflowStepType": {
+      "type": "string",
+      "enum": [
+        "TYPE_UNSPECIFIED",
+        "COMMAND",
+        "AI_ANALYSIS",
+        "DECISION",
+        "REMEDIATION",
+        "NOTIFICATION",
+        "WAIT"
+      ],
+      "default": "TYPE_UNSPECIFIED",
+      "description": "- COMMAND: 命令执行\n - AI_ANALYSIS: AI 分析\n - DECISION: 决策分支\n - REMEDIATION: 修复操作\n - NOTIFICATION: 通知\n - WAIT: 等待",
+      "title": "步骤类型"
+    }
+  }
+}

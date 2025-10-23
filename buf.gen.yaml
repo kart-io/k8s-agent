@@ -1,0 +1,49 @@
+# buf.gen.yaml - 代码生成配置
+# Proto 文件和生成代码在同一位置 (pkg/api)
+
+version: v2
+
+# 管理模式配置
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/kart-io/k8s-agent/pkg/api
+
+# 代码生成插件配置
+plugins:
+  # 1. 生成标准 Protobuf 代码
+  - remote: buf.build/protocolbuffers/go
+    out: pkg/api
+    opt:
+      - paths=source_relative
+
+  # 2. 生成 gRPC 代码
+  - remote: buf.build/grpc/go
+    out: pkg/api
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+
+  # 3. 生成 gRPC Gateway 反向代理代码（支持 HTTP/JSON）
+  - remote: buf.build/grpc-ecosystem/gateway
+    out: pkg/api
+    opt:
+      - paths=source_relative
+      - generate_unbound_methods=true
+
+  # 4. 生成 OpenAPI v2 (Swagger) 文档
+  - remote: buf.build/grpc-ecosystem/openapiv2
+    out: pkg/api/docs/swagger
+    opt:
+      - allow_merge=true
+      - merge_file_name=api
+
+# 输入配置 - proto 文件在 pkg/api 目录
+inputs:
+  - directory: pkg/api
+    # 排除已生成的 .pb.go 文件
+    exclude_paths:
+      - "**/*.pb.go"
+      - "**/*.pb.gw.go"
+      - "**/docs/**"

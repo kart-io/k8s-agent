@@ -1,0 +1,111 @@
+// agent/command.proto
+// 命令调度 API 定义
+
+syntax = "proto3";
+
+package agent.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/agent/v1;agentv1";
+
+// 命令定义
+message Command {
+  // 命令 ID
+  string id = 1;
+
+  // Agent ID
+  string agent_id = 2;
+
+  // 命令类型
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    KUBECTL = 1;          // kubectl 命令
+    DIAGNOSTIC = 2;       // 诊断命令
+    REMEDIATION = 3;      // 修复命令
+    CUSTOM = 4;           // 自定义命令
+  }
+  Type type = 3;
+
+  // 命令内容
+  string content = 4;
+
+  // 命令参数
+  map<string, string> params = 5;
+
+  // 命令状态
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    PENDING = 1;          // 待执行
+    RUNNING = 2;          // 执行中
+    SUCCESS = 3;          // 成功
+    FAILED = 4;           // 失败
+    TIMEOUT = 5;          // 超时
+    CANCELLED = 6;        // 已取消
+  }
+  Status status = 6;
+
+  // 命令结果
+  string result = 7;
+
+  // 错误信息
+  string error = 8;
+
+  // 创建时间
+  google.protobuf.Timestamp created_at = 9;
+
+  // 开始执行时间
+  google.protobuf.Timestamp started_at = 10;
+
+  // 完成时间
+  google.protobuf.Timestamp completed_at = 11;
+
+  // 超时设置（秒）
+  int32 timeout = 12;
+}
+
+// 执行命令请求
+message ExecuteCommandRequest {
+  string agent_id = 1;
+  Command.Type type = 2;
+  string content = 3;
+  map<string, string> params = 4;
+  int32 timeout = 5;
+}
+
+// 执行命令响应
+message ExecuteCommandResponse {
+  Command command = 1;
+}
+
+// 获取命令状态请求
+message GetCommandStatusRequest {
+  string command_id = 1;
+}
+
+// 获取命令状态响应
+message GetCommandStatusResponse {
+  Command command = 1;
+}
+
+// 取消命令请求
+message CancelCommandRequest {
+  string command_id = 1;
+}
+
+// 取消命令响应
+message CancelCommandResponse {
+  bool success = 1;
+}
+
+// 命令服务定义
+service CommandService {
+  // 执行命令
+  rpc ExecuteCommand(ExecuteCommandRequest) returns (ExecuteCommandResponse);
+
+  // 获取命令状态
+  rpc GetCommandStatus(GetCommandStatusRequest) returns (GetCommandStatusResponse);
+
+  // 取消命令
+  rpc CancelCommand(CancelCommandRequest) returns (CancelCommandResponse);
+}

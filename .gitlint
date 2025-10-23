@@ -1,0 +1,52 @@
+# Gitlint configuration for k8s-agent project
+# Based on OneX project standards
+
+[general]
+# Ignore merge commits, revert commits, and fixup commits
+ignore=body-is-missing,B6
+ignore-merge-commits=true
+ignore-revert-commits=true
+ignore-fixup-commits=true
+ignore-squash-commits=true
+
+# Enable contrib rules
+contrib=contrib-title-conventional-commits,CT1
+
+# Verbosity level
+verbosity=2
+
+# Enable debug mode
+debug=false
+
+[title-max-length]
+line-length=100
+
+[title-trailing-punctuation]
+# Don't allow trailing punctuation in title
+enabled=true
+
+[title-hard-tab]
+# Don't allow hard tabs in title
+enabled=true
+
+[title-must-not-contain-word]
+# Words that are not allowed in the title
+words=wip,WIP
+
+[body-max-line-length]
+line-length=150
+
+[body-min-length]
+min-length=0
+
+[body-is-missing]
+# Allow commits without body
+ignore-merge-commits=true
+
+[body-changed-file-mention]
+# Don't require changed files to be mentioned in body
+enabled=false
+
+[contrib-title-conventional-commits]
+# Conventional Commits spec
+types=feat,fix,docs,style,refactor,perf,test,chore,build,ci,revert

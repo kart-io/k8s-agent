@@ -1,0 +1,154 @@
+# OneX Stack Project Marker
+# This file identifies this project as part of the OneX technology stack
+# https://github.com/onexstack/onex
+
+project:
+  name: k8s-agent
+  displayName: Aetherius
+  description: Enterprise-grade intelligent Kubernetes operations platform
+  type: microservices
+  language: go
+  version: 1.0.0
+
+stack:
+  name: onex
+  version: v2
+  framework: onex-stack
+  patterns:
+    - modular-makefile
+    - buf-proto-management
+    - comprehensive-linting
+    - git-hooks
+    - semantic-versioning
+    - ci-cd-automation
+    - hot-reload-development
+    - test-infrastructure
+
+architecture:
+  style: microservices
+  layers:
+    - name: Collect Agent
+      description: Edge data collection layer
+      components:
+        - collect-agent
+
+    - name: Agent Manager
+      description: Central control plane
+      components:
+        - agent-manager
+
+    - name: Orchestrator Service
+      description: Workflow orchestration layer
+      components:
+        - orchestrator-service
+
+    - name: Reasoning Service
+      description: AI-driven analysis layer
+      components:
+        - reasoning-service-go
+
+  support_services:
+    - auth-service
+    - gateway-service
+    - monitor-service
+    - cluster-service
+
+technologies:
+  backend:
+    - Go 1.21+
+    - Gin (web framework)
+    - GORM (ORM)
+    - gRPC
+    - Protocol Buffers
+
+  infrastructure:
+    - Kubernetes 1.23+
+    - Docker
+    - MySQL 8.0+
+    - Redis 6+
+    - NATS 2.10+
+    - Neo4j (knowledge graph)
+
+  tools:
+    - Buf (proto management)
+    - golangci-lint (58 linters)
+    - Air (hot reload)
+    - KubeLinter (k8s validation)
+    - Uplift (version management)
+
+standards:
+  code:
+    - Conventional Commits
+    - Go Code Review Comments
+    - Effective Go
+    - golangci-lint rules (58 linters)
+
+  directory:
+    - cmd/ (service entry points)
+    - internal/ (private code)
+    - pkg/ (public libraries)
+    - api/ (API definitions)
+    - deployments/ (deployment manifests)
+    - scripts/ (build scripts)
+    - docs/ (documentation)
+    - test/ (test infrastructure)
+
+  logging:
+    - Structured logging (JSON)
+    - Log levels (DEBUG, INFO, WARN, ERROR)
+    - Logrus library
+    - Audit logging with hash chain
+
+  versioning:
+    - Semantic Versioning 2.0.0
+    - Changelog (Keep a Changelog format)
+    - Git tags for releases
+    - Build-time version injection
+
+quality:
+  linters: 58
+  test_coverage_target: 80%
+  code_review_required: true
+  ci_checks_required: true
+
+governance:
+  security_policy: SECURITY.md
+  code_of_conduct: CODE_OF_CONDUCT.md
+  contributing_guide: CONTRIBUTING.md
+  project_ownership: OWNERS
+
+ci_cd:
+  platform: GitHub Actions
+  workflows:
+    - ci.yml (lint, test, build)
+    - release.yml (automated releases)
+    - docker.yml (multi-platform images)
+
+deployment:
+  targets:
+    - Kubernetes
+    - Docker Compose
+  environments:
+    - development
+    - staging
+    - production
+
+documentation:
+  readme: README.md
+  development_guide: DEVELOPMENT.md
+  architecture: docs/architecture/
+  api: api/proto/
+  changelog: CHANGELOG.md
+
+contact:
+  issues: https://github.com/kart-io/k8s-agent/issues
+  discussions: https://github.com/kart-io/k8s-agent/discussions
+  email: dev@kart.io
+  security: security@kart.io
+
+metadata:
+  created: 2024-09-29
+  updated: 2025-10-23
+  onex_aligned: true
+  onex_version: v2
+  production_ready: true

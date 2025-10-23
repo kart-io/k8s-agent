@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+# Pre-commit hook for k8s-agent project
+# Based on OneX project standards
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if we're in the root of the repository
+if [ ! -f "go.mod" ]; then
+    echo -e "${RED}Error: Must be run from repository root${NC}"
+    exit 1
+fi
+
+# 1. Check Go formatting
+echo -e "${YELLOW}Checking Go formatting...${NC}"
+UNFORMATTED=$(gofmt -l . | grep -v "vendor/" | grep -v "_output/" | grep -v "api/proto/gen/" || true)
+if [ -n "$UNFORMATTED" ]; then
+    echo -e "${RED}The following files are not formatted:${NC}"
+    echo "$UNFORMATTED"
+    echo -e "${YELLOW}Run 'make go.fmt' to fix${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Go formatting check passed${NC}"
+
+# 2. Check for trailing whitespace
+echo -e "${YELLOW}Checking for trailing whitespace...${NC}"
+if git diff --cached --check; then
+    echo -e "${GREEN}✓ No trailing whitespace${NC}"
+else
+    echo -e "${RED}Please remove trailing whitespace${NC}"
+    exit 1
+fi
+
+# 3. Run go vet
+echo -e "${YELLOW}Running go vet...${NC}"
+if go vet ./... 2>&1 | grep -v "vendor/" | grep -v "_output/" | grep -v "api/proto/gen/"; then
+    echo -e "${RED}go vet found issues${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ go vet passed${NC}"
+
+# 4. Check for common issues (TODO without issue reference, hardcoded credentials, etc.)
+echo -e "${YELLOW}Checking for common issues...${NC}"
+
+# Check for hardcoded credentials
+if git diff --cached | grep -E "(password|secret|token|key)\s*=\s*['\"][^'\"]+['\"]" | grep -v "test"; then
+    echo -e "${RED}Warning: Possible hardcoded credentials detected${NC}"
+    echo -e "${YELLOW}Please review and use environment variables or config files${NC}"
+    # Don't fail, just warn
+fi
+
+# Check for debug prints
+if git diff --cached | grep -E "fmt\.Print|log\.Print" | grep -v "test"; then
+    echo -e "${YELLOW}Warning: Debug print statements detected${NC}"
+    echo -e "${YELLOW}Consider using structured logging${NC}"
+    # Don't fail, just warn
+fi
+
+echo -e "${GREEN}✓ Common issues check passed${NC}"
+
+# 5. Run unit tests (optional, can be time-consuming)
+# Uncomment to enable
+# echo -e "${YELLOW}Running unit tests...${NC}"
+# if ! make go.test; then
+#     echo -e "${RED}Unit tests failed${NC}"
+#     exit 1
+# fi
+# echo -e "${GREEN}✓ Unit tests passed${NC}"
+
+echo -e "${GREEN}All pre-commit checks passed!${NC}"
+exit 0

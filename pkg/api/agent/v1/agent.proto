@@ -1,0 +1,130 @@
+// agent/agent.proto
+// Agent Manager 服务 API 定义
+
+syntax = "proto3";
+
+package agent.v1;
+
+import "common/pagination/v1/pagination.proto";
+import "common/error/v1/error.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/agent/v1;agentv1";
+
+// Agent 信息
+message Agent {
+  // Agent ID
+  string id = 1;
+
+  // Agent 名称
+  string name = 2;
+
+  // 集群 ID
+  string cluster_id = 3;
+
+  // 集群名称
+  string cluster_name = 4;
+
+  // Agent 版本
+  string version = 5;
+
+  // Agent 状态
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    ONLINE = 1;           // 在线
+    OFFLINE = 2;          // 离线
+    UNHEALTHY = 3;        // 不健康
+    INITIALIZING = 4;     // 初始化中
+  }
+  Status status = 6;
+
+  // 最后心跳时间
+  google.protobuf.Timestamp last_heartbeat = 7;
+
+  // 注册时间
+  google.protobuf.Timestamp registered_at = 8;
+
+  // Agent 元数据
+  map<string, string> metadata = 9;
+}
+
+// Agent 注册请求
+message RegisterAgentRequest {
+  string name = 1;
+  string cluster_id = 2;
+  string cluster_name = 3;
+  string version = 4;
+  map<string, string> metadata = 5;
+}
+
+// Agent 注册响应
+message RegisterAgentResponse {
+  Agent agent = 1;
+  string token = 2;  // Agent 认证 Token
+}
+
+// Agent 心跳请求
+message HeartbeatRequest {
+  string agent_id = 1;
+  Agent.Status status = 2;
+  map<string, string> metrics = 3;
+}
+
+// Agent 心跳响应
+message HeartbeatResponse {
+  bool success = 1;
+  int64 next_heartbeat_interval = 2;  // 下次心跳间隔（秒）
+}
+
+// 获取 Agent 请求
+message GetAgentRequest {
+  string agent_id = 1;
+}
+
+// 获取 Agent 响应
+message GetAgentResponse {
+  Agent agent = 1;
+}
+
+// 列出 Agent 请求
+message ListAgentsRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+
+  // 过滤条件
+  string cluster_id = 2;
+  Agent.Status status = 3;
+}
+
+// 列出 Agent 响应
+message ListAgentsResponse {
+  repeated Agent agents = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 注销 Agent 请求
+message UnregisterAgentRequest {
+  string agent_id = 1;
+}
+
+// 注销 Agent 响应
+message UnregisterAgentResponse {
+  bool success = 1;
+}
+
+// Agent Manager 服务定义
+service AgentService {
+  // 注册 Agent
+  rpc RegisterAgent(RegisterAgentRequest) returns (RegisterAgentResponse);
+
+  // Agent 心跳
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // 获取 Agent 信息
+  rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
+
+  // 列出所有 Agent
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+
+  // 注销 Agent
+  rpc UnregisterAgent(UnregisterAgentRequest) returns (UnregisterAgentResponse);
+}

@@ -1,0 +1,202 @@
+// orchestrator/workflow.proto
+// Orchestrator 工作流 API 定义
+
+syntax = "proto3";
+
+package orchestrator.v1;
+
+import "common/pagination/v1/pagination.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/orchestrator/v1;orchestratorv1";
+
+// 工作流定义
+message Workflow {
+  // 工作流 ID
+  string id = 1;
+
+  // 工作流名称
+  string name = 2;
+
+  // 工作流描述
+  string description = 3;
+
+  // 工作流版本
+  string version = 4;
+
+  // 工作流步骤
+  repeated WorkflowStep steps = 5;
+
+  // 工作流状态
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    DRAFT = 1;            // 草稿
+    ACTIVE = 2;           // 激活
+    INACTIVE = 3;         // 停用
+    ARCHIVED = 4;         // 归档
+  }
+  Status status = 6;
+
+  // 创建时间
+  google.protobuf.Timestamp created_at = 7;
+
+  // 更新时间
+  google.protobuf.Timestamp updated_at = 8;
+
+  // 元数据
+  map<string, string> metadata = 9;
+}
+
+// 工作流步骤
+message WorkflowStep {
+  // 步骤 ID
+  string id = 1;
+
+  // 步骤名称
+  string name = 2;
+
+  // 步骤类型
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    COMMAND = 1;          // 命令执行
+    AI_ANALYSIS = 2;      // AI 分析
+    DECISION = 3;         // 决策分支
+    REMEDIATION = 4;      // 修复操作
+    NOTIFICATION = 5;     // 通知
+    WAIT = 6;             // 等待
+  }
+  Type type = 3;
+
+  // 步骤配置（JSON 格式）
+  google.protobuf.Struct config = 4;
+
+  // 下一步骤 ID
+  repeated string next_steps = 5;
+
+  // 条件表达式
+  string condition = 6;
+
+  // 超时设置（秒）
+  int32 timeout = 7;
+
+  // 重试次数
+  int32 retry_count = 8;
+}
+
+// 工作流执行
+message WorkflowExecution {
+  // 执行 ID
+  string id = 1;
+
+  // 工作流 ID
+  string workflow_id = 2;
+
+  // 触发事件 ID
+  string event_id = 3;
+
+  // 执行状态
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    PENDING = 1;          // 待执行
+    RUNNING = 2;          // 执行中
+    SUCCESS = 3;          // 成功
+    FAILED = 4;           // 失败
+    CANCELLED = 5;        // 已取消
+    TIMEOUT = 6;          // 超时
+  }
+  Status status = 4;
+
+  // 当前步骤
+  string current_step = 5;
+
+  // 执行上下文
+  google.protobuf.Struct context = 6;
+
+  // 执行结果
+  string result = 7;
+
+  // 错误信息
+  string error = 8;
+
+  // 开始时间
+  google.protobuf.Timestamp started_at = 9;
+
+  // 完成时间
+  google.protobuf.Timestamp completed_at = 10;
+}
+
+// 创建工作流请求
+message CreateWorkflowRequest {
+  string name = 1;
+  string description = 2;
+  repeated WorkflowStep steps = 3;
+  map<string, string> metadata = 4;
+}
+
+// 创建工作流响应
+message CreateWorkflowResponse {
+  Workflow workflow = 1;
+}
+
+// 获取工作流请求
+message GetWorkflowRequest {
+  string workflow_id = 1;
+}
+
+// 获取工作流响应
+message GetWorkflowResponse {
+  Workflow workflow = 1;
+}
+
+// 列出工作流请求
+message ListWorkflowsRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+  Workflow.Status status = 2;
+}
+
+// 列出工作流响应
+message ListWorkflowsResponse {
+  repeated Workflow workflows = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 执行工作流请求
+message ExecuteWorkflowRequest {
+  string workflow_id = 1;
+  string event_id = 2;
+  google.protobuf.Struct context = 3;
+}
+
+// 执行工作流响应
+message ExecuteWorkflowResponse {
+  WorkflowExecution execution = 1;
+}
+
+// 获取执行状态请求
+message GetExecutionStatusRequest {
+  string execution_id = 1;
+}
+
+// 获取执行状态响应
+message GetExecutionStatusResponse {
+  WorkflowExecution execution = 1;
+}
+
+// 工作流服务定义
+service WorkflowService {
+  // 创建工作流
+  rpc CreateWorkflow(CreateWorkflowRequest) returns (CreateWorkflowResponse);
+
+  // 获取工作流
+  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse);
+
+  // 列出工作流
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+
+  // 执行工作流
+  rpc ExecuteWorkflow(ExecuteWorkflowRequest) returns (ExecuteWorkflowResponse);
+
+  // 获取执行状态
+  rpc GetExecutionStatus(GetExecutionStatusRequest) returns (GetExecutionStatusResponse);
+}

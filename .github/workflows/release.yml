@@ -1,0 +1,168 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  GO_VERSION: '1.21'
+  DOCKER_REGISTRY: docker.io
+  DOCKER_NAMESPACE: kart-io
+
+jobs:
+  # Create GitHub release
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+          body: |
+            ## Release ${{ steps.get_version.outputs.version }}
+
+            ### Changes
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md) for details.
+
+            ### Docker Images
+            ```
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_NAMESPACE }}/agent-manager:${{ steps.get_version.outputs.version }}
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_NAMESPACE }}/orchestrator-service:${{ steps.get_version.outputs.version }}
+            docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_NAMESPACE }}/reasoning-service-go:${{ steps.get_version.outputs.version }}
+            ```
+
+  # Build and upload binaries
+  build-binaries:
+    name: Build Binaries
+    runs-on: ubuntu-latest
+    needs: create-release
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build binaries
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ needs.create-release.outputs.version }}
+        run: |
+          make go.build.multiarch
+
+      - name: Create archives
+        run: |
+          cd _output/bin
+          for binary in *-${{ matrix.goos }}-${{ matrix.goarch }}; do
+            tar czf "${binary}.tar.gz" "${binary}"
+          done
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./_output/bin/*.tar.gz
+          asset_name: aetherius-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+          asset_content_type: application/gzip
+
+  # Build and push Docker images
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: create-release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push multi-platform images
+        env:
+          VERSION: ${{ needs.create-release.outputs.version }}
+          IMAGE_TAG: ${{ needs.create-release.outputs.version }}
+        run: |
+          make docker.buildx.push
+
+  # Deploy to production (if configured)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-docker, build-binaries]
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
+    environment:
+      name: production
+      url: https://aetherius.example.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+
+      - name: Deploy to Kubernetes
+        env:
+          VERSION: ${{ needs.create-release.outputs.version }}
+        run: |
+          kubectl set image deployment/agent-manager \
+            agent-manager=${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_NAMESPACE }}/agent-manager:${{ env.VERSION }} \
+            -n aetherius
+          kubectl set image deployment/orchestrator-service \
+            orchestrator-service=${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_NAMESPACE }}/orchestrator-service:${{ env.VERSION }} \
+            -n aetherius
+          kubectl set image deployment/reasoning-service-go \
+            reasoning-service-go=${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_NAMESPACE }}/reasoning-service-go:${{ env.VERSION }} \
+            -n aetherius
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/agent-manager -n aetherius --timeout=5m
+          kubectl rollout status deployment/orchestrator-service -n aetherius --timeout=5m
+          kubectl rollout status deployment/reasoning-service-go -n aetherius --timeout=5m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n aetherius
+          kubectl get svc -n aetherius
