@@ -3,51 +3,57 @@ package storage
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	"github.com/kart-io/k8s-agent/internal/orchestrator/config"
+	commondb "github.com/kart-io/k8s-agent/common/db"
+	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/logger/core"
 )
 
 // RedisStore implements Redis caching
 type RedisStore struct {
-	client *redis.Client
-	logger *zap.Logger
+	client      *redis.Client
+	logger      *zap.Logger
+	redisClient *commondb.RedisClient
 }
 
-// NewRedisStore creates a new Redis store
-func NewRedisStore(cfg config.RedisConfig, log *zap.Logger) (*RedisStore, error) {
-	client := redis.NewClient(&redis.Options{
-		Addr:         cfg.Addr,
-		Password:     cfg.Password,
-		DB:           cfg.DB,
-		PoolSize:     cfg.PoolSize,
-		MinIdleConns: cfg.MinIdleConns,
-		DialTimeout:  cfg.DialTimeout,
-	})
+// NewRedisStore creates a new Redis store using common/db
+func NewRedisStore(opts *options.RedisOptions, log core.Logger) (*RedisStore, error) {
+	// 使用 common/db helper 函数创建 Redis 客户端
+	redisClient, err := commondb.NewRedisFromOptions(log, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Redis client: %w", err)
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := client.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+	// 将 core.Logger 转换为 *zap.Logger (临时兼容)
+	zapLogger, ok := log.(*zap.Logger)
+	if !ok {
+		// 如果不是 zap.Logger，创建一个默认的
+		zapLogger = zap.NewNop()
 	}
 
 	store := &RedisStore{
-		client: client,
-		logger: log.With(zap.String("component", "redis")),
+		client:      redisClient.Client,
+		logger:      zapLogger.With(zap.String("component", "redis")),
+		redisClient: redisClient,
 	}
 
-	store.logger.Info("Redis store initialized")
+	store.logger.Info("Redis store initialized successfully")
 	return store, nil
 }
 
 func (s *RedisStore) Close() error {
-	return s.client.Close()
+	if s.redisClient != nil {
+		return s.redisClient.Close()
+	}
+	return nil
 }
 
 func (s *RedisStore) Health(ctx context.Context) error {
-	return s.client.Ping(ctx).Err()
+	if s.redisClient != nil {
+		return s.redisClient.Health(ctx)
+	}
+	return fmt.Errorf("redis client not initialized")
 }

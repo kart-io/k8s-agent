@@ -42,17 +42,8 @@ func (r *RedisInitializer) Initialize(ctx context.Context) error {
 		"addr", r.opts.Redis.Addr,
 	)
 
-	// 创建 Redis 客户端
-	redisClient, err := db.NewRedis(r.logger,
-		db.WithAddr(r.opts.Redis.Addr),
-		db.WithRedisPassword(r.opts.Redis.Password),
-		db.WithRedisDB(r.opts.Redis.DB),
-		db.WithRedisPoolSize(r.opts.Redis.PoolSize),
-		db.WithRedisMinIdleConns(r.opts.Redis.MinIdleConns),
-		db.WithRedisDialTimeout(r.opts.Redis.DialTimeout),
-		db.WithRedisReadTimeout(r.opts.Redis.ReadTimeout),
-		db.WithRedisWriteTimeout(r.opts.Redis.WriteTimeout),
-	)
+	// 创建 Redis 客户端（使用 common/db helper 函数）
+	redisClient, err := db.NewRedisFromOptions(r.logger, r.opts.Redis)
 	if err != nil {
 		return fmt.Errorf("failed to create Redis client: %w", err)
 	}

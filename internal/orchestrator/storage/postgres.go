@@ -5,53 +5,49 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
-	"github.com/kart-io/k8s-agent/internal/orchestrator/config"
+	commondb "github.com/kart-io/k8s-agent/common/db"
+	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/types"
+	"github.com/kart-io/logger/core"
 )
 
 // PostgresStore implements MySQL storage
 // Note: Kept the name for backward compatibility, but now using MySQL
 type PostgresStore struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	db          *gorm.DB
+	logger      *zap.Logger
+	mysqlClient *commondb.MySQLClient
 }
 
-// NewPostgresStore creates a new MySQL store
+// NewPostgresStore creates a new MySQL store using common/db
 // Note: Kept the name for backward compatibility, but now using MySQL
-func NewPostgresStore(cfg config.DatabaseConfig, log *zap.Logger) (*PostgresStore, error) {
-	// MySQL DSN format
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database,
-	)
-
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+func NewPostgresStore(opts *options.DatabaseOptions, log core.Logger) (*PostgresStore, error) {
+	// 使用 common/db helper 函数创建 MySQL 客户端
+	mysqlClient, err := commondb.NewMySQLFromOptions(log, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}
 
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database instance: %w", err)
+	// 将 core.Logger 转换为 *zap.Logger (临时兼容)
+	zapLogger, ok := log.(*zap.Logger)
+	if !ok {
+		// 如果不是 zap.Logger，创建一个默认的
+		zapLogger = zap.NewNop()
 	}
-
-	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
 	store := &PostgresStore{
-		db:     db,
-		logger: log.With(zap.String("component", "postgres")),
+		db:          mysqlClient.DB,
+		logger:      zapLogger.With(zap.String("component", "storage")),
+		mysqlClient: mysqlClient,
 	}
 
 	if err := store.migrate(); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
-	store.logger.Info("PostgreSQL store initialized")
+	store.logger.Info("MySQL store initialized successfully")
 	return store, nil
 }
 
@@ -133,17 +129,15 @@ func (s *PostgresStore) ListStrategies(ctx context.Context, enabledOnly bool) ([
 }
 
 func (s *PostgresStore) Close() error {
-	sqlDB, err := s.db.DB()
-	if err != nil {
-		return err
+	if s.mysqlClient != nil {
+		return s.mysqlClient.Close()
 	}
-	return sqlDB.Close()
+	return nil
 }
 
 func (s *PostgresStore) Health(ctx context.Context) error {
-	sqlDB, err := s.db.DB()
-	if err != nil {
-		return err
+	if s.mysqlClient != nil {
+		return s.mysqlClient.Health(ctx)
 	}
-	return sqlDB.PingContext(ctx)
+	return fmt.Errorf("mysql client not initialized")
 }

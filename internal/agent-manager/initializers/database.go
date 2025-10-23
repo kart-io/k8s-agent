@@ -44,17 +44,8 @@ func (d *DatabaseInitializer) Initialize(ctx context.Context) error {
 		"database", d.opts.Database.Database,
 	)
 
-	// 创建 MySQL 客户端
-	mysqlClient, err := db.NewMySQL(d.logger,
-		db.WithHost(d.opts.Database.Host),
-		db.WithPort(d.opts.Database.Port),
-		db.WithUser(d.opts.Database.User),
-		db.WithPassword(d.opts.Database.Password),
-		db.WithDatabase(d.opts.Database.Database),
-		db.WithMaxOpenConns(d.opts.Database.MaxOpenConns),
-		db.WithMaxIdleConns(d.opts.Database.MaxIdleConns),
-		db.WithConnMaxLifetime(d.opts.Database.ConnMaxLifetime),
-	)
+	// 创建 MySQL 客户端（使用 common/db helper 函数）
+	mysqlClient, err := db.NewMySQLFromOptions(d.logger, d.opts.Database)
 	if err != nil {
 		return fmt.Errorf("failed to create MySQL client: %w", err)
 	}

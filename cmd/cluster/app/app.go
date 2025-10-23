@@ -58,16 +58,7 @@ func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) err
 	)
 
 	// 初始化数据库
-	a.storage, err = storage.NewMySQLStorage(&storage.Config{
-		Host:         a.opts.Database.Host,
-		Port:         a.opts.Database.Port,
-		User:         a.opts.Database.User,
-		Password:     a.opts.Database.Password,
-		DBName:       a.opts.Database.Database,
-		SSLMode:      a.opts.Database.SSLMode,
-		MaxOpenConns: a.opts.Database.MaxOpenConns,
-		MaxIdleConns: a.opts.Database.MaxIdleConns,
-	}, a.logger)
+	a.storage, err = storage.NewMySQLStorage(a.opts.Database, a.logger)
 	if err != nil {
 		return fmt.Errorf("failed to initialize MySQL storage: %w", err)
 	}

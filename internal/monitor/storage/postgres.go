@@ -3,58 +3,53 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
+
+	commondb "github.com/kart-io/k8s-agent/common/db"
+	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/logger/core"
 )
 
-type Config struct {
-	Host         string
-	Port         int
-	User         string
-	Password     string
-	DBName       string
-	SSLMode      string
-	MaxOpenConns int
-	MaxIdleConns int
-}
-
 type PostgresStorage struct {
-	db  *sql.DB
-	log *logrus.Logger
+	db          *sql.DB
+	log         *logrus.Logger
+	mysqlClient *commondb.MySQLClient
 }
 
-func NewPostgresStorage(config *Config, logger *logrus.Logger) (*PostgresStorage, error) {
-	// MySQL DSN format
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?parseTime=true&charset=utf8mb4",
-		config.User, config.Password, config.Host, config.Port, config.DBName,
-	)
-
-	db, err := sql.Open("mysql", dsn)
+// NewPostgresStorage creates a new storage using common/db
+func NewPostgresStorage(opts *options.DatabaseOptions, logger core.Logger) (*PostgresStorage, error) {
+	// 使用 common/db helper 函数创建 MySQL 客户端
+	mysqlClient, err := commondb.NewMySQLFromOptions(logger, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}
 
-	db.SetMaxOpenConns(config.MaxOpenConns)
-	db.SetMaxIdleConns(config.MaxIdleConns)
-	db.SetConnMaxLifetime(time.Hour)
+	// 获取 *sql.DB
+	sqlDB, err := mysqlClient.DB.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
+	}
 
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+	// 将 core.Logger 转换为 logrus.Logger (临时兼容)
+	logrusLogger, ok := logger.(core.Logger)
+	if !ok {
+		// 如果不是 logrus.Logger，创建一个默认的
+		logrusLogger = logrus.New()
 	}
 
 	storage := &PostgresStorage{
-		db:  db,
-		log: logger,
+		db:          sqlDB,
+		log:         logrusLogger,
+		mysqlClient: mysqlClient,
 	}
 
 	if err := storage.initSchema(); err != nil {
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	logger.Info("PostgreSQL storage initialized successfully")
+	logrusLogger.Info("MySQL storage initialized successfully")
 	return storage, nil
 }
 

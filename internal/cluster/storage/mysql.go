@@ -3,60 +3,48 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	commondb "github.com/kart-io/k8s-agent/common/db"
+	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger/core"
 )
 
-type Config struct {
-	Host         string
-	Port         int
-	User         string
-	Password     string
-	DBName       string
-	SSLMode      string // Kept for compatibility but not used in MySQL
-	MaxOpenConns int
-	MaxIdleConns int
-}
-
 type MySQLStorage struct {
-	db  *sql.DB
-	log core.Logger
+	db          *sql.DB
+	log         core.Logger
+	mysqlClient *commondb.MySQLClient
 }
 
-func NewMySQLStorage(cfg *Config, logger core.Logger) (*MySQLStorage, error) {
-	// MySQL DSN format: user:password@tcp(host:port)/dbname?parseTime=true&charset=utf8mb4
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&charset=utf8mb4",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
-
-	db, err := sql.Open("mysql", dsn)
+// NewMySQLStorage creates a new MySQL storage using common/db
+func NewMySQLStorage(opts *options.DatabaseOptions, logger core.Logger) (*MySQLStorage, error) {
+	// 使用 common/db helper 函数创建 MySQL 客户端
+	mysqlClient, err := commondb.NewMySQLFromOptions(logger, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}
 
-	// Set connection pool settings
-	if cfg.MaxOpenConns > 0 {
-		db.SetMaxOpenConns(cfg.MaxOpenConns)
-	}
-	if cfg.MaxIdleConns > 0 {
-		db.SetMaxIdleConns(cfg.MaxIdleConns)
-	}
-	db.SetConnMaxLifetime(time.Hour)
-
-	// Verify connection
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+	// 获取 *sql.DB
+	sqlDB, err := mysqlClient.DB.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
 	}
 
 	if logger != nil {
 		logger.Info("Successfully connected to MySQL")
 	}
 
-	return &MySQLStorage{
-		db:  db,
-		log: logger,
-	}, nil
+	storage := &MySQLStorage{
+		db:          sqlDB,
+		log:         logger,
+		mysqlClient: mysqlClient,
+	}
+
+	// 初始化数据库表结构
+	if err := storage.InitSchema(); err != nil {
+		return nil, err
+	}
+
+	return storage, nil
 }
 
 func (s *MySQLStorage) DB() *sql.DB {
@@ -64,8 +52,8 @@ func (s *MySQLStorage) DB() *sql.DB {
 }
 
 func (s *MySQLStorage) Close() error {
-	if s.db != nil {
-		return s.db.Close()
+	if s.mysqlClient != nil {
+		return s.mysqlClient.Close()
 	}
 	return nil
 }
