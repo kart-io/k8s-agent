@@ -6,20 +6,21 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/logger/core"
+	"github.com/spf13/viper"
+
 	"github.com/kart-io/k8s-agent/internal/gateway/proxy"
 	"github.com/kart-io/k8s-agent/internal/gateway/types"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 // HealthHandler 健康检查处理器
 type HealthHandler struct {
 	proxy  *proxy.Proxy
-	logger *zap.Logger
+	logger core.Logger
 }
 
 // NewHealthHandler 创建健康检查处理器
-func NewHealthHandler(proxy *proxy.Proxy, logger *zap.Logger) *HealthHandler {
+func NewHealthHandler(proxy *proxy.Proxy, logger core.Logger) *HealthHandler {
 	return &HealthHandler{
 		proxy:  proxy,
 		logger: logger,
@@ -56,9 +57,9 @@ func (h *HealthHandler) ServicesHealth(c *gin.Context) {
 			defer wg.Done()
 			status, err := h.proxy.GetServiceHealth(serviceName)
 			if err != nil {
-				h.logger.Error("Failed to get service health",
-					zap.String("service", serviceName),
-					zap.Error(err),
+				h.logger.Errorw("Failed to get service health",
+					"service", serviceName,
+					"error", err,
 				)
 				statusChan <- types.HealthStatus{
 					Service:   serviceName,

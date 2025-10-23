@@ -213,18 +213,31 @@ type DuplicateFilter struct {
 }
 
 func (f *DuplicateFilter) ShouldProcess(event *types.Event) bool {
-	ctx := context.Background()
-	key := fmt.Sprintf("event:seen:%s:%s:%s", event.ClusterID, event.Reason, event.Labels["name"])
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 
-	// Try to set key (returns false if already exists)
-	existed, err := f.cache.AcquireLock(ctx, key, f.ttl)
-	if err != nil {
-		// On error, allow processing
-		return true
+	// Validate event has required fields
+	if event.Labels == nil {
+		event.Labels = make(map[string]string)
 	}
 
-	// If key was newly set, process the event
-	return existed
+	eventName := event.Labels["name"]
+	if eventName == "" {
+		eventName = "unknown"
+	}
+
+	key := fmt.Sprintf("event:seen:%s:%s:%s", event.ClusterID, event.Reason, eventName)
+
+	// Try to acquire lock (returns true if lock was acquired, false if already exists)
+	acquired, err := f.cache.AcquireLock(ctx, key, f.ttl)
+	if err != nil {
+		// On error, skip processing to avoid processing duplicates when cache is down
+		return false
+	}
+
+	// If lock was acquired (first time seeing this event), process it
+	// If lock was NOT acquired (event already exists), skip it
+	return acquired
 }
 
 // ClusterEnricher enriches events with cluster information

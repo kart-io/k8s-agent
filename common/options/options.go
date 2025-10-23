@@ -1,4 +1,4 @@
-package config
+package options
 
 // Options 配置接口
 type Options interface {

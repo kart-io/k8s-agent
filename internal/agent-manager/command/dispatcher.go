@@ -10,6 +10,7 @@ import (
 	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/internal/agent-manager/agent"
+	"github.com/kart-io/k8s-agent/internal/agent-manager/constants"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/nats"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/k8s-agent/pkg/types"
@@ -28,6 +29,10 @@ type Dispatcher struct {
 	pendingCommands map[string]*types.Command
 	commandTimeouts map[string]*time.Timer
 
+	// Cleanup
+	stopCh chan struct{}
+	wg     sync.WaitGroup
+
 	// Metrics
 	commandsIssued    int64
 	commandsCompleted int64
@@ -43,7 +48,7 @@ func NewDispatcher(
 	natsServer *nats.Server,
 	logger core.Logger,
 ) *Dispatcher {
-	return &Dispatcher{
+	d := &Dispatcher{
 		store:           store,
 		cache:           cache,
 		registry:        registry,
@@ -51,6 +56,78 @@ func NewDispatcher(
 		logger:          logger.With("component", "command-dispatcher"),
 		pendingCommands: make(map[string]*types.Command),
 		commandTimeouts: make(map[string]*time.Timer),
+		stopCh:          make(chan struct{}),
+	}
+
+	// Start cleanup goroutine
+	d.wg.Add(1)
+	go d.cleanupExpiredTimers()
+
+	return d
+}
+
+// Stop stops the dispatcher
+func (d *Dispatcher) Stop() error {
+	close(d.stopCh)
+	d.wg.Wait()
+
+	// Cancel all pending timers
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	for id, timer := range d.commandTimeouts {
+		timer.Stop()
+		delete(d.commandTimeouts, id)
+	}
+
+	return nil
+}
+
+// cleanupExpiredTimers periodically cleans up stale timers
+func (d *Dispatcher) cleanupExpiredTimers() {
+	defer d.wg.Done()
+	defer func() {
+		if rec := recover(); rec != nil {
+			d.logger.Errorw("Panic in timer cleanup", "panic", rec)
+		}
+	}()
+
+	ticker := time.NewTicker(constants.CommandTimeoutCleanupInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-d.stopCh:
+			return
+		case <-ticker.C:
+			d.performTimerCleanup()
+		}
+	}
+}
+
+// performTimerCleanup removes stopped timers from map
+func (d *Dispatcher) performTimerCleanup() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	// Create a copy to avoid modifying map during iteration
+	toDelete := []string{}
+
+	for id, timer := range d.commandTimeouts {
+		// Check if timer has already fired (Stop returns false)
+		if !timer.Stop() {
+			toDelete = append(toDelete, id)
+		}
+	}
+
+	// Clean up
+	for _, id := range toDelete {
+		delete(d.commandTimeouts, id)
+		d.logger.Debugw("Cleaned up expired timer", "command_id", id)
+	}
+
+	if len(toDelete) > 0 {
+		d.logger.Infow("Timer cleanup completed", "cleaned", len(toDelete), "remaining", len(d.commandTimeouts))
 	}
 }
 
@@ -68,7 +145,7 @@ func (d *Dispatcher) DispatchCommand(ctx context.Context, cmd *types.Command) er
 
 	// Set default timeout
 	if cmd.Timeout == 0 {
-		cmd.Timeout = 30 * time.Second
+		cmd.Timeout = constants.DefaultCommandTimeout
 	}
 
 	// Set metadata
@@ -194,18 +271,15 @@ func (d *Dispatcher) validateCommand(cmd *types.Command) error {
 	}
 
 	// Validate tool whitelist
-	allowedTools := map[string]bool{
-		"kubectl": true,
-		"ps":      true,
-		"df":      true,
-		"netstat": true,
-		"curl":    true,
-		"ping":    true,
-		"top":     true,
+	if !constants.AllowedTools[cmd.Tool] {
+		return fmt.Errorf("tool '%s' is not allowed", cmd.Tool)
 	}
 
-	if !allowedTools[cmd.Tool] {
-		return fmt.Errorf("tool '%s' is not allowed", cmd.Tool)
+	// Additional validation for kubectl
+	if cmd.Tool == "kubectl" {
+		if !constants.AllowedKubectlActions[cmd.Action] {
+			return fmt.Errorf("kubectl action '%s' is not allowed", cmd.Action)
+		}
 	}
 
 	return nil

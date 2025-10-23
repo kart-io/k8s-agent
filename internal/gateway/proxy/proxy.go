@@ -10,24 +10,25 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/internal/gateway/types"
+	"github.com/kart-io/logger/core"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
+
+	"github.com/kart-io/k8s-agent/internal/gateway/types"
 )
 
 // Proxy 代理处理器
 type Proxy struct {
-	logger   *zap.Logger
+	logger   core.Logger
 	client   *http.Client
 	services map[string]types.ServiceConfig
 }
 
 // NewProxy 创建代理处理器
-func NewProxy(logger *zap.Logger) *Proxy {
+func NewProxy(logger core.Logger) *Proxy {
 	// 加载服务配置
 	var services map[string]types.ServiceConfig
 	if err := viper.UnmarshalKey("services", &services); err != nil {
-		logger.Fatal("Failed to load service configs", zap.Error(err))
+		logger.Fatalw("Failed to load service configs", "error", err)
 	}
 
 	return &Proxy{
@@ -54,9 +55,9 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 		// 构建目标 URL
 		targetURL, err := p.buildTargetURL(service, c.Request.URL)
 		if err != nil {
-			p.logger.Error("Failed to build target URL",
-				zap.Error(err),
-				zap.String("service", serviceName),
+			p.logger.Errorw("Failed to build target URL",
+				"error", err,
+				"service", serviceName,
 			)
 			c.JSON(http.StatusBadGateway, gin.H{
 				"error": "构建目标URL失败",
@@ -69,7 +70,7 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 		if c.Request.Body != nil {
 			bodyBytes, err = io.ReadAll(c.Request.Body)
 			if err != nil {
-				p.logger.Error("Failed to read request body", zap.Error(err))
+				p.logger.Errorw("Failed to read request body", "error", err)
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": "读取请求体失败",
 				})
@@ -80,7 +81,7 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 		// 创建代理请求
 		proxyReq, err := http.NewRequest(c.Request.Method, targetURL, bytes.NewReader(bodyBytes))
 		if err != nil {
-			p.logger.Error("Failed to create proxy request", zap.Error(err))
+			p.logger.Errorw("Failed to create proxy request", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "创建代理请求失败",
 			})
@@ -100,11 +101,11 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 		latency := time.Since(startTime)
 
 		if err != nil {
-			p.logger.Error("Proxy request failed",
-				zap.Error(err),
-				zap.String("service", serviceName),
-				zap.String("url", targetURL),
-				zap.Duration("latency", latency),
+			p.logger.Errorw("Proxy request failed",
+				"error", err,
+				"service", serviceName,
+				"url", targetURL,
+				"latency", latency,
 			)
 			c.JSON(http.StatusBadGateway, gin.H{
 				"error": "服务请求失败",
@@ -116,7 +117,7 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 		// 读取响应体
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			p.logger.Error("Failed to read response body", zap.Error(err))
+			p.logger.Errorw("Failed to read response body", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "读取响应失败",
 			})
@@ -124,12 +125,12 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 		}
 
 		// 记录日志
-		p.logger.Info("Proxy request completed",
-			zap.String("service", serviceName),
-			zap.String("method", c.Request.Method),
-			zap.String("path", c.Request.URL.Path),
-			zap.Int("status", resp.StatusCode),
-			zap.Duration("latency", latency),
+		p.logger.Infow("Proxy request completed",
+			"service", serviceName,
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"status", resp.StatusCode,
+			"latency", latency,
 		)
 
 		// 复制响应头

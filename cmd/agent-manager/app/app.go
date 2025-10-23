@@ -51,6 +51,13 @@ type AgentManagerApp struct {
 func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	a.opts = opts.(*config.Options)
 
+	// 初始化日志系统
+	logger, err := initLogger(opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+	a.logger = logger
+
 	a.logger.Infow("Initializing Agent Manager Service",
 		"http_port", a.opts.Server.Port,
 		"grpc_enabled", a.opts.GRPC.Enable,
@@ -60,15 +67,11 @@ func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options
 	// 创建 bootstrap 实例,直接使用 kart-io/logger
 	a.bootstrap = bootstrap.New(a.logger)
 
-	// 注册所有组件初始化器
+	// 注册所有组件初始化器（但不执行初始化）
+	// 初始化将在 Run() 方法中由 bootstrap.Run() 执行
 	a.registerComponents()
 
-	// 执行初始化
-	if err := a.bootstrap.Initialize(ctx); err != nil {
-		return fmt.Errorf("failed to initialize components: %w", err)
-	}
-
-	a.logger.Infow("All components initialized successfully")
+	a.logger.Infow("Components registered, ready to start")
 	return nil
 }
 

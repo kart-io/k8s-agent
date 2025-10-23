@@ -1,0 +1,44 @@
+SECURITY ALERT: Your Session Has Been Terminated
+===============================================
+
+Hello {{.Username}},
+
+This is an automated security notification to inform you that your active
+session has been forcibly terminated by a system administrator.
+
+SESSION TERMINATION DETAILS
+----------------------------
+Timestamp:      {{.Timestamp}}
+Reason:         {{.Reason}}
+{{if .DeviceInfo}}Device:         {{.DeviceInfo}}{{end}}
+{{if .Location}}Location:       {{.Location}}{{end}}
+Terminated by:  {{.ActorName}}
+
+WHAT THIS MEANS
+---------------
+* You have been logged out from all active sessions
+* Your current authentication tokens have been invalidated
+* You will need to log in again to access the system
+
+WHAT TO DO NEXT
+---------------
+1. If this action was unexpected, please contact your system administrator
+   immediately
+
+2. Review your recent account activity for any suspicious behavior
+
+3. Consider changing your password if you suspect unauthorized access
+
+4. You can log in again at: {{.LoginURL}}
+
+IMPORTANT NOTES
+---------------
+This is an automated security notification. If you did not initiate this
+action and believe your account may have been compromised, please contact
+your security team immediately.
+
+Please do not reply to this email.
+
+---
+This is an automated message from K8s Agent Security System.
+© 2025 Aetherius K8s Agent Platform. All rights reserved.

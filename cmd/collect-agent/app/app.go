@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	commonlogger "github.com/kart-io/k8s-agent/common/logger"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/config"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
-	"github.com/kart-io/logger"
 )
 
 // Execute runs the collect-agent command
@@ -31,16 +31,16 @@ func Execute() {
 // run runs the collect-agent service
 func run(opts *config.Options) error {
 	// Initialize logger
-	log, err := logger.InitFromOptions(opts.Logging)
+	log, err := commonlogger.InitFromOptions(opts.Logging)
 	if err != nil {
 		return fmt.Errorf("failed to init logger: %w", err)
 	}
 	defer log.Flush()
 
 	log.Infow("Starting Aetherius Collect Agent",
-		"cluster_id", opts.ClusterID,
-		"central_endpoint", opts.CentralEndpoint,
-		"health_port", opts.HealthPort,
+		"cluster_id", opts.Agent.ClusterID,
+		"central_endpoint", opts.Agent.CentralEndpoint,
+		"health_port", opts.Agent.HealthPort,
 	)
 
 	// Create server

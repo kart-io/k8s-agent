@@ -159,7 +159,7 @@ rename-project: ## Rename project module path (usage: make rename-project OLD=ol
 # Legacy Compatibility Targets (map to new modular targets)
 # ==================================================================================
 
-##@ Build (Legacy)
+##@ Build (Legacy Aliases - prefer go.build.* commands)
 
 .PHONY: build
 build: go.build ## Build all services (or specific: make build BINS=agent-manager)
@@ -169,13 +169,13 @@ build-all: go.build ## Build all services for all platforms
 	@$(MAKE) go.build SERVICES="$(ALL_SERVICES)"
 
 .PHONY: build-%
-build-%: ## Build specific service (e.g., make build-agent-manager)
+build-%: ## [LEGACY] Build specific service - prefer 'make go.build.SERVICE'
 	@$(MAKE) go.build.$*
 
 .PHONY: compile
 compile: build ## Alias for build
 
-##@ Testing (Legacy)
+##@ Testing (Legacy Aliases - prefer go.test.* commands)
 
 .PHONY: test
 test: go.test ## Run all tests
@@ -192,7 +192,7 @@ test-e2e: ## Run end-to-end tests
 	@$(GO) test -v -tags=e2e ./test/e2e/...
 	@echo "$(COLOR_GREEN)✓ E2E tests complete$(COLOR_RESET)"
 
-##@ Code Quality (Legacy)
+##@ Code Quality (Legacy Aliases - prefer go.* commands)
 
 .PHONY: fmt
 fmt: go.fmt ## Format code
@@ -203,7 +203,7 @@ lint: go.lint ## Run linters
 .PHONY: vet
 vet: go.vet ## Run go vet
 
-##@ Dependencies (Legacy)
+##@ Dependencies (Legacy Aliases)
 
 .PHONY: deps
 deps: go.mod.download go.mod.tidy ## Download and tidy dependencies
@@ -211,7 +211,7 @@ deps: go.mod.download go.mod.tidy ## Download and tidy dependencies
 .PHONY: deps-verify
 deps-verify: go.mod.verify ## Verify dependencies
 
-##@ Docker (Legacy)
+##@ Docker (Legacy Aliases - prefer docker.build.* commands)
 
 .PHONY: docker
 docker: docker.build ## Build Docker images (specify BINS for specific services)
@@ -220,10 +220,10 @@ docker: docker.build ## Build Docker images (specify BINS for specific services)
 docker-push: docker.push ## Push Docker images
 
 .PHONY: docker-%
-docker-%: ## Build specific Docker image (e.g., make docker-agent-manager)
+docker-%: ## [LEGACY] Build specific Docker image - prefer 'make docker.build.SERVICE'
 	@$(MAKE) docker.build.$*
 
-##@ Code Generation (Legacy)
+##@ Code Generation (Legacy Aliases)
 
 .PHONY: gen
 gen: proto.generate ## Generate all code

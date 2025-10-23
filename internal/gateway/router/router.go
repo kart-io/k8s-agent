@@ -2,16 +2,17 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/logger/core"
+	"github.com/spf13/viper"
+
 	"github.com/kart-io/k8s-agent/internal/gateway/handler"
 	"github.com/kart-io/k8s-agent/internal/gateway/middleware"
 	"github.com/kart-io/k8s-agent/internal/gateway/proxy"
 	"github.com/kart-io/k8s-agent/internal/gateway/types"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 // Setup 设置路由
-func Setup(logger *zap.Logger) *gin.Engine {
+func Setup(logger core.Logger) *gin.Engine {
 	// 设置 Gin 模式
 	mode := viper.GetString("server.mode")
 	gin.SetMode(mode)

@@ -11,8 +11,8 @@ database:
   port: 5432
   user: ${DB_USER}
   password: ${DB_PASSWORD}
-  dbname: cluster_production
-  sslmode: require
+  database: cluster_production  # Changed from 'dbname' to 'database'
+  ssl_mode: require  # Changed from 'sslmode' to 'ssl_mode' to match DatabaseOptions
   max_open_conns: 50
   max_idle_conns: 10
 

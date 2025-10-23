@@ -11,6 +11,44 @@ import (
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
 )
 
+// Legacy compatibility - map Options to AgentConfig for backward compatibility
+// Deprecated: Use Options directly instead
+func (o *Options) ToAgentConfig() *types.AgentConfig {
+	return &types.AgentConfig{
+		ClusterID:         o.Agent.ClusterID,
+		ClusterName:       o.Agent.ClusterName,
+		CentralEndpoint:   o.Agent.CentralEndpoint,
+		ReconnectDelay:    o.Agent.ReconnectDelay,
+		HeartbeatInterval: o.Agent.HeartbeatInterval,
+		MetricsInterval:   o.Agent.MetricsInterval,
+		BufferSize:        o.Agent.BufferSize,
+		MaxRetries:        o.Agent.MaxRetries,
+		LogLevel:          o.Logging.Level,
+		EnableMetrics:     o.Agent.EnableMetrics,
+		EnableEvents:      o.Agent.EnableEvents,
+		HealthPort:        o.Agent.HealthPort,
+	}
+}
+
+// FromAgentConfig creates Options from legacy AgentConfig
+// Deprecated: Use NewOptions() instead
+func FromAgentConfig(cfg *types.AgentConfig) *Options {
+	opts := NewOptions()
+	opts.Agent.ClusterID = cfg.ClusterID
+	opts.Agent.ClusterName = cfg.ClusterName
+	opts.Agent.CentralEndpoint = cfg.CentralEndpoint
+	opts.Agent.ReconnectDelay = cfg.ReconnectDelay
+	opts.Agent.HeartbeatInterval = cfg.HeartbeatInterval
+	opts.Agent.MetricsInterval = cfg.MetricsInterval
+	opts.Agent.BufferSize = cfg.BufferSize
+	opts.Agent.MaxRetries = cfg.MaxRetries
+	opts.Logging.Level = cfg.LogLevel
+	opts.Agent.EnableMetrics = cfg.EnableMetrics
+	opts.Agent.EnableEvents = cfg.EnableEvents
+	opts.Agent.HealthPort = cfg.HealthPort
+	return opts
+}
+
 // LoadConfig loads configuration from a file path or creates default config
 func LoadConfig(configPath string) (*types.AgentConfig, error) {
 	if configPath == "" {

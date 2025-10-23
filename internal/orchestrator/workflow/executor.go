@@ -43,19 +43,34 @@ func (ex *Executor) ExecuteCommand(ctx context.Context, execution *types.Workflo
 		zap.String("execution_id", execution.ID),
 		zap.String("step_id", step.ID))
 
-	// Extract command parameters from config
-	clusterID, _ := step.Config["cluster_id"].(string)
-	tool, _ := step.Config["tool"].(string)
-	action, _ := step.Config["action"].(string)
-	args, _ := step.Config["args"].([]interface{})
-
-	if clusterID == "" {
+	// Extract and validate command parameters from config
+	clusterID, ok := step.Config["cluster_id"].(string)
+	if !ok || clusterID == "" {
 		// Try to get from trigger event
 		if payload, ok := execution.TriggerEvent["payload"].(map[string]interface{}); ok {
-			if cid, ok := payload["cluster_id"].(string); ok {
+			if cid, ok := payload["cluster_id"].(string); ok && cid != "" {
 				clusterID = cid
 			}
 		}
+		if clusterID == "" {
+			return nil, fmt.Errorf("cluster_id is required but not found in config or trigger event")
+		}
+	}
+
+	tool, ok := step.Config["tool"].(string)
+	if !ok || tool == "" {
+		return nil, fmt.Errorf("tool is required in command config")
+	}
+
+	action, ok := step.Config["action"].(string)
+	if !ok || action == "" {
+		return nil, fmt.Errorf("action is required in command config")
+	}
+
+	// args is optional, so use empty slice if not provided
+	args := []interface{}{}
+	if configArgs, ok := step.Config["args"].([]interface{}); ok {
+		args = configArgs
 	}
 
 	// Prepare command request
@@ -70,13 +85,19 @@ func (ex *Executor) ExecuteCommand(ctx context.Context, execution *types.Workflo
 		"correlation_id": execution.ID,
 	}
 
-	// Send command to agent-manager
+	// Send command to agent-manager with timeout context
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	resp, err := ex.sendHTTPRequest(ctx, "POST", ex.agentManagerURL+"/api/v1/commands", cmdReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send command: %w", err)
 	}
 
-	commandID, _ := resp["id"].(string)
+	commandID, ok := resp["id"].(string)
+	if !ok || commandID == "" {
+		return nil, fmt.Errorf("invalid response: missing command ID")
+	}
 
 	// Wait for result (polling)
 	result, err := ex.waitForCommandResult(ctx, commandID, 60*time.Second)

@@ -6,15 +6,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kart-io/k8s-agent/internal/cluster/service"
 	"github.com/kart-io/k8s-agent/internal/cluster/types"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 type ClusterHandler struct {
 	service *service.ClusterService
-	log     *logrus.Logger
+	log     core.Logger
 }
 
-func NewClusterHandler(service *service.ClusterService, logger *logrus.Logger) *ClusterHandler {
+func NewClusterHandler(service *service.ClusterService, logger core.Logger) *ClusterHandler {
 	return &ClusterHandler{
 		service: service,
 		log:     logger,
@@ -25,13 +25,13 @@ func NewClusterHandler(service *service.ClusterService, logger *logrus.Logger) *
 func (h *ClusterHandler) AddCluster(c *gin.Context) {
 	var cluster types.Cluster
 	if err := c.ShouldBindJSON(&cluster); err != nil {
-		h.log.WithError(err).Error("Failed to bind cluster request")
+		h.log.Errorw("Failed to bind cluster request", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	if err := h.service.AddCluster(c.Request.Context(), &cluster); err != nil {
-		h.log.WithError(err).Error("Failed to add cluster")
+		h.log.Errorw("Failed to add cluster", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add cluster"})
 		return
 	}
@@ -45,7 +45,10 @@ func (h *ClusterHandler) GetClusterHealth(c *gin.Context) {
 
 	health, err := h.service.GetClusterHealth(c.Request.Context(), clusterID)
 	if err != nil {
-		h.log.WithError(err).WithField("cluster_id", clusterID).Error("Failed to get cluster health")
+		h.log.Errorw("Failed to get cluster health",
+			"error", err,
+			"cluster_id", clusterID,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get cluster health"})
 		return
 	}
@@ -64,10 +67,11 @@ func (h *ClusterHandler) GetPods(c *gin.Context) {
 
 	pods, err := h.service.GetPods(c.Request.Context(), clusterID, namespace)
 	if err != nil {
-		h.log.WithError(err).WithFields(logrus.Fields{
-			"cluster_id": clusterID,
-			"namespace":  namespace,
-		}).Error("Failed to get pods")
+		h.log.Errorw("Failed to get pods",
+			"error", err,
+			"cluster_id", clusterID,
+			"namespace", namespace,
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get pods"})
 		return
 	}

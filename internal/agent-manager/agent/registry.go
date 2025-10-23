@@ -8,6 +8,7 @@ import (
 
 	"github.com/kart-io/logger/core"
 
+	"github.com/kart-io/k8s-agent/internal/agent-manager/constants"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/k8s-agent/pkg/types"
 )
@@ -21,6 +22,8 @@ type Registry struct {
 	agents map[string]*types.Agent // In-memory cache
 	stopCh chan struct{}
 	wg     sync.WaitGroup
+	ctx    context.Context // Lifecycle context
+	cancel context.CancelFunc
 
 	// Configuration
 	heartbeatTimeout time.Duration
@@ -43,14 +46,17 @@ func NewRegistry(
 		logger:           logger.With("component", "agent-registry"),
 		agents:           make(map[string]*types.Agent),
 		stopCh:           make(chan struct{}),
-		heartbeatTimeout: 60 * time.Second, // 2x heartbeat interval
-		cleanupInterval:  30 * time.Second,
+		heartbeatTimeout: constants.HeartbeatTimeout,
+		cleanupInterval:  constants.CleanupInterval,
 	}
 }
 
 // Start starts the registry background tasks
 func (r *Registry) Start(ctx context.Context) error {
 	r.logger.Info("Starting agent registry")
+
+	// Create lifecycle context
+	r.ctx, r.cancel = context.WithCancel(ctx)
 
 	// Load existing agents from database
 	if err := r.loadAgents(ctx); err != nil {
@@ -68,8 +74,18 @@ func (r *Registry) Start(ctx context.Context) error {
 // Stop stops the registry
 func (r *Registry) Stop() error {
 	r.logger.Info("Stopping agent registry")
+
+	// Cancel context first
+	if r.cancel != nil {
+		r.cancel()
+	}
+
+	// Close stop channel
 	close(r.stopCh)
+
+	// Wait for goroutines to finish
 	r.wg.Wait()
+
 	return nil
 }
 
@@ -118,12 +134,12 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 	}
 
 	// Cache in Redis (30-minute TTL)
-	if err := r.cache.CacheAgent(ctx, agent, 30*time.Minute); err != nil {
+	if err := r.cache.CacheAgent(ctx, agent, constants.AgentCacheTTL); err != nil {
 		r.logger.Warnw("Failed to cache agent", "error", err)
 	}
 
 	// Mark as online in Redis (2-minute TTL)
-	if err := r.cache.SetAgentOnline(ctx, agent.ID, 2*time.Minute); err != nil {
+	if err := r.cache.SetAgentOnline(ctx, agent.ID, constants.AgentOnlineTTL); err != nil {
 		r.logger.Warnw("Failed to set agent online", "error", err)
 	}
 
@@ -182,7 +198,7 @@ func (r *Registry) UpdateHeartbeat(ctx context.Context, agentID string) error {
 	}
 
 	// Extend TTL in Redis
-	r.cache.SetAgentOnline(ctx, agentID, 2*time.Minute)
+	r.cache.SetAgentOnline(ctx, agentID, constants.AgentOnlineTTL)
 
 	r.heartbeatCount++
 
@@ -192,12 +208,13 @@ func (r *Registry) UpdateHeartbeat(ctx context.Context, agentID string) error {
 // GetAgent retrieves agent by ID
 func (r *Registry) GetAgent(ctx context.Context, agentID string) (*types.Agent, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	// Check memory cache first
 	if agent, ok := r.agents[agentID]; ok {
-		return agent, nil
+		r.mu.RUnlock()
+		// Return a copy to prevent external modification
+		return r.copyAgent(agent), nil
 	}
+	r.mu.RUnlock()
 
 	// Check Redis cache
 	agent, err := r.cache.GetCachedAgent(ctx, agentID)
@@ -205,9 +222,11 @@ func (r *Registry) GetAgent(ctx context.Context, agentID string) (*types.Agent, 
 		r.logger.Warnw("Failed to get agent from cache", "error", err)
 	}
 	if agent != nil {
-		// Add to memory cache
+		// Add to memory cache with write lock
+		r.mu.Lock()
 		r.agents[agentID] = agent
-		return agent, nil
+		r.mu.Unlock()
+		return r.copyAgent(agent), nil
 	}
 
 	// Fallback to database
@@ -216,26 +235,67 @@ func (r *Registry) GetAgent(ctx context.Context, agentID string) (*types.Agent, 
 		return nil, fmt.Errorf("agent not found: %w", err)
 	}
 
-	// Cache in memory
+	// Cache in memory with write lock
+	r.mu.Lock()
 	r.agents[agentID] = agent
+	r.mu.Unlock()
 
-	return agent, nil
+	return r.copyAgent(agent), nil
+}
+
+// copyAgent creates a deep copy of an agent to prevent race conditions
+func (r *Registry) copyAgent(agent *types.Agent) *types.Agent {
+	if agent == nil {
+		return nil
+	}
+
+	copy := *agent
+
+	// Deep copy metadata map
+	if agent.Metadata != nil {
+		copy.Metadata = make(map[string]interface{}, len(agent.Metadata))
+		for k, v := range agent.Metadata {
+			copy.Metadata[k] = v
+		}
+	}
+
+	// Deep copy capabilities slice
+	if agent.Capabilities != nil {
+		copy.Capabilities = make([]string, len(agent.Capabilities))
+		copySlice := copy.Capabilities
+		for i, v := range agent.Capabilities {
+			copySlice[i] = v
+		}
+	}
+
+	// Deep copy connection info
+	if agent.ConnectionInfo != nil {
+		connInfo := *agent.ConnectionInfo
+		copy.ConnectionInfo = &connInfo
+	}
+
+	return &copy
 }
 
 // GetAgentByClusterID retrieves agent by cluster ID
 func (r *Registry) GetAgentByClusterID(ctx context.Context, clusterID string) (*types.Agent, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	// Search in memory cache
 	for _, agent := range r.agents {
 		if agent.ClusterID == clusterID {
-			return agent, nil
+			r.mu.RUnlock()
+			return r.copyAgent(agent), nil
 		}
 	}
+	r.mu.RUnlock()
 
 	// Fallback to database
-	return r.store.GetAgentByClusterID(ctx, clusterID)
+	agent, err := r.store.GetAgentByClusterID(ctx, clusterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.copyAgent(agent), nil
 }
 
 // ListAgents lists all agents with optional status filter
@@ -293,6 +353,11 @@ func (r *Registry) loadAgents(ctx context.Context) error {
 // heartbeatMonitor monitors agent heartbeats
 func (r *Registry) heartbeatMonitor() {
 	defer r.wg.Done()
+	defer func() {
+		if rec := recover(); rec != nil {
+			r.logger.Errorw("Panic in heartbeat monitor", "panic", rec)
+		}
+	}()
 
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -309,7 +374,10 @@ func (r *Registry) heartbeatMonitor() {
 
 // checkHeartbeats checks for stale heartbeats
 func (r *Registry) checkHeartbeats() {
-	ctx := context.Background()
+	// Use lifecycle context with timeout
+	ctx, cancel := context.WithTimeout(r.ctx, constants.DatabaseOperationTimeout)
+	defer cancel()
+
 	now := time.Now()
 
 	r.mu.Lock()
@@ -342,6 +410,11 @@ func (r *Registry) checkHeartbeats() {
 // cleanupStaleAgents removes old offline agents
 func (r *Registry) cleanupStaleAgents() {
 	defer r.wg.Done()
+	defer func() {
+		if rec := recover(); rec != nil {
+			r.logger.Errorw("Panic in cleanup goroutine", "panic", rec)
+		}
+	}()
 
 	ticker := time.NewTicker(r.cleanupInterval)
 	defer ticker.Stop()
@@ -358,9 +431,11 @@ func (r *Registry) cleanupStaleAgents() {
 
 // performCleanup removes agents that have been offline for too long
 func (r *Registry) performCleanup() {
-	ctx := context.Background()
+	// Use lifecycle context with timeout
+	ctx, cancel := context.WithTimeout(r.ctx, constants.DatabaseOperationTimeout)
+	defer cancel()
+
 	now := time.Now()
-	threshold := 24 * time.Hour // Remove agents offline for 24+ hours
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -368,7 +443,7 @@ func (r *Registry) performCleanup() {
 	for agentID, agent := range r.agents {
 		if agent.Status == types.AgentStatusOffline {
 			offlineDuration := now.Sub(agent.LastHeartbeat)
-			if offlineDuration > threshold {
+			if offlineDuration > constants.StaleAgentThreshold {
 				r.logger.Infow("Cleaning up stale agent",
 					"agent_id", agentID,
 					"offline_duration", offlineDuration)

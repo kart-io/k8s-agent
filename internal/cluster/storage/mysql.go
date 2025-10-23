@@ -6,7 +6,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 type Config struct {
@@ -22,10 +22,10 @@ type Config struct {
 
 type MySQLStorage struct {
 	db  *sql.DB
-	log *logrus.Logger
+	log core.Logger
 }
 
-func NewMySQLStorage(cfg *Config, logger *logrus.Logger) (*MySQLStorage, error) {
+func NewMySQLStorage(cfg *Config, logger core.Logger) (*MySQLStorage, error) {
 	// MySQL DSN format: user:password@tcp(host:port)/dbname?parseTime=true&charset=utf8mb4
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&charset=utf8mb4",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
@@ -49,7 +49,9 @@ func NewMySQLStorage(cfg *Config, logger *logrus.Logger) (*MySQLStorage, error) 
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	logger.Info("Successfully connected to MySQL")
+	if logger != nil {
+		logger.Info("Successfully connected to MySQL")
+	}
 
 	return &MySQLStorage{
 		db:  db,
@@ -93,16 +95,15 @@ func (s *MySQLStorage) InitSchema() error {
 		return fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	s.log.Info("Database schema initialized")
+	if s.log != nil {
+		s.log.Info("Database schema initialized")
+	}
 	return nil
 }
 
 // NewMySQLStorageWithDB creates a MySQLStorage instance with an existing DB connection
 // This is useful for testing with mocked databases
-func NewMySQLStorageWithDB(db *sql.DB, logger *logrus.Logger) *MySQLStorage {
-	if logger == nil {
-		logger = logrus.New()
-	}
+func NewMySQLStorageWithDB(db *sql.DB, logger core.Logger) *MySQLStorage {
 	return &MySQLStorage{
 		db:  db,
 		log: logger,

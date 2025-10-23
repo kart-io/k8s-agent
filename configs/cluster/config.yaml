@@ -11,8 +11,8 @@ database:
   port: 5432
   user: postgres
   password: postgres
-  dbname: cluster_db
-  sslmode: disable  # disable, require, verify-ca, verify-full
+  database: cluster_db  # Changed from 'dbname' to 'database'
+  ssl_mode: disable  # Changed from 'sslmode' to 'ssl_mode' to match DatabaseOptions
   max_open_conns: 25
   max_idle_conns: 5
 

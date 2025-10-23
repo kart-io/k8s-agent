@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/common/logger"
 	"github.com/kart-io/k8s-agent/common/middleware"
 	"github.com/kart-io/k8s-agent/internal/cluster/handler"
 	handler2 "github.com/kart-io/k8s-agent/internal/cluster/handler"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 type ServerConfig struct {
@@ -27,7 +26,7 @@ type Server struct {
 	handler        *handler.ClusterHandler
 	k8sAPIHandler  *handler.K8sAPIHandler
 	versionHandler *handler.VersionHandler
-	log            *logrus.Logger
+	log            core.Logger
 	engine         *gin.Engine
 	server         *http.Server
 }
@@ -37,7 +36,7 @@ func NewServer(
 	config *ServerConfig,
 	handler *handler.ClusterHandler,
 	k8sAPIHandler *handler.K8sAPIHandler,
-	logger *logrus.Logger,
+	logger core.Logger,
 ) *Server {
 	gin.SetMode(config.Mode)
 	engine := gin.New()
@@ -332,31 +331,33 @@ func (s *Server) setupRoutes() {
 	}
 
 	// 记录注册的路由
-	logger.Infow("K8s API routes registered (query parameter style)",
-		"base_path", "/api/k8s",
-		"style", "query_parameters",
-		"cluster_endpoints", 7,
-		"namespace_endpoints", 4,
-		"pod_endpoints", 4,
-		"deployment_endpoints", 4,
-		"node_endpoints", 5,
-		"service_endpoints", 5,
-		"statefulset_endpoints", 5,
-		"daemonset_endpoints", 4,
-		"configmap_endpoints", 5,
-		"secret_endpoints", 5,
-		"endpoint_endpoints", 3,
-		"pvc_endpoints", 3,
-		"pv_endpoints", 3,
-		"endpointslice_endpoints", 3,
-		"hpa_endpoints", 3,
-		"event_endpoints", 2,
-		"rolebinding_endpoints", 3,
-		"clusterrole_endpoints", 3,
-		"priorityclass_endpoints", 3,
-		"role_endpoints", 3,
-		"storageclass_endpoints", 3,
-	)
+	if s.log != nil {
+		s.log.Infow("K8s API routes registered (query parameter style)",
+			"base_path", "/api/k8s",
+			"style", "query_parameters",
+			"cluster_endpoints", 7,
+			"namespace_endpoints", 4,
+			"pod_endpoints", 4,
+			"deployment_endpoints", 4,
+			"node_endpoints", 5,
+			"service_endpoints", 5,
+			"statefulset_endpoints", 5,
+			"daemonset_endpoints", 4,
+			"configmap_endpoints", 5,
+			"secret_endpoints", 5,
+			"endpoint_endpoints", 3,
+			"pvc_endpoints", 3,
+			"pv_endpoints", 3,
+			"endpointslice_endpoints", 3,
+			"hpa_endpoints", 3,
+			"event_endpoints", 2,
+			"rolebinding_endpoints", 3,
+			"clusterrole_endpoints", 3,
+			"priorityclass_endpoints", 3,
+			"role_endpoints", 3,
+			"storageclass_endpoints", 3,
+		)
+	}
 }
 
 func (s *Server) Start() error {
@@ -368,20 +369,22 @@ func (s *Server) Start() error {
 		WriteTimeout: s.config.WriteTimeout,
 	}
 
-	s.log.WithField("port", s.config.Port).Info("Starting cluster service")
-	logger.Infow("Server starting",
-		"port", s.config.Port,
-		"mode", s.config.Mode,
-		"read_timeout", s.config.ReadTimeout,
-		"write_timeout", s.config.WriteTimeout,
-	)
+	if s.log != nil {
+		s.log.Infow("Server starting",
+			"port", s.config.Port,
+			"mode", s.config.Mode,
+			"read_timeout", s.config.ReadTimeout,
+			"write_timeout", s.config.WriteTimeout,
+		)
+	}
 
 	return s.server.ListenAndServe()
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.log.Info("Shutting down server...")
-	logger.Info("Server shutdown initiated")
+	if s.log != nil {
+		s.log.Info("Server shutdown initiated")
+	}
 
 	if s.server != nil {
 		return s.server.Shutdown(ctx)

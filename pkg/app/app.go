@@ -56,6 +56,10 @@ func NewCommand(opts Options, runFunc RunFunc, cfg CommandConfig) *cobra.Command
 		Use:   cfg.Use,
 		Short: cfg.Short,
 		Long:  cfg.Long,
+		// 禁用错误时自动显示使用说明
+		SilenceUsage: true,
+		// 禁用错误自动打印（我们在 Execute 中处理）
+		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// 检查是否请求了版本信息
 			version.PrintAndExitIfRequested()

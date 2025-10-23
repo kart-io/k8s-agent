@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -163,7 +164,12 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 		}
 
 		// Save progress
-		e.store.SaveWorkflowExecution(ctx, execution)
+		if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+			e.logger.Error("Failed to save workflow execution progress",
+				zap.String("execution_id", execution.ID),
+				zap.Error(err))
+			// Continue execution even if save fails - we'll try again at completion
+		}
 
 		// Check if step failed
 		if stepExec.Status == types.ExecutionStatusFailed {
@@ -196,25 +202,61 @@ func (e *Engine) executeStep(ctx context.Context, execution *types.WorkflowExecu
 		StartedAt: time.Now(),
 	}
 
-	// Execute based on step type
 	var err error
-	switch step.Type {
-	case types.StepTypeCommand:
-		stepExec.Output, err = e.executor.ExecuteCommand(ctx, execution, step)
-	case types.StepTypeAIAnalysis:
-		stepExec.Output, err = e.executor.ExecuteAIAnalysis(ctx, execution, step)
-	case types.StepTypeDecision:
-		stepExec.Output, err = e.executor.ExecuteDecision(ctx, execution, step)
-	case types.StepTypeRemediation:
-		stepExec.Output, err = e.executor.ExecuteRemediation(ctx, execution, step)
-	case types.StepTypeNotification:
-		stepExec.Output, err = e.executor.ExecuteNotification(ctx, execution, step)
-	case types.StepTypeWait:
-		stepExec.Output, err = e.executor.ExecuteWait(ctx, execution, step)
-	default:
-		err = fmt.Errorf("unknown step type: %s", step.Type)
+	var retryCount int
+
+	// Iterative retry loop instead of recursive
+	for {
+		// Execute based on step type
+		switch step.Type {
+		case types.StepTypeCommand:
+			stepExec.Output, err = e.executor.ExecuteCommand(ctx, execution, step)
+		case types.StepTypeAIAnalysis:
+			stepExec.Output, err = e.executor.ExecuteAIAnalysis(ctx, execution, step)
+		case types.StepTypeDecision:
+			stepExec.Output, err = e.executor.ExecuteDecision(ctx, execution, step)
+		case types.StepTypeRemediation:
+			stepExec.Output, err = e.executor.ExecuteRemediation(ctx, execution, step)
+		case types.StepTypeNotification:
+			stepExec.Output, err = e.executor.ExecuteNotification(ctx, execution, step)
+		case types.StepTypeWait:
+			stepExec.Output, err = e.executor.ExecuteWait(ctx, execution, step)
+		default:
+			err = fmt.Errorf("unknown step type: %s", step.Type)
+		}
+
+		// Success case
+		if err == nil {
+			break
+		}
+
+		// Failure - check if retry is allowed
+		if step.RetryPolicy == nil || retryCount >= step.RetryPolicy.MaxRetries {
+			// No more retries
+			break
+		}
+
+		// Retry logic
+		retryCount++
+		stepExec.RetryCount = retryCount
+
+		e.logger.Info("Retrying step",
+			zap.String("step_id", step.ID),
+			zap.Int("retry_count", retryCount),
+			zap.Error(err))
+
+		// Wait before retry with context cancellation support
+		delay := e.calculateRetryDelay(step.RetryPolicy, retryCount)
+		select {
+		case <-ctx.Done():
+			// Context cancelled during retry wait
+			return nil, ctx.Err()
+		case <-time.After(delay):
+			// Continue to next retry
+		}
 	}
 
+	// Set completion time and status
 	completedAt := time.Now()
 	stepExec.CompletedAt = &completedAt
 	stepExec.Duration = completedAt.Sub(stepExec.StartedAt)
@@ -222,22 +264,6 @@ func (e *Engine) executeStep(ctx context.Context, execution *types.WorkflowExecu
 	if err != nil {
 		stepExec.Status = types.ExecutionStatusFailed
 		stepExec.Error = err.Error()
-
-		// Retry if policy exists
-		if step.RetryPolicy != nil && stepExec.RetryCount < step.RetryPolicy.MaxRetries {
-			stepExec.RetryCount++
-			e.logger.Info("Retrying step",
-				zap.String("step_id", step.ID),
-				zap.Int("retry_count", stepExec.RetryCount))
-
-			// Wait before retry
-			delay := e.calculateRetryDelay(step.RetryPolicy, stepExec.RetryCount)
-			time.Sleep(delay)
-
-			// Retry
-			return e.executeStep(ctx, execution, step)
-		}
-
 		return stepExec, err
 	}
 
@@ -357,8 +383,14 @@ func (e *Engine) completeExecution(ctx context.Context, execution *types.Workflo
 		execution.Error = errorMsg
 	}
 
-	// Save final state
-	e.store.SaveWorkflowExecution(ctx, execution)
+	// Save final state - critical operation
+	if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+		e.logger.Error("CRITICAL: Failed to save final workflow execution state",
+			zap.String("execution_id", execution.ID),
+			zap.String("status", string(status)),
+			zap.Error(err))
+		// This is a data integrity issue - log extensively for investigation
+	}
 
 	// Update metrics
 	e.mu.Lock()
@@ -422,6 +454,7 @@ func (e *Engine) GetStatistics() map[string]interface{} {
 
 // Helper functions
 
+// contains checks if string s contains substr
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && s[:len(substr)] == substr
+	return strings.Contains(s, substr)
 }

@@ -10,13 +10,12 @@ import (
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
-	"github.com/spf13/pflag"
 )
 
 // Execute runs the auth service command
 func Execute() {
 	// 创建配置选项 (使用auth service的config)
-	opts := NewConfigOptions()
+	opts := authconfig.NewOptions()
 
 	// 使用组合框架运行应用
 	commonapp.RunWithRunner(
@@ -32,59 +31,10 @@ func Execute() {
 	)
 }
 
-// ConfigOptions 实现 commonapp.Options 接口
-type ConfigOptions struct {
-	Config     *authconfig.Config
-	ConfigFile string
-}
-
-// NewConfigOptions 创建新的配置选项
-func NewConfigOptions() *ConfigOptions {
-	return &ConfigOptions{}
-}
-
-// AddFlags 添加命令行标志
-func (o *ConfigOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVarP(&o.ConfigFile, "config", "c", "", "Path to configuration file")
-}
-
-// Complete 完成配置
-func (o *ConfigOptions) Complete() error {
-	if o.Config == nil {
-		var cfg *authconfig.Config
-		var err error
-
-		if o.ConfigFile != "" {
-			cfg, err = authconfig.LoadFromPath(o.ConfigFile)
-		} else {
-			cfg, err = authconfig.Load()
-		}
-
-		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-		o.Config = cfg
-	}
-	return nil
-}
-
-// Validate 验证配置
-func (o *ConfigOptions) Validate() []error {
-	var errs []error
-
-	if o.Config == nil {
-		errs = append(errs, fmt.Errorf("config is nil"))
-		return errs
-	}
-
-	// Config validation is done in config.Load()
-	return errs
-}
-
 // AuthApp 实现 commonapp.Application 接口
 type AuthApp struct {
 	bootstrap *bootstrap.Bootstrap
-	opts      *authconfig.Config
+	opts      *authconfig.Options
 	logger    core.Logger
 
 	// 组件初始化器
@@ -100,7 +50,14 @@ type AuthApp struct {
 
 // Initialize 初始化应用程序
 func (a *AuthApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	a.opts = opts.(*ConfigOptions).Config
+	a.opts = opts.(*authconfig.Options)
+
+	// 初始化日志系统
+	logger, err := initLogger(opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+	a.logger = logger
 
 	a.logger.Infow("Initializing Auth Service",
 		"host", a.opts.Server.Host,
@@ -110,15 +67,11 @@ func (a *AuthApp) Initialize(ctx context.Context, opts commonapp.Options) error 
 	// 创建 bootstrap 实例
 	a.bootstrap = bootstrap.New(a.logger)
 
-	// 注册所有组件初始化器
+	// 注册所有组件初始化器（但不执行初始化）
+	// 初始化将在 Run() 方法中由 bootstrap.Run() 执行
 	a.registerComponents()
 
-	// 执行初始化
-	if err := a.bootstrap.Initialize(ctx); err != nil {
-		return fmt.Errorf("failed to initialize components: %w", err)
-	}
-
-	a.logger.Infow("All components initialized successfully")
+	a.logger.Infow("Components registered, ready to start")
 	return nil
 }
 
@@ -205,8 +158,8 @@ func (a *AuthApp) registerComponents() {
 
 // initLogger 初始化日志系统
 func initLogger(opts commonapp.Options) (core.Logger, error) {
-	cfg := opts.(*ConfigOptions).Config
+	cfg := opts.(*authconfig.Options)
 
 	// cfg.Logging 已经是 commonoptions.LoggingOptions 类型，直接使用
-	return commonlogger.InitFromOptions(&cfg.Logging)
+	return commonlogger.InitFromOptions(cfg.Logging)
 }

@@ -166,17 +166,44 @@ The project follows a strict separation between generic utilities and project-sp
 
 The project uses a **modular Makefile system** (inspired by OneX) with rules split across `scripts/make-rules/*.mk` files. All commands should be run from the repository root.
 
+**IMPORTANT**: Always run make commands from the repository root directory, never from individual service directories.
+
+### Command Format Guide
+
+The project supports **two command formats** for backward compatibility:
+
+1. **New Format (Recommended)**: `make <module>.<action>[.<service>]`
+   - Example: `make go.build.agent-manager`
+   - Clear module separation, matches `scripts/make-rules/*.mk` structure
+   - Preferred for new scripts and documentation
+
+2. **Legacy Format (Compatibility)**: `make <action>[-<service>]`
+   - Example: `make build-agent-manager`
+   - Shorter, easier to type
+   - Internally forwards to new format
+   - Kept for backward compatibility
+
+**See**: [docs/MAKEFILE_COMMANDS.md](docs/MAKEFILE_COMMANDS.md) for complete command reference and migration guide.
+
 ### Build Commands
 
 ```bash
 # Build all services (outputs to _output/bin/)
 make build
 
-# Build specific service
+# Build specific service (两种格式都支持)
+# 推荐使用新格式（模块化，更清晰）
 make go.build.agent-manager
 make go.build.orchestrator
 make go.build.reasoning
-make go.build.auth
+
+# 或使用简短格式（兼容旧脚本）
+make build-agent-manager
+make build-orchestrator
+make build-reasoning
+
+# 注意：两种格式完全等价，build-X 只是 go.build.X 的别名
+# 推荐在新代码中使用 go.build.X 格式，保持与模块化 Makefile 系统一致
 
 # Build for multiple architectures
 make go.build.multiarch
@@ -224,6 +251,15 @@ make quick-test
 
 # Full test suite (unit + integration)
 make full-test
+
+# Run a single test function
+go test -v ./internal/agent-manager/agent -run TestAgentRegistry_Register
+
+# Run tests with race detector
+go test -race ./...
+
+# Run benchmarks
+go test -bench=. -benchmem ./...
 ```
 
 ### Code Quality Commands
@@ -919,7 +955,7 @@ func LoadConfig(path string) (*Config, error) {
 }
 ```
 
-### Service Entry Point Pattern
+## Service Entry Point Pattern
 
 Services follow this main.go pattern:
 
@@ -934,24 +970,23 @@ import (
 )
 
 func main() {
-    configPath := flag.String("c", "configs/config.yaml", "config file path")
-    flag.Parse()
-
-    // Initialize logger
-    log := logger.New(logger.Config{...})
-
-    // Load config
-    cfg, err := app.LoadConfig(*configPath)
-    if err != nil {
-        log.Fatal("Failed to load config", logger.Error(err))
-    }
-
-    // Run application
-    if err := app.Run(cfg, log); err != nil {
-        log.Fatal("Application failed", logger.Error(err))
-    }
+    // Services use Cobra commands defined in cmd/<service>/app/
+    // The app.Execute() function sets up the service with:
+    // - Configuration loading from YAML/environment
+    // - Logger initialization
+    // - Database/Redis/NATS connections
+    // - HTTP/gRPC server setup
+    // - Graceful shutdown handling
+    app.Execute()
 }
 ```
+
+**Service Startup Pattern**:
+1. main.go → app.Execute() (minimal main, delegates to app package)
+2. app/ package defines Cobra root command and subcommands
+3. app/ package handles configuration loading (Viper + environment variables)
+4. app/ package initializes all dependencies (DB, cache, message queue)
+5. Server starts with graceful shutdown on SIGTERM/SIGINT
 
 ### NATS Messaging Patterns
 
@@ -1078,6 +1113,96 @@ curl http://localhost:8082/health  # Reasoning Service
 make docker-compose-up
 ```
 
+## Debugging and Troubleshooting
+
+### Viewing Logs
+
+```bash
+# Service logs when running locally
+# Logs go to stdout/stderr by default
+
+# Docker Compose logs
+cd deployments/docker-compose
+docker-compose logs -f agent-manager
+docker-compose logs -f orchestrator
+docker-compose logs --tail=100 reasoning
+
+# Kubernetes logs
+kubectl -n aetherius logs -f deployment/agent-manager
+kubectl -n aetherius logs -f deployment/orchestrator --tail=100
+```
+
+### Common Issues
+
+**Issue**: Build fails with "cannot find package"
+```bash
+# Solution: Clean and re-download dependencies
+make clean
+make deps
+go mod download
+go mod tidy
+```
+
+**Issue**: Tests fail with database connection errors
+```bash
+# Solution: Ensure databases are running
+cd deployments/docker-compose
+docker-compose up -d mysql redis
+docker-compose ps  # Verify they're healthy
+```
+
+**Issue**: Port already in use (8080, 8081, 8082)
+```bash
+# Solution: Stop conflicting services
+docker-compose down
+lsof -ti:8080 | xargs kill -9  # macOS/Linux
+```
+
+**Issue**: NATS connection refused
+```bash
+# Solution: Start NATS server
+docker-compose up -d nats
+# Verify: docker-compose ps nats
+```
+
+**Issue**: Service crashes with "panic: runtime error"
+```bash
+# Solution: Enable debug logging and check stack trace
+# In config file: log.level: debug
+# Or environment: export LOG_LEVEL=debug
+# Re-run service and check full stack trace
+```
+
+### Database Operations
+
+```bash
+# Connect to MySQL
+docker-compose exec mysql mysql -u aetherius -p
+
+# Connect to Redis CLI
+docker-compose exec redis redis-cli
+
+# Reset databases (WARNING: destroys all data)
+docker-compose down -v
+docker-compose up -d mysql redis
+# Wait for initialization, then restart services
+```
+
+### Performance Profiling
+
+```bash
+# Enable pprof in service (services expose /debug/pprof on HTTP port)
+curl http://localhost:8080/debug/pprof/heap > heap.prof
+go tool pprof heap.prof
+
+# CPU profiling
+curl http://localhost:8080/debug/pprof/profile?seconds=30 > cpu.prof
+go tool pprof cpu.prof
+
+# Check goroutines
+curl http://localhost:8080/debug/pprof/goroutine?debug=1
+```
+
 ## Important Notes
 
 - **Monorepo Structure**: All services in one repository with centralized build system
@@ -1091,13 +1216,311 @@ make docker-compose-up
 - **Logging**: Transitioning to `github.com/kart-io/logger` (dual-engine Zap/Slog)
 - **Version Injection**: Uses `github.com/kart-io/version` for build-time version information
 - **Reasoning Service**: Fully implemented in Go with AI API integration (OpenAI/Gemini/DeepSeek)
-- **Configuration**: YAML + Viper with standardized options in `common/config/` (53 config functions)
+- **Configuration**: YAML + Viper with standardized options in `common/options/` (53 config functions)
 - **Multi-platform**: Docker builds support linux/amd64 and linux/arm64
 - **Authentication**: JWT-based with Redis session management and forced logout
 - **Event Flow**: Collect Agent → NATS → Agent Manager → NATS → Orchestrator → HTTP → Reasoning Service
 - **Build Outputs**: All binaries output to `_output/bin/`, coverage to `_output/coverage/`
 - **No Service-Level Builds**: Always run make commands from repository root
 - **Code Reorganization**: See [docs/CODE_REORGANIZATION.md](docs/CODE_REORGANIZATION.md) for migration plan from `internal/pkg/` to `pkg/`
+
+## Key Architecture Patterns
+
+### Domain-Driven Structure
+
+Each service follows domain-driven design in `internal/<service>/`:
+
+```
+internal/agent-manager/
+├── agent/           # Agent domain (registry, lifecycle management)
+├── command/         # Command domain (dispatch, execution tracking)
+├── event/           # Event domain (processing, aggregation)
+├── storage/         # Persistence layer (repositories)
+├── api/             # HTTP handlers (Gin routes)
+├── grpc/            # gRPC service implementations
+├── nats/            # NATS message handlers
+├── config/          # Service-specific configuration
+└── initializers/    # Dependency initialization
+```
+
+### Error Handling Pattern
+
+```go
+import "github.com/kart-io/k8s-agent/common/errors"
+
+// Wrap errors with context and error codes
+if err := doSomething(); err != nil {
+    return errors.Wrap(err, errors.CodeInternal, "failed to do something")
+}
+
+// Create new errors with codes
+if invalid {
+    return errors.New(errors.CodeInvalidArgument, "validation failed")
+}
+
+// Error codes: CodeOK, CodeInternal, CodeInvalidArgument, CodeNotFound,
+//              CodeAlreadyExists, CodePermissionDenied, CodeUnavailable
+```
+
+### Configuration Loading Pattern
+
+```go
+// Services use Viper for configuration with environment override
+// Priority: Environment Variables > Config File > Defaults
+
+import (
+    "github.com/spf13/viper"
+    "github.com/kart-io/k8s-agent/common/options"
+)
+
+type Config struct {
+    Server   options.ServerOptions   `mapstructure:"server"`
+    Database options.DatabaseOptions `mapstructure:"database"`
+    Redis    options.RedisOptions    `mapstructure:"redis"`
+    NATS     options.NATSOptions     `mapstructure:"nats"`
+    // Service-specific fields...
+}
+
+// Environment variable mapping:
+// server.port → SERVER_PORT
+// database.host → DATABASE_HOST
+// Viper automatically handles underscore conversion
+```
+
+### Graceful Shutdown Pattern
+
+```go
+// All services implement graceful shutdown on SIGTERM/SIGINT
+// Pattern used in cmd/<service>/app/:
+
+import (
+    "context"
+    "os"
+    "os/signal"
+    "syscall"
+    "time"
+)
+
+func Run() error {
+    // Start HTTP/gRPC servers in goroutines
+    go httpServer.Start()
+    go grpcServer.Start()
+
+    // Wait for interrupt signal
+    quit := make(chan os.Signal, 1)
+    signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+    <-quit
+
+    // Graceful shutdown with timeout
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+
+    if err := httpServer.Shutdown(ctx); err != nil {
+        return err
+    }
+    if err := grpcServer.GracefulStop(ctx); err != nil {
+        return err
+    }
+
+    // Close database connections, NATS, etc.
+    return cleanup()
+}
+```
+
+### Repository Pattern
+
+```go
+// Storage layer uses repository pattern in internal/<service>/storage/
+
+type AgentRepository interface {
+    Create(ctx context.Context, agent *types.Agent) error
+    Get(ctx context.Context, id string) (*types.Agent, error)
+    List(ctx context.Context, opts ListOptions) ([]*types.Agent, error)
+    Update(ctx context.Context, agent *types.Agent) error
+    Delete(ctx context.Context, id string) error
+}
+
+// MySQL implementation
+type mysqlAgentRepository struct {
+    db *gorm.DB
+}
+
+// Repositories are initialized in internal/<service>/initializers/
+```
+
+### API Response Format
+
+```go
+// Use common/response for standardized API responses
+import "github.com/kart-io/k8s-agent/common/response"
+
+// Success response
+response.Success(c, data)  // 200 OK with data
+
+// Error responses
+response.Error(c, http.StatusBadRequest, "invalid input")
+response.NotFound(c, "resource not found")
+response.InternalError(c, err)
+
+// Paginated response
+response.SuccessWithPagination(c, data, pagination.Info{
+    Page: 1, PageSize: 20, Total: 100,
+})
+```
+
+### Middleware Usage
+
+```go
+// Services use common middleware from common/middleware/
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/kart-io/k8s-agent/common/middleware"
+)
+
+router := gin.New()
+router.Use(middleware.Logger())           // Request logging
+router.Use(middleware.Recovery())         // Panic recovery
+router.Use(middleware.CORS())             // CORS headers
+router.Use(middleware.RateLimit(100))     // Rate limiting
+router.Use(middleware.RequestID())        // Request ID tracking
+router.Use(middleware.Metrics())          // Prometheus metrics
+```
+
+### Workflow Execution Pattern (Orchestrator Service)
+
+The Orchestrator Service uses a workflow engine with 6 step types:
+
+```yaml
+# Example workflow definition for diagnosing Pod crashes
+workflow:
+  name: "diagnose_pod_crashloop"
+  version: "1.0"
+  trigger:
+    event_type: "CrashLoopBackOff"
+    severity: ["high", "critical"]
+
+  steps:
+    # Step 1: Execute kubectl command via Agent Manager
+    - id: collect_logs
+      type: command
+      command:
+        tool: kubectl
+        action: logs
+        args: ["--tail=100", "--previous", "${pod_name}"]
+        namespace: "${namespace}"
+        timeout: "30s"
+
+    # Step 2: Get resource description
+    - id: describe_pod
+      type: command
+      command:
+        tool: kubectl
+        action: describe
+        args: ["pod", "${pod_name}"]
+        namespace: "${namespace}"
+
+    # Step 3: Call Reasoning Service for AI analysis
+    - id: ai_analysis
+      type: ai
+      input:
+        event: "${trigger_event}"
+        logs: "${collect_logs.output}"
+        description: "${describe_pod.output}"
+      endpoint: "http://reasoning-service:8082/api/v1/analyze/root-cause"
+      timeout: "30s"
+
+    # Step 4: Decision based on root cause
+    - id: decide_action
+      type: decision
+      conditions:
+        - if: "${ai_analysis.root_cause} == 'OOMKilled'"
+          then: increase_memory
+        - if: "${ai_analysis.root_cause} == 'ConfigError'"
+          then: notify_owner
+        - if: "${ai_analysis.confidence} < 0.7"
+          then: manual_review
+
+    # Step 5: Remediation action
+    - id: increase_memory
+      type: remediation
+      action: update_deployment
+      params:
+        resource_type: "Deployment"
+        name: "${deployment_name}"
+        patch:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: "${container_name}"
+                    resources:
+                      limits:
+                        memory: "${suggested_memory}"
+      approval_required: false  # Auto-execute if confidence > 0.9
+
+    # Step 6: Notification
+    - id: notify
+      type: notification
+      channels: ["slack", "email"]
+      message: "Resolved ${event_type} for ${pod_name}: ${ai_analysis.root_cause}"
+```
+
+**Step Type Implementations** (`internal/orchestrator/workflow/steps/`):
+- **CommandStep**: Executes kubectl/diagnostic commands via Agent Manager
+- **AIStep**: Calls Reasoning Service for analysis
+- **DecisionStep**: Conditional branching based on variables
+- **RemediationStep**: Executes repair actions (scale, restart, update config)
+- **NotificationStep**: Sends alerts via Slack/Email/Webhook
+- **WaitStep**: Delay execution (observation period, rate limiting)
+
+### Testing Patterns
+
+```go
+// Use testify for assertions
+import (
+    "testing"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
+    "github.com/DATA-DOG/go-sqlmock"
+)
+
+func TestAgentRegistry_Register(t *testing.T) {
+    // Arrange: Setup test database with sqlmock
+    db, mock, err := sqlmock.New()
+    require.NoError(t, err)
+    defer db.Close()
+
+    mock.ExpectExec("INSERT INTO agents").
+        WithArgs("agent-1", "cluster-1", sqlmock.AnyArg()).
+        WillReturnResult(sqlmock.NewResult(1, 1))
+
+    registry := NewAgentRegistry(db)
+    agent := &types.Agent{
+        ID:        "agent-1",
+        ClusterID: "cluster-1",
+    }
+
+    // Act: Execute function under test
+    err = registry.Register(context.Background(), agent)
+
+    // Assert: Verify expectations
+    assert.NoError(t, err)
+    assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// Integration test example (requires running dependencies)
+// +build integration
+func TestAgentManagerAPI(t *testing.T) {
+    // Start test server with real MySQL/Redis
+    // Use t.Cleanup() for resource cleanup
+    server := startTestServer(t)
+    t.Cleanup(func() { server.Shutdown() })
+
+    // Test API endpoints
+    resp := httptest.NewRequest("GET", "/api/v1/agents", nil)
+    // ... assertions
+}
+```
 
 ## Documentation
 

@@ -3,26 +3,23 @@ package config
 import (
 	"fmt"
 
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/spf13/viper"
 )
 
-// Config holds all configuration
-type Config struct {
-	Server   commonoptions.ServerOptions   `mapstructure:"server"`
-	Database commonoptions.DatabaseOptions `mapstructure:"database"`
-	Redis    commonoptions.RedisOptions    `mapstructure:"redis"`
-	JWT      commonoptions.JWTOptions      `mapstructure:"jwt"`
-	Logging  commonoptions.LoggingOptions  `mapstructure:"logging"`
-	Email    commonoptions.EmailOptions    `mapstructure:"email"`
-}
+// Config is an alias for Options for backward compatibility
+// Deprecated: Use Options instead
+type Config = Options
 
 // Load loads configuration from file and environment variables
+// Deprecated: This function is kept for backward compatibility with old code.
+// New code should use pkg/app framework which handles config loading automatically.
 func Load() (*Config, error) {
 	return LoadFromPath("")
 }
 
 // LoadFromPath loads configuration from a specific file path
+// Deprecated: This function is kept for backward compatibility with old code.
+// New code should use pkg/app framework which handles config loading automatically.
 func LoadFromPath(configPath string) (*Config, error) {
 	v := viper.New()
 
@@ -49,38 +46,25 @@ func LoadFromPath(configPath string) (*Config, error) {
 	v.BindEnv("jwt.secret", "JWT_SECRET")
 	v.BindEnv("jwt.expires_hours", "JWT_EXPIRES_HOURS")
 
-	var config Config
-	if err := v.Unmarshal(&config); err != nil {
+	config := NewOptions()
+	if err := v.Unmarshal(config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	// Validate required fields
-	if err := validate(&config); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
+	if errs := config.Validate(); len(errs) > 0 {
+		return nil, fmt.Errorf("config validation failed: %v", errs)
 	}
 
-	return &config, nil
+	return config, nil
 }
 
 // validate validates configuration
+// Deprecated: Use Options.Validate() instead
 func validate(cfg *Config) error {
-	if err := cfg.Server.Validate(); err != nil {
-		return fmt.Errorf("server validation failed: %w", err)
-	}
-	if err := cfg.Database.Validate(); err != nil {
-		return fmt.Errorf("database validation failed: %w", err)
-	}
-	if err := cfg.Redis.Validate(); err != nil {
-		return fmt.Errorf("redis validation failed: %w", err)
-	}
-	if err := cfg.JWT.Validate(); err != nil {
-		return fmt.Errorf("jwt validation failed: %w", err)
-	}
-	if err := cfg.Logging.Validate(); err != nil {
-		return fmt.Errorf("logging validation failed: %w", err)
-	}
-	if err := cfg.Email.Validate(); err != nil {
-		return fmt.Errorf("email validation failed: %w", err)
+	errs := cfg.Validate()
+	if len(errs) > 0 {
+		return fmt.Errorf("validation errors: %v", errs)
 	}
 	return nil
 }

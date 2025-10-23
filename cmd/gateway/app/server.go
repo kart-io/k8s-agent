@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kart-io/logger"
+	"github.com/kart-io/logger/core"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/kart-io/k8s-agent/internal/gateway/config"
@@ -20,14 +20,14 @@ import (
 // Server represents the gateway server
 type Server struct {
 	opts    *config.Options
-	log     logger.Logger
+	log     core.Logger
 	rdb     *redis.Client
 	httpSrv *http.Server
 	router  http.Handler
 }
 
 // NewServer creates a new gateway server
-func NewServer(opts *config.Options, log logger.Logger) (*Server, error) {
+func NewServer(opts *config.Options, log core.Logger) (*Server, error) {
 	srv := &Server{
 		opts: opts,
 		log:  log,
@@ -49,7 +49,7 @@ func (s *Server) initialize() error {
 		middleware.InitRateLimiter(s.rdb)
 	}
 
-	// Setup router
+	// Setup router with unified logger
 	s.router = router.Setup(s.log)
 
 	// Create HTTP server
@@ -67,7 +67,7 @@ func (s *Server) initialize() error {
 // connectRedis connects to Redis
 func (s *Server) connectRedis() *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", s.opts.Redis.Host, s.opts.Redis.Port),
+		Addr:     s.opts.Redis.Addr,
 		Password: s.opts.Redis.Password,
 		DB:       s.opts.Redis.DB,
 		PoolSize: s.opts.Redis.PoolSize,
@@ -85,7 +85,7 @@ func (s *Server) connectRedis() *redis.Client {
 	}
 
 	s.log.Infow("Connected to Redis",
-		"addr", fmt.Sprintf("%s:%d", s.opts.Redis.Host, s.opts.Redis.Port),
+		"addr", s.opts.Redis.Addr,
 	)
 
 	return rdb

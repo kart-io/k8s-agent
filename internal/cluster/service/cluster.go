@@ -8,17 +8,17 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/k8s"
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/internal/cluster/types"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type ClusterService struct {
 	storage *storage.MySQLStorage
 	clients map[string]*k8s.Client // cluster_id -> client
-	log     *logrus.Logger
+	log     core.Logger
 }
 
-func NewClusterService(storage *storage.MySQLStorage, logger *logrus.Logger) *ClusterService {
+func NewClusterService(storage *storage.MySQLStorage, logger core.Logger) *ClusterService {
 	return &ClusterService{
 		storage: storage,
 		clients: make(map[string]*k8s.Client),
@@ -41,7 +41,7 @@ func (s *ClusterService) AddCluster(ctx context.Context, cluster *types.Cluster)
 	// 获取集群版本
 	version, err := client.GetServerVersion(ctx)
 	if err != nil {
-		s.log.WithError(err).Warn("Failed to get server version")
+		s.log.Warnw("Failed to get server version", "error", err)
 	} else {
 		cluster.Version = version
 	}
