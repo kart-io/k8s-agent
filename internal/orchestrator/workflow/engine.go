@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 
 	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/types"
+	"github.com/kart-io/logger/core"
 )
 
 // Engine manages workflow execution
@@ -19,7 +19,7 @@ type Engine struct {
 	store    *storage.PostgresStore
 	cache    *storage.RedisStore
 	executor *Executor
-	logger   *zap.Logger
+	logger   core.Logger
 
 	// Execution tracking
 	mu         sync.RWMutex
@@ -36,13 +36,13 @@ func NewEngine(
 	store *storage.PostgresStore,
 	cache *storage.RedisStore,
 	executor *Executor,
-	logger *zap.Logger,
+	logger core.Logger,
 ) *Engine {
 	return &Engine{
 		store:      store,
 		cache:      cache,
 		executor:   executor,
-		logger:     logger.With(zap.String("component", "workflow-engine")),
+		logger:     logger,
 		executions: make(map[string]*types.WorkflowExecution),
 	}
 }
@@ -50,26 +50,26 @@ func NewEngine(
 // StartWorkflow starts a new workflow execution
 func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEvent map[string]interface{}) (*types.WorkflowExecution, error) {
 	e.logger.Info("🎬 Starting workflow execution",
-		zap.String("workflow_id", workflowID))
+		"workflow_id", workflowID)
 
 	// Load workflow definition
 	workflow, err := e.store.GetWorkflow(ctx, workflowID)
 	if err != nil {
 		e.logger.Error("❌ Failed to load workflow from database",
-			zap.String("workflow_id", workflowID),
-			zap.Error(err))
+			"workflow_id", workflowID,
+			"error", err)
 		return nil, fmt.Errorf("failed to load workflow: %w", err)
 	}
 
 	e.logger.Info("✓ Workflow loaded",
-		zap.String("workflow_name", workflow.Name),
-		zap.String("status", string(workflow.Status)),
-		zap.Int("steps", len(workflow.Steps)))
+		"workflow_name", workflow.Name,
+		"status", string(workflow.Status),
+		"steps", len(workflow.Steps))
 
 	if workflow.Status != types.WorkflowStatusActive {
 		e.logger.Warn("⚠️  Workflow is not active",
-			zap.String("workflow_id", workflowID),
-			zap.String("status", string(workflow.Status)))
+			"workflow_id", workflowID,
+			"status", string(workflow.Status))
 		return nil, fmt.Errorf("workflow is not active")
 	}
 
@@ -85,18 +85,18 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 	}
 
 	e.logger.Info("📝 Created workflow execution instance",
-		zap.String("execution_id", executionID))
+		"execution_id", executionID)
 
 	// Save execution
 	if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
 		e.logger.Error("❌ Failed to save execution to database",
-			zap.String("execution_id", executionID),
-			zap.Error(err))
+			"execution_id", executionID,
+			"error", err)
 		return nil, fmt.Errorf("failed to save execution: %w", err)
 	}
 
 	e.logger.Info("✓ Execution saved to database",
-		zap.String("execution_id", executionID))
+		"execution_id", executionID)
 
 	// Track in memory
 	e.mu.Lock()
@@ -106,15 +106,15 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 	e.mu.Unlock()
 
 	e.logger.Info("📊 Execution tracking updated",
-		zap.String("execution_id", executionID),
-		zap.Int64("total_started", currentStats))
+		"execution_id", executionID,
+		"total_started", currentStats)
 
 	// Start execution asynchronously
 	go e.executeWorkflow(context.Background(), workflow, execution)
 
 	e.logger.Info("Workflow execution started",
-		zap.String("execution_id", execution.ID),
-		zap.String("workflow_id", workflowID))
+		"execution_id", execution.ID,
+		"workflow_id", workflowID)
 
 	return execution, nil
 }
@@ -134,15 +134,15 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 	// Execute steps in sequence
 	for i, step := range workflow.Steps {
 		e.logger.Info("Executing workflow step",
-			zap.String("execution_id", execution.ID),
-			zap.String("step_id", step.ID),
-			zap.String("step_name", step.Name),
-			zap.Int("step_index", i))
+			"execution_id", execution.ID,
+			"step_id", step.ID,
+			"step_name", step.Name,
+			"step_index", i)
 
 		// Check if we should execute this step
 		if !e.shouldExecuteStep(execution, step) {
 			e.logger.Debug("Skipping step due to conditions",
-				zap.String("step_id", step.ID))
+				"step_id", step.ID)
 			continue
 		}
 
@@ -166,8 +166,8 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 		// Save progress
 		if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
 			e.logger.Error("Failed to save workflow execution progress",
-				zap.String("execution_id", execution.ID),
-				zap.Error(err))
+				"execution_id", execution.ID,
+				"error", err)
 			// Continue execution even if save fails - we'll try again at completion
 		}
 
@@ -241,9 +241,9 @@ func (e *Engine) executeStep(ctx context.Context, execution *types.WorkflowExecu
 		stepExec.RetryCount = retryCount
 
 		e.logger.Info("Retrying step",
-			zap.String("step_id", step.ID),
-			zap.Int("retry_count", retryCount),
-			zap.Error(err))
+			"step_id", step.ID,
+			"retry_count", retryCount,
+			"error", err)
 
 		// Wait before retry with context cancellation support
 		delay := e.calculateRetryDelay(step.RetryPolicy, retryCount)
@@ -355,9 +355,9 @@ func (e *Engine) calculateRetryDelay(policy *types.RetryPolicy, retryCount int) 
 // handleStepFailure handles step execution failure
 func (e *Engine) handleStepFailure(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep, err error) {
 	e.logger.Error("Step execution failed",
-		zap.String("execution_id", execution.ID),
-		zap.String("step_id", step.ID),
-		zap.Error(err))
+		"execution_id", execution.ID,
+		"step_id", step.ID,
+		"error", err)
 
 	e.completeExecution(ctx, execution, types.ExecutionStatusFailed, err.Error())
 }
@@ -366,8 +366,8 @@ func (e *Engine) handleStepFailure(ctx context.Context, execution *types.Workflo
 func (e *Engine) executeFailureBranch(ctx context.Context, workflow *types.Workflow, execution *types.WorkflowExecution, step types.WorkflowStep) {
 	// TODO: Implement failure branch execution
 	e.logger.Info("Executing failure branch",
-		zap.String("execution_id", execution.ID),
-		zap.String("step_id", step.ID))
+		"execution_id", execution.ID,
+		"step_id", step.ID)
 
 	e.completeExecution(ctx, execution, types.ExecutionStatusFailed, "Failure branch executed")
 }
@@ -386,9 +386,9 @@ func (e *Engine) completeExecution(ctx context.Context, execution *types.Workflo
 	// Save final state - critical operation
 	if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
 		e.logger.Error("CRITICAL: Failed to save final workflow execution state",
-			zap.String("execution_id", execution.ID),
-			zap.String("status", string(status)),
-			zap.Error(err))
+			"execution_id", execution.ID,
+			"status", string(status),
+			"error", err)
 		// This is a data integrity issue - log extensively for investigation
 	}
 
@@ -402,9 +402,9 @@ func (e *Engine) completeExecution(ctx context.Context, execution *types.Workflo
 	e.mu.Unlock()
 
 	e.logger.Info("Workflow execution completed",
-		zap.String("execution_id", execution.ID),
-		zap.String("status", string(status)),
-		zap.Duration("duration", execution.Duration))
+		"execution_id", execution.ID,
+		"status", string(status),
+		"duration", execution.Duration)
 }
 
 // CancelExecution cancels a running execution

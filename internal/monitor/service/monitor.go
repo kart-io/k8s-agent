@@ -8,16 +8,16 @@ import (
 
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
 	"github.com/kart-io/k8s-agent/internal/monitor/types"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 type MonitorService struct {
 	db    *storage.PostgresStorage
 	redis *storage.RedisStorage
-	log   *logrus.Logger
+	log   core.Logger
 }
 
-func NewMonitorService(db *storage.PostgresStorage, redis *storage.RedisStorage, logger *logrus.Logger) *MonitorService {
+func NewMonitorService(db *storage.PostgresStorage, redis *storage.RedisStorage, logger core.Logger) *MonitorService {
 	return &MonitorService{
 		db:    db,
 		redis: redis,
@@ -144,7 +144,7 @@ func (s *MonitorService) GetAgentMetrics(ctx context.Context, limit, offset int)
 			&m.LastHeartbeat,
 			&m.Uptime,
 		); err != nil {
-			s.log.WithError(err).Error("Failed to scan agent metrics")
+			s.log.Errorw("Failed to scan agent metrics", "error", err)
 			continue
 		}
 		metrics = append(metrics, m)
@@ -174,11 +174,11 @@ func (s *MonitorService) GetTrendData(ctx context.Context, hours int) ([]types.T
 		var t types.TrendData
 		var metricsJSON []byte
 		if err := rows.Scan(&t.Timestamp, &metricsJSON); err != nil {
-			s.log.WithError(err).Error("Failed to scan trend data")
+			s.log.Errorw("Failed to scan trend data", "error", err)
 			continue
 		}
 		if err := json.Unmarshal(metricsJSON, &t.Metrics); err != nil {
-			s.log.WithError(err).Error("Failed to unmarshal metrics")
+			s.log.Errorw("Failed to unmarshal metrics", "error", err)
 			continue
 		}
 		trends = append(trends, t)

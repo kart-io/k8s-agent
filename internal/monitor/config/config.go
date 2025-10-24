@@ -3,19 +3,113 @@ package config
 import (
 	"fmt"
 
+	"github.com/kart-io/k8s-agent/common/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
+// Options 实现 commonapp.Options 接口
+type Options struct {
+	ConfigFile string // 配置文件路径
+	*Config           // 嵌入原有的 Config 结构
+}
+
+// NewOptions 创建配置选项
+func NewOptions() *Options {
+	return &Options{
+		Config: &Config{
+			Server: ServerConfig{
+				Port:         8095,
+				Mode:         "release",
+				ReadTimeout:  "60s",
+				WriteTimeout: "60s",
+			},
+			Database: DatabaseConfig{
+				Host:         "localhost",
+				Port:         3306,
+				User:         "aetherius",
+				Password:     "aetherius",
+				DBName:       "aetherius_monitor",
+				MaxOpenConns: 100,
+				MaxIdleConns: 10,
+			},
+			Redis: RedisConfig{
+				Host:     "localhost",
+				Port:     6379,
+				DB:       0,
+				PoolSize: 100,
+			},
+			Prometheus: PrometheusConfig{
+				Enabled: true,
+				Port:    9095,
+			},
+			JWT: JWTConfig{
+				Secret:     "change-this-secret",
+				Expiration: "24h",
+			},
+			Logging: LoggingConfig{
+				Level:  "info",
+				Format: "json",
+				Output: "stdout",
+			},
+			Health: options.HealthOptions{
+				Port: 8095, // 默认健康检查端口
+			},
+		},
+	}
+}
+
+// AddFlags 添加命令行标志
+func (o *Options) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVarP(&o.ConfigFile, "config", "c", "", "配置文件路径")
+	fs.IntVar(&o.Server.Port, "port", o.Server.Port, "服务器端口")
+	fs.StringVar(&o.Database.Host, "db-host", o.Database.Host, "数据库主机")
+	fs.IntVar(&o.Database.Port, "db-port", o.Database.Port, "数据库端口")
+}
+
+// Complete 完成配置初始化
+func (o *Options) Complete() error {
+	if o.ConfigFile != "" {
+		cfg, err := LoadFromPath(o.ConfigFile)
+		if err != nil {
+			return err
+		}
+		o.Config = cfg
+	}
+	return nil
+}
+
+// Validate 验证配置
+func (o *Options) Validate() []error {
+	if err := validate(o.Config); err != nil {
+		return []error{err}
+	}
+	return nil
+}
+
+// GetHealthPort 实现 commonapp.HealthPortProvider 接口
+func (o *Options) GetHealthPort() int {
+	return o.Health.Port
+}
+
+// 确保 Options 实现 commonapp.Options 接口
+var _ commonapp.Options = (*Options)(nil)
+
+// 确保 Options 实现 commonapp.HealthPortProvider 接口
+var _ commonapp.HealthPortProvider = (*Options)(nil)
+
 // Config holds all configuration
 type Config struct {
-	Server     ServerConfig     `mapstructure:"server"`
-	Database   DatabaseConfig   `mapstructure:"database"`
-	Redis      RedisConfig      `mapstructure:"redis"`
-	Prometheus PrometheusConfig `mapstructure:"prometheus"`
-	JWT        JWTConfig        `mapstructure:"jwt"`
-	Logging    LoggingConfig    `mapstructure:"logging"`
-	Alert      AlertConfig      `mapstructure:"alert"`
-	Metrics    MetricsConfig    `mapstructure:"metrics"`
+	Server     ServerConfig         `mapstructure:"server"`
+	Database   DatabaseConfig       `mapstructure:"database"`
+	Redis      RedisConfig          `mapstructure:"redis"`
+	Prometheus PrometheusConfig     `mapstructure:"prometheus"`
+	JWT        JWTConfig            `mapstructure:"jwt"`
+	Logging    LoggingConfig        `mapstructure:"logging"`
+	Alert      AlertConfig          `mapstructure:"alert"`
+	Metrics    MetricsConfig        `mapstructure:"metrics"`
+	Health     options.HealthOptions `mapstructure:"health"`
 }
 
 // ServerConfig holds server configuration

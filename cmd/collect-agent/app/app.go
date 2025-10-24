@@ -19,13 +19,18 @@ func Execute() {
 		return run(opts.(*config.Options))
 	}
 
-	// 使用通用框架运行应用
-	commonapp.Run(opts, runFunc, commonapp.CommandConfig{
+	// 使用增强框架运行应用
+	commonapp.RunWithOptions(opts, runFunc, commonapp.CommandConfig{
 		Use:       "collect-agent",
 		Short:     "Collect Agent",
 		Long:      "Collect Agent monitors K8s cluster events and collects metrics from edge clusters",
 		EnvPrefix: "COLLECT_AGENT",
-	})
+	},
+		commonapp.WithHealthCheck(commonapp.DefaultHealthCheckFuncFromOptions(opts)),
+		commonapp.WithPrintVersion(),
+		commonapp.WithPrintRuntime(),
+		commonapp.WithWatch(),
+	)
 }
 
 // run runs the collect-agent service

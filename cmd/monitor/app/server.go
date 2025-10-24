@@ -8,18 +8,19 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/api"
 	"github.com/kart-io/k8s-agent/internal/monitor/config"
 	"github.com/kart-io/k8s-agent/internal/monitor/handler"
 	"github.com/kart-io/k8s-agent/internal/monitor/service"
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
-	"github.com/kart-io/logger"
+	"github.com/kart-io/logger/core"
 )
 
 // Server represents the monitor server
 type Server struct {
 	opts           *config.Options
-	log            logger.Logger
+	log            core.Logger
 	pgStorage      *storage.PostgresStorage
 	redisStorage   *storage.RedisStorage
 	monitorService *service.MonitorService
@@ -27,7 +28,7 @@ type Server struct {
 }
 
 // NewServer creates a new monitor server
-func NewServer(opts *config.Options, log logger.Logger) (*Server, error) {
+func NewServer(opts *config.Options, log core.Logger) (*Server, error) {
 	srv := &Server{
 		opts: opts,
 		log:  log,
@@ -45,16 +46,16 @@ func (s *Server) initialize() error {
 	var err error
 
 	// Initialize PostgreSQL storage
-	s.pgStorage, err = storage.NewPostgresStorage(&storage.Config{
+	dbOpts := &options.DatabaseOptions{
 		Host:         s.opts.Database.Host,
 		Port:         s.opts.Database.Port,
 		User:         s.opts.Database.User,
 		Password:     s.opts.Database.Password,
-		DBName:       s.opts.Database.DBName,
-		SSLMode:      s.opts.Database.SSLMode,
+		Database:     s.opts.Database.DBName,
 		MaxOpenConns: s.opts.Database.MaxOpenConns,
 		MaxIdleConns: s.opts.Database.MaxIdleConns,
-	}, s.log)
+	}
+	s.pgStorage, err = storage.NewPostgresStorage(dbOpts, s.log)
 	if err != nil {
 		return fmt.Errorf("failed to initialize PostgreSQL storage: %w", err)
 	}

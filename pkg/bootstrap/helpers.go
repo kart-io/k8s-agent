@@ -7,13 +7,14 @@ import (
 
 // Priority constants for common initialization orders.
 const (
-	PriorityConfig   = 100 // Configuration loading
-	PriorityLogger   = 200 // Logging setup
-	PriorityDatabase = 300 // Database connections
-	PriorityCache    = 400 // Cache connections
-	PriorityMQ       = 500 // Message queue connections
-	PriorityHTTP     = 600 // HTTP server
-	PriorityGRPC     = 700 // gRPC server
+	PriorityConfig   = 100  // Configuration loading
+	PriorityLogger   = 200  // Logging setup
+	PriorityDatabase = 300  // Database connections
+	PriorityCache    = 400  // Cache connections
+	PriorityMQ       = 500  // Message queue connections
+	PriorityHTTP     = 600  // HTTP server
+	PriorityGRPC     = 700  // gRPC server
+	PriorityLowest   = 1000 // Components that should initialize last (health check, etc.)
 )
 
 // FuncInitializer wraps a function as an Initializer.

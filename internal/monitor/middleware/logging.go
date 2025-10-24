@@ -4,11 +4,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 // Logger 日志中间件
-func Logger(logger *logrus.Logger) gin.HandlerFunc {
+func Logger(logger core.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
 		path := c.Request.URL.Path
@@ -26,14 +26,14 @@ func Logger(logger *logrus.Logger) gin.HandlerFunc {
 			path = path + "?" + raw
 		}
 
-		logger.WithFields(logrus.Fields{
-			"status":     statusCode,
-			"latency":    latency,
-			"client_ip":  clientIP,
-			"method":     method,
-			"path":       path,
-			"user_agent": c.Request.UserAgent(),
-		}).Info("HTTP Request")
+		logger.Infow("HTTP Request",
+			"status", statusCode,
+			"latency", latency,
+			"client_ip", clientIP,
+			"method", method,
+			"path", path,
+			"user_agent", c.Request.UserAgent(),
+		)
 	}
 }
 

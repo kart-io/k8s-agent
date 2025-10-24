@@ -19,13 +19,22 @@ func Execute() {
 		return run(opts.(*config.Options))
 	}
 
-	// 使用通用框架运行应用
-	commonapp.Run(opts, runFunc, commonapp.CommandConfig{
+	// 使用增强框架运行应用
+	commonapp.RunWithOptions(opts, runFunc, commonapp.CommandConfig{
 		Use:       "reasoning",
 		Short:     "Reasoning Service",
 		Long:      "Reasoning Service provides AI-driven root cause analysis and intelligent recommendations",
 		EnvPrefix: "REASONING",
-	})
+	},
+		// 启用健康检查
+		commonapp.WithHealthCheck(commonapp.DefaultHealthCheckFuncFromOptions(opts)),
+		// 启用版本信息
+		commonapp.WithPrintVersion(),
+		// 启用运行时信息
+		commonapp.WithPrintRuntime(),
+		// 启用配置监听
+		commonapp.WithWatch(),
+	)
 }
 
 // run runs the reasoning service

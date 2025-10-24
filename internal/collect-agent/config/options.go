@@ -20,9 +20,12 @@ type Options struct {
 
 // NewOptions creates a new Options instance with default values
 func NewOptions() *Options {
+	agentOpts := options.NewAgentOptions()
+	agentOpts.HealthPort = 8097 // Collect-Agent 健康检查端口
+
 	return &Options{
 		Logging: options.NewLoggingOptions(),
-		Agent:   options.NewAgentOptions(),
+		Agent:   agentOpts,
 	}
 }
 

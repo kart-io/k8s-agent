@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 type RedisConfig struct {
@@ -19,10 +19,10 @@ type RedisConfig struct {
 
 type RedisStorage struct {
 	client *redis.Client
-	log    *logrus.Logger
+	log    core.Logger
 }
 
-func NewRedisStorage(config *RedisConfig, logger *logrus.Logger) (*RedisStorage, error) {
+func NewRedisStorage(config *RedisConfig, logger core.Logger) (*RedisStorage, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", config.Host, config.Port),
 		Password: config.Password,

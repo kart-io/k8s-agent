@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	commondb "github.com/kart-io/k8s-agent/common/db"
@@ -17,7 +16,7 @@ import (
 // Note: Kept the name for backward compatibility, but now using MySQL
 type PostgresStore struct {
 	db          *gorm.DB
-	logger      *zap.Logger
+	logger      core.Logger
 	mysqlClient *commondb.MySQLClient
 }
 
@@ -30,16 +29,9 @@ func NewPostgresStore(opts *options.DatabaseOptions, log core.Logger) (*Postgres
 		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}
 
-	// 将 core.Logger 转换为 *zap.Logger (临时兼容)
-	zapLogger, ok := log.(*zap.Logger)
-	if !ok {
-		// 如果不是 zap.Logger，创建一个默认的
-		zapLogger = zap.NewNop()
-	}
-
 	store := &PostgresStore{
 		db:          mysqlClient.DB,
-		logger:      zapLogger.With(zap.String("component", "storage")),
+		logger:      log,
 		mysqlClient: mysqlClient,
 	}
 

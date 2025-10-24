@@ -6,15 +6,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kart-io/k8s-agent/internal/monitor/service"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 type MetricsHandler struct {
 	monitorSvc *service.MonitorService
-	log        *logrus.Logger
+	log        core.Logger
 }
 
-func NewMetricsHandler(monitorSvc *service.MonitorService, logger *logrus.Logger) *MetricsHandler {
+func NewMetricsHandler(monitorSvc *service.MonitorService, logger core.Logger) *MetricsHandler {
 	return &MetricsHandler{
 		monitorSvc: monitorSvc,
 		log:        logger,
@@ -25,7 +25,7 @@ func NewMetricsHandler(monitorSvc *service.MonitorService, logger *logrus.Logger
 func (h *MetricsHandler) GetSummary(c *gin.Context) {
 	summary, err := h.monitorSvc.GetMetricsSummary(c.Request.Context())
 	if err != nil {
-		h.log.WithError(err).Error("Failed to get metrics summary")
+		h.log.Errorw("Failed to get metrics summary", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to get metrics summary",
 		})
@@ -45,7 +45,7 @@ func (h *MetricsHandler) GetAgentMetrics(c *gin.Context) {
 
 	metrics, err := h.monitorSvc.GetAgentMetrics(c.Request.Context(), limit, offset)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to get agent metrics")
+		h.log.Errorw("Failed to get agent metrics", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to get agent metrics",
 		})
@@ -64,7 +64,7 @@ func (h *MetricsHandler) GetTrends(c *gin.Context) {
 
 	trends, err := h.monitorSvc.GetTrendData(c.Request.Context(), hours)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to get trend data")
+		h.log.Errorw("Failed to get trend data", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to get trend data",
 		})

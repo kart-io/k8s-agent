@@ -9,6 +9,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/agent-manager/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -45,6 +46,7 @@ type AgentManagerApp struct {
 	dispatcherInit *initializers.DispatcherInitializer
 	httpInit       *initializers.HTTPServerInitializer
 	grpcInit       *initializers.GRPCServerInitializer
+	healthInit     *pkginitializers.HealthCheckInitializer
 }
 
 // Initialize 初始化应用程序
@@ -155,6 +157,12 @@ func (a *AgentManagerApp) registerComponents() {
 		)
 		a.bootstrap.Register(a.grpcInit)
 	}
+
+	// 8. Health Check Server (优先级最低，最后启动)
+	healthPort := a.opts.GetHealthPort()
+	healthAddr := fmt.Sprintf(":%d", healthPort)
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthAddr, a.logger)
+	a.bootstrap.Register(a.healthInit)
 }
 
 // initLogger 初始化日志系统

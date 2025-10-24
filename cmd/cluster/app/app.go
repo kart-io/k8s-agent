@@ -10,6 +10,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/handler"
 	"github.com/kart-io/k8s-agent/internal/cluster/service"
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
+	"github.com/kart-io/k8s-agent/pkg/app"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
@@ -35,10 +36,11 @@ func Execute() {
 
 // ClusterApp 实现 commonapp.Application 接口
 type ClusterApp struct {
-	opts    *clusterconfig.Options
-	logger  core.Logger
-	storage *storage.MySQLStorage
-	server  *api.Server
+	opts         *clusterconfig.Options
+	logger       core.Logger
+	storage      *storage.MySQLStorage
+	server       *api.Server
+	healthServer *app.DefaultHealthCheckServer
 }
 
 // Initialize 初始化应用程序
@@ -178,6 +180,14 @@ func (a *ClusterApp) initializeServices() error {
 
 // Run 运行应用程序主逻辑
 func (a *ClusterApp) Run(ctx context.Context) error {
+	// 启动健康检查服务器
+	a.logger.Info("Starting health check server on :8096")
+	a.healthServer = app.NewDefaultHealthCheckServer(":8096")
+	if err := a.healthServer.Start(); err != nil {
+		return fmt.Errorf("failed to start health check server: %w", err)
+	}
+	a.logger.Info("Health check server started (endpoints: /healthz, /readyz)")
+
 	// 启动服务器
 	go func() {
 		if err := a.server.Start(); err != nil {
@@ -200,6 +210,12 @@ func (a *ClusterApp) Run(ctx context.Context) error {
 // Shutdown 优雅关闭应用程序
 func (a *ClusterApp) Shutdown(ctx context.Context) error {
 	a.logger.Infow("Shutting down Cluster Service")
+
+	// 关闭健康检查服务器
+	if a.healthServer != nil {
+		a.logger.Info("Stopping health check server")
+		a.healthServer.Stop()
+	}
 
 	// 关闭服务器
 	if a.server != nil {

@@ -10,13 +10,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/monitor/handler"
 	"github.com/kart-io/k8s-agent/internal/monitor/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
+	"github.com/kart-io/logger/core"
 )
 
 type Server struct {
 	router      *gin.Engine
 	httpServer  *http.Server
-	log         *logrus.Logger
+	log         core.Logger
 	jwtSecret   string
 	metricsPort int
 }
@@ -30,7 +30,7 @@ type ServerConfig struct {
 	MetricsPort  int
 }
 
-func NewServer(config *ServerConfig, metricsHandler *handler.MetricsHandler, logger *logrus.Logger) *Server {
+func NewServer(config *ServerConfig, metricsHandler *handler.MetricsHandler, logger core.Logger) *Server {
 	gin.SetMode(config.Mode)
 	router := gin.New()
 
@@ -90,7 +90,7 @@ func (s *Server) Start() error {
 		go s.startMetricsServer()
 	}
 
-	s.log.Infof("Starting monitor service on %s", s.httpServer.Addr)
+	s.log.Infow("Starting monitor service", "addr", s.httpServer.Addr)
 	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
@@ -113,8 +113,8 @@ func (s *Server) startMetricsServer() {
 		Handler: mux,
 	}
 
-	s.log.Infof("Starting Prometheus metrics server on :%d", s.metricsPort)
+	s.log.Infow("Starting Prometheus metrics server", "port", s.metricsPort)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		s.log.WithError(err).Error("Metrics server failed")
+		s.log.Errorw("Metrics server failed", "error", err)
 	}
 }

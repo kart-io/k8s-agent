@@ -4,48 +4,47 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
-
 	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/types"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
+	"github.com/kart-io/logger/core"
 )
 
 // Manager manages diagnostic strategies
 type Manager struct {
 	store  *storage.PostgresStore
 	engine *workflow.Engine
-	logger *zap.Logger
+	logger core.Logger
 }
 
 // NewManager creates a new strategy manager
 func NewManager(
 	store *storage.PostgresStore,
 	engine *workflow.Engine,
-	logger *zap.Logger,
+	logger core.Logger,
 ) *Manager {
 	return &Manager{
 		store:  store,
 		engine: engine,
-		logger: logger.With(zap.String("component", "strategy-manager")),
+		logger: logger,
 	}
 }
 
 // MatchStrategy finds matching strategy for an event
 func (m *Manager) MatchStrategy(ctx context.Context, event types.InternalEvent) (*types.Strategy, error) {
 	m.logger.Info("🔍 Starting strategy matching",
-		zap.String("event_type", event.Type),
-		zap.String("severity", event.Severity))
+		"event_type", event.Type,
+		"severity", event.Severity)
 
 	// Get all active strategies
 	strategies, err := m.store.ListStrategies(ctx, true)
 	if err != nil {
-		m.logger.Error("❌ Failed to list strategies from database", zap.Error(err))
+		m.logger.Error("❌ Failed to list strategies from database", "error", err)
 		return nil, fmt.Errorf("failed to list strategies: %w", err)
 	}
 
 	m.logger.Info("📋 Retrieved strategies from database",
-		zap.Int("total_strategies", len(strategies)))
+		"total_strategies", len(strategies))
 
 	if len(strategies) == 0 {
 		m.logger.Warn("⚠️  No active strategies found in database")
@@ -59,32 +58,32 @@ func (m *Manager) MatchStrategy(ctx context.Context, event types.InternalEvent) 
 	for i, strategy := range strategies {
 		score := m.calculateMatchScore(event, strategy)
 		m.logger.Debug("Evaluating strategy",
-			zap.Int("index", i),
-			zap.String("strategy_id", strategy.ID),
-			zap.String("strategy_name", strategy.Name),
-			zap.String("category", strategy.Category),
-			zap.Int("score", score))
+			"index", i,
+			"strategy_id", strategy.ID,
+			"strategy_name", strategy.Name,
+			"category", strategy.Category,
+			"score", score)
 
 		if score > bestScore {
 			bestScore = score
 			bestMatch = strategy
 			m.logger.Info("✓ New best match found",
-				zap.String("strategy_name", strategy.Name),
-				zap.Int("score", score))
+				"strategy_name", strategy.Name,
+				"score", score)
 		}
 	}
 
 	if bestMatch == nil {
 		m.logger.Warn("⚠️  No matching strategy found",
-			zap.String("event_type", event.Type))
+			"event_type", event.Type)
 		return nil, fmt.Errorf("no matching strategy found")
 	}
 
 	m.logger.Info("✅ Strategy matched successfully",
-		zap.String("strategy_id", bestMatch.ID),
-		zap.String("strategy_name", bestMatch.Name),
-		zap.String("category", bestMatch.Category),
-		zap.Int("final_score", bestScore))
+		"strategy_id", bestMatch.ID,
+		"strategy_name", bestMatch.Name,
+		"category", bestMatch.Category,
+		"final_score", bestScore)
 
 	return bestMatch, nil
 }
@@ -92,9 +91,9 @@ func (m *Manager) MatchStrategy(ctx context.Context, event types.InternalEvent) 
 // ExecuteStrategy executes a matched strategy
 func (m *Manager) ExecuteStrategy(ctx context.Context, strategy *types.Strategy, event types.InternalEvent) (*types.WorkflowExecution, error) {
 	m.logger.Info("🚀 Starting strategy execution",
-		zap.String("strategy_id", strategy.ID),
-		zap.String("strategy_name", strategy.Name),
-		zap.String("workflow_id", strategy.WorkflowID))
+		"strategy_id", strategy.ID,
+		"strategy_name", strategy.Name,
+		"workflow_id", strategy.WorkflowID)
 
 	// Start workflow execution
 	execution, err := m.engine.StartWorkflow(ctx, strategy.WorkflowID, map[string]interface{}{
@@ -104,16 +103,16 @@ func (m *Manager) ExecuteStrategy(ctx context.Context, strategy *types.Strategy,
 
 	if err != nil {
 		m.logger.Error("❌ Failed to start workflow",
-			zap.String("strategy_id", strategy.ID),
-			zap.String("workflow_id", strategy.WorkflowID),
-			zap.Error(err))
+			"strategy_id", strategy.ID,
+			"workflow_id", strategy.WorkflowID,
+			"error", err)
 		return nil, err
 	}
 
 	m.logger.Info("✅ Workflow execution started",
-		zap.String("execution_id", execution.ID),
-		zap.String("workflow_id", execution.WorkflowID),
-		zap.String("status", string(execution.Status)))
+		"execution_id", execution.ID,
+		"workflow_id", execution.WorkflowID,
+		"status", string(execution.Status))
 
 	return execution, nil
 }

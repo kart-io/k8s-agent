@@ -8,40 +8,44 @@ import (
 	"syscall"
 
 	"github.com/nats-io/nats.go"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
+	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/config"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/strategy"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/subscriber"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
+	"github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/logger"
+	"github.com/kart-io/logger/core"
+	"github.com/kart-io/logger/option"
 )
 
 // Server represents the orchestrator server
 type Server struct {
 	cfg             *config.Config
-	log             *zap.Logger
+	log             core.Logger
 	pgStore         *storage.PostgresStore
 	redisStore      *storage.RedisStore
 	natsConn        *nats.Conn
 	engine          *workflow.Engine
 	strategyManager *strategy.Manager
 	subscriber      *subscriber.Subscriber
+	healthServer    *app.DefaultHealthCheckServer
 }
 
 // NewServer creates a new orchestrator server
 func NewServer(cfg *config.Config) (*Server, error) {
-	logger, err := initLogger(cfg.Logging)
+	log, err := initLogger(cfg.Logging)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
-	logger.Info("Starting Aetherius Orchestrator Service")
+	log.Info("Starting Aetherius Orchestrator Service")
 
 	srv := &Server{
 		cfg: cfg,
-		log: logger,
+		log: log,
 	}
 
 	if err := srv.initialize(); err != nil {
@@ -60,20 +64,44 @@ func (s *Server) initialize() error {
 	s.log.Info("==========================================================")
 
 	// Initialize PostgreSQL
-	s.log.Info("📦 [1/6] Initializing PostgreSQL",
-		zap.String("host", s.cfg.Database.Host),
-		zap.Int("port", s.cfg.Database.Port),
-		zap.String("database", s.cfg.Database.Database))
-	s.pgStore, err = storage.NewPostgresStore(s.cfg.Database, s.log)
+	s.log.Infow("📦 [1/6] Initializing PostgreSQL",
+		"host", s.cfg.Database.Host,
+		"port", s.cfg.Database.Port,
+		"database", s.cfg.Database.Database)
+
+	// 转换配置为 options.DatabaseOptions
+	dbOpts := &options.DatabaseOptions{
+		Host:            s.cfg.Database.Host,
+		Port:            s.cfg.Database.Port,
+		User:            s.cfg.Database.User,
+		Password:        s.cfg.Database.Password,
+		Database:        s.cfg.Database.Database,
+		MaxOpenConns:    s.cfg.Database.MaxOpenConns,
+		MaxIdleConns:    s.cfg.Database.MaxIdleConns,
+		ConnMaxLifetime: s.cfg.Database.ConnMaxLifetime,
+	}
+
+	s.pgStore, err = storage.NewPostgresStore(dbOpts, s.log)
 	if err != nil {
 		return fmt.Errorf("failed to initialize PostgreSQL: %w", err)
 	}
 	s.log.Info("✅ PostgreSQL initialized successfully")
 
 	// Initialize Redis
-	s.log.Info("📦 [2/6] Initializing Redis",
-		zap.String("addr", s.cfg.Redis.Addr))
-	s.redisStore, err = storage.NewRedisStore(s.cfg.Redis, s.log)
+	s.log.Infow("📦 [2/6] Initializing Redis",
+		"addr", s.cfg.Redis.Addr)
+
+	// 转换配置为 options.RedisOptions
+	redisOpts := &options.RedisOptions{
+		Addr:         s.cfg.Redis.Addr,
+		Password:     s.cfg.Redis.Password,
+		DB:           s.cfg.Redis.DB,
+		PoolSize:     s.cfg.Redis.PoolSize,
+		MinIdleConns: s.cfg.Redis.MinIdleConns,
+		DialTimeout:  s.cfg.Redis.DialTimeout,
+	}
+
+	s.redisStore, err = storage.NewRedisStore(redisOpts, s.log)
 	if err != nil {
 		s.pgStore.Close()
 		return fmt.Errorf("failed to initialize Redis: %w", err)
@@ -81,8 +109,8 @@ func (s *Server) initialize() error {
 	s.log.Info("✅ Redis initialized successfully")
 
 	// Connect to NATS
-	s.log.Info("📡 [3/6] Connecting to NATS",
-		zap.String("url", s.cfg.NATS.URL))
+	s.log.Infow("📡 [3/6] Connecting to NATS",
+		"url", s.cfg.NATS.URL)
 	s.natsConn, err = nats.Connect(
 		s.cfg.NATS.URL,
 		nats.Name("orchestrator-service"),
@@ -94,13 +122,13 @@ func (s *Server) initialize() error {
 		s.pgStore.Close()
 		return fmt.Errorf("failed to connect to NATS: %w", err)
 	}
-	s.log.Info("✅ NATS connected successfully",
-		zap.String("server_url", s.natsConn.ConnectedUrl()))
+	s.log.Infow("✅ NATS connected successfully",
+		"server_url", s.natsConn.ConnectedUrl())
 
 	// Initialize workflow components
-	s.log.Info("⚙️  [4/6] Initializing workflow engine",
-		zap.String("agent_manager_url", s.cfg.AI.AgentManagerURL),
-		zap.String("reasoning_service_url", s.cfg.AI.ReasoningServiceURL))
+	s.log.Infow("⚙️  [4/6] Initializing workflow engine",
+		"agent_manager_url", s.cfg.AI.AgentManagerURL,
+		"reasoning_service_url", s.cfg.AI.ReasoningServiceURL)
 
 	executor := workflow.NewExecutor(
 		s.cfg.AI.AgentManagerURL,
@@ -123,6 +151,19 @@ func (s *Server) initialize() error {
 func (s *Server) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Start health check server
+	healthPort := s.cfg.Server.HealthPort
+	if healthPort == 0 {
+		healthPort = 8092 // 默认端口
+	}
+	healthAddr := fmt.Sprintf(":%d", healthPort)
+	s.log.Infow("🏥 Starting health check server", "addr", healthAddr)
+	s.healthServer = app.NewDefaultHealthCheckServer(healthAddr)
+	if err := s.healthServer.Start(); err != nil {
+		return fmt.Errorf("failed to start health check server: %w", err)
+	}
+	s.log.Info("✅ Health check server started (endpoints: /healthz, /readyz)")
 
 	// Initialize event subscriber
 	s.log.Info("📬 [6/6] Initializing event subscriber")
@@ -157,6 +198,11 @@ func (s *Server) Shutdown() error {
 		s.subscriber.Stop()
 	}
 
+	if s.healthServer != nil {
+		s.log.Info("Stopping health check server")
+		s.healthServer.Stop()
+	}
+
 	if s.natsConn != nil {
 		s.natsConn.Close()
 	}
@@ -170,37 +216,24 @@ func (s *Server) Shutdown() error {
 	}
 
 	if s.log != nil {
-		s.log.Sync()
+		s.log.Flush()
 	}
 
 	s.log.Info("Orchestrator Service shutdown complete")
 	return nil
 }
 
-func initLogger(cfg config.LoggingConfig) (*zap.Logger, error) {
-	level := zapcore.InfoLevel
-	if err := level.UnmarshalText([]byte(cfg.Level)); err != nil {
-		return nil, fmt.Errorf("invalid log level: %w", err)
+func initLogger(cfg config.LoggingConfig) (core.Logger, error) {
+	// 使用 kart-io/logger 的 option.LogOption
+	logOpt := &option.LogOption{
+		Engine:      "slog",
+		Level:       cfg.Level,
+		Format:      cfg.Format,
+		OutputPaths: []string{cfg.OutputPath},
+		InitialFields: map[string]interface{}{
+			"service": "orchestrator",
+		},
 	}
 
-	var encoderConfig zapcore.EncoderConfig
-	if cfg.Format == "json" {
-		encoderConfig = zap.NewProductionEncoderConfig()
-	} else {
-		encoderConfig = zap.NewDevelopmentEncoderConfig()
-	}
-
-	encoderConfig.TimeKey = "timestamp"
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	zapConfig := zap.Config{
-		Level:            zap.NewAtomicLevelAt(level),
-		Development:      cfg.Format != "json",
-		Encoding:         cfg.Format,
-		EncoderConfig:    encoderConfig,
-		OutputPaths:      []string{cfg.OutputPath},
-		ErrorOutputPaths: []string{"stderr"},
-	}
-
-	return zapConfig.Build()
+	return logger.New(logOpt)
 }

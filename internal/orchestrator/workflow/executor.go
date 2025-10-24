@@ -8,14 +8,13 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/kart-io/k8s-agent/internal/orchestrator/types"
+	"github.com/kart-io/logger/core"
 )
 
 // Executor executes workflow steps
 type Executor struct {
-	logger              *zap.Logger
+	logger              core.Logger
 	agentManagerURL     string
 	reasoningServiceURL string
 	httpClient          *http.Client
@@ -25,10 +24,10 @@ type Executor struct {
 func NewExecutor(
 	agentManagerURL string,
 	reasoningServiceURL string,
-	logger *zap.Logger,
+	logger core.Logger,
 ) *Executor {
 	return &Executor{
-		logger:              logger.With(zap.String("component", "workflow-executor")),
+		logger:              logger,
 		agentManagerURL:     agentManagerURL,
 		reasoningServiceURL: reasoningServiceURL,
 		httpClient: &http.Client{
@@ -40,8 +39,8 @@ func NewExecutor(
 // ExecuteCommand executes a command step
 func (ex *Executor) ExecuteCommand(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing command step",
-		zap.String("execution_id", execution.ID),
-		zap.String("step_id", step.ID))
+		"execution_id", execution.ID,
+		"step_id", step.ID)
 
 	// Extract and validate command parameters from config
 	clusterID, ok := step.Config["cluster_id"].(string)
@@ -114,8 +113,8 @@ func (ex *Executor) ExecuteCommand(ctx context.Context, execution *types.Workflo
 // ExecuteAIAnalysis executes an AI analysis step
 func (ex *Executor) ExecuteAIAnalysis(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing AI analysis step",
-		zap.String("execution_id", execution.ID),
-		zap.String("step_id", step.ID))
+		"execution_id", execution.ID,
+		"step_id", step.ID)
 
 	// Prepare analysis request
 	analysisReq := map[string]interface{}{
@@ -145,8 +144,8 @@ func (ex *Executor) ExecuteAIAnalysis(ctx context.Context, execution *types.Work
 // ExecuteDecision executes a decision step
 func (ex *Executor) ExecuteDecision(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing decision step",
-		zap.String("execution_id", execution.ID),
-		zap.String("step_id", step.ID))
+		"execution_id", execution.ID,
+		"step_id", step.ID)
 
 	// Get conditions from config
 	conditions, ok := step.Config["conditions"].([]interface{})
@@ -168,9 +167,9 @@ func (ex *Executor) ExecuteDecision(ctx context.Context, execution *types.Workfl
 		// Evaluate condition
 		if ex.evaluateDecisionCondition(execution, ifCondition) {
 			ex.logger.Info("Decision condition matched",
-				zap.String("execution_id", execution.ID),
-				zap.Int("condition_index", i),
-				zap.String("action", thenAction))
+				"execution_id", execution.ID,
+				"condition_index", i,
+				"action", thenAction)
 
 			return map[string]interface{}{
 				"decision":  thenAction,
@@ -190,15 +189,15 @@ func (ex *Executor) ExecuteDecision(ctx context.Context, execution *types.Workfl
 // ExecuteRemediation executes a remediation step
 func (ex *Executor) ExecuteRemediation(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing remediation step",
-		zap.String("execution_id", execution.ID),
-		zap.String("step_id", step.ID))
+		"execution_id", execution.ID,
+		"step_id", step.ID)
 
 	actionType, _ := step.Config["action_type"].(string)
 	action, _ := step.Config["action"].(string)
 
 	ex.logger.Info("Executing remediation action",
-		zap.String("action_type", actionType),
-		zap.String("action", action))
+		"action_type", actionType,
+		"action", action)
 
 	// For now, just log the action
 	// In production, this would execute actual remediation
@@ -213,15 +212,15 @@ func (ex *Executor) ExecuteRemediation(ctx context.Context, execution *types.Wor
 // ExecuteNotification executes a notification step
 func (ex *Executor) ExecuteNotification(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing notification step",
-		zap.String("execution_id", execution.ID),
-		zap.String("step_id", step.ID))
+		"execution_id", execution.ID,
+		"step_id", step.ID)
 
 	channel, _ := step.Config["channel"].(string)
 	message, _ := step.Config["message"].(string)
 
 	ex.logger.Info("Sending notification",
-		zap.String("channel", channel),
-		zap.String("message", message))
+		"channel", channel,
+		"message", message)
 
 	// In production, this would send to actual notification channels
 	// (Slack, Email, PagerDuty, etc.)
@@ -237,8 +236,8 @@ func (ex *Executor) ExecuteNotification(ctx context.Context, execution *types.Wo
 // ExecuteWait executes a wait step
 func (ex *Executor) ExecuteWait(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing wait step",
-		zap.String("execution_id", execution.ID),
-		zap.String("step_id", step.ID))
+		"execution_id", execution.ID,
+		"step_id", step.ID)
 
 	durationStr, _ := step.Config["duration"].(string)
 	duration, err := time.ParseDuration(durationStr)
@@ -247,7 +246,7 @@ func (ex *Executor) ExecuteWait(ctx context.Context, execution *types.WorkflowEx
 	}
 
 	ex.logger.Info("Waiting",
-		zap.Duration("duration", duration))
+		"duration", duration)
 
 	select {
 	case <-ctx.Done():

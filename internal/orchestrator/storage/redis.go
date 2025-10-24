@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
 
 	commondb "github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/common/options"
@@ -15,7 +14,7 @@ import (
 // RedisStore implements Redis caching
 type RedisStore struct {
 	client      *redis.Client
-	logger      *zap.Logger
+	logger      core.Logger
 	redisClient *commondb.RedisClient
 }
 
@@ -27,16 +26,9 @@ func NewRedisStore(opts *options.RedisOptions, log core.Logger) (*RedisStore, er
 		return nil, fmt.Errorf("failed to create Redis client: %w", err)
 	}
 
-	// 将 core.Logger 转换为 *zap.Logger (临时兼容)
-	zapLogger, ok := log.(*zap.Logger)
-	if !ok {
-		// 如果不是 zap.Logger，创建一个默认的
-		zapLogger = zap.NewNop()
-	}
-
 	store := &RedisStore{
 		client:      redisClient.Client,
-		logger:      zapLogger.With(zap.String("component", "redis")),
+		logger:      log,
 		redisClient: redisClient,
 	}
 

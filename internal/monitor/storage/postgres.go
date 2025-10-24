@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/sirupsen/logrus"
 
 	commondb "github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/common/options"
@@ -14,7 +13,7 @@ import (
 
 type PostgresStorage struct {
 	db          *sql.DB
-	log         *logrus.Logger
+	log         core.Logger
 	mysqlClient *commondb.MySQLClient
 }
 
@@ -32,16 +31,9 @@ func NewPostgresStorage(opts *options.DatabaseOptions, logger core.Logger) (*Pos
 		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
 	}
 
-	// 将 core.Logger 转换为 logrus.Logger (临时兼容)
-	logrusLogger, ok := logger.(core.Logger)
-	if !ok {
-		// 如果不是 logrus.Logger，创建一个默认的
-		logrusLogger = logrus.New()
-	}
-
 	storage := &PostgresStorage{
 		db:          sqlDB,
-		log:         logrusLogger,
+		log:         logger,
 		mysqlClient: mysqlClient,
 	}
 
@@ -49,7 +41,7 @@ func NewPostgresStorage(opts *options.DatabaseOptions, logger core.Logger) (*Pos
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	logrusLogger.Info("MySQL storage initialized successfully")
+	logger.Info("MySQL storage initialized successfully")
 	return storage, nil
 }
 
