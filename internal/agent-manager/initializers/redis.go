@@ -3,7 +3,7 @@ package initializers
 import (
 	"context"
 
-	"github.com/kart-io/k8s-agent/internal/agent-manager/config"
+	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -16,7 +16,7 @@ import (
 // 但提供 Store() 方法返回业务特定的 storage.RedisStore，
 // 以保持与现有代码的兼容性。
 type RedisInitializer struct {
-	opts   *config.Options
+	opts   *options.ServerOptions
 	logger core.Logger
 
 	// 使用通用初始化器
@@ -25,7 +25,7 @@ type RedisInitializer struct {
 }
 
 // NewRedisInitializer 创建 Redis 初始化器
-func NewRedisInitializer(opts *config.Options, logger core.Logger) *RedisInitializer {
+func NewRedisInitializer(opts *options.ServerOptions, logger core.Logger) *RedisInitializer {
 	// 创建通用 Redis 初始化器
 	redisInit := pkginitializers.NewRedisInitializer(
 		opts.Redis,

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/kart-io/k8s-agent/internal/agent-manager/api"
-	"github.com/kart-io/k8s-agent/internal/agent-manager/config"
+	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
 	agentgrpc "github.com/kart-io/k8s-agent/internal/agent-manager/grpc"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/k8s-agent/pkg/types"
@@ -15,7 +15,7 @@ import (
 
 // HTTPServerInitializer HTTP API 服务器初始化器
 type HTTPServerInitializer struct {
-	opts       *config.Options
+	opts       *options.ServerOptions
 	logger     core.Logger
 	registry   *RegistryInitializer
 	dispatcher *DispatcherInitializer
@@ -28,7 +28,7 @@ type HTTPServerInitializer struct {
 
 // NewHTTPServerInitializer 创建 HTTP 服务器初始化器
 func NewHTTPServerInitializer(
-	opts *config.Options,
+	opts *options.ServerOptions,
 	logger core.Logger,
 	registry *RegistryInitializer,
 	dispatcher *DispatcherInitializer,
@@ -108,7 +108,7 @@ func (h *HTTPServerInitializer) Close(ctx context.Context) error {
 
 // GRPCServerInitializer gRPC 服务器初始化器
 type GRPCServerInitializer struct {
-	opts       *config.Options
+	opts       *options.ServerOptions
 	logger     core.Logger
 	registry   *RegistryInitializer
 	dispatcher *DispatcherInitializer
@@ -118,7 +118,7 @@ type GRPCServerInitializer struct {
 
 // NewGRPCServerInitializer 创建 gRPC 服务器初始化器
 func NewGRPCServerInitializer(
-	opts *config.Options,
+	opts *options.ServerOptions,
 	logger core.Logger,
 	registry *RegistryInitializer,
 	dispatcher *DispatcherInitializer,

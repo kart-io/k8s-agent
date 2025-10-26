@@ -5,7 +5,7 @@ import (
 
 	"github.com/kart-io/k8s-agent/internal/agent-manager/agent"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/command"
-	"github.com/kart-io/k8s-agent/internal/agent-manager/config"
+	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/event"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/nats"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -14,7 +14,7 @@ import (
 
 // RegistryInitializer Agent Registry 初始化器
 type RegistryInitializer struct {
-	opts      *config.Options
+	opts      *options.ServerOptions
 	logger    core.Logger
 	dbInit    *DatabaseInitializer
 	redisInit *RedisInitializer
@@ -23,7 +23,7 @@ type RegistryInitializer struct {
 
 // NewRegistryInitializer 创建 Registry 初始化器
 func NewRegistryInitializer(
-	opts *config.Options,
+	opts *options.ServerOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	redisInit *RedisInitializer,
@@ -81,7 +81,7 @@ func (r *RegistryInitializer) Registry() *agent.Registry {
 
 // NATSInitializer NATS 服务器初始化器
 type NATSInitializer struct {
-	opts       *config.Options
+	opts       *options.ServerOptions
 	logger     core.Logger
 	registry   *RegistryInitializer
 	eventProc  *event.Processor
@@ -90,7 +90,7 @@ type NATSInitializer struct {
 
 // NewNATSInitializer 创建 NATS 初始化器
 func NewNATSInitializer(
-	opts *config.Options,
+	opts *options.ServerOptions,
 	logger core.Logger,
 	registry *RegistryInitializer,
 	dbInit *DatabaseInitializer,
@@ -169,7 +169,7 @@ func (n *NATSInitializer) EventProcessor() *event.Processor {
 
 // DispatcherInitializer Command Dispatcher 初始化器
 type DispatcherInitializer struct {
-	opts       *config.Options
+	opts       *options.ServerOptions
 	logger     core.Logger
 	dbInit     *DatabaseInitializer
 	redisInit  *RedisInitializer
@@ -180,7 +180,7 @@ type DispatcherInitializer struct {
 
 // NewDispatcherInitializer 创建 Dispatcher 初始化器
 func NewDispatcherInitializer(
-	opts *config.Options,
+	opts *options.ServerOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	redisInit *RedisInitializer,

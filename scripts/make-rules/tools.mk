@@ -7,7 +7,7 @@
 -include scripts/make-rules/common-versions.mk
 
 # Tool versions (override common-versions.mk if needed)
-GOLANGCI_LINT_VERSION ?= v1.55.2
+GOLANGCI_LINT_VERSION ?= v2.5.0
 BUF_VERSION ?= 1.28.1
 PROTOC_GEN_GO_VERSION ?= v1.31.0
 PROTOC_GEN_GO_GRPC_VERSION ?= v1.3.0

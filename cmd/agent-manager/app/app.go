@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/common/logger"
-	"github.com/kart-io/k8s-agent/internal/agent-manager/config"
+	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
+	agentmanager "github.com/kart-io/k8s-agent/internal/agent-manager"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -16,7 +16,7 @@ import (
 // Execute runs the agent-manager command
 func Execute() {
 	// 创建配置选项
-	opts := config.NewOptions()
+	opts := options.NewServerOptions()
 
 	// 使用组合框架运行应用
 	commonapp.RunWithRunner(
@@ -35,7 +35,8 @@ func Execute() {
 // AgentManagerApp 实现 commonapp.Application 接口
 type AgentManagerApp struct {
 	bootstrap *bootstrap.Bootstrap
-	opts      *config.Options
+	opts      *options.ServerOptions
+	config    *agentmanager.Config
 	logger    core.Logger
 
 	// 组件初始化器
@@ -51,7 +52,7 @@ type AgentManagerApp struct {
 
 // Initialize 初始化应用程序
 func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	a.opts = opts.(*config.Options)
+	a.opts = opts.(*options.ServerOptions)
 
 	// 初始化日志系统
 	logger, err := initLogger(opts)
@@ -64,7 +65,15 @@ func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options
 		"http_port", a.opts.Server.Port,
 		"grpc_enabled", a.opts.GRPC.Enable,
 		"grpc_port", a.opts.GRPC.Port,
+		"health_port", a.opts.Health.Port,
 	)
+
+	// 转换为业务配置
+	config, err := a.opts.Config()
+	if err != nil {
+		return fmt.Errorf("failed to build config: %w", err)
+	}
+	a.config = config
 
 	// 创建 bootstrap 实例,直接使用 kart-io/logger
 	a.bootstrap = bootstrap.New(a.logger)
@@ -167,5 +176,6 @@ func (a *AgentManagerApp) registerComponents() {
 
 // initLogger 初始化日志系统
 func initLogger(opts commonapp.Options) (core.Logger, error) {
-	return logger.InitFromOptions(opts.(*config.Options).Logging)
+	serverOpts := opts.(*options.ServerOptions)
+	return serverOpts.InitLogger()
 }

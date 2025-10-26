@@ -3,7 +3,7 @@ package initializers
 import (
 	"context"
 
-	"github.com/kart-io/k8s-agent/internal/agent-manager/config"
+	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -17,7 +17,7 @@ import (
 // 但提供 Store() 方法返回业务特定的 storage.PostgresStore，
 // 以保持与现有代码的兼容性。
 type DatabaseInitializer struct {
-	opts   *config.Options
+	opts   *options.ServerOptions
 	logger core.Logger
 
 	// 使用通用初始化器
@@ -26,7 +26,7 @@ type DatabaseInitializer struct {
 }
 
 // NewDatabaseInitializer 创建数据库初始化器
-func NewDatabaseInitializer(opts *config.Options, logger core.Logger) *DatabaseInitializer {
+func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *DatabaseInitializer {
 	// 创建通用数据库初始化器
 	dbInit := pkginitializers.NewDatabaseInitializer(
 		opts.Database,
