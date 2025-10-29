@@ -101,14 +101,14 @@ var _ commonapp.HealthPortProvider = (*Options)(nil)
 
 // Config holds all configuration
 type Config struct {
-	Server     ServerConfig         `mapstructure:"server"`
-	Database   DatabaseConfig       `mapstructure:"database"`
-	Redis      RedisConfig          `mapstructure:"redis"`
-	Prometheus PrometheusConfig     `mapstructure:"prometheus"`
-	JWT        JWTConfig            `mapstructure:"jwt"`
-	Logging    LoggingConfig        `mapstructure:"logging"`
-	Alert      AlertConfig          `mapstructure:"alert"`
-	Metrics    MetricsConfig        `mapstructure:"metrics"`
+	Server     ServerConfig          `mapstructure:"server"`
+	Database   DatabaseConfig        `mapstructure:"database"`
+	Redis      RedisConfig           `mapstructure:"redis"`
+	Prometheus PrometheusConfig      `mapstructure:"prometheus"`
+	JWT        JWTConfig             `mapstructure:"jwt"`
+	Logging    LoggingConfig         `mapstructure:"logging"`
+	Alert      AlertConfig           `mapstructure:"alert"`
+	Metrics    MetricsConfig         `mapstructure:"metrics"`
 	Health     options.HealthOptions `mapstructure:"health"`
 }
 

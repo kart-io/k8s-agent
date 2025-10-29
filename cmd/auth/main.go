@@ -12,6 +12,5 @@ import (
 )
 
 func main() {
-	// Creating a new instance of the auth service application and running it.
-	app.NewApp()
+	app.Execute()
 }

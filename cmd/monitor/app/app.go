@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/common/options"
 	commonlogger "github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/config"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 )

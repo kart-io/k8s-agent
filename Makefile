@@ -68,7 +68,7 @@ version: ## Show version information
 
 .PHONY: info
 info: ## Show project information
-	@echo "$(COLOR_BOLD)Project Information:$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)Project Information:$(COLOR_RESET)\n"
 	@echo "  Name:          $(PROJECT_NAME)"
 	@echo "  Version:       $(VERSION)"
 	@echo "  Git Commit:    $(GIT_COMMIT)"
@@ -83,23 +83,23 @@ info: ## Show project information
 
 .PHONY: stats
 stats: ## Show project statistics
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)Project Statistics$(COLOR_RESET)"
-	@echo "$(COLOR_BOLD)═══════════════════════════════════════════════════$(COLOR_RESET)"
-	@echo ""
-	@echo "$(COLOR_BOLD)Services:$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Project Statistics$(COLOR_RESET)\n"
+	@printf "$(COLOR_BOLD)═══════════════════════════════════════════════════$(COLOR_RESET)\n"
+	@printf "\n"
+	@printf "$(COLOR_BOLD)Services:$(COLOR_RESET)\n"
 	@echo "  Total Services:    $(words $(SERVICES))"
 	@for svc in $(SERVICES); do echo "    - $$svc"; done
 	@echo ""
-	@echo "$(COLOR_BOLD)Make Targets:$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)Make Targets:$(COLOR_RESET)\n"
 	@echo "  Total Targets:     $$(make -qp 2>/dev/null | grep -E '^[a-z][a-z0-9\.\-]*:' | cut -d: -f1 | sort -u | wc -l)"
 	@echo ""
-	@echo "$(COLOR_BOLD)Code Statistics:$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)Code Statistics:$(COLOR_RESET)\n"
 	@echo "  Go Files:          $$(find . -name '*.go' -not -path './vendor/*' -not -path './_output/*' | wc -l)"
 	@echo "  Proto Files:       $$(find api/proto -name '*.proto' 2>/dev/null | wc -l)"
 	@echo "  Make Files:        $$(find scripts/make-rules -name '*.mk' 2>/dev/null | wc -l)"
 	@echo "  Scripts:           $$(find scripts -name '*.sh' -type f 2>/dev/null | wc -l)"
 	@echo ""
-	@echo "$(COLOR_BOLD)Configuration:$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)Configuration:$(COLOR_RESET)\n"
 	@echo "  Config Files:      $$(ls -1 .*.toml .*.yaml .*.yml 2>/dev/null | wc -l)"
 	@echo "  Linters Enabled:   58"
 	@echo ""
@@ -134,7 +134,7 @@ install-tools: ## Install all development tools (specify A=1 for all tools)
 		$(MAKE) tools.install.air; \
 		$(MAKE) tools.install.mockgen; \
 	fi
-	@echo "$(COLOR_GREEN)✓ All tools installed$(COLOR_RESET)"
+	@printf "$(COLOR_GREEN)✓ All tools installed$(COLOR_RESET)\n"
 
 .PHONY: rename-project
 rename-project: ## Rename project module path (usage: make rename-project OLD=old/path NEW=new/path)
@@ -142,8 +142,8 @@ rename-project: ## Rename project module path (usage: make rename-project OLD=ol
 		echo "$(COLOR_RED)Error: OLD and NEW required. Usage: make rename-project OLD=old/path NEW=new/path$(COLOR_RESET)"; \
 		exit 1; \
 	fi
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)Renaming project from $(OLD) to $(NEW)...$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)⚠ This will modify .go, go.mod, go.sum, .sh, .yaml, and .md files$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Renaming project from $(OLD) to $(NEW)...$(COLOR_RESET)\n"
+	@printf "$(COLOR_YELLOW)⚠ This will modify .go, go.mod, go.sum, .sh, .yaml, and .md files$(COLOR_RESET)\n"
 	@# MacOS sed requires a backup extension, Linux sed does not.
 	@# The `sed -i.bak` command works on both, creating a .bak file
 	@find . -type f \( -name "*.go" -o -name "go.mod" -o -name "go.sum" -o -name "*.sh" -o -name "*.yaml" -o -name "*.md" \) \
@@ -152,8 +152,8 @@ rename-project: ## Rename project module path (usage: make rename-project OLD=ol
 		-not -path "./_output/*" \
 		-print0 | xargs -0 sed -i.bak 's|$(OLD)|$(NEW)|g'
 	@find . -type f -name "*.bak" -delete
-	@echo "$(COLOR_GREEN)✓ Module renamed successfully$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)⚠ Don't forget to run: make tidy$(COLOR_RESET)"
+	@printf "$(COLOR_GREEN)✓ Module renamed successfully$(COLOR_RESET)\n"
+	@printf "$(COLOR_YELLOW)⚠ Don't forget to run: make tidy$(COLOR_RESET)\n"
 
 # ==================================================================================
 # Legacy Compatibility Targets (map to new modular targets)
@@ -188,9 +188,9 @@ test-integration: go.test.integration ## Run integration tests
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end tests
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)Running e2e tests...$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Running e2e tests...$(COLOR_RESET)\n"
 	@$(GO) test -v -tags=e2e ./test/e2e/...
-	@echo "$(COLOR_GREEN)✓ E2E tests complete$(COLOR_RESET)"
+	@printf "$(COLOR_GREEN)✓ E2E tests complete$(COLOR_RESET)\n"
 
 ##@ Code Quality (Legacy Aliases - prefer go.* commands)
 
@@ -253,15 +253,15 @@ deploy: ## Deploy to Kubernetes (ENV=dev|staging|prod)
 		echo "$(COLOR_RED)Error: ENV not specified. Use: make deploy ENV=dev$(COLOR_RESET)"; \
 		exit 1; \
 	fi
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)Deploying to $(ENV)...$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Deploying to $(ENV)...$(COLOR_RESET)\n"
 	@kubectl apply -k deployments/k8s/overlays/$(ENV)
-	@echo "$(COLOR_GREEN)✓ Deployed to $(ENV)$(COLOR_RESET)"
+	@printf "$(COLOR_GREEN)✓ Deployed to $(ENV)$(COLOR_RESET)\n"
 
 .PHONY: manifests-validate
 manifests-validate: ## Validate Kubernetes manifests
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)Validating manifests...$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Validating manifests...$(COLOR_RESET)\n"
 	@kubectl apply --dry-run=client -k deployments/k8s/base
-	@echo "$(COLOR_GREEN)✓ Manifests valid$(COLOR_RESET)"
+	@printf "$(COLOR_GREEN)✓ Manifests valid$(COLOR_RESET)\n"
 
 # ==================================================================================
 # Development
@@ -286,7 +286,7 @@ dev: ## Run service with hot reload (requires air)
 
 .PHONY: run-%
 run-%: ## Run specific service (e.g., make run-agent-manager)
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)Running $*...$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Running $*...$(COLOR_RESET)\n"
 	@$(GO) run $(CMD_DIR)/$*/main.go
 
 # ==================================================================================
@@ -304,13 +304,13 @@ release: ## Create release (VERSION=v1.0.0)
 		echo "$(COLOR_RED)Error: VERSION not specified. Use: make release VERSION=v1.0.0$(COLOR_RESET)"; \
 		exit 1; \
 	fi
-	@echo "$(COLOR_BOLD)$(COLOR_BLUE)Creating release $(VERSION)...$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Creating release $(VERSION)...$(COLOR_RESET)\n"
 	@$(MAKE) clean
 	@$(MAKE) deps
 	@$(MAKE) test
 	@$(MAKE) build-all
 	@$(MAKE) docker.build SERVICES="$(ALL_SERVICES)"
-	@echo "$(COLOR_BOLD)$(COLOR_GREEN)Release $(VERSION) ready!$(COLOR_RESET)"
+	@printf "$(COLOR_BOLD)$(COLOR_GREEN)Release $(VERSION) ready!$(COLOR_RESET)\n"
 
 # ==================================================================================
 # Convenience Shortcuts
