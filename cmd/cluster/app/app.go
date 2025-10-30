@@ -1,24 +1,26 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package app
 
 import (
 	"context"
 	"fmt"
 
-	commonlogger "github.com/kart-io/k8s-agent/common/logger"
-	"github.com/kart-io/k8s-agent/internal/cluster/api"
+	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
 	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
-	"github.com/kart-io/k8s-agent/internal/cluster/handler"
-	"github.com/kart-io/k8s-agent/internal/cluster/service"
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
-	"github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the cluster service command
 func Execute() {
 	// 创建配置选项
-	opts := clusterconfig.NewOptions()
+	opts := options.NewServerOptions()
 
 	// 使用组合框架运行应用
 	commonapp.RunWithRunner(
@@ -36,16 +38,20 @@ func Execute() {
 
 // ClusterApp 实现 commonapp.Application 接口
 type ClusterApp struct {
-	opts         *clusterconfig.Options
-	logger       core.Logger
-	storage      *storage.MySQLStorage
-	server       *api.Server
-	healthServer *app.DefaultHealthCheckServer
+	bootstrap *bootstrap.Bootstrap
+	opts      *options.ServerOptions
+	config    *clusterconfig.Config
+	logger    core.Logger
+
+	// 组件初始化器
+	dbInit     *initializers.DatabaseInitializer
+	httpInit   *initializers.HTTPServerInitializer
+	healthInit *pkginitializers.HealthCheckInitializer
 }
 
 // Initialize 初始化应用程序
 func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	a.opts = opts.(*clusterconfig.Options)
+	a.opts = opts.(*options.ServerOptions)
 
 	// 初始化日志系统
 	logger, err := initLogger(opts)
@@ -55,187 +61,86 @@ func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) err
 	a.logger = logger
 
 	a.logger.Infow("Initializing Cluster Service",
-		"host", a.opts.Server.Host,
-		"port", a.opts.Server.Port,
+		"http_port", a.opts.Server.Port,
+		"health_port", a.opts.Health.Port,
 	)
 
-	// 初始化数据库
-	a.storage, err = storage.NewMySQLStorage(a.opts.Database, a.logger)
+	// 转换为业务配置
+	config, err := a.opts.Config()
 	if err != nil {
-		return fmt.Errorf("failed to initialize MySQL storage: %w", err)
+		return fmt.Errorf("failed to build config: %w", err)
 	}
+	a.config = config
 
-	a.logger.Infow("Database connected",
-		"host", a.opts.Database.Host,
-		"port", a.opts.Database.Port,
-		"database", a.opts.Database.Database,
-	)
+	// 创建 bootstrap 实例
+	a.bootstrap = a.createBootstrap()
 
-	// 初始化数据库 schema
-	if err := a.storage.InitSchema(); err != nil {
-		return fmt.Errorf("failed to initialize database schema: %w", err)
-	}
-	a.logger.Info("Database schema initialized successfully")
+	// 注册所有组件初始化器（但不执行初始化）
+	// 初始化将在 Run() 方法中由 bootstrap.Run() 执行
+	a.registerComponents()
 
-	// 初始化所有服务和处理器
-	if err := a.initializeServices(); err != nil {
-		return fmt.Errorf("failed to initialize services: %w", err)
-	}
-
-	a.logger.Infow("All services initialized successfully")
-	return nil
-}
-
-// initializeServices 初始化所有服务层和处理器
-func (a *ClusterApp) initializeServices() error {
-	// 初始化基础服务
-	clusterService := service.NewClusterService(a.storage, a.logger)
-	clusterHandler := handler.NewClusterHandler(clusterService, a.logger)
-
-	// 初始化 K8s API 相关服务
-	k8sClusterService := service.NewK8sClusterService(a.storage)
-	k8sNamespaceService := service.NewK8sNamespaceService(a.storage, k8sClusterService)
-	k8sPodService := service.NewK8sPodService(a.storage, k8sClusterService)
-	k8sDeploymentService := service.NewK8sDeploymentService(a.storage, k8sClusterService)
-	k8sNodeService := service.NewK8sNodeService(a.storage, k8sClusterService)
-	k8sServiceService := service.NewK8sServiceService(a.storage, k8sClusterService)
-	k8sStatefulSetService := service.NewK8sStatefulSetService(a.storage, k8sClusterService)
-	k8sDaemonSetService := service.NewK8sDaemonSetService(a.storage, k8sClusterService)
-	k8sConfigMapService := service.NewK8sConfigMapService(a.storage, k8sClusterService)
-	k8sSecretService := service.NewK8sSecretService(a.storage, k8sClusterService)
-	k8sEndpointService := service.NewK8sEndpointService(a.storage, k8sClusterService)
-	k8sPVCService := service.NewK8sPVCService(a.storage, k8sClusterService)
-	k8sPVService := service.NewK8sPVService(a.storage, k8sClusterService)
-	k8sEndpointSliceService := service.NewK8sEndpointSliceService(a.storage, k8sClusterService)
-	k8sHPAService := service.NewK8sHPAService(a.storage, k8sClusterService)
-	k8sEventService := service.NewK8sEventService(a.storage, k8sClusterService)
-	k8sRoleBindingService := service.NewK8sRoleBindingService(a.storage, k8sClusterService)
-	k8sClusterRoleService := service.NewK8sClusterRoleService(a.storage, k8sClusterService)
-	k8sPriorityClassService := service.NewK8sPriorityClassService(a.storage, k8sClusterService)
-	k8sRoleService := service.NewK8sRoleService(a.storage, k8sClusterService)
-	k8sStorageClassService := service.NewK8sStorageClassService(a.storage, k8sClusterService)
-	k8sJobService := service.NewK8sJobService(a.storage, k8sClusterService)
-	k8sCronJobService := service.NewK8sCronJobService(a.storage, k8sClusterService)
-	k8sIngressService := service.NewK8sIngressService(a.storage, k8sClusterService)
-	k8sNetworkPolicyService := service.NewK8sNetworkPolicyService(a.storage, k8sClusterService)
-	k8sReplicaSetService := service.NewK8sReplicaSetService(a.storage, k8sClusterService)
-	k8sLimitRangeService := service.NewK8sLimitRangeService(a.storage, k8sClusterService)
-	k8sServiceAccountService := service.NewK8sServiceAccountService(a.storage, k8sClusterService)
-	k8sClusterRoleBindingService := service.NewK8sClusterRoleBindingService(a.storage, k8sClusterService)
-	k8sResourceQuotaService := service.NewK8sResourceQuotaService(a.storage, k8sClusterService)
-
-	// 初始化 K8s API 处理器
-	k8sAPIHandler := handler.NewK8sAPIHandler(
-		k8sClusterService,
-		k8sNamespaceService,
-		k8sPodService,
-		k8sDeploymentService,
-		k8sNodeService,
-		k8sServiceService,
-		k8sStatefulSetService,
-		k8sDaemonSetService,
-		k8sConfigMapService,
-		k8sSecretService,
-		k8sEndpointService,
-		k8sPVCService,
-		k8sPVService,
-		k8sEndpointSliceService,
-		k8sHPAService,
-		k8sEventService,
-		k8sRoleBindingService,
-		k8sClusterRoleService,
-		k8sPriorityClassService,
-		k8sRoleService,
-		k8sStorageClassService,
-		k8sJobService,
-		k8sCronJobService,
-		k8sIngressService,
-		k8sNetworkPolicyService,
-		k8sReplicaSetService,
-		k8sLimitRangeService,
-		k8sServiceAccountService,
-		k8sClusterRoleBindingService,
-		k8sResourceQuotaService,
-	)
-
-	// 创建服务器配置
-	serverConfig := &api.ServerConfig{
-		Port:         a.opts.Server.Port,
-		Mode:         a.opts.Server.Mode,
-		ReadTimeout:  a.opts.Server.ReadTimeout,
-		WriteTimeout: a.opts.Server.WriteTimeout,
-		JWTSecret:    a.opts.JWT.Secret,
-	}
-
-	// 创建服务器实例
-	a.server = api.NewServer(serverConfig, clusterHandler, k8sAPIHandler, a.logger)
-
-	a.logger.Infow("K8s API endpoints initialized",
-		"count", 25,
-		"base_path", "/api/k8s",
-	)
-
+	a.logger.Infow("Components registered, ready to start")
 	return nil
 }
 
 // Run 运行应用程序主逻辑
 func (a *ClusterApp) Run(ctx context.Context) error {
-	// 启动健康检查服务器
-	a.logger.Info("Starting health check server on :8096")
-	a.healthServer = app.NewDefaultHealthCheckServer(":8096")
-	if err := a.healthServer.Start(); err != nil {
-		return fmt.Errorf("failed to start health check server: %w", err)
-	}
-	a.logger.Info("Health check server started (endpoints: /healthz, /readyz)")
-
-	// 启动服务器
-	go func() {
-		if err := a.server.Start(); err != nil {
-			a.logger.Fatalw("Server failed to start", "error", err)
-		}
-	}()
-
-	a.logger.Infow("Cluster service started successfully",
-		"port", a.opts.Server.Port,
-		"mode", a.opts.Server.Mode,
+	a.logger.Infow("Cluster Service started successfully",
+		"http_address", fmt.Sprintf("%s:%d", a.opts.Server.Host, a.opts.Server.Port),
+		"health_address", fmt.Sprintf(":%d", a.opts.GetHealthPort()),
 	)
 
-	// 等待 context 取消
-	<-ctx.Done()
+	// 使用 bootstrap 的 Run 方法,它会等待信号
+	// runFunc 会在所有初始化器完成后调用
+	return a.bootstrap.Run(ctx, func() error {
+		// 启动 HTTP 服务器（在 goroutine 中）
+		go func() {
+			if err := a.httpInit.Start(); err != nil {
+				a.logger.Fatalw("HTTP server failed to start", "error", err)
+			}
+		}()
 
-	a.logger.Info("Received shutdown signal")
-	return nil
+		a.logger.Infow("All services started, waiting for shutdown signal")
+		return nil
+	})
 }
 
 // Shutdown 优雅关闭应用程序
 func (a *ClusterApp) Shutdown(ctx context.Context) error {
 	a.logger.Infow("Shutting down Cluster Service")
+	return a.bootstrap.Shutdown(ctx)
+}
 
-	// 关闭健康检查服务器
-	if a.healthServer != nil {
-		a.logger.Info("Stopping health check server")
-		a.healthServer.Stop()
-	}
+// createBootstrap 创建 bootstrap 实例
+func (a *ClusterApp) createBootstrap() *bootstrap.Bootstrap {
+	return bootstrap.New(a.logger)
+}
 
-	// 关闭服务器
-	if a.server != nil {
-		if err := a.server.Shutdown(ctx); err != nil {
-			a.logger.Errorw("Server forced to shutdown", "error", err)
-			return err
-		}
-	}
+// registerComponents 注册所有组件初始化器
+func (a *ClusterApp) registerComponents() {
+	// 1. Database (优先级 300)
+	a.dbInit = initializers.NewDatabaseInitializer(a.opts.Database, a.logger)
+	a.bootstrap.Register(a.dbInit)
 
-	// 关闭数据库连接
-	if a.storage != nil {
-		a.storage.Close()
-	}
+	// 2. HTTP Server (优先级 500)
+	a.httpInit = initializers.NewHTTPServerInitializer(
+		a.opts.Server,
+		a.opts.JWT,
+		a.logger,
+		a.dbInit,
+	)
+	a.bootstrap.Register(a.httpInit)
 
-	a.logger.Info("Cluster Service shutdown complete")
-	return nil
+	// 3. Health Check (优先级 600)
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(
+		fmt.Sprintf(":%d", a.opts.GetHealthPort()),
+		a.logger,
+	)
+	a.bootstrap.Register(a.healthInit)
 }
 
 // initLogger 初始化日志系统
 func initLogger(opts commonapp.Options) (core.Logger, error) {
-	cfg := opts.(*clusterconfig.Options)
-	return commonlogger.InitFromOptions(cfg.Logging)
+	cfg := opts.(*options.ServerOptions)
+	return cfg.InitLogger()
 }

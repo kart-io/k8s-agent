@@ -1,0 +1,95 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+package app
+
+import (
+	"context"
+	"fmt"
+
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+
+	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
+	"github.com/kart-io/k8s-agent/internal/auth"
+)
+
+// commandDesc defines the description of the auth command.
+const commandDesc = `The auth server provides user authentication and authorization services.
+
+It supports:
+- JWT-based authentication
+- Session management with Redis
+- Role-based access control (RBAC)
+- API key management
+- Forced logout functionality
+- Audit logging
+- Email notifications
+`
+
+// Execute runs the auth service command.
+// This is the main entry point for the auth service.
+func Execute() {
+	// Create server options with default values
+	opts := options.NewServerOptions()
+
+	// Define run function wrapper
+	runFunc := func(opts commonapp.Options) error {
+		return run(opts.(*options.ServerOptions))
+	}
+
+	// Use the enhanced pkg/app framework with optional features
+	commonapp.RunWithOptions(opts, runFunc, commonapp.CommandConfig{
+		Use:       auth.Name,
+		Short:     "Launch an Aetherius authentication and authorization server",
+		Long:      commandDesc,
+		EnvPrefix: "AUTH",
+	},
+		// Enable health check server (read port from config)
+		commonapp.WithHealthCheck(commonapp.DefaultHealthCheckFuncFromOptions(opts)),
+		// Enable version information printing
+		commonapp.WithPrintVersion(),
+		// Enable runtime information printing
+		commonapp.WithPrintRuntime(),
+		// Enable configuration file watching
+		commonapp.WithWatch(),
+	)
+}
+
+// run contains the main logic for initializing and running the server.
+// It performs the following steps:
+// 1. Initialize logger
+// 2. Load configuration
+// 3. Create server
+// 4. Start server
+func run(opts *options.ServerOptions) error {
+	// Initialize logger first
+	logger, err := opts.InitLogger()
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	logger.Infow("Starting auth service",
+		"service", auth.Name,
+		"id", auth.ID,
+	)
+
+	// Load the configuration from options
+	cfg, err := opts.Config()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// Create context for the server
+	ctx := context.Background()
+
+	// Build the server using the configuration
+	server, err := cfg.NewServer(ctx, logger)
+	if err != nil {
+		return fmt.Errorf("failed to create server: %w", err)
+	}
+
+	// Run the server with signal context for graceful shutdown
+	return server.Run(ctx)
+}
+

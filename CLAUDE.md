@@ -81,8 +81,103 @@ Layer 4: Reasoning Service (AI 智能层)
   - Implementation: `internal/monitor/`
 
 - **Cluster Service**: Multi-cluster management
+  - Tech: Go 1.25+, MySQL, Gin
   - Entry Point: `cmd/cluster/`
   - Implementation: `internal/cluster/`
+  - Architecture: **Bootstrap Mode** (upgraded from Runner mode on 2025-10-30)
+
+### Service Entry Architecture Patterns
+
+The project uses two standardized architecture patterns for service entry points, chosen based on service complexity:
+
+#### Bootstrap Pattern (5/8 services - 62.5%)
+
+**Used by**: agent-manager, orchestrator, auth, cluster, reasoning
+
+**Characteristics**:
+- Uses `pkg/app.RunWithRunner()` + `Application` interface
+- Uses `pkg/bootstrap.Bootstrap` for component lifecycle management
+- Has `cmd/{service}/app/options/` package with ServerOptions
+- Has `internal/{service}/initializers/` package for component initialization
+- Clear dependency management with priority-based initialization
+- Structured lifecycle: Initialize → Run → Shutdown
+
+**When to use**:
+- Service has multiple external dependencies (database, Redis, NATS, etc.)
+- Service has complex initialization order requirements
+- Service needs fine-grained lifecycle management
+- Service complexity score ≥ 10
+
+**Example structure**:
+```go
+// cmd/{service}/app/app.go
+type {Service}App struct {
+    bootstrap *bootstrap.Bootstrap
+    opts      *options.ServerOptions
+    logger    core.Logger
+
+    // Component initializers
+    dbInit     *initializers.DatabaseInitializer
+    httpInit   *initializers.HTTPServerInitializer
+    healthInit *pkginitializers.HealthCheckInitializer
+}
+
+func Execute() {
+    opts := options.NewServerOptions()
+    commonapp.RunWithRunner(opts, &{Service}App{}, initLogger, config)
+}
+```
+
+#### Simple Pattern (3/8 services - 37.5%)
+
+**Used by**: collect-agent, gateway, monitor
+
+**Characteristics**:
+- Uses `pkg/app.RunWithOptions()` + simple run function
+- No Bootstrap framework, linear initialization logic
+- Configuration in `internal/{service}/config/` package
+- Minimal external dependencies
+- Straightforward startup and shutdown
+
+**When to use**:
+- Service has few or no external dependencies
+- Simple linear initialization logic
+- Lightweight service (gateway, monitoring, etc.)
+- Service complexity score < 10
+
+**Example structure**:
+```go
+// cmd/{service}/app/app.go
+func Execute() {
+    opts := config.NewOptions()
+    commonapp.RunWithOptions(opts, run, config,
+        commonapp.WithHealthCheck(...),
+        commonapp.WithPrintVersion(),
+    )
+}
+
+func run(opts commonapp.Options) error {
+    // Simple initialization logic
+    log, _ := logger.InitFromOptions(opts.Logging)
+    srv, _ := NewServer(opts, log)
+    return srv.Run(context.Background())
+}
+```
+
+**Service Architecture Summary**:
+
+| Service | Pattern | Complexity | External Deps | Initializers |
+|---------|---------|------------|---------------|--------------|
+| agent-manager | Bootstrap | High | MySQL, Redis, NATS | 6+ |
+| orchestrator | Bootstrap | High | MySQL, Redis, NATS | 5+ |
+| auth | Bootstrap | Medium-High | MySQL, Redis | 8+ |
+| **cluster** | Bootstrap | High | MySQL | 3 |
+| **reasoning** | Bootstrap | High | LLM APIs | 3 |
+| collect-agent | Simple | Medium | NATS | 0 |
+| gateway | Simple | Low | None | 0 |
+| monitor | Simple | Low | None | 0 |
+
+**Note**: cluster and reasoning services were upgraded to Bootstrap pattern on 2025-10-30 to improve maintainability and scalability. See `docs/refactoring/REFACTORING_COMPLETION_REPORT.md` for details.
 
 ### Shared Code Organization
 
