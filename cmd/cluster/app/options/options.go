@@ -107,6 +107,21 @@ func (o *ServerOptions) GetHealthPort() int {
 	return o.Health.Port
 }
 
+// GetServiceName returns the service name
+// This method is required by the BootstrapConfig interface
+func (o *ServerOptions) GetServiceName() string {
+	return "Cluster"
+}
+
+// GetLogFields returns log fields for initialization logging
+// This method is required by the BootstrapConfig interface
+func (o *ServerOptions) GetLogFields() []interface{} {
+	return []interface{}{
+		"http_port", o.Server.Port,
+		"health_port", o.Health.Port,
+	}
+}
+
 // Config converts ServerOptions to internal cluster config
 // This method is required by the Bootstrap pattern
 func (o *ServerOptions) Config() (*clusterconfig.Config, error) {
