@@ -71,106 +71,20 @@ func (o *ServerOptions) GetHealthPort() int {
 // AddFlags adds flags to the specified FlagSet.
 // This method implements the commonapp.NamedFlagSetOptions interface.
 func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
-	// Add all sub-options flags to the main flag set
-	o.Server.AddFlags(fs)
-	o.GRPC.AddFlags(fs)
-	o.Database.AddFlags(fs)
-	o.Redis.AddFlags(fs)
-	o.NATS.AddFlags(fs)
-	o.Logging.AddFlags(fs)
-	o.Metrics.AddFlags(fs)
-	if o.Health != nil {
-		o.Health.AddFlags(fs, "")
-	}
+	// 使用通用工具函数统一添加所有子选项的 flags
+	commonoptions.AddFlagsAll(o, fs)
 }
 
 // Complete completes all the required options.
 func (o *ServerOptions) Complete() error {
-	// Set default service name in initial fields if not specified
-	if o.Logging.InitialFields == nil {
-		o.Logging.InitialFields = make(map[string]interface{})
-	}
-	if _, ok := o.Logging.InitialFields["service.name"]; !ok {
-		o.Logging.InitialFields["service.name"] = UserAgent
-	}
-
-	// Complete all sub-options
-	if err := o.Server.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.GRPC.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Database.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Redis.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.NATS.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Logging.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Metrics.Complete(); err != nil {
-		return err
-	}
-
-	if o.Health != nil {
-		if err := o.Health.Complete(); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	// 使用通用工具函数：设置服务名称并完成所有子选项
+	return commonoptions.CompleteWithServiceName(o, o.Logging, UserAgent)
 }
 
 // Validate checks whether the options in ServerOptions are valid.
 func (o *ServerOptions) Validate() []error {
-	var errs []error
-
-	if err := o.Server.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.GRPC.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Database.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Redis.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.NATS.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Logging.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Metrics.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if o.Health != nil {
-		if err := o.Health.Validate(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return errs
+	// 使用通用工具函数统一验证所有子选项
+	return commonoptions.ValidateAll(o)
 }
 
 // Config builds an agentmanager.Config based on ServerOptions.
@@ -185,6 +99,23 @@ func (o *ServerOptions) Config() (*agentmanager.Config, error) {
 		Logging:  o.Logging,
 		Metrics:  o.Metrics,
 	}, nil
+}
+
+// GetServiceName returns the service name
+// This method is required by the BootstrapConfig interface
+func (o *ServerOptions) GetServiceName() string {
+	return "Agent Manager"
+}
+
+// GetLogFields returns log fields for initialization logging
+// This method is required by the BootstrapConfig interface
+func (o *ServerOptions) GetLogFields() []interface{} {
+	return []interface{}{
+		"http_port", o.Server.Port,
+		"grpc_enabled", o.GRPC.Enable,
+		"grpc_port", o.GRPC.Port,
+		"health_port", o.Health.Port,
+	}
 }
 
 // InitLogger initializes logger based on the options.

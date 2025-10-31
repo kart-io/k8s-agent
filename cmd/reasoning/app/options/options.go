@@ -46,106 +46,38 @@ func NewServerOptions() *ServerOptions {
 
 // Validate validates all the required options
 func (o *ServerOptions) Validate() []error {
-	var errs []error
-
-	if err := o.Server.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Logging.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Health.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.LLM.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Memory.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Analysis.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Prediction.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Learning.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Performance.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	return errs
+	// 使用通用工具函数统一验证所有子选项
+	return commonoptions.ValidateAll(o)
 }
 
 // Complete fills in any fields not set that are required to have valid data
 func (o *ServerOptions) Complete() error {
-	// Complete all sub-options
-	if err := o.Server.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Logging.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Health.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.LLM.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Memory.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Analysis.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Prediction.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Learning.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Performance.Complete(); err != nil {
-		return err
-	}
-
-	// Note: LLM environment variable overrides are applied in internal/reasoning/config
-	// during Config() conversion if needed
-
-	return nil
+	// 使用通用工具函数统一完成所有子选项
+	return commonoptions.CompleteAll(o)
 }
 
 // AddFlags adds flags to the flag set
 // Note: --config/-c flag is automatically added by pkg/app framework
 func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
-	o.Server.AddFlags(fs)
-	o.Logging.AddFlags(fs)
-	if o.Health != nil {
-		o.Health.AddFlags(fs, "")
+	// 使用通用工具函数统一添加所有子选项的 flags
+	commonoptions.AddFlagsAll(o, fs)
+}
+
+// GetServiceName returns the service name
+// This method is required by the BootstrapConfig interface
+func (o *ServerOptions) GetServiceName() string {
+	return "Reasoning"
+}
+
+// GetLogFields returns log fields for initialization logging
+// This method is required by the BootstrapConfig interface
+func (o *ServerOptions) GetLogFields() []interface{} {
+	return []interface{}{
+		"http_port", o.Server.Port,
+		"health_port", o.Health.Port,
+		"llm_enabled", o.LLM.Enabled,
+		"memory_enabled", o.Memory.EnableVectorStore,
 	}
-	o.LLM.AddFlags(fs)
-	o.Memory.AddFlags(fs)
-	o.Analysis.AddFlags(fs)
-	o.Prediction.AddFlags(fs)
-	o.Learning.AddFlags(fs)
-	o.Performance.AddFlags(fs)
 }
 
 // InitLogger initializes the logger based on logging options

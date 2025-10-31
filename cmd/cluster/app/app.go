@@ -14,7 +14,6 @@ import (
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
-	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the cluster service command
@@ -22,11 +21,14 @@ func Execute() {
 	// 创建配置选项
 	opts := options.NewServerOptions()
 
+	// 创建应用实例
+	app := &ClusterApp{}
+
 	// 使用组合框架运行应用
 	commonapp.RunWithRunner(
 		opts,
-		&ClusterApp{},
-		initLogger,
+		app,
+		commonapp.StandardInitLogger,
 		commonapp.CommandConfig{
 			Use:       "cluster",
 			Short:     "Cluster Service",
@@ -38,9 +40,8 @@ func Execute() {
 
 // ClusterApp 实现 commonapp.Application 接口
 type ClusterApp struct {
-	*commonapp.BaseBootstrapApp // 组合基础 Bootstrap 应用
+	*commonapp.StandardBootstrapApplication // 嵌入标准 Bootstrap 应用
 
-	opts   *options.ServerOptions
 	config *clusterconfig.Config
 
 	// 组件初始化器
@@ -51,33 +52,22 @@ type ClusterApp struct {
 
 // Initialize 初始化应用程序
 func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	a.opts = opts.(*options.ServerOptions)
-
-	// 转换为业务配置
-	config, err := a.opts.Config()
+	// 转换配置
+	serverOpts := opts.(*options.ServerOptions)
+	config, err := serverOpts.Config()
 	if err != nil {
 		return fmt.Errorf("failed to build config: %w", err)
 	}
 	a.config = config
 
-	// 创建 BaseBootstrapApp 实例并设置启动钩子
-	a.BaseBootstrapApp = commonapp.NewBaseBootstrapApp("Cluster", a).
-		WithStartupHook(a)
+	// 创建标准 Bootstrap 应用并设置启动钩子
+	if a.StandardBootstrapApplication == nil {
+		a.StandardBootstrapApplication = commonapp.NewStandardBootstrapApplication("Cluster", a).
+			WithStartupHookFunc(a)
+	}
 
-	// 使用基础类的初始化方法
-	return a.BaseInitialize(ctx, a.opts)
-}
-
-// Run 运行应用程序主逻辑
-func (a *ClusterApp) Run(ctx context.Context) error {
-	// 使用基础类的运行方法
-	return a.BaseRun(ctx, a.opts)
-}
-
-// Shutdown 优雅关闭应用程序
-func (a *ClusterApp) Shutdown(ctx context.Context) error {
-	// 使用基础类的关闭方法
-	return a.BaseShutdown(ctx)
+	// 调用标准初始化
+	return a.StandardBootstrapApplication.Initialize(ctx, opts)
 }
 
 // OnStartup 实现 StartupHook 接口，在 bootstrap.Run() 中执行
@@ -95,14 +85,16 @@ func (a *ClusterApp) OnStartup(ctx context.Context) error {
 
 // RegisterComponents 实现 ComponentRegistrar 接口，注册所有组件初始化器
 func (a *ClusterApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
+	opts := a.GetOptions().(*options.ServerOptions)
+
 	// 1. Database (优先级 300)
-	a.dbInit = initializers.NewDatabaseInitializer(a.opts.Database, a.GetLogger())
+	a.dbInit = initializers.NewDatabaseInitializer(opts.Database, a.GetLogger())
 	bs.Register(a.dbInit)
 
 	// 2. HTTP Server (优先级 500)
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.opts.Server,
-		a.opts.JWT,
+		opts.Server,
+		opts.JWT,
 		a.GetLogger(),
 		a.dbInit,
 	)
@@ -110,7 +102,7 @@ func (a *ClusterApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 
 	// 3. Health Check (优先级 600)
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
-		fmt.Sprintf(":%d", a.opts.GetHealthPort()),
+		fmt.Sprintf(":%d", opts.GetHealthPort()),
 		a.GetLogger(),
 	)
 	bs.Register(a.healthInit)
@@ -118,7 +110,4 @@ func (a *ClusterApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	return nil
 }
 
-// initLogger 初始化日志系统
-func initLogger(opts commonapp.Options) (core.Logger, error) {
-	return commonapp.StandardInitLogger(opts)
-}
+// Run/Shutdown/initLogger 方法已由 StandardBootstrapApplication 提供，无需重复定义

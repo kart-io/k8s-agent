@@ -19,8 +19,8 @@ type PostgresStorage struct {
 
 // NewPostgresStorage creates a new storage using common/db
 func NewPostgresStorage(opts *options.DatabaseOptions, logger core.Logger) (*PostgresStorage, error) {
-	// 使用 common/db helper 函数创建 MySQL 客户端
-	mysqlClient, err := commondb.NewMySQLFromOptions(logger, opts)
+	// 使用 Options 的 NewMySQLClient 方法创建 MySQL 客户端（简化调用链）
+	mysqlClient, err := opts.NewMySQLClient(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}

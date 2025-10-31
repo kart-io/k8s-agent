@@ -212,3 +212,57 @@ func (c *MySQLClient) AutoMigrate(models ...interface{}) error {
 	c.logger.Info("Database migrations completed successfully")
 	return nil
 }
+
+// NewMySQLFromDSN 从 DSN 字符串创建 MySQL 连接
+// dsn 格式: user:password@tcp(host:port)/database?charset=utf8mb4&parseTime=True&loc=Local
+func NewMySQLFromDSN(log core.Logger, dsn string, opts ...MySQLOption) (*MySQLClient, error) {
+	// 应用默认配置
+	options := defaultMySQLOptions()
+
+	// 应用用户配置
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	// GORM 日志级别
+	gormLogLevel := logger.Silent
+	switch options.logLevel {
+	case "error":
+		gormLogLevel = logger.Error
+	case "warn":
+		gormLogLevel = logger.Warn
+	case "info":
+		gormLogLevel = logger.Info
+	}
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(gormLogLevel),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database instance: %w", err)
+	}
+
+	// 连接池配置
+	sqlDB.SetMaxOpenConns(options.maxOpenConns)
+	sqlDB.SetMaxIdleConns(options.maxIdleConns)
+	sqlDB.SetConnMaxLifetime(options.connMaxLifetime)
+
+	// 测试连接
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ping MySQL: %w", err)
+	}
+
+	log.Infow("MySQL connected", "dsn", dsn)
+
+	return &MySQLClient{
+		DB:     db,
+		logger: log.With("component", "mysql"),
+	}, nil
+}

@@ -23,8 +23,8 @@ type PostgresStore struct {
 // NewPostgresStore creates a new MySQL store using common/db
 // Note: Kept the name for backward compatibility, but now using MySQL
 func NewPostgresStore(opts *options.DatabaseOptions, log core.Logger) (*PostgresStore, error) {
-	// 使用 common/db helper 函数创建 MySQL 客户端
-	mysqlClient, err := commondb.NewMySQLFromOptions(log, opts)
+	// 使用 Options 的 NewMySQLClient 方法创建 MySQL 客户端（简化调用链）
+	mysqlClient, err := opts.NewMySQLClient(log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}

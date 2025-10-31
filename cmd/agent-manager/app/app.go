@@ -10,7 +10,6 @@ import (
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
-	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the agent-manager command
@@ -18,11 +17,14 @@ func Execute() {
 	// 创建配置选项
 	opts := options.NewServerOptions()
 
+	// 创建应用实例
+	app := &AgentManagerApp{}
+
 	// 使用组合框架运行应用
 	commonapp.RunWithRunner(
 		opts,
-		&AgentManagerApp{},
-		initLogger,
+		app,
+		commonapp.StandardInitLogger, // 使用标准 initLogger
 		commonapp.CommandConfig{
 			Use:       "agent-manager",
 			Short:     "Agent Manager Service",
@@ -34,10 +36,9 @@ func Execute() {
 
 // AgentManagerApp 实现 commonapp.Application 接口
 type AgentManagerApp struct {
-	bootstrap *bootstrap.Bootstrap
-	opts      *options.ServerOptions
-	config    *agentmanager.Config
-	logger    core.Logger
+	*commonapp.StandardBootstrapApplication // 嵌入标准 Bootstrap 应用
+
+	config *agentmanager.Config
 
 	// 组件初始化器
 	dbInit         *initializers.DatabaseInitializer
@@ -52,130 +53,96 @@ type AgentManagerApp struct {
 
 // Initialize 初始化应用程序
 func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	a.opts = opts.(*options.ServerOptions)
-
-	// 初始化日志系统
-	logger, err := initLogger(opts)
-	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
-	}
-	a.logger = logger
-
-	a.logger.Infow("Initializing Agent Manager Service",
-		"http_port", a.opts.Server.Port,
-		"grpc_enabled", a.opts.GRPC.Enable,
-		"grpc_port", a.opts.GRPC.Port,
-		"health_port", a.opts.Health.Port,
-	)
-
-	// 转换为业务配置
-	config, err := a.opts.Config()
+	// 转换配置
+	serverOpts := opts.(*options.ServerOptions)
+	config, err := serverOpts.Config()
 	if err != nil {
 		return fmt.Errorf("failed to build config: %w", err)
 	}
 	a.config = config
 
-	// 创建 bootstrap 实例,直接使用 kart-io/logger
-	a.bootstrap = bootstrap.New(a.logger)
+	// 创建标准 Bootstrap 应用（只需一次）
+	if a.StandardBootstrapApplication == nil {
+		a.StandardBootstrapApplication = commonapp.NewStandardBootstrapApplication("Agent Manager", a)
+	}
 
-	// 注册所有组件初始化器（但不执行初始化）
-	// 初始化将在 Run() 方法中由 bootstrap.Run() 执行
-	a.registerComponents()
-
-	a.logger.Infow("Components registered, ready to start")
-	return nil
+	// 调用标准初始化
+	return a.StandardBootstrapApplication.Initialize(ctx, opts)
 }
 
-// Run 运行应用程序主逻辑
-func (a *AgentManagerApp) Run(ctx context.Context) error {
-	a.logger.Infow("Agent Manager Service started successfully",
-		"http_address", fmt.Sprintf("%s:%d", a.opts.Server.Host, a.opts.Server.Port),
-		"grpc_enabled", a.opts.GRPC.Enable,
-	)
+// RegisterComponents 实现 ComponentRegistrar 接口，注册所有组件初始化器
+func (a *AgentManagerApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
+	opts := a.GetOptions().(*options.ServerOptions)
 
-	// 使用 bootstrap 的 Run 方法,它会等待信号
-	return a.bootstrap.Run(ctx, nil)
-}
-
-// Shutdown 优雅关闭应用程序
-func (a *AgentManagerApp) Shutdown(ctx context.Context) error {
-	a.logger.Infow("Shutting down Agent Manager Service")
-	return a.bootstrap.Shutdown(ctx)
-}
-
-// registerComponents 注册所有组件初始化器
-func (a *AgentManagerApp) registerComponents() {
 	// 1. Database (优先级 300)
-	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
-	a.bootstrap.Register(a.dbInit)
+	a.dbInit = initializers.NewDatabaseInitializer(opts, a.GetLogger())
+	bs.Register(a.dbInit)
 
 	// 2. Redis (优先级 400)
-	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
-	a.bootstrap.Register(a.redisInit)
+	a.redisInit = initializers.NewRedisInitializer(opts, a.GetLogger())
+	bs.Register(a.redisInit)
 
 	// 3. Registry (优先级 450 - 在 Database 和 Redis 之后)
 	a.registryInit = initializers.NewRegistryInitializer(
-		a.opts,
-		a.logger,
+		opts,
+		a.GetLogger(),
 		a.dbInit,
 		a.redisInit,
 	)
-	a.bootstrap.Register(a.registryInit)
+	bs.Register(a.registryInit)
 
 	// 4. NATS (优先级 500)
 	a.natsInit = initializers.NewNATSInitializer(
-		a.opts,
-		a.logger,
+		opts,
+		a.GetLogger(),
 		a.registryInit,
 		a.dbInit,
 		a.redisInit,
 	)
-	a.bootstrap.Register(a.natsInit)
+	bs.Register(a.natsInit)
 
 	// 5. Dispatcher (优先级 550 - 在 NATS 之后)
 	a.dispatcherInit = initializers.NewDispatcherInitializer(
-		a.opts,
-		a.logger,
+		opts,
+		a.GetLogger(),
 		a.dbInit,
 		a.redisInit,
 		a.registryInit,
 		a.natsInit,
 	)
-	a.bootstrap.Register(a.dispatcherInit)
+	bs.Register(a.dispatcherInit)
 
 	// 6. HTTP Server (优先级 600)
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.opts,
-		a.logger,
+		opts,
+		a.GetLogger(),
 		a.registryInit,
 		a.dispatcherInit,
 		a.dbInit,
 		a.redisInit,
 		a.natsInit,
 	)
-	a.bootstrap.Register(a.httpInit)
+	bs.Register(a.httpInit)
 
 	// 7. gRPC Server (优先级 700, 可选)
-	if a.opts.GRPC.Enable {
+	if opts.GRPC.Enable {
 		a.grpcInit = initializers.NewGRPCServerInitializer(
-			a.opts,
-			a.logger,
+			opts,
+			a.GetLogger(),
 			a.registryInit,
 			a.dispatcherInit,
 			a.dbInit,
 		)
-		a.bootstrap.Register(a.grpcInit)
+		bs.Register(a.grpcInit)
 	}
 
 	// 8. Health Check Server (优先级最低，最后启动)
-	healthPort := a.opts.GetHealthPort()
+	healthPort := opts.GetHealthPort()
 	healthAddr := fmt.Sprintf(":%d", healthPort)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthAddr, a.logger)
-	a.bootstrap.Register(a.healthInit)
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthAddr, a.GetLogger())
+	bs.Register(a.healthInit)
+
+	return nil
 }
 
-// initLogger 初始化日志系统
-func initLogger(opts commonapp.Options) (core.Logger, error) {
-	serverOpts := opts.(*options.ServerOptions)
-	return serverOpts.InitLogger()
-}
+// Run/Shutdown/initLogger 方法已由 StandardBootstrapApplication 提供，无需重复定义

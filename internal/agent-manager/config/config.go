@@ -3,8 +3,8 @@ package config
 import (
 	"fmt"
 
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/pkg/types"
-	"github.com/spf13/viper"
 )
 
 // Load loads configuration from file and environment variables
@@ -14,48 +14,48 @@ func Load() (*types.Config, error) {
 
 // LoadFromPath loads configuration from a specific file path
 func LoadFromPath(configPath string) (*types.Config, error) {
-	v := viper.New()
+	config := &types.Config{}
 
-	if configPath != "" {
-		// Use specified config file path
-		v.SetConfigFile(configPath)
-	} else {
-		// Use default config file search
-		v.SetConfigName("config")
-		v.SetConfigType("yaml")
-		v.AddConfigPath("./configs")
-		v.AddConfigPath(".")
+	// 使用通用配置加载器
+	// 注意：types.Config 需要实现 Complete() 和 Validate() 方法
+	// 这里为了兼容，使用一个包装类型
+	wrapper := &configWrapper{Config: config}
+
+	envBindings := map[string]string{
+		"database.host":     "DB_HOST",
+		"database.port":     "DB_PORT",
+		"database.user":     "DB_USER",
+		"database.password": "DB_PASSWORD",
+		"database.database": "DB_NAME",
+		"redis.addr":        "REDIS_ADDR",
+		"redis.password":    "REDIS_PASSWORD",
+		"nats.url":          "NATS_URL",
 	}
 
-	// Read configuration file
-	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+	if err := commonoptions.LoadOptions(wrapper, configPath, envBindings); err != nil {
+		return nil, err
 	}
 
-	// Allow environment variable overrides
-	v.AutomaticEnv()
+	return config, nil
+}
 
-	// Bind specific environment variables with custom names
-	v.BindEnv("database.host", "DB_HOST")
-	v.BindEnv("database.port", "DB_PORT")
-	v.BindEnv("database.user", "DB_USER")
-	v.BindEnv("database.password", "DB_PASSWORD")
-	v.BindEnv("database.database", "DB_NAME")
-	v.BindEnv("redis.addr", "REDIS_ADDR")
-	v.BindEnv("redis.password", "REDIS_PASSWORD")
-	v.BindEnv("nats.url", "NATS_URL")
+// configWrapper 包装 types.Config 以实现 Options 接口
+type configWrapper struct {
+	*types.Config
+}
 
-	var config types.Config
-	if err := v.Unmarshal(&config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+// Complete 实现 Options 接口
+func (w *configWrapper) Complete() error {
+	// agent-manager 的 Config 不需要特殊的 Complete 逻辑
+	return nil
+}
+
+// Validate 实现 Options 接口
+func (w *configWrapper) Validate() []error {
+	if err := validate(w.Config); err != nil {
+		return []error{err}
 	}
-
-	// Validate required fields
-	if err := validate(&config); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
-	return &config, nil
+	return nil
 }
 
 // validate validates configuration

@@ -71,8 +71,8 @@ func (r *RedisInitializer) Initialize(ctx context.Context) error {
 		"db", r.opts.DB,
 	)
 
-	// 创建 Redis 客户端
-	client, err := db.NewRedisFromOptions(r.logger, r.opts)
+	// 直接使用 Options 的 NewRedisClient 方法创建客户端
+	client, err := r.opts.NewRedisClient(r.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create Redis client: %w", err)
 	}

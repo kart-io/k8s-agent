@@ -20,8 +20,8 @@ type RedisStore struct {
 
 // NewRedisStore creates a new Redis store using common/db
 func NewRedisStore(opts *options.RedisOptions, log core.Logger) (*RedisStore, error) {
-	// 使用 common/db helper 函数创建 Redis 客户端
-	redisClient, err := commondb.NewRedisFromOptions(log, opts)
+	// 使用 Options 的 NewRedisClient 方法创建 Redis 客户端（简化调用链）
+	redisClient, err := opts.NewRedisClient(log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Redis client: %w", err)
 	}

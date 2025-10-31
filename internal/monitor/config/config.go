@@ -3,10 +3,9 @@ package config
 import (
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/common/options"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 // Options 实现 commonapp.Options 接口
@@ -53,7 +52,7 @@ func NewOptions() *Options {
 				Format: "json",
 				Output: "stdout",
 			},
-			Health: options.HealthOptions{
+			Health: commonoptions.HealthOptions{
 				Port: 8095, // 默认健康检查端口
 			},
 		},
@@ -109,7 +108,7 @@ type Config struct {
 	Logging    LoggingConfig         `mapstructure:"logging"`
 	Alert      AlertConfig           `mapstructure:"alert"`
 	Metrics    MetricsConfig         `mapstructure:"metrics"`
-	Health     options.HealthOptions `mapstructure:"health"`
+	Health     commonoptions.HealthOptions `mapstructure:"health"`
 }
 
 // ServerConfig holds server configuration
@@ -206,43 +205,41 @@ func Load() (*Config, error) {
 
 // LoadFromPath loads configuration from a specific file path
 func LoadFromPath(configPath string) (*Config, error) {
-	v := viper.New()
+	config := &Config{}
 
-	if configPath != "" {
-		// Use specified config file path
-		v.SetConfigFile(configPath)
-	} else {
-		// Use default config file search
-		v.SetConfigName("config")
-		v.SetConfigType("yaml")
-		v.AddConfigPath("./configs")
-		v.AddConfigPath(".")
+	// 使用通用配置加载器
+	wrapper := &configWrapper{Config: config}
+
+	envBindings := map[string]string{
+		"jwt.secret":        "JWT_SECRET",
+		"database.password": "DB_PASSWORD",
+		"redis.password":    "REDIS_PASSWORD",
 	}
 
-	// Read configuration file
-	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+	if err := commonoptions.LoadOptions(wrapper, configPath, envBindings); err != nil {
+		return nil, err
 	}
 
-	// Allow environment variable overrides
-	v.AutomaticEnv()
+	return config, nil
+}
 
-	// Bind specific environment variables with custom names
-	v.BindEnv("jwt.secret", "JWT_SECRET")
-	v.BindEnv("database.password", "DB_PASSWORD")
-	v.BindEnv("redis.password", "REDIS_PASSWORD")
+// configWrapper 包装 Config 以实现 Options 接口
+type configWrapper struct {
+	*Config
+}
 
-	var config Config
-	if err := v.Unmarshal(&config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+// Complete 实现 Options 接口
+func (w *configWrapper) Complete() error {
+	// monitor 的 Config 不需要特殊的 Complete 逻辑
+	return nil
+}
+
+// Validate 实现 Options 接口
+func (w *configWrapper) Validate() []error {
+	if err := validate(w.Config); err != nil {
+		return []error{err}
 	}
-
-	// Validate required fields
-	if err := validate(&config); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
-	return &config, nil
+	return nil
 }
 
 // validate validates configuration

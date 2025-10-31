@@ -35,64 +35,21 @@ func NewServerOptions() *ServerOptions {
 
 // Validate validates all the required options
 func (o *ServerOptions) Validate() []error {
-	var errs []error
-
-	if err := o.Server.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Database.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.JWT.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Logging.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Health.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	return errs
+	// 使用通用工具函数统一验证所有子选项
+	return commonoptions.ValidateAll(o)
 }
 
 // Complete fills in any fields not set that are required to have valid data
 func (o *ServerOptions) Complete() error {
-	if err := o.Server.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Database.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.JWT.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Logging.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Health.Complete(); err != nil {
-		return err
-	}
-
-	return nil
+	// 使用通用工具函数统一完成所有子选项
+	return commonoptions.CompleteAll(o)
 }
 
 // AddFlags adds flags to the flag set
 // Note: --config/-c flag is automatically added by pkg/app framework
 func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
-	o.Server.AddFlags(fs)
-	o.Database.AddFlags(fs)
-	o.JWT.AddFlags(fs)
-	o.Logging.AddFlags(fs)
-	o.Health.AddFlags(fs, "")
+	// 使用通用工具函数统一添加所有子选项的 flags
+	commonoptions.AddFlagsAll(o, fs)
 }
 
 // InitLogger initializes the logger based on logging options

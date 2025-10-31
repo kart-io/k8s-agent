@@ -43,56 +43,49 @@ func Load() (*Config, error) {
 
 // LoadFromPath loads configuration from a specific file path
 func LoadFromPath(configPath string) (*Config, error) {
-	v := viper.New()
+	config := &Config{}
 
-	if configPath != "" {
-		// Use specified config file path
-		v.SetConfigFile(configPath)
-	} else {
-		// Use default config file search
-		v.SetConfigName("config")
-		v.SetConfigType("yaml")
-		v.AddConfigPath("./configs")
-		v.AddConfigPath(".")
+	// 使用通用配置加载器（带回调）
+	wrapper := &configWrapper{Config: config}
+
+	envBindings := map[string]string{
+		"server.host":      "SERVER_HOST",
+		"server.port":      "SERVER_PORT",
+		"server.log_level": "SERVER_LOG_LEVEL",
 	}
 
-	// Read configuration file
-	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+	// 使用回调处理 LLM 环境变量覆盖
+	postUnmarshal := func(v *viper.Viper, opts commonoptions.LoadableConfig) error {
+		cfg := opts.(*configWrapper).Config
+		applyLLMEnvOverrides(cfg)
+		return nil
 	}
 
-	// Allow environment variable overrides
-	v.AutomaticEnv()
-
-	// Apply environment variable overrides before unmarshaling
-	applyEnvOverrides(v)
-
-	var config Config
-	if err := v.Unmarshal(&config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	if err := commonoptions.LoadOptionsWithCallback(wrapper, configPath, envBindings, postUnmarshal); err != nil {
+		return nil, err
 	}
 
-	// Apply LLM API key overrides from environment variables
-	applyLLMEnvOverrides(&config)
-
-	// Validate configuration
-	if err := validate(&config); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
-	return &config, nil
+	return config, nil
 }
 
-// applyEnvOverrides applies environment variable overrides using viper
-func applyEnvOverrides(v *viper.Viper) {
-	// Bind specific environment variables
-	v.BindEnv("server.host", "SERVER_HOST")
-	v.BindEnv("server.port", "SERVER_PORT")
-	v.BindEnv("server.log_level", "SERVER_LOG_LEVEL")
+// configWrapper 包装 Config 以实现 Options 接口
+type configWrapper struct {
+	*Config
+}
 
-	// Bind LLM API keys - these will be applied after unmarshaling
-	// Note: We handle LLM provider API keys in a post-processing step
-	// since they require iteration over the providers array
+// Complete 实现 Options 接口
+func (w *configWrapper) Complete() error {
+	// reasoning 的 Config 不需要特殊的 Complete 逻辑
+	// LLM 环境变量已在 postUnmarshal 回调中处理
+	return nil
+}
+
+// Validate 实现 Options 接口
+func (w *configWrapper) Validate() []error {
+	if err := validate(w.Config); err != nil {
+		return []error{err}
+	}
+	return nil
 }
 
 // applyLLMEnvOverrides applies LLM API key overrides from environment variables

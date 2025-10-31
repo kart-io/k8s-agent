@@ -102,8 +102,8 @@ func (d *DatabaseInitializer) Initialize(ctx context.Context) error {
 		"database", d.opts.Database,
 	)
 
-	// 创建 MySQL 客户端
-	client, err := db.NewMySQLFromOptions(d.logger, d.opts)
+	// 直接使用 Options 的 NewMySQLClient 方法创建客户端
+	client, err := d.opts.NewMySQLClient(d.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create MySQL client: %w", err)
 	}

@@ -14,7 +14,6 @@ import (
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
-	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the reasoning service command
@@ -22,11 +21,14 @@ func Execute() {
 	// 创建配置选项
 	opts := options.NewServerOptions()
 
+	// 创建应用实例
+	app := &ReasoningApp{}
+
 	// 使用组合框架运行应用
 	commonapp.RunWithRunner(
 		opts,
-		&ReasoningApp{},
-		initLogger,
+		app,
+		commonapp.StandardInitLogger,
 		commonapp.CommandConfig{
 			Use:       "reasoning",
 			Short:     "Reasoning Service",
@@ -38,10 +40,9 @@ func Execute() {
 
 // ReasoningApp 实现 commonapp.Application 接口
 type ReasoningApp struct {
-	bootstrap *bootstrap.Bootstrap
-	opts      *options.ServerOptions
-	config    *reasoningconfig.Config
-	logger    core.Logger
+	*commonapp.StandardBootstrapApplication // 嵌入标准 Bootstrap 应用
+
+	config *reasoningconfig.Config
 
 	// 组件初始化器
 	llmInit    *initializers.LLMInitializer
@@ -51,96 +52,58 @@ type ReasoningApp struct {
 
 // Initialize 初始化应用程序
 func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	a.opts = opts.(*options.ServerOptions)
-
-	// 初始化日志系统
-	logger, err := initLogger(opts)
-	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
-	}
-	a.logger = logger
-
-	a.logger.Info("Aetherius Reasoning Service (Go)")
-	a.logger.Info("=================================")
-	a.logger.Infow("Initializing Reasoning Service",
-		"http_port", a.opts.Server.Port,
-		"health_port", a.opts.Health.Port,
-		"llm_enabled", a.opts.LLM.Enabled,
-		"memory_enabled", a.opts.Memory.EnableVectorStore,
-	)
-
-	// 转换为业务配置
-	config := a.opts.Config()
+	// 转换配置
+	serverOpts := opts.(*options.ServerOptions)
+	config := serverOpts.Config()
 	a.config = config
 
-	// 创建 bootstrap 实例
-	a.bootstrap = a.createBootstrap()
+	// 创建标准 Bootstrap 应用并设置启动钩子
+	if a.StandardBootstrapApplication == nil {
+		a.StandardBootstrapApplication = commonapp.NewStandardBootstrapApplication("Reasoning", a).
+			WithStartupHookFunc(a)
+	}
 
-	// 注册所有组件初始化器（但不执行初始化）
-	// 初始化将在 Run() 方法中由 bootstrap.Run() 执行
-	a.registerComponents()
+	// 调用标准初始化
+	return a.StandardBootstrapApplication.Initialize(ctx, opts)
+}
 
-	a.logger.Infow("Components registered, ready to start")
+// OnStartup 实现 StartupHook 接口，在 bootstrap.Run() 中执行
+func (a *ReasoningApp) OnStartup(ctx context.Context) error {
+	// 启动 HTTP 服务器（在 goroutine 中）
+	go func() {
+		if err := a.httpInit.Start(); err != nil {
+			a.GetLogger().Fatalw("HTTP server failed to start", "error", err)
+		}
+	}()
+
+	a.GetLogger().Infow("All services started, waiting for shutdown signal")
 	return nil
 }
 
-// Run 运行应用程序主逻辑
-func (a *ReasoningApp) Run(ctx context.Context) error {
-	a.logger.Infow("Reasoning Service started successfully",
-		"http_address", fmt.Sprintf("%s:%d", a.opts.Server.Host, a.opts.Server.Port),
-		"health_address", fmt.Sprintf(":%d", a.opts.GetHealthPort()),
-	)
+// RegisterComponents 实现 ComponentRegistrar 接口，注册所有组件初始化器
+func (a *ReasoningApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
+	opts := a.GetOptions().(*options.ServerOptions)
 
-	// 使用 bootstrap 的 Run 方法,它会等待信号
-	// runFunc 会在所有初始化器完成后调用
-	return a.bootstrap.Run(ctx, func() error {
-		// 启动 HTTP 服务器（在 goroutine 中）
-		go func() {
-			if err := a.httpInit.Start(); err != nil {
-				a.logger.Fatalw("HTTP server failed to start", "error", err)
-			}
-		}()
-
-		a.logger.Infow("All services started, waiting for shutdown signal")
-		return nil
-	})
-}
-
-// Shutdown 优雅关闭应用程序
-func (a *ReasoningApp) Shutdown(ctx context.Context) error {
-	a.logger.Infow("Shutting down Reasoning Service")
-	return a.bootstrap.Shutdown(ctx)
-}
-
-// createBootstrap 创建 bootstrap 实例
-func (a *ReasoningApp) createBootstrap() *bootstrap.Bootstrap {
-	return bootstrap.New(a.logger)
-}
-
-// registerComponents 注册所有组件初始化器
-func (a *ReasoningApp) registerComponents() {
 	// 1. LLM Clients (优先级 400)
-	a.llmInit = initializers.NewLLMInitializer(a.opts.LLM, a.logger)
-	a.bootstrap.Register(a.llmInit)
+	a.llmInit = initializers.NewLLMInitializer(opts.LLM, a.GetLogger())
+	bs.Register(a.llmInit)
 
 	// 2. HTTP Server (优先级 500)
 	a.httpInit = initializers.NewHTTPServerInitializer(
 		a.config,
-		a.logger,
+		a.GetLogger(),
 		a.llmInit,
 	)
-	a.bootstrap.Register(a.httpInit)
+	bs.Register(a.httpInit)
 
 	// 3. Health Check (优先级 600)
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
-		fmt.Sprintf(":%d", a.opts.GetHealthPort()),
-		a.logger,
+		fmt.Sprintf(":%d", opts.GetHealthPort()),
+		a.GetLogger(),
 	)
-	a.bootstrap.Register(a.healthInit)
+	bs.Register(a.healthInit)
+
+	return nil
 }
 
-// initLogger 初始化日志系统
-func initLogger(opts commonapp.Options) (core.Logger, error) {
-	cfg := opts.(*options.ServerOptions)
-	return cfg.InitLogger()
-}
+// Run/Shutdown/initLogger 方法已由 StandardBootstrapApplication 提供，无需重复定义
