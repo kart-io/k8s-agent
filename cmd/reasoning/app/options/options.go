@@ -16,6 +16,7 @@ import (
 // This implements the pkg/app.Options interface
 type ServerOptions struct {
 	Server      *commonoptions.ServerOptions      `json:"server" mapstructure:"server"`
+	GRPC        *commonoptions.GRPCOptions        `json:"grpc" mapstructure:"grpc"`
 	Logging     *commonoptions.LoggingOptions     `json:"logging" mapstructure:"logging"`
 	LLM         *commonoptions.LLMOptions         `json:"llm" mapstructure:"llm"`
 	Memory      *commonoptions.MemoryOptions      `json:"memory" mapstructure:"memory"`
@@ -29,6 +30,7 @@ type ServerOptions struct {
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
 		Server:      commonoptions.NewServerOptions(),
+		GRPC:        commonoptions.NewGRPCOptions(),
 		Logging:     commonoptions.NewLoggingOptions(),
 		LLM:         commonoptions.NewLLMOptions(),
 		Memory:      commonoptions.NewMemoryOptions(),

@@ -32,6 +32,8 @@ type ServerOptions struct {
 	Redis *commonoptions.RedisOptions `json:"redis" mapstructure:"redis"`
 	// NATS options for configuring NATS message queue related options.
 	NATS *commonoptions.NATSOptions `json:"nats" mapstructure:"nats"`
+	// GRPC options for configuring gRPC server related options.
+	GRPC *commonoptions.GRPCOptions `json:"grpc" mapstructure:"grpc"`
 	// Logging options for configuring logging related options.
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
 	// Metrics options for configuring metrics related options.
@@ -106,6 +108,7 @@ func NewServerOptions() *ServerOptions {
 		Database: commonoptions.NewDatabaseOptions(),
 		Redis:    commonoptions.NewRedisOptions(),
 		NATS:     commonoptions.NewNATSOptions(),
+		GRPC:     commonoptions.NewGRPCOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
 		Metrics:  commonoptions.NewMetricsOptions(),
 		AI:       NewAIOptions(),

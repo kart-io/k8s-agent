@@ -47,6 +47,7 @@ type OrchestratorApp struct {
 	workflowInit *initializers.WorkflowInitializer
 	strategyInit *initializers.StrategyInitializer
 	subInit      *initializers.SubscriberInitializer
+	grpcInit     *initializers.GRPCServerInitializer
 	healthInit   *pkginitializers.HealthCheckInitializer
 }
 
@@ -112,7 +113,16 @@ func (a *OrchestratorApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	)
 	bs.Register(a.subInit)
 
-	// 7. Health Check Server (优先级最低，最后启动)
+	// 7. gRPC Server (优先级 700 - 在 Workflow 和 Strategy 之后)
+	a.grpcInit = initializers.NewGRPCServerInitializer(
+		opts,
+		a.GetLogger(),
+		a.workflowInit,
+		a.dbInit,
+	)
+	bs.Register(a.grpcInit)
+
+	// 8. Health Check Server (优先级最低，最后启动)
 	healthPort := opts.GetHealthPort()
 	healthAddr := fmt.Sprintf(":%d", healthPort)
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthAddr, a.GetLogger())

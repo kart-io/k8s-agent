@@ -46,6 +46,7 @@ type ReasoningApp struct {
 
 	// 组件初始化器
 	llmInit    *initializers.LLMInitializer
+	grpcInit   *initializers.GRPCServerInitializer
 	httpInit   *initializers.HTTPServerInitializer
 	healthInit *pkginitializers.HealthCheckInitializer
 }
@@ -88,7 +89,15 @@ func (a *ReasoningApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	a.llmInit = initializers.NewLLMInitializer(opts.LLM, a.GetLogger())
 	bs.Register(a.llmInit)
 
-	// 2. HTTP Server (优先级 500)
+	// 2. gRPC Server (优先级 450 - 在 LLM 之后，HTTP 之前)
+	a.grpcInit = initializers.NewGRPCServerInitializer(
+		opts,
+		a.GetLogger(),
+		a.llmInit,
+	)
+	bs.Register(a.grpcInit)
+
+	// 3. HTTP Server (优先级 500)
 	a.httpInit = initializers.NewHTTPServerInitializer(
 		a.config,
 		a.GetLogger(),
@@ -96,7 +105,7 @@ func (a *ReasoningApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	)
 	bs.Register(a.httpInit)
 
-	// 3. Health Check (优先级 600)
+	// 4. Health Check (优先级 600)
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
 		fmt.Sprintf(":%d", opts.GetHealthPort()),
 		a.GetLogger(),
