@@ -41,4 +41,3 @@ func (r *RedisInitializer) Store() *storage.RedisStore {
 	}
 	return nil
 }
-

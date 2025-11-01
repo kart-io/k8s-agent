@@ -28,4 +28,3 @@ func NewRedisInitializer(cfg *config.Config, logger core.Logger) *RedisInitializ
 func (r *RedisInitializer) Client() *redis.Client {
 	return r.RedisInitializerAdapter.Client()
 }
-

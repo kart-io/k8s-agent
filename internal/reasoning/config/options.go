@@ -9,7 +9,6 @@ import (
 type Options struct {
 	Server      *commonoptions.ServerOptions      `json:"server" mapstructure:"server"`
 	Logging     *commonoptions.LoggingOptions     `json:"logging" mapstructure:"logging"`
-	Health      *commonoptions.HealthOptions      `json:"health" mapstructure:"health"`
 	LLM         *commonoptions.LLMOptions         `json:"llm" mapstructure:"llm"`
 	Memory      *commonoptions.MemoryOptions      `json:"memory" mapstructure:"memory"`
 	Analysis    *commonoptions.AnalysisOptions    `json:"analysis" mapstructure:"analysis"`
@@ -20,13 +19,9 @@ type Options struct {
 
 // NewOptions creates a new Options instance with default values
 func NewOptions() *Options {
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = 8093 // Reasoning 健康检查端口
-
 	return &Options{
 		Server:      commonoptions.NewServerOptions(),
 		Logging:     commonoptions.NewLoggingOptions(),
-		Health:      healthOpts,
 		LLM:         commonoptions.NewLLMOptions(),
 		Memory:      commonoptions.NewMemoryOptions(),
 		Analysis:    commonoptions.NewAnalysisOptions(),
@@ -121,20 +116,15 @@ func (o *Options) Complete() error {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
+// 简化版本：直接返回固定端口，不使用HealthOptions
 func (o *Options) GetHealthPort() int {
-	if o.Health != nil {
-		return o.Health.Port
-	}
-	return 8093 // 默认端口
+	return 8093 // Reasoning 健康检查端口
 }
 
 // AddFlags adds flags to the specified FlagSet
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
 	o.Logging.AddFlags(fs)
-	if o.Health != nil {
-		o.Health.AddFlags(fs, "")
-	}
 	o.LLM.AddFlags(fs)
 	o.Memory.AddFlags(fs)
 	o.Analysis.AddFlags(fs)

@@ -61,20 +61,22 @@ func RateLimitMiddleware(requestsPerSecond int) MiddlewareConfig {
 
 // CustomMiddleware 创建自定义中间件的便捷函数
 // 示例：
-//   app.WithMiddleware(CustomMiddleware("MyMiddleware", 500, func(bs, logger, opts) {
-//       // 你的中间件逻辑
-//       init := initializers.NewXXXInitializer(...)
-//       bs.Register(init)
-//   }))
+//
+//	app.WithMiddleware(CustomMiddleware("MyMiddleware", 500, func(bs, logger, opts) {
+//	    // 你的中间件逻辑
+//	    init := initializers.NewXXXInitializer(...)
+//	    bs.Register(init)
+//	}))
 func CustomMiddleware(name string, priority int, fn func(bs *bootstrap.Bootstrap, logger core.Logger, opts Options) error) MiddlewareConfig {
 	return Middleware(name, priority, fn)
 }
 
 // ConditionalMiddleware 创建条件中间件（仅在条件满足时执行）
 // 示例：
-//   ConditionalMiddleware("DevTools", 100,
-//       func(opts) bool { return opts.GetEnv() == "development" },
-//       func(bs, logger, opts) { /* 开发工具初始化 */ })
+//
+//	ConditionalMiddleware("DevTools", 100,
+//	    func(opts) bool { return opts.GetEnv() == "development" },
+//	    func(bs, logger, opts) { /* 开发工具初始化 */ })
 func ConditionalMiddleware(name string, priority int, condition func(opts Options) bool, fn MiddlewareFunc) MiddlewareConfig {
 	return Middleware(name, priority, func(bs *bootstrap.Bootstrap, logger core.Logger, opts Options) error {
 		if condition(opts) {

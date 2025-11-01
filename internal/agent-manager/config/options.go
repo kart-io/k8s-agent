@@ -14,14 +14,10 @@ type Options struct {
 	NATS     *configoptions.NATSOptions     `json:"nats" mapstructure:"nats"`
 	Logging  *configoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
 	Metrics  *configoptions.MetricsOptions  `json:"metrics" mapstructure:"metrics"`
-	Health   *configoptions.HealthOptions   `json:"health" mapstructure:"health"`
 }
 
 // NewOptions creates a new Options instance with default values
 func NewOptions() *Options {
-	healthOpts := configoptions.NewHealthOptions()
-	healthOpts.Port = 8091 // Agent Manager 健康检查端口
-
 	return &Options{
 		Server:   configoptions.NewServerOptions(),
 		GRPC:     configoptions.NewGRPCOptions(),
@@ -30,7 +26,6 @@ func NewOptions() *Options {
 		NATS:     configoptions.NewNATSOptions(),
 		Logging:  configoptions.NewLoggingOptions(),
 		Metrics:  configoptions.NewMetricsOptions(),
-		Health:   healthOpts,
 	}
 }
 
@@ -64,12 +59,6 @@ func (o *Options) Validate() []error {
 
 	if err := o.Metrics.Validate(); err != nil {
 		errs = append(errs, err)
-	}
-
-	if o.Health != nil {
-		if err := o.Health.Validate(); err != nil {
-			errs = append(errs, err)
-		}
 	}
 
 	return errs
@@ -106,12 +95,6 @@ func (o *Options) Complete() error {
 		return err
 	}
 
-	if o.Health != nil {
-		if err := o.Health.Complete(); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -124,15 +107,10 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.NATS.AddFlags(fs)
 	o.Logging.AddFlags(fs)
 	o.Metrics.AddFlags(fs)
-	if o.Health != nil {
-		o.Health.AddFlags(fs, "")
-	}
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
+// 简化版本：直接返回固定端口，不使用HealthOptions
 func (o *Options) GetHealthPort() int {
-	if o.Health != nil {
-		return o.Health.Port
-	}
-	return 8091 // 默认端口
+	return 8091 // Agent Manager 健康检查端口
 }

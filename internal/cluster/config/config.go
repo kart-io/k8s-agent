@@ -60,12 +60,12 @@ func LoadFromPath(configPath string) (*Config, error) {
 	wrapper := &configWrapper{Config: config}
 
 	envBindings := map[string]string{
-		"jwt.secret":         "JWT_SECRET",
-		"database.host":      "DB_HOST",
-		"database.port":      "DB_PORT",
-		"database.user":      "DB_USER",
-		"database.password":  "DB_PASSWORD",
-		"database.dbname":    "DB_NAME",
+		"jwt.secret":        "JWT_SECRET",
+		"database.host":     "DB_HOST",
+		"database.port":     "DB_PORT",
+		"database.user":     "DB_USER",
+		"database.password": "DB_PASSWORD",
+		"database.dbname":   "DB_NAME",
 	}
 
 	if err := commonoptions.LoadOptions(wrapper, configPath, envBindings); err != nil {

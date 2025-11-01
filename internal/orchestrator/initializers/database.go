@@ -2,6 +2,7 @@ package initializers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
@@ -44,7 +45,8 @@ func (d *DatabaseInitializer) Initialize(ctx context.Context) error {
 
 	store, err := storage.NewPostgresStore(d.opts.Database, d.logger)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize PostgreSQL store (host=%s, port=%d, db=%s): %w",
+			d.opts.Database.Host, d.opts.Database.Port, d.opts.Database.Database, err)
 	}
 
 	d.store = store

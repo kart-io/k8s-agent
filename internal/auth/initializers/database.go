@@ -34,4 +34,3 @@ func NewDatabaseInitializer(cfg *config.Config, logger core.Logger) *DatabaseIni
 func (d *DatabaseInitializer) DB() *gorm.DB {
 	return d.DatabaseInitializerAdapter.DB()
 }
-

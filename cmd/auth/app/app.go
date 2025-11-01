@@ -145,9 +145,7 @@ func (a *AuthApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 
 	// 9. Health Check Server (优先级最低，最后启动)
 	serverOpts := a.GetOptions().(*options.ServerOptions)
-	healthPort := serverOpts.GetHealthPort()
-	healthAddr := fmt.Sprintf(":%d", healthPort)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthAddr, a.GetLogger())
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(fmt.Sprintf(":%d", serverOpts.Server.Port), a.GetLogger())
 	bs.Register(a.healthInit)
 
 	return nil

@@ -14,7 +14,6 @@ type Options struct {
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
 	Redis   *commonoptions.RedisOptions   `json:"redis" mapstructure:"redis"`
 	JWT     *commonoptions.JWTOptions     `json:"jwt" mapstructure:"jwt"`
-	Health  *commonoptions.HealthOptions  `json:"health" mapstructure:"health"`
 
 	// Gateway specific options
 	RateLimit   RateLimitOptions   `json:"rate_limit" mapstructure:"rate_limit"`
@@ -83,15 +82,11 @@ type MetricsOptions struct {
 
 // NewOptions creates a new Options instance with default values
 func NewOptions() *Options {
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = 8094 // Gateway 健康检查端口
-
 	return &Options{
 		Server:  commonoptions.NewServerOptions(),
 		Logging: commonoptions.NewLoggingOptions(),
 		Redis:   commonoptions.NewRedisOptions(),
 		JWT:     commonoptions.NewJWTOptions(),
-		Health:  healthOpts,
 		RateLimit: RateLimitOptions{
 			Enabled:           true,
 			RequestsPerSecond: 100,
@@ -224,11 +219,9 @@ func (o *Options) Complete() error {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
+// 简化版本：直接返回固定端口，不使用HealthOptions
 func (o *Options) GetHealthPort() int {
-	if o.Health != nil {
-		return o.Health.Port
-	}
-	return 8094 // 默认端口
+	return 8095 // Gateway 健康检查端口
 }
 
 // AddFlags adds flags to the flag set
@@ -238,9 +231,6 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Logging.AddFlags(fs)
 	o.Redis.AddFlags(fs)
 	o.JWT.AddFlags(fs)
-	if o.Health != nil {
-		o.Health.AddFlags(fs, "")
-	}
 
 	// Add gateway specific flags
 	fs.BoolVar(&o.RateLimit.Enabled, "rate-limit.enabled", o.RateLimit.Enabled,

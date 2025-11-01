@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/kart-io/logger/core"
@@ -9,6 +10,21 @@ import (
 	"github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/pkg/types"
 )
+
+const (
+	// defaultDBTimeout 数据库操作默认超时时间
+	defaultDBTimeout = 5 * time.Second
+)
+
+// withTimeout 为context添加默认超时（如果尚未设置deadline）
+func withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	if _, ok := ctx.Deadline(); ok {
+		// context已经有deadline，直接返回
+		return ctx, func() {}
+	}
+	// 添加默认超时
+	return context.WithTimeout(ctx, defaultDBTimeout)
+}
 
 // PostgresStore implements storage using MySQL
 // Note: Kept the name for backward compatibility, but now using MySQL
@@ -66,29 +82,40 @@ func NewPostgresStore(config types.DatabaseConfig, log core.Logger) (*PostgresSt
 
 // SaveAgent saves an agent to the database
 func (s *PostgresStore) SaveAgent(ctx context.Context, agent *types.Agent) error {
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
 	return s.DB.WithContext(ctx).Save(agent).Error
 }
 
 // GetAgent retrieves an agent by ID
 func (s *PostgresStore) GetAgent(ctx context.Context, id string) (*types.Agent, error) {
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+
 	var agent types.Agent
 	if err := s.DB.WithContext(ctx).First(&agent, "id = ?", id).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get agent %s: %w", id, err)
 	}
 	return &agent, nil
 }
 
 // GetAgentByClusterID retrieves an agent by cluster ID
 func (s *PostgresStore) GetAgentByClusterID(ctx context.Context, clusterID string) (*types.Agent, error) {
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+
 	var agent types.Agent
 	if err := s.DB.WithContext(ctx).First(&agent, "cluster_id = ?", clusterID).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get agent by cluster_id %s: %w", clusterID, err)
 	}
 	return &agent, nil
 }
 
 // ListAgents lists all agents
 func (s *PostgresStore) ListAgents(ctx context.Context, status *types.AgentStatus) ([]*types.Agent, error) {
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+
 	var agents []*types.Agent
 	query := s.DB.WithContext(ctx)
 
@@ -97,13 +124,16 @@ func (s *PostgresStore) ListAgents(ctx context.Context, status *types.AgentStatu
 	}
 
 	if err := query.Order("registered_at DESC").Find(&agents).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list agents: %w", err)
 	}
 	return agents, nil
 }
 
 // UpdateAgentStatus updates agent status
 func (s *PostgresStore) UpdateAgentStatus(ctx context.Context, id string, status types.AgentStatus) error {
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+
 	return s.DB.WithContext(ctx).Model(&types.Agent{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
@@ -114,6 +144,9 @@ func (s *PostgresStore) UpdateAgentStatus(ctx context.Context, id string, status
 
 // UpdateAgentHeartbeat updates agent heartbeat timestamp
 func (s *PostgresStore) UpdateAgentHeartbeat(ctx context.Context, id string) error {
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+
 	return s.DB.WithContext(ctx).Model(&types.Agent{}).
 		Where("id = ?", id).
 		Update("last_heartbeat", time.Now()).Error
@@ -121,6 +154,9 @@ func (s *PostgresStore) UpdateAgentHeartbeat(ctx context.Context, id string) err
 
 // DeleteAgent deletes an agent
 func (s *PostgresStore) DeleteAgent(ctx context.Context, id string) error {
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+
 	return s.DB.WithContext(ctx).Delete(&types.Agent{}, "id = ?", id).Error
 }
 

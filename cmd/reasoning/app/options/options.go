@@ -17,7 +17,6 @@ import (
 type ServerOptions struct {
 	Server      *commonoptions.ServerOptions      `json:"server" mapstructure:"server"`
 	Logging     *commonoptions.LoggingOptions     `json:"logging" mapstructure:"logging"`
-	Health      *commonoptions.HealthOptions      `json:"health" mapstructure:"health"`
 	LLM         *commonoptions.LLMOptions         `json:"llm" mapstructure:"llm"`
 	Memory      *commonoptions.MemoryOptions      `json:"memory" mapstructure:"memory"`
 	Analysis    *commonoptions.AnalysisOptions    `json:"analysis" mapstructure:"analysis"`
@@ -28,13 +27,9 @@ type ServerOptions struct {
 
 // NewServerOptions creates a new ServerOptions instance with default values
 func NewServerOptions() *ServerOptions {
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = 8093 // Reasoning 健康检查端口
-
 	return &ServerOptions{
 		Server:      commonoptions.NewServerOptions(),
 		Logging:     commonoptions.NewLoggingOptions(),
-		Health:      healthOpts,
 		LLM:         commonoptions.NewLLMOptions(),
 		Memory:      commonoptions.NewMemoryOptions(),
 		Analysis:    commonoptions.NewAnalysisOptions(),
@@ -74,7 +69,7 @@ func (o *ServerOptions) GetServiceName() string {
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,
-		"health_port", o.Health.Port,
+		"health_port", o.GetHealthPort(),
 		"llm_enabled", o.LLM.Enabled,
 		"memory_enabled", o.Memory.EnableVectorStore,
 	}
@@ -88,11 +83,9 @@ func (o *ServerOptions) InitLogger() (core.Logger, error) {
 
 // GetHealthPort returns the health check port
 // This method is required by the Bootstrap pattern
+// 简化版本：直接返回固定端口，不使用HealthOptions
 func (o *ServerOptions) GetHealthPort() int {
-	if o.Health != nil {
-		return o.Health.Port
-	}
-	return 8093 // 默认端口
+	return o.Server.Port // Reasoning 健康检查端口
 }
 
 // Config converts ServerOptions to internal reasoning config

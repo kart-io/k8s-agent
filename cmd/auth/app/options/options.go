@@ -36,8 +36,6 @@ type ServerOptions struct {
 	Email *commonoptions.EmailOptions `json:"email" mapstructure:"email"`
 	// Metrics options for configuring metrics related options.
 	Metrics *commonoptions.MetricsOptions `json:"metrics" mapstructure:"metrics"`
-	// Health options for configuring health check related options.
-	Health *commonoptions.HealthOptions `json:"health" mapstructure:"health"`
 }
 
 // Ensure ServerOptions implements the commonapp.Options interface.
@@ -45,9 +43,6 @@ var _ commonapp.Options = (*ServerOptions)(nil)
 
 // NewServerOptions creates a ServerOptions instance with default values.
 func NewServerOptions() *ServerOptions {
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = 8090 // Auth 健康检查端口
-
 	o := &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
 		Database: commonoptions.NewDatabaseOptions(),
@@ -56,19 +51,12 @@ func NewServerOptions() *ServerOptions {
 		Logging:  commonoptions.NewLoggingOptions(),
 		Email:    commonoptions.NewEmailOptions(),
 		Metrics:  commonoptions.NewMetricsOptions(),
-		Health:   healthOpts,
 	}
 
 	return o
 }
 
-// GetHealthPort 实现 commonapp.HealthPortProvider 接口
-func (o *ServerOptions) GetHealthPort() int {
-	if o.Health != nil {
-		return o.Health.Port
-	}
-	return 8090 // 默认端口
-}
+
 
 // AddFlags adds flags to the specified FlagSet.
 // This method implements the commonapp.NamedFlagSetOptions interface.
@@ -113,7 +101,6 @@ func (o *ServerOptions) GetServiceName() string {
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,
-		"health_port", o.Health.Port,
 		"email_enabled", o.Email.Enabled,
 	}
 }

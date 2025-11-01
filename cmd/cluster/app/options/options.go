@@ -19,17 +19,18 @@ type ServerOptions struct {
 	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
 	JWT      *commonoptions.JWTOptions      `json:"jwt" mapstructure:"jwt"`
 	Logging  *commonoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
-	Health   *commonoptions.HealthOptions   `json:"health" mapstructure:"health"`
 }
 
 // NewServerOptions creates a new ServerOptions instance with default values
 func NewServerOptions() *ServerOptions {
+	serverOpts := commonoptions.NewServerOptions()
+	serverOpts.Port = 8084 // Cluster 主服务端口
+
 	return &ServerOptions{
-		Server:   commonoptions.NewServerOptions(),
+		Server:   serverOpts,
 		Database: commonoptions.NewDatabaseOptions(),
 		JWT:      commonoptions.NewJWTOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
-		Health:   commonoptions.NewHealthOptions(),
 	}
 }
 
@@ -58,12 +59,6 @@ func (o *ServerOptions) InitLogger() (core.Logger, error) {
 	return commonlogger.InitFromOptions(o.Logging)
 }
 
-// GetHealthPort returns the health check port
-// This method is required by the Bootstrap pattern
-func (o *ServerOptions) GetHealthPort() int {
-	return o.Health.Port
-}
-
 // GetServiceName returns the service name
 // This method is required by the BootstrapConfig interface
 func (o *ServerOptions) GetServiceName() string {
@@ -75,8 +70,13 @@ func (o *ServerOptions) GetServiceName() string {
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,
-		"health_port", o.Health.Port,
 	}
+}
+
+// GetHealthPort returns the health check port
+// 简化版本：直接返回固定端口，不使用HealthOptions
+func (o *ServerOptions) GetHealthPort() int {
+	return o.Server.Port // Cluster 健康检查端口
 }
 
 // Config converts ServerOptions to internal cluster config

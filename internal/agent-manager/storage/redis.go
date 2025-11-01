@@ -13,6 +13,15 @@ import (
 	"github.com/kart-io/k8s-agent/pkg/types"
 )
 
+// Lua脚本用于原子性地执行rate limit操作
+var rateLimitScript = redis.NewScript(`
+	local current = redis.call("INCR", KEYS[1])
+	if current == 1 then
+		redis.call("EXPIRE", KEYS[1], ARGV[1])
+	end
+	return current
+`)
+
 // RedisStore implements caching using Redis
 type RedisStore struct {
 	*db.RedisClient // Embed common Redis client
@@ -231,18 +240,14 @@ func (s *RedisStore) DeleteSession(ctx context.Context, sessionID string) error 
 // Rate limiting
 
 // CheckRateLimit checks if request is within rate limit
+// 使用Lua脚本保证Incr和Expire操作的原子性，避免竞态条件
 func (s *RedisStore) CheckRateLimit(ctx context.Context, key string, limit int64, window time.Duration) (bool, error) {
 	rateLimitKey := s.rateLimitKey(key)
 
-	// Increment counter
-	count, err := s.Client.Incr(ctx, rateLimitKey).Result()
+	// 使用Lua脚本原子性地执行Incr和Expire
+	count, err := rateLimitScript.Run(ctx, s.Client, []string{rateLimitKey}, int(window.Seconds())).Int64()
 	if err != nil {
-		return false, err
-	}
-
-	// Set expiration on first request
-	if count == 1 {
-		s.Client.Expire(ctx, rateLimitKey, window)
+		return false, fmt.Errorf("failed to execute rate limit script: %w", err)
 	}
 
 	return count <= limit, nil

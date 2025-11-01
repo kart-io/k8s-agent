@@ -36,8 +36,6 @@ type ServerOptions struct {
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
 	// Metrics options for configuring metrics related options.
 	Metrics *commonoptions.MetricsOptions `json:"metrics" mapstructure:"metrics"`
-	// Health options for configuring health check related options.
-	Health *commonoptions.HealthOptions `json:"health" mapstructure:"health"`
 }
 
 // Ensure ServerOptions implements the commonapp.Options interface.
@@ -45,9 +43,6 @@ var _ commonapp.Options = (*ServerOptions)(nil)
 
 // NewServerOptions creates a ServerOptions instance with default values.
 func NewServerOptions() *ServerOptions {
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = 8091 // Agent Manager 健康检查端口
-
 	return &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
 		GRPC:     commonoptions.NewGRPCOptions(),
@@ -56,16 +51,13 @@ func NewServerOptions() *ServerOptions {
 		NATS:     commonoptions.NewNATSOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
 		Metrics:  commonoptions.NewMetricsOptions(),
-		Health:   healthOpts,
 	}
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
+// 简化版本：直接返回固定端口，不使用HealthOptions
 func (o *ServerOptions) GetHealthPort() int {
-	if o.Health != nil {
-		return o.Health.Port
-	}
-	return 8091 // 默认端口
+	return o.Server.Port // Agent Manager 健康检查端口
 }
 
 // AddFlags adds flags to the specified FlagSet.
@@ -114,7 +106,7 @@ func (o *ServerOptions) GetLogFields() []interface{} {
 		"http_port", o.Server.Port,
 		"grpc_enabled", o.GRPC.Enable,
 		"grpc_port", o.GRPC.Port,
-		"health_port", o.Health.Port,
+		"health_port", o.GetHealthPort(),
 	}
 }
 

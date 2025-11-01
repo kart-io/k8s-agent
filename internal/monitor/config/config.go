@@ -52,9 +52,6 @@ func NewOptions() *Options {
 				Format: "json",
 				Output: "stdout",
 			},
-			Health: commonoptions.HealthOptions{
-				Port: 8095, // 默认健康检查端口
-			},
 		},
 	}
 }
@@ -88,8 +85,9 @@ func (o *Options) Validate() []error {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
+// 简化版本：直接返回固定端口，不使用HealthOptions
 func (o *Options) GetHealthPort() int {
-	return o.Health.Port
+	return 8096 // Monitor 健康检查端口
 }
 
 // 确保 Options 实现 commonapp.Options 接口
@@ -100,15 +98,14 @@ var _ commonapp.HealthPortProvider = (*Options)(nil)
 
 // Config holds all configuration
 type Config struct {
-	Server     ServerConfig          `mapstructure:"server"`
-	Database   DatabaseConfig        `mapstructure:"database"`
-	Redis      RedisConfig           `mapstructure:"redis"`
-	Prometheus PrometheusConfig      `mapstructure:"prometheus"`
-	JWT        JWTConfig             `mapstructure:"jwt"`
-	Logging    LoggingConfig         `mapstructure:"logging"`
-	Alert      AlertConfig           `mapstructure:"alert"`
-	Metrics    MetricsConfig         `mapstructure:"metrics"`
-	Health     commonoptions.HealthOptions `mapstructure:"health"`
+	Server     ServerConfig     `mapstructure:"server"`
+	Database   DatabaseConfig   `mapstructure:"database"`
+	Redis      RedisConfig      `mapstructure:"redis"`
+	Prometheus PrometheusConfig `mapstructure:"prometheus"`
+	JWT        JWTConfig        `mapstructure:"jwt"`
+	Logging    LoggingConfig    `mapstructure:"logging"`
+	Alert      AlertConfig      `mapstructure:"alert"`
+	Metrics    MetricsConfig    `mapstructure:"metrics"`
 }
 
 // ServerConfig holds server configuration

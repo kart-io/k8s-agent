@@ -56,4 +56,3 @@ func (d *DatabaseInitializer) Store() *storage.PostgresStore {
 	}
 	return nil
 }
-

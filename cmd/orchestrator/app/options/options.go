@@ -36,8 +36,6 @@ type ServerOptions struct {
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
 	// Metrics options for configuring metrics related options.
 	Metrics *commonoptions.MetricsOptions `json:"metrics" mapstructure:"metrics"`
-	// Health options for configuring health check related options.
-	Health *commonoptions.HealthOptions `json:"health" mapstructure:"health"`
 	// AI options for configuring AI service integration.
 	AI *AIOptions `json:"ai" mapstructure:"ai"`
 }
@@ -57,8 +55,8 @@ type AIOptions struct {
 // NewAIOptions creates default AIOptions.
 func NewAIOptions() *AIOptions {
 	return &AIOptions{
-		ReasoningServiceURL: "http://localhost:8082",
-		AgentManagerURL:     "http://localhost:8080",
+		ReasoningServiceURL: "http://localhost:8083", // Reasoning service 端口
+		AgentManagerURL:     "http://localhost:8081", // Agent Manager 端口
 		Timeout:             30 * time.Second,
 		MaxRetries:          3,
 	}
@@ -84,10 +82,10 @@ func (o *AIOptions) Validate() error {
 // Complete fills in any fields not set that are required to have valid data.
 func (o *AIOptions) Complete() error {
 	if o.ReasoningServiceURL == "" {
-		o.ReasoningServiceURL = "http://localhost:8082"
+		o.ReasoningServiceURL = "http://localhost:8083"
 	}
 	if o.AgentManagerURL == "" {
-		o.AgentManagerURL = "http://localhost:8080"
+		o.AgentManagerURL = "http://localhost:8081"
 	}
 	if o.Timeout == 0 {
 		o.Timeout = 30 * time.Second
@@ -103,9 +101,6 @@ var _ commonapp.Options = (*ServerOptions)(nil)
 
 // NewServerOptions creates a ServerOptions instance with default values.
 func NewServerOptions() *ServerOptions {
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = 8092 // Orchestrator 健康检查端口
-
 	return &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
 		Database: commonoptions.NewDatabaseOptions(),
@@ -113,17 +108,14 @@ func NewServerOptions() *ServerOptions {
 		NATS:     commonoptions.NewNATSOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
 		Metrics:  commonoptions.NewMetricsOptions(),
-		Health:   healthOpts,
 		AI:       NewAIOptions(),
 	}
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
+// 简化版本：直接返回固定端口，不使用HealthOptions
 func (o *ServerOptions) GetHealthPort() int {
-	if o.Health != nil {
-		return o.Health.Port
-	}
-	return 8092 // 默认端口
+	return o.Server.Port // Orchestrator 健康检查端口
 }
 
 // AddFlags adds flags to the specified FlagSet.
@@ -175,7 +167,7 @@ func (o *ServerOptions) GetServiceName() string {
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,
-		"health_port", o.Health.Port,
+		"health_port", o.GetHealthPort(),
 		"reasoning_service_url", o.AI.ReasoningServiceURL,
 		"agent_manager_url", o.AI.AgentManagerURL,
 	}

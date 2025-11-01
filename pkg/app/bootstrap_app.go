@@ -249,8 +249,8 @@ type StandardBootstrapApplication struct {
 	serviceName   string
 	registrar     ComponentRegistrar
 	startupHook   StartupHook
-	configHandler func(Options) error   // 可选的配置处理函数
-	middlewares   []MiddlewareConfig    // 中间件列表
+	configHandler func(Options) error // 可选的配置处理函数
+	middlewares   []MiddlewareConfig  // 中间件列表
 }
 
 // NewStandardBootstrapApplication 创建标准 Bootstrap 应用

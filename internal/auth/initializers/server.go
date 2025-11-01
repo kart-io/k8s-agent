@@ -29,6 +29,7 @@ type HTTPServerInitializer struct {
 	forcedLogoutInit *ForcedLogoutServiceInitializer
 	emailInit        *EmailClientInitializer
 	server           *http.Server
+	errChan          chan error // 服务器错误通道
 }
 
 // NewHTTPServerInitializer 创建 HTTP 服务器初始化器
@@ -191,16 +192,35 @@ func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
 		Handler: router,
 	}
 
+	// 创建错误通道用于捕获服务器启动错误
+	h.errChan = make(chan error, 1)
+
 	// 启动服务器 (在 goroutine 中)
 	go func() {
 		h.logger.Infow("Starting HTTP server", "addr", addr)
 		if err := h.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			h.logger.Errorw("HTTP server error", "error", err)
+			h.logger.Errorw("HTTP server fatal error", "error", err)
+			h.errChan <- err
 		}
 	}()
 
+	// 启动错误监听器
+	go h.monitorServerErrors()
+
 	h.logger.Infow("HTTP server initialized successfully")
 	return nil
+}
+
+// monitorServerErrors 监听服务器致命错误
+func (h *HTTPServerInitializer) monitorServerErrors() {
+	for err := range h.errChan {
+		if err != nil {
+			h.logger.Fatalw("HTTP server encountered fatal error, shutting down",
+				"error", err,
+				"component", "http-server",
+			)
+		}
+	}
 }
 
 // Close 关闭服务器
@@ -209,7 +229,13 @@ func (h *HTTPServerInitializer) Close(ctx context.Context) error {
 		h.logger.Infow("Shutting down HTTP server")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		return h.server.Shutdown(shutdownCtx)
+		if err := h.server.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
+	}
+	// 关闭错误通道
+	if h.errChan != nil {
+		close(h.errChan)
 	}
 	return nil
 }
