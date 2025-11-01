@@ -11,6 +11,7 @@ package orchestratorv1
 
 import (
 	v1 "github.com/kart-io/k8s-agent/pkg/api/common/pagination/v1"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -1068,7 +1069,7 @@ var File_orchestrator_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_orchestrator_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"\x1eorchestrator/v1/workflow.proto\x12\x0forchestrator.v1\x1a%common/pagination/v1/pagination.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa6\x04\n" +
+	"\x1eorchestrator/v1/workflow.proto\x12\x0forchestrator.v1\x1a%common/pagination/v1/pagination.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1cgoogle/api/annotations.proto\"\xa6\x04\n" +
 	"\bWorkflow\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1168,13 +1169,13 @@ const file_orchestrator_v1_workflow_proto_rawDesc = "" +
 	"\x19GetExecutionStatusRequest\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\"^\n" +
 	"\x1aGetExecutionStatusResponse\x12@\n" +
-	"\texecution\x18\x01 \x01(\v2\".orchestrator.v1.WorkflowExecutionR\texecution2\x83\x04\n" +
-	"\x0fWorkflowService\x12a\n" +
-	"\x0eCreateWorkflow\x12&.orchestrator.v1.CreateWorkflowRequest\x1a'.orchestrator.v1.CreateWorkflowResponse\x12X\n" +
-	"\vGetWorkflow\x12#.orchestrator.v1.GetWorkflowRequest\x1a$.orchestrator.v1.GetWorkflowResponse\x12^\n" +
-	"\rListWorkflows\x12%.orchestrator.v1.ListWorkflowsRequest\x1a&.orchestrator.v1.ListWorkflowsResponse\x12d\n" +
-	"\x0fExecuteWorkflow\x12'.orchestrator.v1.ExecuteWorkflowRequest\x1a(.orchestrator.v1.ExecuteWorkflowResponse\x12m\n" +
-	"\x12GetExecutionStatus\x12*.orchestrator.v1.GetExecutionStatusRequest\x1a+.orchestrator.v1.GetExecutionStatusResponseB\xc6\x01\n" +
+	"\texecution\x18\x01 \x01(\v2\".orchestrator.v1.WorkflowExecutionR\texecution2\xb5\x05\n" +
+	"\x0fWorkflowService\x12{\n" +
+	"\x0eCreateWorkflow\x12&.orchestrator.v1.CreateWorkflowRequest\x1a'.orchestrator.v1.CreateWorkflowResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/workflows\x12}\n" +
+	"\vGetWorkflow\x12#.orchestrator.v1.GetWorkflowRequest\x1a$.orchestrator.v1.GetWorkflowResponse\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/workflows/{workflow_id}\x12u\n" +
+	"\rListWorkflows\x12%.orchestrator.v1.ListWorkflowsRequest\x1a&.orchestrator.v1.ListWorkflowsResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/v1/workflows\x12\x97\x01\n" +
+	"\x0fExecuteWorkflow\x12'.orchestrator.v1.ExecuteWorkflowRequest\x1a(.orchestrator.v1.ExecuteWorkflowResponse\"1\x82\xd3\xe4\x93\x02+:\x01*\"&/v1/workflows/{workflow_id}/executions\x12\x94\x01\n" +
+	"\x12GetExecutionStatus\x12*.orchestrator.v1.GetExecutionStatusRequest\x1a+.orchestrator.v1.GetExecutionStatusResponse\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/executions/{execution_id}B\xc6\x01\n" +
 	"\x13com.orchestrator.v1B\rWorkflowProtoP\x01ZCgithub.com/kart-io/k8s-agent/pkg/api/orchestrator/v1;orchestratorv1\xa2\x02\x03OXX\xaa\x02\x0fOrchestrator.V1\xca\x02\x0fOrchestrator\\V1\xe2\x02\x1bOrchestrator\\V1\\GPBMetadata\xea\x02\x10Orchestrator::V1b\x06proto3"
 
 var (

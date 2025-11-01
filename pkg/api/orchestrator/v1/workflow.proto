@@ -8,6 +8,7 @@ package orchestrator.v1;
 import "common/pagination/v1/pagination.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
+import "google/api/annotations.proto";
 
 option go_package = "github.com/kart-io/k8s-agent/pkg/api/orchestrator/v1;orchestratorv1";
 
@@ -186,17 +187,39 @@ message GetExecutionStatusResponse {
 // 工作流服务定义
 service WorkflowService {
   // 创建工作流
-  rpc CreateWorkflow(CreateWorkflowRequest) returns (CreateWorkflowResponse);
+  rpc CreateWorkflow(CreateWorkflowRequest) returns (CreateWorkflowResponse) {
+    option (google.api.http) = {
+      post: "/v1/workflows"
+      body: "*"
+    };
+  }
 
   // 获取工作流
-  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse);
+  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse) {
+    option (google.api.http) = {
+      get: "/v1/workflows/{workflow_id}"
+    };
+  }
 
   // 列出工作流
-  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse) {
+    option (google.api.http) = {
+      get: "/v1/workflows"
+    };
+  }
 
   // 执行工作流
-  rpc ExecuteWorkflow(ExecuteWorkflowRequest) returns (ExecuteWorkflowResponse);
+  rpc ExecuteWorkflow(ExecuteWorkflowRequest) returns (ExecuteWorkflowResponse) {
+    option (google.api.http) = {
+      post: "/v1/workflows/{workflow_id}/executions"
+      body: "*"
+    };
+  }
 
   // 获取执行状态
-  rpc GetExecutionStatus(GetExecutionStatusRequest) returns (GetExecutionStatusResponse);
+  rpc GetExecutionStatus(GetExecutionStatusRequest) returns (GetExecutionStatusResponse) {
+    option (google.api.http) = {
+      get: "/v1/executions/{execution_id}"
+    };
+  }
 }

@@ -27,7 +27,276 @@
   "produces": [
     "application/json"
   ],
-  "paths": {},
+  "paths": {
+    "/v1/analysis/root-cause": {
+      "post": {
+        "summary": "根因分析",
+        "operationId": "ReasoningService_RootCauseAnalysis",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RootCauseAnalysisResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RootCauseAnalysisRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ReasoningService"
+        ]
+      }
+    },
+    "/v1/cases": {
+      "post": {
+        "summary": "保存历史案例",
+        "operationId": "ReasoningService_SaveCase",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SaveCaseResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SaveCaseRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ReasoningService"
+        ]
+      }
+    },
+    "/v1/executions/{executionId}": {
+      "get": {
+        "summary": "获取执行状态",
+        "operationId": "WorkflowService_GetExecutionStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetExecutionStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "executionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "WorkflowService"
+        ]
+      }
+    },
+    "/v1/workflows": {
+      "get": {
+        "summary": "列出工作流",
+        "operationId": "WorkflowService_ListWorkflows",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListWorkflowsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "description": " - DRAFT: 草稿\n - ACTIVE: 激活\n - INACTIVE: 停用\n - ARCHIVED: 归档",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "STATUS_UNSPECIFIED",
+              "DRAFT",
+              "ACTIVE",
+              "INACTIVE",
+              "ARCHIVED"
+            ],
+            "default": "STATUS_UNSPECIFIED"
+          }
+        ],
+        "tags": [
+          "WorkflowService"
+        ]
+      },
+      "post": {
+        "summary": "创建工作流",
+        "operationId": "WorkflowService_CreateWorkflow",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateWorkflowResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateWorkflowRequest"
+            }
+          }
+        ],
+        "tags": [
+          "WorkflowService"
+        ]
+      }
+    },
+    "/v1/workflows/{workflowId}": {
+      "get": {
+        "summary": "获取工作流",
+        "operationId": "WorkflowService_GetWorkflow",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetWorkflowResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "workflowId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "WorkflowService"
+        ]
+      }
+    },
+    "/v1/workflows/{workflowId}/executions": {
+      "post": {
+        "summary": "执行工作流",
+        "operationId": "WorkflowService_ExecuteWorkflow",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ExecuteWorkflowResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "workflowId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowServiceExecuteWorkflowBody"
+            }
+          }
+        ],
+        "tags": [
+          "WorkflowService"
+        ]
+      }
+    }
+  },
   "definitions": {
     "AnalysisOptionsDepth": {
       "type": "string",
@@ -64,6 +333,18 @@
       "default": "RESULT_UNSPECIFIED",
       "description": "- SUCCESSFUL: 成功\n - PARTIALLY_SUCCESSFUL: 部分成功\n - FAILED: 失败",
       "title": "解决结果"
+    },
+    "WorkflowServiceExecuteWorkflowBody": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object"
+        }
+      },
+      "title": "执行工作流请求"
     },
     "googlerpcStatus": {
       "type": "object",
@@ -316,6 +597,31 @@
       "default": "TYPE_UNSPECIFIED",
       "description": "- KUBECTL: kubectl 命令\n - DIAGNOSTIC: 诊断命令\n - REMEDIATION: 修复命令\n - CUSTOM: 自定义命令",
       "title": "命令类型"
+    },
+    "v1CreateWorkflowRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1WorkflowStep"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "创建工作流请求"
     },
     "v1CreateWorkflowResponse": {
       "type": "object",
@@ -681,6 +987,28 @@
       },
       "title": "根因"
     },
+    "v1RootCauseAnalysisRequest": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "title": "事件 ID"
+        },
+        "eventDescription": {
+          "type": "string",
+          "title": "事件描述"
+        },
+        "context": {
+          "$ref": "#/definitions/v1AnalysisContext",
+          "title": "事件上下文（事件、日志、指标等）"
+        },
+        "options": {
+          "$ref": "#/definitions/v1AnalysisOptions",
+          "title": "分析选项"
+        }
+      },
+      "title": "根因分析请求"
+    },
     "v1RootCauseAnalysisResponse": {
       "type": "object",
       "properties": {
@@ -737,6 +1065,31 @@
       "default": "TYPE_UNSPECIFIED",
       "description": "- RESOURCE_EXHAUSTION: 资源耗尽\n - CONFIGURATION_ERROR: 配置错误\n - NETWORK_ISSUE: 网络问题\n - PERMISSION_DENIED: 权限问题\n - IMAGE_PULL_ERROR: 镜像拉取错误\n - CRASH_LOOP: 崩溃循环\n - DEPENDENCY_FAILURE: 依赖失败\n - UNKNOWN: 未知",
       "title": "根因类型"
+    },
+    "v1SaveCaseRequest": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "title": "事件 ID"
+        },
+        "analysisId": {
+          "type": "string",
+          "title": "分析 ID"
+        },
+        "solution": {
+          "type": "string",
+          "title": "采用的解决方案"
+        },
+        "result": {
+          "$ref": "#/definitions/SaveCaseRequestResult"
+        },
+        "feedback": {
+          "type": "string",
+          "title": "反馈信息"
+        }
+      },
+      "title": "保存案例请求"
     },
     "v1SaveCaseResponse": {
       "type": "object",

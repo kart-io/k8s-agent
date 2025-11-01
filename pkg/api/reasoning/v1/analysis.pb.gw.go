@@ -101,7 +101,7 @@ func RegisterReasoningServiceHandlerServer(ctx context.Context, mux *runtime.Ser
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/reasoning.v1.ReasoningService/RootCauseAnalysis", runtime.WithHTTPPathPattern("/reasoning.v1.ReasoningService/RootCauseAnalysis"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/reasoning.v1.ReasoningService/RootCauseAnalysis", runtime.WithHTTPPathPattern("/v1/analysis/root-cause"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -121,7 +121,7 @@ func RegisterReasoningServiceHandlerServer(ctx context.Context, mux *runtime.Ser
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/reasoning.v1.ReasoningService/SaveCase", runtime.WithHTTPPathPattern("/reasoning.v1.ReasoningService/SaveCase"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/reasoning.v1.ReasoningService/SaveCase", runtime.WithHTTPPathPattern("/v1/cases"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -179,7 +179,7 @@ func RegisterReasoningServiceHandlerClient(ctx context.Context, mux *runtime.Ser
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/reasoning.v1.ReasoningService/RootCauseAnalysis", runtime.WithHTTPPathPattern("/reasoning.v1.ReasoningService/RootCauseAnalysis"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/reasoning.v1.ReasoningService/RootCauseAnalysis", runtime.WithHTTPPathPattern("/v1/analysis/root-cause"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -196,7 +196,7 @@ func RegisterReasoningServiceHandlerClient(ctx context.Context, mux *runtime.Ser
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/reasoning.v1.ReasoningService/SaveCase", runtime.WithHTTPPathPattern("/reasoning.v1.ReasoningService/SaveCase"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/reasoning.v1.ReasoningService/SaveCase", runtime.WithHTTPPathPattern("/v1/cases"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -213,8 +213,8 @@ func RegisterReasoningServiceHandlerClient(ctx context.Context, mux *runtime.Ser
 }
 
 var (
-	pattern_ReasoningService_RootCauseAnalysis_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"reasoning.v1.ReasoningService", "RootCauseAnalysis"}, ""))
-	pattern_ReasoningService_SaveCase_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"reasoning.v1.ReasoningService", "SaveCase"}, ""))
+	pattern_ReasoningService_RootCauseAnalysis_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "analysis", "root-cause"}, ""))
+	pattern_ReasoningService_SaveCase_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "cases"}, ""))
 )
 
 var (

@@ -10,8 +10,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
-	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
+	"github.com/kart-io/k8s-agent/internal/orchestrator/service"
 	orchestratorv1 "github.com/kart-io/k8s-agent/pkg/api/orchestrator/v1"
 	"github.com/kart-io/logger/core"
 )
@@ -23,7 +22,7 @@ type Server struct {
 	logger     core.Logger
 
 	// Services
-	workflowService *WorkflowServiceServer
+	workflowService *service.WorkflowServiceServer
 
 	// Configuration
 	host string
@@ -43,9 +42,8 @@ type ServerOptions struct {
 	KeepaliveTime    time.Duration
 	KeepaliveTimeout time.Duration
 
-	// Components
-	Engine *workflow.Engine
-	Store  *storage.PostgresStore
+	// Workflow service (shared between gRPC and HTTP)
+	WorkflowService *service.WorkflowServiceServer
 }
 
 // NewServer creates a new gRPC server for orchestrator service
@@ -74,8 +72,8 @@ func NewServer(opts *ServerOptions, logger core.Logger) (*Server, error) {
 		}),
 	)
 
-	// Create service instances
-	workflowService := NewWorkflowServiceServer(opts.Engine, opts.Store, logger)
+	// Use provided workflow service (shared with HTTP)
+	workflowService := opts.WorkflowService
 
 	// Register services
 	orchestratorv1.RegisterWorkflowServiceServer(grpcServer, workflowService)

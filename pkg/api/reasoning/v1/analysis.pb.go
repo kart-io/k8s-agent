@@ -10,6 +10,7 @@
 package reasoningv1
 
 import (
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -1144,7 +1145,7 @@ var File_reasoning_v1_analysis_proto protoreflect.FileDescriptor
 
 const file_reasoning_v1_analysis_proto_rawDesc = "" +
 	"\n" +
-	"\x1breasoning/v1/analysis.proto\x12\freasoning.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xd4\x01\n" +
+	"\x1breasoning/v1/analysis.proto\x12\freasoning.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1cgoogle/api/annotations.proto\"\xd4\x01\n" +
 	"\x18RootCauseAnalysisRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12+\n" +
 	"\x11event_description\x18\x02 \x01(\tR\x10eventDescription\x127\n" +
@@ -1256,10 +1257,10 @@ const file_reasoning_v1_analysis_proto_rawDesc = "" +
 	"\x06FAILED\x10\x03\"E\n" +
 	"\x10SaveCaseResponse\x12\x17\n" +
 	"\acase_id\x18\x01 \x01(\tR\x06caseId\x12\x18\n" +
-	"\asuccess\x18\x02 \x01(\bR\asuccess2\xc3\x01\n" +
-	"\x10ReasoningService\x12d\n" +
-	"\x11RootCauseAnalysis\x12&.reasoning.v1.RootCauseAnalysisRequest\x1a'.reasoning.v1.RootCauseAnalysisResponse\x12I\n" +
-	"\bSaveCase\x12\x1d.reasoning.v1.SaveCaseRequest\x1a\x1e.reasoning.v1.SaveCaseResponseB\xb1\x01\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess2\xfe\x01\n" +
+	"\x10ReasoningService\x12\x88\x01\n" +
+	"\x11RootCauseAnalysis\x12&.reasoning.v1.RootCauseAnalysisRequest\x1a'.reasoning.v1.RootCauseAnalysisResponse\"\"\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/analysis/root-cause\x12_\n" +
+	"\bSaveCase\x12\x1d.reasoning.v1.SaveCaseRequest\x1a\x1e.reasoning.v1.SaveCaseResponse\"\x14\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/v1/casesB\xb1\x01\n" +
 	"\x10com.reasoning.v1B\rAnalysisProtoP\x01Z=github.com/kart-io/k8s-agent/pkg/api/reasoning/v1;reasoningv1\xa2\x02\x03RXX\xaa\x02\fReasoning.V1\xca\x02\fReasoning\\V1\xe2\x02\x18Reasoning\\V1\\GPBMetadata\xea\x02\rReasoning::V1b\x06proto3"
 
 var (

@@ -6,6 +6,7 @@ import (
 
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
 	grpcserver "github.com/kart-io/k8s-agent/internal/orchestrator/grpc"
+	"github.com/kart-io/k8s-agent/internal/orchestrator/service"
 	"github.com/kart-io/logger/core"
 )
 
@@ -16,7 +17,8 @@ type GRPCServerInitializer struct {
 	workflowInit *WorkflowInitializer
 	dbInit       *DatabaseInitializer
 
-	server *grpcserver.Server
+	server          *grpcserver.Server
+	workflowService *service.WorkflowServiceServer
 }
 
 // NewGRPCServerInitializer creates a new gRPC server initializer
@@ -68,12 +70,14 @@ func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 		return fmt.Errorf("database store not initialized")
 	}
 
-	// Create gRPC server
+	// Create shared workflow service
+	i.workflowService = service.NewWorkflowServiceServer(engine, store, i.logger)
+
+	// Create gRPC server with shared service
 	grpcOpts := &grpcserver.ServerOptions{
-		Host:   i.opts.GRPC.Host,
-		Port:   i.opts.GRPC.Port,
-		Engine: engine,
-		Store:  store,
+		Host:            i.opts.GRPC.Host,
+		Port:            i.opts.GRPC.Port,
+		WorkflowService: i.workflowService, // Pass shared service
 	}
 
 	server, err := grpcserver.NewServer(grpcOpts, i.logger)
@@ -100,6 +104,11 @@ func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	)
 
 	return nil
+}
+
+// GetWorkflowService returns the shared workflow service instance
+func (i *GRPCServerInitializer) GetWorkflowService() *service.WorkflowServiceServer {
+	return i.workflowService
 }
 
 // Shutdown stops the gRPC server

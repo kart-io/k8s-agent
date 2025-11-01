@@ -9,6 +9,9 @@ managed:
   override:
     - file_option: go_package_prefix
       value: github.com/kart-io/k8s-agent/pkg/api
+  disable:
+    - module: buf.build/googleapis/googleapis
+      file_option: go_package_prefix
 
 # 代码生成插件配置
 plugins:

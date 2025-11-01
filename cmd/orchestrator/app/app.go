@@ -48,6 +48,7 @@ type OrchestratorApp struct {
 	strategyInit *initializers.StrategyInitializer
 	subInit      *initializers.SubscriberInitializer
 	grpcInit     *initializers.GRPCServerInitializer
+	httpInit     *initializers.HTTPServerInitializer
 	healthInit   *pkginitializers.HealthCheckInitializer
 }
 
@@ -122,7 +123,16 @@ func (a *OrchestratorApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	)
 	bs.Register(a.grpcInit)
 
-	// 8. Health Check Server (优先级最低，最后启动)
+	// 8. HTTP Server with gRPC-Gateway (优先级 800 - 在 gRPC 之后)
+	// HTTP requests will be automatically converted to gRPC calls using the same workflow service!
+	a.httpInit = initializers.NewHTTPServerInitializer(
+		opts,
+		a.GetLogger(),
+		a.grpcInit, // Pass gRPC init to get shared service
+	)
+	bs.Register(a.httpInit)
+
+	// 9. Health Check Server (优先级最低，最后启动)
 	healthPort := opts.GetHealthPort()
 	healthAddr := fmt.Sprintf(":%d", healthPort)
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthAddr, a.GetLogger())
