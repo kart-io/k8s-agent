@@ -58,27 +58,13 @@ func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) e
 	config := serverOpts.Config()
 	a.config = config
 
-	// 创建标准 Bootstrap 应用并设置启动钩子
+	// 创建标准 Bootstrap 应用
 	if a.StandardBootstrapApplication == nil {
-		a.StandardBootstrapApplication = commonapp.NewStandardBootstrapApplication("Reasoning", a).
-			WithStartupHookFunc(a)
+		a.StandardBootstrapApplication = commonapp.NewStandardBootstrapApplication("Reasoning", a)
 	}
 
 	// 调用标准初始化
 	return a.StandardBootstrapApplication.Initialize(ctx, opts)
-}
-
-// OnStartup 实现 StartupHook 接口，在 bootstrap.Run() 中执行
-func (a *ReasoningApp) OnStartup(ctx context.Context) error {
-	// 启动 HTTP 服务器（在 goroutine 中）
-	go func() {
-		if err := a.httpInit.Start(); err != nil {
-			a.GetLogger().Fatalw("HTTP server failed to start", "error", err)
-		}
-	}()
-
-	a.GetLogger().Infow("All services started, waiting for shutdown signal")
-	return nil
 }
 
 // RegisterComponents 实现 ComponentRegistrar 接口，注册所有组件初始化器
@@ -97,11 +83,12 @@ func (a *ReasoningApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	)
 	bs.Register(a.grpcInit)
 
-	// 3. HTTP Server (优先级 500)
+	// 3. HTTP Server with gRPC-Gateway (优先级 500 - 在 gRPC 之后)
+	// HTTP requests will be automatically converted to gRPC calls using the same reasoning service!
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.config,
+		opts,
 		a.GetLogger(),
-		a.llmInit,
+		a.grpcInit, // Pass gRPC init to get shared service
 	)
 	bs.Register(a.httpInit)
 

@@ -7,6 +7,7 @@ import (
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
 	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
 	grpcserver "github.com/kart-io/k8s-agent/internal/reasoning/grpc"
+	"github.com/kart-io/k8s-agent/internal/reasoning/service"
 	"github.com/kart-io/logger/core"
 )
 
@@ -16,7 +17,8 @@ type GRPCServerInitializer struct {
 	logger  core.Logger
 	llmInit *LLMInitializer
 
-	server *grpcserver.Server
+	server           *grpcserver.Server
+	reasoningService *service.ReasoningServiceServer
 }
 
 // NewGRPCServerInitializer creates a new gRPC server initializer
@@ -60,11 +62,14 @@ func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	cfg := i.opts.Config()
 	rootCauseAnalyzer := analyzer.NewRootCauseAnalyzer(cfg, llmClients)
 
-	// Create gRPC server
+	// Create shared reasoning service
+	i.reasoningService = service.NewReasoningServiceServer(rootCauseAnalyzer, i.logger)
+
+	// Create gRPC server with shared service
 	grpcOpts := &grpcserver.ServerOptions{
-		Host:     i.opts.GRPC.Host,
-		Port:     i.opts.GRPC.Port,
-		Analyzer: rootCauseAnalyzer,
+		Host:             i.opts.GRPC.Host,
+		Port:             i.opts.GRPC.Port,
+		ReasoningService: i.reasoningService,
 	}
 
 	server, err := grpcserver.NewServer(grpcOpts, i.logger)
@@ -112,4 +117,9 @@ func (i *GRPCServerInitializer) Shutdown(ctx context.Context) error {
 // GetServer returns the gRPC server instance
 func (i *GRPCServerInitializer) GetServer() *grpcserver.Server {
 	return i.server
+}
+
+// GetReasoningService returns the shared reasoning service instance
+func (i *GRPCServerInitializer) GetReasoningService() *service.ReasoningServiceServer {
+	return i.reasoningService
 }

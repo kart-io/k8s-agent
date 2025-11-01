@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
+	"github.com/kart-io/k8s-agent/internal/reasoning/service"
 	reasoningv1 "github.com/kart-io/k8s-agent/pkg/api/reasoning/v1"
 	"github.com/kart-io/logger/core"
 )
@@ -22,7 +22,7 @@ type Server struct {
 	logger     core.Logger
 
 	// Services
-	reasoningService *ReasoningServiceServer
+	reasoningService *service.ReasoningServiceServer
 
 	// Configuration
 	host string
@@ -42,8 +42,8 @@ type ServerOptions struct {
 	KeepaliveTime    time.Duration
 	KeepaliveTimeout time.Duration
 
-	// Components
-	Analyzer *analyzer.RootCauseAnalyzer
+	// Reasoning service (shared between gRPC and HTTP)
+	ReasoningService *service.ReasoningServiceServer
 }
 
 // NewServer creates a new gRPC server for reasoning service
@@ -72,8 +72,8 @@ func NewServer(opts *ServerOptions, logger core.Logger) (*Server, error) {
 		}),
 	)
 
-	// Create service instances
-	reasoningService := NewReasoningServiceServer(opts.Analyzer, logger)
+	// Use provided reasoning service (shared with HTTP)
+	reasoningService := opts.ReasoningService
 
 	// Register services
 	reasoningv1.RegisterReasoningServiceServer(grpcServer, reasoningService)
