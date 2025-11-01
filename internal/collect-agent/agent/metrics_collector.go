@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -23,11 +23,11 @@ type MetricsCollector struct {
 	stopCh           chan struct{}
 	running          bool
 	mu               sync.RWMutex
-	logger           *zap.Logger
+	logger           core.Logger
 }
 
 // NewMetricsCollector creates a new metrics collector
-func NewMetricsCollector(clientset kubernetes.Interface, clusterID string, metricsChan chan<- *types.Metrics, logger *zap.Logger) *MetricsCollector {
+func NewMetricsCollector(clientset kubernetes.Interface, clusterID string, metricsChan chan<- *types.Metrics, logger core.Logger) *MetricsCollector {
 	// Try to create metrics clientset, but don't fail if metrics server is not available
 	var metricsClientset *metricsv1beta1.Clientset
 	// Note: In production, you would get this from the same config as the main clientset
@@ -39,7 +39,7 @@ func NewMetricsCollector(clientset kubernetes.Interface, clusterID string, metri
 		clusterID:        clusterID,
 		metricsChan:      metricsChan,
 		stopCh:           make(chan struct{}),
-		logger:           logger.With(zap.String("component", "metrics-collector")),
+		logger:           logger, // Logger already has component context from caller
 	}
 }
 
@@ -53,9 +53,9 @@ func (mc *MetricsCollector) Start(ctx context.Context, interval time.Duration) {
 	mc.running = true
 	mc.mu.Unlock()
 
-	mc.logger.Info("Starting metrics collector",
-		zap.String("cluster_id", mc.clusterID),
-		zap.Duration("interval", interval))
+	mc.logger.Infow("Starting metrics collector",
+		"cluster_id", mc.clusterID,
+		"interval", interval)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -85,10 +85,10 @@ func (mc *MetricsCollector) Stop() {
 		return
 	}
 
-	mc.logger.Info("Stopping metrics collector")
+	mc.logger.Infow("Stopping metrics collector")
 	close(mc.stopCh)
 	mc.running = false
-	mc.logger.Info("Metrics collector stopped")
+	mc.logger.Infow("Metrics collector stopped")
 }
 
 // collectAndSendMetrics collects various cluster metrics and sends them
@@ -114,9 +114,9 @@ func (mc *MetricsCollector) collectAndSendMetrics() {
 	// Send metrics
 	select {
 	case mc.metricsChan <- metrics:
-		mc.logger.Debug("Metrics sent", zap.String("cluster_id", mc.clusterID))
+		mc.logger.Debugw("Metrics sent", "cluster_id", mc.clusterID)
 	default:
-		mc.logger.Warn("Metrics channel full, dropping metrics")
+		mc.logger.Warnw("Metrics channel full, dropping metrics")
 	}
 }
 
@@ -127,7 +127,7 @@ func (mc *MetricsCollector) collectClusterMetrics(metrics *types.Metrics) {
 	// Get cluster version
 	version, err := mc.clientset.Discovery().ServerVersion()
 	if err != nil {
-		mc.logger.Warn("Failed to get server version", zap.Error(err))
+		mc.logger.Warnw("Failed to get server version", "error", err)
 	} else {
 		metrics.Data["cluster"] = map[string]interface{}{
 			"version":     version.String(),
@@ -139,7 +139,7 @@ func (mc *MetricsCollector) collectClusterMetrics(metrics *types.Metrics) {
 	// Count total nodes
 	nodes, err := mc.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		mc.logger.Warn("Failed to list nodes", zap.Error(err))
+		mc.logger.Warnw("Failed to list nodes", "error", err)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (mc *MetricsCollector) collectNodeMetrics(metrics *types.Metrics) {
 
 	nodes, err := mc.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		mc.logger.Warn("Failed to list nodes for metrics", zap.Error(err))
+		mc.logger.Warnw("Failed to list nodes for metrics", "error", err)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (mc *MetricsCollector) collectPodMetrics(metrics *types.Metrics) {
 
 	pods, err := mc.clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		mc.logger.Warn("Failed to list pods", zap.Error(err))
+		mc.logger.Warnw("Failed to list pods", "error", err)
 		return
 	}
 
@@ -185,7 +185,7 @@ func (mc *MetricsCollector) collectNamespaceMetrics(metrics *types.Metrics) {
 
 	namespaces, err := mc.clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		mc.logger.Warn("Failed to list namespaces", zap.Error(err))
+		mc.logger.Warnw("Failed to list namespaces", "error", err)
 		return
 	}
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -14,7 +14,7 @@ import (
 
 // BenchmarkEventProcessing benchmarks event processing throughput
 func BenchmarkEventProcessing(b *testing.B) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 	clientset := fake.NewSimpleClientset()
 
 	eventChan := make(chan *types.Event, 1000)
@@ -46,7 +46,7 @@ func BenchmarkEventProcessing(b *testing.B) {
 
 // BenchmarkMetricsCollection benchmarks metrics collection performance
 func BenchmarkMetricsCollection(b *testing.B) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	// Create fake nodes
 	nodes := make([]corev1.Node, 10)
@@ -75,7 +75,7 @@ func BenchmarkMetricsCollection(b *testing.B) {
 
 // BenchmarkCommandValidation benchmarks command validation performance
 func BenchmarkCommandValidation(b *testing.B) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 	clientset := fake.NewSimpleClientset()
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
@@ -121,7 +121,7 @@ func BenchmarkChannelThroughput(b *testing.B) {
 
 // BenchmarkAgentStatus benchmarks status retrieval
 func BenchmarkAgentStatus(b *testing.B) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 	config := &types.AgentConfig{
 		ClusterID:         "test-cluster",
 		CentralEndpoint:   "nats://localhost:4222",
@@ -157,7 +157,7 @@ func BenchmarkAgentStatus(b *testing.B) {
 
 // BenchmarkConcurrentEventProcessing benchmarks concurrent event processing
 func BenchmarkConcurrentEventProcessing(b *testing.B) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 	clientset := fake.NewSimpleClientset()
 	eventChan := make(chan *types.Event, 10000)
 

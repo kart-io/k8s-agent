@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
 )
@@ -21,7 +21,7 @@ type CommunicationManager struct {
 	k8sVersion string
 	apiServer  string
 	natsConn   *nats.Conn
-	logger     *zap.Logger
+	logger     core.Logger
 	mu         sync.RWMutex
 	connected  bool
 	stopCh     chan struct{}
@@ -44,7 +44,7 @@ func NewCommunicationManager(
 	metricsChan <-chan *types.Metrics,
 	resultChan <-chan *types.CommandResult,
 	commandHandler func(*types.Command),
-	logger *zap.Logger,
+	logger core.Logger,
 ) *CommunicationManager {
 	return &CommunicationManager{
 		config:         config,
@@ -55,7 +55,7 @@ func NewCommunicationManager(
 		metricsChan:    metricsChan,
 		resultChan:     resultChan,
 		commandHandler: commandHandler,
-		logger:         logger.With(zap.String("component", "communication")),
+		logger:         logger, // Logger already has component context from caller
 		stopCh:         make(chan struct{}),
 	}
 }
@@ -82,9 +82,9 @@ func (cm *CommunicationManager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to subscribe to commands: %w", err)
 	}
 
-	cm.logger.Info("Communication manager started",
-		zap.String("cluster_id", cm.clusterID),
-		zap.String("endpoint", cm.config.CentralEndpoint))
+	cm.logger.Infow("Communication manager started",
+		"cluster_id", cm.clusterID,
+		"endpoint", cm.config.CentralEndpoint)
 
 	return nil
 }
@@ -98,7 +98,7 @@ func (cm *CommunicationManager) Stop() error {
 		return nil
 	}
 
-	cm.logger.Info("Stopping communication manager")
+	cm.logger.Infow("Stopping communication manager")
 
 	close(cm.stopCh)
 	cm.wg.Wait()
@@ -108,37 +108,37 @@ func (cm *CommunicationManager) Stop() error {
 	}
 
 	cm.connected = false
-	cm.logger.Info("Communication manager stopped")
+	cm.logger.Infow("Communication manager stopped")
 	return nil
 }
 
 // connect establishes connection to NATS server
 func (cm *CommunicationManager) connect() error {
-	cm.logger.Info("Connecting to NATS", zap.String("endpoint", cm.config.CentralEndpoint))
+	cm.logger.Infow("Connecting to NATS", "endpoint", cm.config.CentralEndpoint)
 
 	opts := []nats.Option{
 		nats.Name(fmt.Sprintf("agent-%s", cm.clusterID)),
 		nats.ReconnectWait(cm.config.ReconnectDelay),
 		nats.MaxReconnects(cm.config.MaxRetries),
 		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
-			cm.logger.Warn("Disconnected from NATS",
-				zap.String("cluster_id", cm.clusterID),
-				zap.Error(err))
+			cm.logger.Warnw("Disconnected from NATS",
+				"cluster_id", cm.clusterID,
+				"error", err)
 		}),
 		nats.ReconnectHandler(func(nc *nats.Conn) {
-			cm.logger.Info("Reconnected to NATS",
-				zap.String("cluster_id", cm.clusterID),
-				zap.String("url", nc.ConnectedUrl()))
+			cm.logger.Infow("Reconnected to NATS",
+				"cluster_id", cm.clusterID,
+				"url", nc.ConnectedUrl())
 		}),
 		nats.ClosedHandler(func(nc *nats.Conn) {
-			cm.logger.Warn("NATS connection closed",
-				zap.String("cluster_id", cm.clusterID))
+			cm.logger.Warnw("NATS connection closed",
+				"cluster_id", cm.clusterID)
 		}),
 		nats.ErrorHandler(func(nc *nats.Conn, sub *nats.Subscription, err error) {
-			cm.logger.Error("NATS error",
-				zap.String("cluster_id", cm.clusterID),
-				zap.String("subject", sub.Subject),
-				zap.Error(err))
+			cm.logger.Errorw("NATS error",
+				"cluster_id", cm.clusterID,
+				"subject", sub.Subject,
+				"error", err)
 		}),
 	}
 
@@ -149,7 +149,7 @@ func (cm *CommunicationManager) connect() error {
 
 	cm.natsConn = nc
 	cm.connected = true
-	cm.logger.Info("Connected to NATS", zap.String("url", nc.ConnectedUrl()))
+	cm.logger.Infow("Connected to NATS", "url", nc.ConnectedUrl())
 
 	return nil
 }
@@ -195,7 +195,7 @@ func (cm *CommunicationManager) register() error {
 		return fmt.Errorf("failed to publish register message: %w", err)
 	}
 
-	cm.logger.Info("Agent registered", zap.String("cluster_id", cm.clusterID))
+	cm.logger.Infow("Agent registered", "cluster_id", cm.clusterID)
 	return nil
 }
 
@@ -206,15 +206,15 @@ func (cm *CommunicationManager) subscribeToCommands() error {
 	_, err := cm.natsConn.Subscribe(subject, func(msg *nats.Msg) {
 		var cmd types.Command
 		if err := json.Unmarshal(msg.Data, &cmd); err != nil {
-			cm.logger.Error("Failed to unmarshal command", zap.Error(err))
+			cm.logger.Errorw("Failed to unmarshal command", "error", err)
 			return
 		}
 
-		cm.logger.Info("Received command",
-			zap.String("cluster_id", cm.clusterID),
-			zap.String("command_id", cmd.ID),
-			zap.String("tool", cmd.Tool),
-			zap.String("action", cmd.Action))
+		cm.logger.Infow("Received command",
+			"cluster_id", cm.clusterID,
+			"command_id", cmd.ID,
+			"tool", cmd.Tool,
+			"action", cmd.Action)
 
 		// Handle command asynchronously
 		if cm.commandHandler != nil {
@@ -226,7 +226,7 @@ func (cm *CommunicationManager) subscribeToCommands() error {
 		return fmt.Errorf("failed to subscribe to commands: %w", err)
 	}
 
-	cm.logger.Info("Subscribed to commands", zap.String("subject", subject))
+	cm.logger.Infow("Subscribed to commands", "subject", subject)
 	return nil
 }
 
@@ -248,9 +248,9 @@ func (cm *CommunicationManager) handleEvents(ctx context.Context) {
 			}
 
 			if err := cm.publishEvent(subject, event); err != nil {
-				cm.logger.Error("Failed to publish event",
-					zap.Error(err),
-					zap.String("event_id", event.ID))
+				cm.logger.Errorw("Failed to publish event",
+					"error", err,
+					"event_id", event.ID)
 			}
 		}
 	}
@@ -274,7 +274,7 @@ func (cm *CommunicationManager) handleMetrics(ctx context.Context) {
 			}
 
 			if err := cm.publishMetrics(subject, metrics); err != nil {
-				cm.logger.Error("Failed to publish metrics", zap.Error(err))
+				cm.logger.Errorw("Failed to publish metrics", "error", err)
 			}
 		}
 	}
@@ -298,9 +298,9 @@ func (cm *CommunicationManager) handleResults(ctx context.Context) {
 			}
 
 			if err := cm.publishResult(subject, result); err != nil {
-				cm.logger.Error("Failed to publish result",
-					zap.Error(err),
-					zap.String("command_id", result.CommandID))
+				cm.logger.Errorw("Failed to publish result",
+					"error", err,
+					"command_id", result.CommandID)
 			}
 		}
 	}
@@ -345,8 +345,8 @@ func (cm *CommunicationManager) publishEvent(subject string, event *types.Event)
 	}
 
 	cm.logger.Debug("Event published",
-		zap.String("event_id", event.ID),
-		zap.String("subject", subject))
+		"event_id", event.ID,
+		"subject", subject)
 
 	return nil
 }
@@ -365,7 +365,7 @@ func (cm *CommunicationManager) publishMetrics(subject string, metrics *types.Me
 		return fmt.Errorf("failed to publish metrics: %w", err)
 	}
 
-	cm.logger.Debug("Metrics published", zap.String("subject", subject))
+	cm.logger.Debug("Metrics published", "subject", subject)
 	return nil
 }
 
@@ -382,10 +382,10 @@ func (cm *CommunicationManager) publishResult(subject string, result *types.Comm
 		return fmt.Errorf("failed to publish result: %w", err)
 	}
 
-	cm.logger.Info("Result published",
-		zap.String("command_id", result.CommandID),
-		zap.String("status", result.Status),
-		zap.String("subject", subject))
+	cm.logger.Infow("Result published",
+		"command_id", result.CommandID,
+		"status", result.Status,
+		"subject", subject)
 
 	return nil
 }
@@ -408,18 +408,18 @@ func (cm *CommunicationManager) sendHeartbeat(subject string) {
 
 	data, err := json.Marshal(heartbeat)
 	if err != nil {
-		cm.logger.Error("Failed to marshal heartbeat", zap.Error(err))
+		cm.logger.Errorw("Failed to marshal heartbeat", "error", err)
 		return
 	}
 
 	if err := cm.natsConn.Publish(subject, data); err != nil {
-		cm.logger.Error("Failed to publish heartbeat", zap.Error(err))
+		cm.logger.Errorw("Failed to publish heartbeat", "error", err)
 		return
 	}
 
 	cm.logger.Debug("Heartbeat sent",
-		zap.String("agent_id", cm.clusterID),
-		zap.String("cluster_id", cm.clusterID))
+		"agent_id", cm.clusterID,
+		"cluster_id", cm.clusterID)
 }
 
 // IsConnected returns true if connected to NATS

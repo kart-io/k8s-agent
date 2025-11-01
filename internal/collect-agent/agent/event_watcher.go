@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -28,17 +28,17 @@ type EventWatcher struct {
 	running     bool
 	mu          sync.RWMutex
 	lastEventID string
-	logger      *zap.Logger
+	logger      core.Logger
 }
 
 // NewEventWatcher creates a new event watcher
-func NewEventWatcher(clientset kubernetes.Interface, clusterID string, eventChan chan<- *types.Event, logger *zap.Logger) *EventWatcher {
+func NewEventWatcher(clientset kubernetes.Interface, clusterID string, eventChan chan<- *types.Event, logger core.Logger) *EventWatcher {
 	return &EventWatcher{
 		clientset: clientset,
 		clusterID: clusterID,
 		eventChan: eventChan,
 		stopCh:    make(chan struct{}),
-		logger:    logger.With(zap.String("component", "event-watcher")),
+		logger:    logger, // Logger already has component context from caller
 	}
 }
 
@@ -52,7 +52,7 @@ func (ew *EventWatcher) Start(ctx context.Context) error {
 	ew.running = true
 	ew.mu.Unlock()
 
-	ew.logger.Info("Starting event watcher", zap.String("cluster_id", ew.clusterID))
+	ew.logger.Infow("Starting event watcher", "cluster_id", ew.clusterID)
 
 	watchlist := cache.NewListWatchFromClient(
 		ew.clientset.CoreV1().RESTClient(),
@@ -127,14 +127,14 @@ func (ew *EventWatcher) handleEvent(obj interface{}, eventType string) {
 
 	select {
 	case ew.eventChan <- agentEvent:
-		ew.logger.Debug("Event sent",
-			zap.String("event_id", agentEvent.ID),
-			zap.String("reason", agentEvent.Reason),
-			zap.String("namespace", agentEvent.Namespace))
+		ew.logger.Debugw("Event sent",
+			"event_id", agentEvent.ID,
+			"reason", agentEvent.Reason,
+			"namespace", agentEvent.Namespace)
 		ew.lastEventID = agentEvent.ID
 	default:
-		ew.logger.Warn("Event channel full, dropping event",
-			zap.String("event_id", agentEvent.ID))
+		ew.logger.Warnw("Event channel full, dropping event",
+			"event_id", agentEvent.ID)
 	}
 }
 

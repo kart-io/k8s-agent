@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -22,7 +22,7 @@ type Agent struct {
 	config     *types.AgentConfig
 	clusterID  string
 	clientset  kubernetes.Interface
-	logger     *zap.Logger
+	logger     core.Logger
 	kubeConfig *rest.Config
 
 	// Cluster information
@@ -78,7 +78,7 @@ func getKubeConfig() (*rest.Config, error) {
 }
 
 // New creates a new Agent instance
-func New(config *types.AgentConfig, logger *zap.Logger) (*Agent, error) {
+func New(config *types.AgentConfig, logger core.Logger) (*Agent, error) {
 	// Create Kubernetes clientset
 	kubeConfig, err := getKubeConfig()
 	if err != nil {
@@ -105,7 +105,7 @@ func New(config *types.AgentConfig, logger *zap.Logger) (*Agent, error) {
 	k8sVersion := ""
 	versionInfo, err := clientset.Discovery().ServerVersion()
 	if err != nil {
-		logger.Warn("Failed to get Kubernetes version", zap.Error(err))
+		logger.Warnw("Failed to get Kubernetes version", "error", err)
 	} else {
 		k8sVersion = versionInfo.GitVersion
 	}
@@ -120,7 +120,7 @@ func New(config *types.AgentConfig, logger *zap.Logger) (*Agent, error) {
 		kubeConfig: kubeConfig,
 		k8sVersion: k8sVersion,
 		apiServer:  apiServer,
-		logger:     logger.With(zap.String("cluster_id", clusterID)),
+		logger:     logger, // Logger already contains cluster_id context from caller
 
 		eventChan:   make(chan *types.Event, config.BufferSize),
 		metricsChan: make(chan *types.Metrics, 100),
@@ -180,11 +180,11 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.running = true
 	a.mu.Unlock()
 
-	a.logger.Info("Starting collect agent",
-		zap.String("cluster_id", a.clusterID),
-		zap.String("central_endpoint", a.config.CentralEndpoint),
-		zap.Duration("heartbeat_interval", a.config.HeartbeatInterval),
-		zap.Duration("metrics_interval", a.config.MetricsInterval))
+	a.logger.Infow("Starting collect agent",
+		"cluster_id", a.clusterID,
+		"central_endpoint", a.config.CentralEndpoint,
+		"heartbeat_interval", a.config.HeartbeatInterval,
+		"metrics_interval", a.config.MetricsInterval)
 
 	// Start communication manager first
 	if err := a.communicationManager.Start(ctx); err != nil {
@@ -264,9 +264,9 @@ func (a *Agent) Stop() error {
 func (a *Agent) handleCommand(cmd *types.Command) {
 	select {
 	case a.commandChan <- cmd:
-		a.logger.Debug("Command queued for processing", zap.String("command_id", cmd.ID))
+		a.logger.Debugw("Command queued for processing", "command_id", cmd.ID)
 	default:
-		a.logger.Warn("Command channel full, dropping command", zap.String("command_id", cmd.ID))
+		a.logger.Warnw("Command channel full, dropping command", "command_id", cmd.ID)
 	}
 }
 
@@ -285,10 +285,10 @@ func (a *Agent) processCommands(ctx context.Context) {
 				continue
 			}
 
-			a.logger.Info("Processing command",
-				zap.String("command_id", cmd.ID),
-				zap.String("tool", cmd.Tool),
-				zap.String("action", cmd.Action))
+			a.logger.Infow("Processing command",
+				"command_id", cmd.ID,
+				"tool", cmd.Tool,
+				"action", cmd.Action)
 
 			// Execute command
 			result := a.commandExecutor.Execute(ctx, *cmd)
@@ -296,9 +296,9 @@ func (a *Agent) processCommands(ctx context.Context) {
 			// Send result back
 			select {
 			case a.resultChan <- result:
-				a.logger.Debug("Command result queued", zap.String("command_id", cmd.ID))
+				a.logger.Debugw("Command result queued", "command_id", cmd.ID)
 			default:
-				a.logger.Warn("Result channel full, dropping result", zap.String("command_id", cmd.ID))
+				a.logger.Warnw("Result channel full, dropping result", "command_id", cmd.ID)
 			}
 		}
 	}

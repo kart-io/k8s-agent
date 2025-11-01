@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,7 +13,7 @@ import (
 )
 
 func TestDetectFromEnvironment(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 	clientset := fake.NewSimpleClientset()
 	detector := NewClusterIDDetector(clientset, logger)
 
@@ -39,7 +39,7 @@ func TestDetectFromEnvironment(t *testing.T) {
 }
 
 func TestDetectFromKubernetesUID(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	// Create a fake namespace with UID
 	namespace := &corev1.Namespace{
@@ -64,7 +64,7 @@ func TestDetectFromKubernetesUID(t *testing.T) {
 }
 
 func TestDetectFromEKS(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	// Create a fake EKS node
 	node := &corev1.Node{
@@ -91,7 +91,7 @@ func TestDetectFromEKS(t *testing.T) {
 }
 
 func TestDetectFromGKE(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	// Create a fake GKE node
 	node := &corev1.Node{
@@ -121,7 +121,7 @@ func TestDetectFromGKE(t *testing.T) {
 }
 
 func TestDetectFromNodeLabels(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	// Create a fake node with custom labels
 	node := &corev1.Node{
@@ -148,7 +148,7 @@ func TestDetectFromNodeLabels(t *testing.T) {
 }
 
 func TestDetectClusterID(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	// Test with environment variable (highest priority)
 	expectedID := "env-cluster-123"
@@ -188,7 +188,7 @@ func TestDetectClusterID(t *testing.T) {
 }
 
 func TestDetectClusterIDNoSources(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	// Create empty clientset with no resources
 	clientset := fake.NewSimpleClientset()
@@ -201,7 +201,7 @@ func TestDetectClusterIDNoSources(t *testing.T) {
 }
 
 func BenchmarkDetectClusterID(b *testing.B) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -221,7 +221,7 @@ func BenchmarkDetectClusterID(b *testing.B) {
 
 // TestDetectFromAKS tests Azure AKS cluster detection
 func TestDetectFromAKS(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	logger := core.NewNoOpLogger(nil)
 
 	tests := []struct {
 		name           string

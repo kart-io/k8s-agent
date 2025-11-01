@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -14,20 +14,20 @@ import (
 // ClusterIDDetector detects the cluster ID from various cloud providers
 type ClusterIDDetector struct {
 	clientset kubernetes.Interface
-	logger    *zap.Logger
+	logger    core.Logger
 }
 
 // NewClusterIDDetector creates a new cluster ID detector
-func NewClusterIDDetector(clientset kubernetes.Interface, logger *zap.Logger) *ClusterIDDetector {
+func NewClusterIDDetector(clientset kubernetes.Interface, logger core.Logger) *ClusterIDDetector {
 	return &ClusterIDDetector{
 		clientset: clientset,
-		logger:    logger.With(zap.String("component", "cluster-detector")),
+		logger:    logger, // Logger already has component context from caller
 	}
 }
 
 // DetectClusterID attempts to detect the cluster ID from various sources
 func (d *ClusterIDDetector) DetectClusterID(ctx context.Context) (string, error) {
-	d.logger.Info("Attempting to detect cluster ID")
+	d.logger.Infow("Attempting to detect cluster ID")
 
 	// Try different detection methods in order of reliability
 	methods := []func(context.Context) (string, error){
@@ -42,15 +42,15 @@ func (d *ClusterIDDetector) DetectClusterID(ctx context.Context) (string, error)
 	for i, method := range methods {
 		clusterID, err := method(ctx)
 		if err == nil && clusterID != "" {
-			d.logger.Info("Cluster ID detected",
-				zap.String("cluster_id", clusterID),
-				zap.Int("method", i))
+			d.logger.Infow("Cluster ID detected",
+				"cluster_id", clusterID,
+				"method", i)
 			return clusterID, nil
 		}
 		if err != nil {
-			d.logger.Debug("Detection method failed",
-				zap.Int("method", i),
-				zap.Error(err))
+			d.logger.Debugw("Detection method failed",
+				"method", i,
+				"error", err)
 		}
 	}
 

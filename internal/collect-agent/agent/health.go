@@ -6,22 +6,22 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 )
 
 // HealthServer provides HTTP health check endpoints
 type HealthServer struct {
 	agent  *Agent
 	server *http.Server
-	logger *zap.Logger
+	logger core.Logger
 }
 
 // NewHealthServer creates a new health server
-func NewHealthServer(agent *Agent, port int, logger *zap.Logger) *HealthServer {
+func NewHealthServer(agent *Agent, port int, logger core.Logger) *HealthServer {
 	mux := http.NewServeMux()
 	hs := &HealthServer{
 		agent:  agent,
-		logger: logger.With(zap.String("component", "health-server")),
+		logger: logger, // Logger already has component context from caller
 		server: &http.Server{
 			Addr:         fmt.Sprintf(":%d", port),
 			Handler:      mux,
@@ -41,11 +41,11 @@ func NewHealthServer(agent *Agent, port int, logger *zap.Logger) *HealthServer {
 
 // Start starts the health server
 func (hs *HealthServer) Start() error {
-	hs.logger.Info("Starting health server", zap.String("addr", hs.server.Addr))
+	hs.logger.Infow("Starting health server", "addr", hs.server.Addr)
 
 	go func() {
 		if err := hs.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			hs.logger.Error("Health server error", zap.Error(err))
+			hs.logger.Errorw("Health server error", "error", err)
 		}
 	}()
 
@@ -54,7 +54,7 @@ func (hs *HealthServer) Start() error {
 
 // Stop stops the health server
 func (hs *HealthServer) Stop() error {
-	hs.logger.Info("Stopping health server")
+	hs.logger.Infow("Stopping health server")
 	return hs.server.Close()
 }
 
@@ -86,7 +86,7 @@ func (hs *HealthServer) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(status); err != nil {
-		hs.logger.Error("Failed to encode status", zap.Error(err))
+		hs.logger.Errorw("Failed to encode status", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

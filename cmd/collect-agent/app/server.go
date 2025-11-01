@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"go.uber.org/zap"
+	
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/agent"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/config"
@@ -41,18 +41,10 @@ func (s *Server) initialize() error {
 	var err error
 
 	// Convert Options to AgentConfig for backward compatibility with agent package
-	// TODO: Update agent package to use config.Options directly
 	agentConfig := s.opts.ToAgentConfig()
 
-	// Create Zap logger for agent (agent package still uses zap.Logger)
-	// TODO: Update agent package to use logger.Logger
-	zapLogger, err := createZapLogger(s.log)
-	if err != nil {
-		return fmt.Errorf("failed to create zap logger: %w", err)
-	}
-
-	// Create agent instance
-	s.agentInstance, err = agent.New(agentConfig, zapLogger)
+	// Create agent instance (now uses core.Logger directly)
+	s.agentInstance, err = agent.New(agentConfig, s.log)
 	if err != nil {
 		return fmt.Errorf("failed to create agent: %w", err)
 	}
@@ -63,20 +55,10 @@ func (s *Server) initialize() error {
 		port = 8080 // default
 	}
 
-	// Create health server
-	s.healthServer = agent.NewHealthServer(s.agentInstance, port, zapLogger)
+	// Create health server (now uses core.Logger directly)
+	s.healthServer = agent.NewHealthServer(s.agentInstance, port, s.log)
 
 	return nil
-}
-
-// createZapLogger creates a zap.Logger from a core.Logger
-// This is a temporary bridge until agent package is updated to use logger.Logger
-func createZapLogger(log core.Logger) (*zap.Logger, error) {
-	// For now, create a new zap logger with similar config
-	// In a real implementation, we would want to extract the underlying zap logger
-	// or update the agent package to use logger.Logger
-	zapCfg := zap.NewProductionConfig()
-	return zapCfg.Build()
 }
 
 // Run starts the collect-agent server

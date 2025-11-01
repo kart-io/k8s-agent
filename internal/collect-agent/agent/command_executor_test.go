@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
@@ -13,7 +13,7 @@ import (
 
 func TestNewCommandExecutor(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
@@ -38,7 +38,7 @@ func TestNewCommandExecutor(t *testing.T) {
 
 func TestValidateCommand_AllowedTool(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	cmd := types.Command{
@@ -56,7 +56,7 @@ func TestValidateCommand_AllowedTool(t *testing.T) {
 
 func TestValidateCommand_DisallowedTool(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	cmd := types.Command{
@@ -74,7 +74,7 @@ func TestValidateCommand_DisallowedTool(t *testing.T) {
 
 func TestValidateCommand_DisallowedAction(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	cmd := types.Command{
@@ -92,7 +92,7 @@ func TestValidateCommand_DisallowedAction(t *testing.T) {
 
 func TestCheckArgumentSafety_Safe(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	safeArgs := []string{"pods", "-n", "default", "--output", "json"}
@@ -105,7 +105,7 @@ func TestCheckArgumentSafety_Safe(t *testing.T) {
 
 func TestCheckArgumentSafety_DangerousPatterns(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	dangerousTests := []struct {
@@ -131,7 +131,7 @@ func TestCheckArgumentSafety_DangerousPatterns(t *testing.T) {
 
 func TestValidateKubectlCommand_LogsWithFollow(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	cmd := types.Command{
@@ -149,7 +149,7 @@ func TestValidateKubectlCommand_LogsWithFollow(t *testing.T) {
 
 func TestExecute_Success(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	ctx := context.Background()
@@ -181,7 +181,7 @@ func TestExecute_Success(t *testing.T) {
 
 func TestExecute_ValidationFailure(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	ctx := context.Background()
@@ -211,7 +211,7 @@ func TestExecute_ValidationFailure(t *testing.T) {
 
 func TestExecute_UnknownCommandType(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 	executor := NewCommandExecutor(clientset, "test-cluster", logger)
 
 	ctx := context.Background()

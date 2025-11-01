@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
@@ -19,7 +19,7 @@ import (
 type CommandExecutor struct {
 	clientset kubernetes.Interface
 	clusterID string
-	logger    *zap.Logger
+	logger    core.Logger
 	mu        sync.RWMutex
 
 	// allowedTools defines which tools can be executed
@@ -27,11 +27,11 @@ type CommandExecutor struct {
 }
 
 // NewCommandExecutor creates a new command executor with safety restrictions
-func NewCommandExecutor(clientset kubernetes.Interface, clusterID string, logger *zap.Logger) *CommandExecutor {
+func NewCommandExecutor(clientset kubernetes.Interface, clusterID string, logger core.Logger) *CommandExecutor {
 	return &CommandExecutor{
 		clientset: clientset,
 		clusterID: clusterID,
-		logger:    logger.With(zap.String("component", "command-executor")),
+		logger:    logger, // Logger already has component context from caller
 		allowedTools: map[string][]string{
 			// kubectl read-only operations
 			"kubectl": {
@@ -66,20 +66,20 @@ func (ce *CommandExecutor) Execute(ctx context.Context, cmd types.Command) *type
 		Timestamp: startTime,
 	}
 
-	ce.logger.Info("Executing command",
-		zap.String("command_id", cmd.ID),
-		zap.String("tool", cmd.Tool),
-		zap.String("action", cmd.Action),
-		zap.Strings("args", cmd.Args))
+	ce.logger.Infow("Executing command",
+		"command_id", cmd.ID,
+		"tool", cmd.Tool,
+		"action", cmd.Action,
+		"args", cmd.Args)
 
 	// Validate command safety
 	if err := ce.validateCommand(cmd); err != nil {
 		result.Status = "failed"
 		result.Error = fmt.Sprintf("Command validation failed: %v", err)
 		result.Duration = time.Since(startTime)
-		ce.logger.Warn("Command validation failed",
-			zap.String("command_id", cmd.ID),
-			zap.Error(err))
+		ce.logger.Warnw("Command validation failed",
+			"command_id", cmd.ID,
+			"error", err)
 		return result
 	}
 
@@ -96,10 +96,10 @@ func (ce *CommandExecutor) Execute(ctx context.Context, cmd types.Command) *type
 
 	result.Duration = time.Since(startTime)
 
-	ce.logger.Info("Command execution completed",
-		zap.String("command_id", cmd.ID),
-		zap.String("status", result.Status),
-		zap.Duration("duration", result.Duration))
+	ce.logger.Infow("Command execution completed",
+		"command_id", cmd.ID,
+		"status", result.Status,
+		"duration", result.Duration)
 
 	return result
 }

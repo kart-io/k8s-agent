@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+	"github.com/kart-io/logger/core"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
@@ -15,7 +15,7 @@ import (
 func TestNewMetricsCollector(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 
@@ -30,7 +30,7 @@ func TestNewMetricsCollector(t *testing.T) {
 func TestMetricsCollector_Start(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,7 +55,7 @@ func TestMetricsCollector_Start(t *testing.T) {
 func TestMetricsCollector_StartTwice(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -87,7 +87,7 @@ func TestMetricsCollector_StartTwice(t *testing.T) {
 func TestMetricsCollector_Stop(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -117,7 +117,7 @@ func TestMetricsCollector_Stop(t *testing.T) {
 func TestMetricsCollector_StopWhenNotRunning(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 
@@ -131,7 +131,7 @@ func TestMetricsCollector_StopWhenNotRunning(t *testing.T) {
 func TestMetricsCollector_CollectMetrics(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -158,7 +158,7 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 func TestMetricsCollector_MultipleCollections(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -192,7 +192,7 @@ func TestMetricsCollector_MultipleCollections(t *testing.T) {
 func TestMetricsCollector_ContextCancellation(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -221,7 +221,7 @@ func TestMetricsCollector_ContextCancellation(t *testing.T) {
 func TestMetricsCollector_IsRunning(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 
@@ -258,7 +258,7 @@ func TestMetricsCollector_IsRunning(t *testing.T) {
 func TestMetricsCollector_MetricsDataStructure(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 10)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -289,7 +289,7 @@ func TestMetricsCollector_MetricsDataStructure(t *testing.T) {
 func BenchmarkMetricsCollector_CollectMetrics(b *testing.B) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 1000)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	collector := NewMetricsCollector(clientset, "test-cluster", metricsChan, logger)
 
@@ -308,7 +308,7 @@ func BenchmarkMetricsCollector_CollectMetrics(b *testing.B) {
 func BenchmarkMetricsCollector_StartStop(b *testing.B) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 1000)
-	logger := zap.NewNop()
+	logger := core.NewNoOpLogger(nil)
 
 	// Drain channel in background
 	go func() {
