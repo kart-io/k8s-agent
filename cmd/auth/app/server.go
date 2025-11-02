@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	commonapp "github.com/kart-io/k8s-agent/common/app"
 
 	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
 	"github.com/kart-io/k8s-agent/internal/auth"

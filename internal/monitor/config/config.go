@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/spf13/pflag"
 )
 

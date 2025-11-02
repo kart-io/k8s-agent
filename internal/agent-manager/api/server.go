@@ -11,10 +11,12 @@ import (
 	"github.com/kart-io/logger/core"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/kart-io/k8s-agent/common/middleware"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/agent"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/command"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/event"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
+	"github.com/kart-io/k8s-agent/common/idempotent"
 	"github.com/kart-io/k8s-agent/pkg/types"
 )
 
@@ -118,6 +120,27 @@ func (s *Server) setupMiddlewares() {
 
 	// Request ID middleware
 	s.router.Use(s.requestIDMiddleware())
+
+	// Idempotency middleware (for POST operations)
+	// Create Redis-backed idempotency store
+	if s.cache != nil && s.cache.Client != nil {
+		redisStore := idempotent.NewRedisStore(s.cache.Client, "agent-manager")
+		idempotentHandler := idempotent.NewHandler(redisStore, 24*time.Hour, 5*time.Minute)
+
+		s.router.Use(middleware.Idempotent(middleware.IdempotentConfig{
+			Handler: idempotentHandler,
+			// Use default path blacklist which includes:
+			// - POST /api/v1/commands
+			// - POST /api/v1/events
+			// - POST /api/v1/agents
+			// - POST /api/v1/clusters
+			PathBlacklist: middleware.DefaultPathBlacklist(),
+		}))
+
+		s.logger.Info("Idempotency middleware enabled for POST operations")
+	} else {
+		s.logger.Warn("Redis not available, idempotency middleware disabled")
+	}
 }
 
 // setupRoutes sets up API routes

@@ -11,7 +11,7 @@ import (
 	commonlogger "github.com/kart-io/k8s-agent/common/logger"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/auth"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/logger/core"
 )
 

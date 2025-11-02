@@ -12,9 +12,9 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth"
 	authconfig "github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/k8s-agent/internal/auth/initializers"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
-	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+	commonapp "github.com/kart-io/k8s-agent/common/app"
+	"github.com/kart-io/k8s-agent/common/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
 )
 
 // Execute runs the auth service command

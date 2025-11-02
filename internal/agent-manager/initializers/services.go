@@ -8,7 +8,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/agent-manager/command"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/event"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/nats"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	"github.com/kart-io/k8s-agent/common/bootstrap"
 	"github.com/kart-io/logger/core"
 )
 

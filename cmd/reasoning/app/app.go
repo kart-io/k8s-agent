@@ -11,9 +11,9 @@ import (
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
 	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
-	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+	commonapp "github.com/kart-io/k8s-agent/common/app"
+	"github.com/kart-io/k8s-agent/common/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
 )
 
 // Execute runs the reasoning service command

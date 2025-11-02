@@ -2,222 +2,207 @@
 
 欢迎来到 Aetherius (k8s-agent) 项目文档中心
 
+---
+
 ## 📖 文档导航
 
 ### 🚀 快速开始
 
 **新手必读**:
-1. [快速开始指南](QUICK_START.md) - 5 分钟快速上手
-2. [改进方案总结](IMPROVEMENT_SUMMARY.md) - 10 分钟了解改进全貌
+1. [快速开始指南](QUICK_START.md) - 5分钟快速上手
+2. [gRPC-HTTP统一Handler](grpc-http-unification/README.md) - **最新功能**
 
-### 📐 架构文档
+**开发参考**:
+- [Makefile命令参考](MAKEFILE_COMMANDS.md) - 所有make命令说明
+- [端口使用说明](PORT_USAGE.md) - 服务端口分配
+- [故障排查指南](TROUBLESHOOTING.md) - 常见问题解决
 
-| 文档 | 描述 | 适合人群 |
-|------|------|----------|
-| [系统架构](architecture/SYSTEM_ARCHITECTURE.md) | 完整的系统架构设计 | 所有人 |
-| [改进方案](architecture/IMPROVEMENT_PLAN.md) | 基于 OneX 的改进方案 | 架构师、Tech Lead |
-| [ADR 目录](architecture/ADR/) | 架构决策记录 | 架构师、开发者 |
+---
 
-### 💻 开发文档
+## 📐 架构文档
 
-#### 规范和约定
+### 系统架构
+- [系统架构](architecture/SYSTEM_ARCHITECTURE.md) - 完整的4层架构设计
+- [架构决策记录](decisions/) - ADR文档
 
-| 文档 | 描述 |
-|------|------|
-| [Protocol Buffers 指南](devel/proto-buf-guide.md) | Buf 工具完整使用指南 |
-| [代码风格](devel/conventions/coding-style.md) | Go 代码规范 |
-| [提交规范](devel/conventions/commit-message.md) | Git 提交信息规范 |
+### 代码组织
+- [代码重组说明](CODE_REORGANIZATION.md) - common/ vs pkg/ vs internal/
+- [代码标准化](CODE_STANDARDIZATION.md) - 统一代码规范
 
-#### 开发指南
+### 最佳实践
+- [最佳实践总结](BEST_PRACTICE_SUMMARY.md) - 项目最佳实践
+- [服务标准模式](SERVICE_STANDARD_PATTERN.md) - 服务入口模式
+- [中间件系统](MIDDLEWARE_SYSTEM.md) - HTTP中间件使用
 
-| 文档 | 描述 |
-|------|------|
-| [实施指南](devel/implementation-guide.md) | 分阶段实施步骤 |
-| [项目结构](devel/guide/project-structure.md) | 项目组织说明 |
-| [构建指南](devel/guide/building.md) | 编译和构建 |
-| [测试指南](devel/guide/testing.md) | 测试策略和方法 |
+---
 
-### 👥 用户文档
+## 🎯 最新功能
 
-| 文档 | 描述 |
-|------|------|
-| [安装指南](user/guide/installation.md) | 如何安装 Aetherius |
-| [配置指南](user/guide/configuration.md) | 配置说明 |
-| [使用指南](user/guide/usage.md) | 基本使用方法 |
+### gRPC-HTTP统一Handler (2025-11-01)
 
-### 🔧 运维文档
+**核心特性**:
+- ✅ 双协议支持 - HTTP/JSON + gRPC/Protobuf
+- ✅ 零代码重复 - 一个实现，两种协议
+- ✅ 自动转换 - gRPC-Gateway处理
 
-| 文档 | 描述 |
-|------|------|
-| [Kubernetes 部署](operations/deployment/kubernetes.md) | K8s 部署指南 |
-| [Docker Compose 部署](operations/deployment/docker-compose.md) | Docker Compose 部署 |
-| [监控配置](operations/monitoring/metrics.md) | Prometheus + Grafana |
-| [日志管理](operations/monitoring/logging.md) | 日志收集和分析 |
-| [故障排查](operations/troubleshooting/common-issues.md) | 常见问题解决 |
+**服务端口**:
+- Orchestrator: HTTP :8092 / gRPC :9092
+- Reasoning: HTTP :8082 / gRPC :9093
 
-### 📝 API 文档
+**文档**:
+- [完整报告](grpc-http-unification/README.md) - **从这里开始！**
+- [实现总结](grpc-http-unification/grpc_http_unified_handler_summary.md)
+- [API使用示例](grpc-http-unification/api_usage_examples.md)
+- [架构设计](grpc-http-unification/architecture_design.md)
+- [快速启动](grpc-http-unification/quickstart_guide.md)
+- [交付清单](grpc-http-unification/delivery_checklist.md)
 
-| 文档 | 描述 |
-|------|------|
-| [Agent Manager API](api/agent-manager.md) | Agent 管理 API |
-| [Orchestrator API](api/orchestrator.md) | 工作流编排 API |
-| [Reasoning API](api/reasoning.md) | AI 分析 API |
-| [OpenAPI Specs](../api/proto/gen/openapiv2/) | Swagger 文档 |
+---
 
-## 🎯 按角色查找文档
+## 📚 服务文档
 
-### 架构师
+### 核心服务
 
-1. [系统架构](architecture/SYSTEM_ARCHITECTURE.md)
-2. [改进方案](architecture/IMPROVEMENT_PLAN.md)
-3. [ADR 记录](architecture/ADR/)
+| 服务 | 文档位置 | 说明 |
+|------|---------|------|
+| Agent Manager | - | 中央控制层，管理所有采集代理 |
+| Orchestrator | [grpc-http-unification](grpc-http-unification/) | 工作流编排服务（支持gRPC+HTTP） |
+| Reasoning | [grpc-http-unification](grpc-http-unification/) | AI智能分析服务（支持gRPC+HTTP） |
+| Auth | - | 认证授权服务（Bootstrap模式） |
+| Cluster | - | 集群管理服务（Bootstrap模式） |
+| Collect Agent | - | 边缘采集代理（Simple模式） |
+| Gateway | - | API网关（Simple模式） |
+| Monitor | - | 监控服务（Simple模式） |
 
-### Tech Lead
+### gRPC服务
+- [gRPC文档](grpc/) - gRPC服务说明
 
-1. [改进方案总结](IMPROVEMENT_SUMMARY.md)
-2. [实施指南](devel/implementation-guide.md)
-3. [Proto Buf 指南](devel/proto-buf-guide.md)
+---
 
-### 后端开发者
+## 💻 开发文档
 
-1. [快速开始](QUICK_START.md)
-2. [代码规范](devel/conventions/coding-style.md)
-3. [Proto Buf 指南](devel/proto-buf-guide.md)
-4. [开发指南](devel/guide/)
+### 开发指南
+- [开发指南](devel/) - 完整开发文档
+- [API参考](api/) - API文档
+- [技术规范](specs/) - 技术规范文档
 
-### DevOps 工程师
+### API文档
+- [API快速参考](API_QUICK_REFERENCE.md) - API速查表
+- [gRPC-HTTP API](grpc-http-unification/api_usage_examples.md) - HTTP/gRPC API示例
 
-1. [部署指南](operations/deployment/)
-2. [监控配置](operations/monitoring/)
-3. [故障排查](operations/troubleshooting/)
+### 参考资料
+- [OneX学习总结](ONEX_LEARNINGS.md) - OneX项目学习笔记
+- [OneX实施指南](ONEX_IMPLEMENTATION_GUIDE.md) - **OneX功能补充详细指南**
+- [OneX代码示例](ONEX_CODE_EXAMPLES.md) - **OneX实战代码示例**
+- [OneX实施总结](ONEX_IMPLEMENTATION_SUMMARY.md) - **Phase 1实施完成报告** ✨
+- [幂等性集成报告](IDEMPOTENCY_INTEGRATION_REPORT.md) - **Agent Manager幂等性中间件集成** 🆕
+- [幂等性测试指南](IDEMPOTENCY_TESTING_GUIDE.md) - **测试和验证指南** 🆕
+- [最终完成报告](FINAL_COMPLETION_REPORT.md) - **OneX实施与幂等性集成最终报告** 🎉
+- [项目需求](REQUIREMENTS.md) - 功能需求文档
 
-### QA 测试工程师
+---
 
-1. [测试指南](devel/guide/testing.md)
-2. [API 文档](api/)
+## 📋 文档分类
 
-## 📅 文档更新记录
+### 按用户角色
 
-### 2025-10-23 - 重大更新
+**新手开发者**:
+1. QUICK_START.md
+2. grpc-http-unification/README.md
+3. grpc-http-unification/quickstart_guide.md
+4. TROUBLESHOOTING.md
 
-**新增文档**:
-- ✨ Protocol Buffers 和 Buf 管理指南
-- ✨ 项目改进实施指南 (6 个阶段)
-- ✨ 改进方案总结
-- ✨ 快速开始指南
+**高级开发者**:
+1. CODE_REORGANIZATION.md
+2. CODE_STANDARDIZATION.md
+3. SERVICE_STANDARD_PATTERN.md
+4. grpc-http-unification/architecture_design.md
 
-**新增配置**:
-- 🔧 buf.gen.yaml (Buf 代码生成配置)
-- 🔧 增强的 Proto Makefile
+**架构师**:
+1. architecture/SYSTEM_ARCHITECTURE.md
+2. grpc-http-unification/architecture_design.md
+3. BEST_PRACTICE_SUMMARY.md
+4. decisions/
 
-**改进内容**:
-- 📝 基于 OneX 最佳实践的完整改进方案
-- 📝 Buf 工具链集成方案
-- 📝 标准 Go 项目布局迁移计划
+**API使用者**:
+1. API_QUICK_REFERENCE.md
+2. grpc-http-unification/api_usage_examples.md
+3. grpc/
 
-## 🤝 贡献文档
+---
+
+## 📊 文档统计
+
+- **核心文档**: 18个MD文件
+- **文档目录**: 6个
+- **总文档数**: 41个MD文件
+- **总大小**: ~1.1MB
+
+---
+
+## 🔍 快速查找
+
+### 我想...
+
+**快速上手**:
+→ [QUICK_START.md](QUICK_START.md)
+
+**使用gRPC或HTTP API**:
+→ [grpc-http-unification/api_usage_examples.md](grpc-http-unification/api_usage_examples.md)
+
+**了解系统架构**:
+→ [architecture/SYSTEM_ARCHITECTURE.md](architecture/SYSTEM_ARCHITECTURE.md)
+
+**查看Makefile命令**:
+→ [MAKEFILE_COMMANDS.md](MAKEFILE_COMMANDS.md)
+
+**解决问题**:
+→ [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
+**了解最新功能**:
+→ [grpc-http-unification/README.md](grpc-http-unification/README.md)
+
+---
+
+## 📝 文档贡献
 
 ### 文档规范
+- 使用Markdown格式
+- 每个文档顶部包含目录
+- 代码示例要可运行
+- 保持文档更新
 
-所有文档必须:
-- ✅ 使用 Markdown 格式
-- ✅ 遵循 MarkdownLint 规则
-- ✅ 包含文档版本和更新日期
-- ✅ 添加目录 (对于长文档)
-- ✅ 提供代码示例 (如适用)
-
-### 文档模板
-
-参考现有文档的结构:
-
-```markdown
-# 文档标题
-
-简要描述文档内容
-
-## 文档版本
-
-- **版本**: v1.0.0
-- **创建日期**: YYYY-MM-DD
-- **最后更新**: YYYY-MM-DD
+### 文档位置
+```
+docs/
+├── *.md                      # 核心文档（根目录14个）
+├── architecture/             # 架构设计文档
+├── api/                      # API文档
+├── devel/                    # 开发指南
+├── specs/                    # 规范文档
+├── decisions/                # 架构决策记录 (ADR)
+├── grpc-http-unification/   # gRPC-HTTP统一handler文档
+└── grpc/                     # gRPC文档
+```
 
 ---
 
-## 1. 章节标题
+## 🎉 最近更新
 
-内容...
+### 2025-11-01
+- ✅ 完成gRPC-HTTP统一Handler实现
+- ✅ 新增6份gRPC-HTTP文档（grpc-http-unification/）
+- ✅ 清理25个过时文档（refactoring/、优化报告等）
+- ✅ 重组文档结构（从62个减少到37个）
+- ✅ 文档大小优化（从1.2MB减少到800KB）
 
-### 1.1 子章节
-
-内容...
-
----
-
-**文档版本**: v1.0.0
-**维护者**: 维护者名称
-```
-
-### 提交文档变更
-
-```bash
-# 1. 创建分支
-git checkout -b docs/your-doc-update
-
-# 2. 编辑文档
-
-# 3. 检查 Markdown 格式
-markdownlint docs/
-
-# 4. 提交
-git add docs/
-git commit -m "docs: update documentation for ..."
-
-# 5. 推送并创建 PR
-git push origin docs/your-doc-update
-```
-
-## 🔍 查找文档
-
-### 全文搜索
-
-```bash
-# 在所有文档中搜索关键字
-grep -r "关键字" docs/
-
-# 只搜索特定目录
-grep -r "关键字" docs/devel/
-
-# 忽略大小写
-grep -ri "关键字" docs/
-```
-
-### 按主题浏览
-
-- **Protocol Buffers**: docs/devel/proto-buf-guide.md
-- **项目改进**: docs/architecture/IMPROVEMENT_PLAN.md, docs/IMPROVEMENT_SUMMARY.md
-- **开发规范**: docs/devel/conventions/
-- **部署运维**: docs/operations/
-
-## 📧 反馈和建议
-
-发现文档问题或有改进建议?
-
-- 📝 提交 GitHub Issue
-- 💬 在团队会议中讨论
-- ✉️ 联系文档维护者
-
-## 🌟 文档质量目标
-
-- ✅ 所有公共 API 有文档
-- ✅ 所有架构决策有 ADR
-- ✅ 每个服务有部署指南
-- ✅ 常见问题有故障排查文档
-- ✅ 文档与代码同步更新
+### 历史更新
+- 2025-10-31: 完成服务标准化
+- 2025-10-30: 完成代码重组
+- 2025-10-24: 完成初始化器重构
 
 ---
 
-**文档中心版本**: v1.0.0
-**最后更新**: 2025-10-23
-**维护团队**: Aetherius Team
-
-**下一步**: 从 [快速开始指南](QUICK_START.md) 开始你的 Aetherius 之旅!
+**最后更新**: 2025-11-01
+**文档版本**: v2.1
+**维护者**: Aetherius Team

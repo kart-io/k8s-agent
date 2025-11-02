@@ -6,7 +6,7 @@ import (
 
 	commonlogger "github.com/kart-io/k8s-agent/common/logger"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/config"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	commonapp "github.com/kart-io/k8s-agent/common/app"
 )
 
 // Execute runs the collect-agent command

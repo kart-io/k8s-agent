@@ -4,7 +4,13 @@ package cache
 import (
 	"context"
 	"time"
+
+	"github.com/kart-io/k8s-agent/common/serializers"
 )
+
+// Serializer is an alias to serializers.Serializer for backward compatibility.
+// Deprecated: Use github.com/kart-io/k8s-agent/common/serializers.Serializer directly.
+type Serializer = serializers.Serializer
 
 // Cache defines the interface for cache operations.
 type Cache interface {
@@ -115,4 +121,14 @@ func WithCompression(threshold int) Option {
 		o.EnableCompression = true
 		o.CompressionThreshold = threshold
 	}
+}
+
+// BuildKey constructs a cache key with optional prefix.
+// If prefix is empty, returns the key as-is.
+// Otherwise, returns "prefix:key".
+func BuildKey(prefix, key string) string {
+	if prefix == "" {
+		return key
+	}
+	return prefix + ":" + key
 }

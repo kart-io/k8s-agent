@@ -13,7 +13,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/routes"
 	"github.com/kart-io/k8s-agent/internal/auth/service"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	"github.com/kart-io/k8s-agent/common/bootstrap"
 	"github.com/kart-io/logger/core"
 )
 
