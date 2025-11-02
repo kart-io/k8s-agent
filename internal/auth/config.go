@@ -11,10 +11,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/kart-io/k8s-agent/common/bootstrap"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	authconfig "github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/k8s-agent/internal/auth/initializers"
-	"github.com/kart-io/k8s-agent/common/bootstrap"
 	"github.com/kart-io/logger/core"
 )
 

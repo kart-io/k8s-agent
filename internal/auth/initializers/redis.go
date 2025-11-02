@@ -1,8 +1,8 @@
 package initializers
 
 import (
-	"github.com/kart-io/k8s-agent/internal/auth/config"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	"github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/logger/core"
 	"github.com/redis/go-redis/v9"
 )

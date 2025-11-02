@@ -3,8 +3,8 @@ package config
 import (
 	"fmt"
 
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	commonapp "github.com/kart-io/k8s-agent/common/app"
+	commoncore "github.com/kart-io/k8s-agent/common/core"
 	"github.com/spf13/pflag"
 )
 
@@ -213,7 +213,7 @@ func LoadFromPath(configPath string) (*Config, error) {
 		"redis.password":    "REDIS_PASSWORD",
 	}
 
-	if err := commonoptions.LoadOptions(wrapper, configPath, envBindings); err != nil {
+	if err := commoncore.LoadOptions(wrapper, configPath, envBindings); err != nil {
 		return nil, err
 	}
 

@@ -4,27 +4,46 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"github.com/kart-io/k8s-agent/common/contextx"
 	"github.com/kart-io/k8s-agent/common/logger"
 )
 
-// RequestLogger 请求日志中间件
+// RequestLogger is a Gin middleware for structured request logging.
+// It logs request details including trace ID and request ID from context.
+//
+// This middleware should be used after TraceID() and RequestID() middlewares
+// to ensure trace and request IDs are available in the context.
+//
+// Usage:
+//
+//	router := gin.New()
+//	router.Use(middleware.TraceID())
+//	router.Use(middleware.RequestID())
+//	router.Use(middleware.RequestLogger())
 func RequestLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
 		query := c.Request.URL.RawQuery
 
-		// 处理请求
+		// Process request
 		c.Next()
 
-		// 记录日志
+		// Calculate request duration
 		latency := time.Since(start)
 		statusCode := c.Writer.Status()
 		clientIP := c.ClientIP()
 		method := c.Request.Method
 		errorMessage := c.Errors.ByType(gin.ErrorTypePrivate).String()
 
-		// 使用结构化日志风格（Infow/Warnw/Errorw）
+		// Extract trace and request IDs from context (OneX pattern)
+		ctx := c.Request.Context()
+		traceID := contextx.GetTraceID(ctx)
+		requestID := contextx.GetRequestID(ctx)
+
+		// Build structured log fields
 		logFields := []interface{}{
 			"method", method,
 			"path", path,
@@ -35,12 +54,24 @@ func RequestLogger() gin.HandlerFunc {
 			"user_agent", c.Request.UserAgent(),
 		}
 
+		// Add trace ID if available
+		if traceID != "" {
+			logFields = append(logFields, "trace_id", traceID)
+		}
+
+		// Add request ID if available
+		if requestID != "" {
+			logFields = append(logFields, "request_id", requestID)
+		}
+
+		// Add error message if present
 		if errorMessage != "" {
 			logFields = append(logFields, "error", errorMessage)
 		}
 
+		// Log based on status code
 		if statusCode >= 400 {
-			// 4xx 和 5xx 都记录为错误日志
+			// 4xx and 5xx errors
 			logger.Errorw("Request error", logFields...)
 		} else {
 			logger.Infow("Request completed", logFields...)
@@ -48,30 +79,45 @@ func RequestLogger() gin.HandlerFunc {
 	}
 }
 
-// RequestID 请求 ID 中间件
+// RequestID is a Gin middleware that adds request ID support.
+// It extracts or generates a request ID for each request and propagates it through:
+// 1. Request context (for downstream processing)
+// 2. Response headers (for client visibility)
+// 3. Gin context (for backward compatibility)
+//
+// This follows OneX best practices by injecting into context.Context
+// instead of just Gin's context.
+//
+// Usage:
+//
+//	router := gin.New()
+//	router.Use(middleware.RequestID())
+//
+// The request ID can be accessed in handlers via:
+//
+//	requestID := contextx.GetRequestID(c.Request.Context())
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		requestID := c.GetHeader("X-Request-ID")
+		// Try to get request ID from header
+		requestID := c.Request.Header.Get("X-Request-ID")
+
+		// Generate new request ID if not provided
 		if requestID == "" {
-			requestID = generateRequestID()
+			requestID = uuid.New().String()
+			c.Request.Header.Set("X-Request-ID", requestID)
 		}
-		c.Set("RequestID", requestID)
+
+		// Add request ID to response headers for client visibility
 		c.Writer.Header().Set("X-Request-ID", requestID)
+
+		// Inject into context.Context (OneX pattern)
+		ctx := contextx.WithRequestID(c.Request.Context(), requestID)
+		c.Request = c.Request.WithContext(ctx)
+
+		// Also set in Gin context for backward compatibility
+		c.Set("RequestID", requestID)
+
+		// Continue to next handler
 		c.Next()
 	}
-}
-
-// generateRequestID 生成请求 ID
-func generateRequestID() string {
-	return time.Now().Format("20060102150405") + randomString(8)
-}
-
-// randomString 生成随机字符串
-func randomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
-	}
-	return string(b)
 }

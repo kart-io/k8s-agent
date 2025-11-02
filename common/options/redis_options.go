@@ -1,10 +1,11 @@
 package options
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/spf13/pflag"
+
+	"github.com/kart-io/k8s-agent/common/options/validation"
 )
 
 // RedisOptions Redis配置
@@ -35,18 +36,27 @@ func NewRedisOptions() *RedisOptions {
 
 // Validate 验证配置
 func (o *RedisOptions) Validate() error {
-	if o.Addr == "" {
-		return fmt.Errorf("redis addr is required")
+	// 使用通用验证器
+	if err := validation.ValidateAddr(o.Addr, "redis"); err != nil {
+		return err
 	}
-	if o.DB < 0 || o.DB > 15 {
-		return fmt.Errorf("invalid redis db: %d", o.DB)
+
+	if err := validation.ValidateRedisDB(o.DB); err != nil {
+		return err
 	}
-	if o.PoolSize < 1 {
-		return fmt.Errorf("pool_size must be > 0")
+
+	if err := validation.ValidatePositiveInt(o.PoolSize, "redis pool_size"); err != nil {
+		return err
 	}
-	if o.MinIdleConns < 0 {
-		return fmt.Errorf("min_idle_conns must be >= 0")
+
+	if err := validation.ValidateNonNegativeInt(o.MinIdleConns, "redis min_idle_conns"); err != nil {
+		return err
 	}
+
+	if err := validation.ValidateTimeouts(o.DialTimeout, o.ReadTimeout, o.WriteTimeout, "redis"); err != nil {
+		return err
+	}
+
 	return nil
 }
 

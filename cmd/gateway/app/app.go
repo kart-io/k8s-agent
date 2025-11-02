@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	commonapp "github.com/kart-io/k8s-agent/common/app"
 	commonlogger "github.com/kart-io/k8s-agent/common/logger"
 	"github.com/kart-io/k8s-agent/internal/gateway/config"
-	commonapp "github.com/kart-io/k8s-agent/common/app"
 )
 
 // Execute runs the gateway command

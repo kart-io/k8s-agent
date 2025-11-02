@@ -1,8 +1,6 @@
 package config
 
-import (
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
-)
+import commoncore "github.com/kart-io/k8s-agent/common/core"
 
 // Config is an alias for Options for backward compatibility
 // Deprecated: Use Options instead
@@ -27,7 +25,7 @@ func LoadFromPath(configPath string) (*Config, error) {
 		"jwt.expires_hours": "JWT_EXPIRES_HOURS",
 	}
 
-	if err := commonoptions.LoadOptions(config, configPath, envBindings); err != nil {
+	if err := commoncore.LoadOptions(config, configPath, envBindings); err != nil {
 		return nil, err
 	}
 

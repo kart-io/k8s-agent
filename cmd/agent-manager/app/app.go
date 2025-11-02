@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
-	agentmanager "github.com/kart-io/k8s-agent/internal/agent-manager"
-	"github.com/kart-io/k8s-agent/internal/agent-manager/initializers"
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	agentmanager "github.com/kart-io/k8s-agent/internal/agent-manager"
+	"github.com/kart-io/k8s-agent/internal/agent-manager/initializers"
 )
 
 // Execute runs the agent-manager command

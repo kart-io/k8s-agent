@@ -35,7 +35,13 @@ plugins:
       - paths=source_relative
       - generate_unbound_methods=true
 
-  # 4. 生成 OpenAPI v2 (Swagger) 文档
+  # 4. 生成 Kratos HTTP 代码（OneX 架构模式）
+  - local: protoc-gen-go-http
+    out: pkg/api
+    opt:
+      - paths=source_relative
+
+  # 5. 生成 OpenAPI v2 (Swagger) 文档
   - remote: buf.build/grpc-ecosystem/openapiv2
     out: pkg/api/docs/swagger
     opt:

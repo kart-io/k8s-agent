@@ -1,10 +1,11 @@
 package options
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/spf13/pflag"
+
+	"github.com/kart-io/k8s-agent/common/options/validation"
 )
 
 // GRPCOptions gRPC服务器配置
@@ -77,20 +78,17 @@ func (o *GRPCOptions) Validate() error {
 		return nil // gRPC是可选的，如果未启用则跳过验证
 	}
 
-	if o.Port < 1 || o.Port > 65535 {
-		return fmt.Errorf("invalid gRPC port: %d", o.Port)
+	// 使用通用验证器
+	if err := validation.ValidatePort(o.Port, "gRPC"); err != nil {
+		return err
 	}
 
-	if o.MaxRecvMsgSize < 0 {
-		return fmt.Errorf("invalid max_recv_msg_size: %d", o.MaxRecvMsgSize)
+	if err := validation.ValidateNonNegativeInt(o.MaxRecvMsgSize, "gRPC max_recv_msg_size"); err != nil {
+		return err
 	}
 
-	if o.MaxSendMsgSize < 0 {
-		return fmt.Errorf("invalid max_send_msg_size: %d", o.MaxSendMsgSize)
-	}
-
-	if o.ConnectionTimeout < 0 {
-		return fmt.Errorf("invalid connection_timeout: %s", o.ConnectionTimeout)
+	if err := validation.ValidateNonNegativeInt(o.MaxSendMsgSize, "gRPC max_send_msg_size"); err != nil {
+		return err
 	}
 
 	return nil

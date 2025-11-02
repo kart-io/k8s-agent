@@ -55,7 +55,7 @@ func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	// Create gRPC-Gateway mux with custom options
 	i.mux = runtime.NewServeMux(
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
-			MarshalOptions: runtime.JSONPb{}.MarshalOptions,
+			MarshalOptions:   runtime.JSONPb{}.MarshalOptions,
 			UnmarshalOptions: runtime.JSONPb{}.UnmarshalOptions,
 		}),
 	)

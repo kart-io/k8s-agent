@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+
+	"github.com/kart-io/k8s-agent/common/options/validation"
 )
 
 // DatabaseOptions 数据库配置
@@ -12,12 +14,13 @@ type DatabaseOptions struct {
 	Host            string        `mapstructure:"host" yaml:"host" json:"host"`
 	Port            int           `mapstructure:"port" yaml:"port" json:"port"`
 	User            string        `mapstructure:"user" yaml:"user" json:"user"`
-	Password        string        `mapstructure:"password" yaml:"password" json:"password"`
+	Password        string        `mapstructure:"password" yaml:"password" json:"-"` // 密码不序列化到 JSON
 	Database        string        `mapstructure:"database" yaml:"database" json:"database"`
 	SSLMode         string        `mapstructure:"ssl_mode" yaml:"ssl_mode" json:"ssl_mode"`
 	MaxOpenConns    int           `mapstructure:"max_open_conns" yaml:"max_open_conns" json:"max_open_conns"`
 	MaxIdleConns    int           `mapstructure:"max_idle_conns" yaml:"max_idle_conns" json:"max_idle_conns"`
 	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime" yaml:"conn_max_lifetime" json:"conn_max_lifetime"`
+	LogLevel        string        `mapstructure:"log_level" yaml:"log_level" json:"log_level"` // silent, error, warn, info
 	AutoMigrate     bool          `mapstructure:"auto_migrate" yaml:"auto_migrate" json:"auto_migrate"`
 }
 
@@ -33,30 +36,34 @@ func NewDatabaseOptions() *DatabaseOptions {
 		MaxOpenConns:    100,
 		MaxIdleConns:    10,
 		ConnMaxLifetime: 1 * time.Hour,
+		LogLevel:        "silent", // 默认静默模式
 		AutoMigrate:     false,
 	}
 }
 
 // Validate 验证配置
 func (o *DatabaseOptions) Validate() error {
-	if o.Host == "" {
-		return fmt.Errorf("database host is required")
+	// 使用通用验证器
+	if err := validation.ValidateRequired(o.Host, "database host"); err != nil {
+		return err
 	}
-	if o.Port < 1 || o.Port > 65535 {
-		return fmt.Errorf("invalid database port: %d", o.Port)
+
+	if err := validation.ValidatePort(o.Port, "database"); err != nil {
+		return err
 	}
-	if o.User == "" {
-		return fmt.Errorf("database user is required")
+
+	if err := validation.ValidateRequired(o.User, "database user"); err != nil {
+		return err
 	}
-	if o.Database == "" {
-		return fmt.Errorf("database name is required")
+
+	if err := validation.ValidateRequired(o.Database, "database name"); err != nil {
+		return err
 	}
-	if o.MaxOpenConns < 0 {
-		return fmt.Errorf("max_open_conns must be >= 0")
+
+	if err := validation.ValidateConnectionPool(o.MaxOpenConns, o.MaxIdleConns, "database"); err != nil {
+		return err
 	}
-	if o.MaxIdleConns < 0 {
-		return fmt.Errorf("max_idle_conns must be >= 0")
-	}
+
 	return nil
 }
 
@@ -77,6 +84,7 @@ func (o *DatabaseOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&o.MaxOpenConns, "db.max-open-conns", o.MaxOpenConns, "Maximum number of open connections")
 	fs.IntVar(&o.MaxIdleConns, "db.max-idle-conns", o.MaxIdleConns, "Maximum number of idle connections")
 	fs.DurationVar(&o.ConnMaxLifetime, "db.conn-max-lifetime", o.ConnMaxLifetime, "Maximum connection lifetime")
+	fs.StringVar(&o.LogLevel, "db.log-level", o.LogLevel, "GORM log level (silent, error, warn, info)")
 	fs.BoolVar(&o.AutoMigrate, "db.auto-migrate", o.AutoMigrate, "Enable automatic database migration")
 }
 
@@ -211,4 +219,48 @@ func WithDBAutoMigrate(autoMigrate bool) func(*DatabaseOptions) {
 	return func(o *DatabaseOptions) {
 		o.AutoMigrate = autoMigrate
 	}
+}
+
+// WithDBLogLevel 设置日志级别
+func WithDBLogLevel(logLevel string) func(*DatabaseOptions) {
+	return func(o *DatabaseOptions) {
+		o.LogLevel = logLevel
+	}
+}
+
+// NewDB 创建 MySQL 数据库连接
+// 参考 OneX 项目设计，提供便捷的数据库初始化方法
+// 需要传入 logger 实例用于日志记录
+//
+// 使用示例:
+//
+//	import (
+//	    "github.com/kart-io/k8s-agent/common/db"
+//	    "github.com/kart-io/logger"
+//	)
+//
+//	log := logger.New(logger.Config{...})
+//	dbClient, err := dbOpts.NewDB(log)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer dbClient.Close()
+func (o *DatabaseOptions) NewDB(log interface{}) (interface{}, error) {
+	// 导入 db 包会产生循环依赖，这里返回错误提示用户直接使用 db.NewMySQL()
+	// 这个方法主要是为了与 OneX 风格保持一致，实际使用时推荐:
+	//   import "github.com/kart-io/k8s-agent/common/db"
+	//   dbClient, err := db.NewMySQL(log,
+	//       db.WithHost(opts.Host),
+	//       db.WithPort(opts.Port),
+	//       db.WithUser(opts.User),
+	//       db.WithPassword(opts.Password),
+	//       db.WithDatabase(opts.Database),
+	//       db.WithMaxOpenConns(opts.MaxOpenConns),
+	//       db.WithMaxIdleConns(opts.MaxIdleConns),
+	//       db.WithConnMaxLifetime(opts.ConnMaxLifetime),
+	//       db.WithLogLevel(opts.LogLevel),
+	//   )
+	return nil, fmt.Errorf("NewDB() method is a reference implementation. " +
+		"Please use db.NewMySQL() or db.NewMySQLFromDSN() directly to avoid circular dependencies. " +
+		"Example: db.NewMySQL(log, db.WithHost(opts.Host), db.WithPort(opts.Port), ...)")
 }

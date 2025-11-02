@@ -1,10 +1,11 @@
 package options
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/spf13/pflag"
+
+	"github.com/kart-io/k8s-agent/common/options/validation"
 )
 
 // ServerOptions HTTP服务器配置
@@ -33,12 +34,16 @@ func NewServerOptions() *ServerOptions {
 
 // Validate 验证配置
 func (o *ServerOptions) Validate() error {
-	if o.Port < 1 || o.Port > 65535 {
-		return fmt.Errorf("invalid port: %d", o.Port)
+	// 使用通用验证器
+	if err := validation.ValidatePort(o.Port, "server"); err != nil {
+		return err
 	}
-	if o.Mode != "debug" && o.Mode != "release" && o.Mode != "test" {
-		return fmt.Errorf("invalid mode: %s", o.Mode)
+
+	allowedModes := []string{"debug", "release", "test"}
+	if err := validation.ValidateEnum(o.Mode, "server mode", allowedModes); err != nil {
+		return err
 	}
+
 	return nil
 }
 

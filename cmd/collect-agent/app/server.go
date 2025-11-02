@@ -7,8 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	
-
 	"github.com/kart-io/k8s-agent/internal/collect-agent/agent"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/config"
 	"github.com/kart-io/logger/core"

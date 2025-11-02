@@ -1,10 +1,11 @@
 package options
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/spf13/pflag"
+
+	"github.com/kart-io/k8s-agent/common/options/validation"
 )
 
 // NATSOptions NATS消息队列配置
@@ -35,15 +36,19 @@ func NewNATSOptions() *NATSOptions {
 
 // Validate 验证配置
 func (o *NATSOptions) Validate() error {
-	if o.URL == "" {
-		return fmt.Errorf("nats url is required")
+	// 使用通用验证器
+	if err := validation.ValidateURL(o.URL, "NATS"); err != nil {
+		return err
 	}
-	if o.MaxReconnect < 0 {
-		return fmt.Errorf("max_reconnect must be >= 0")
+
+	if err := validation.ValidateNonNegativeInt(o.MaxReconnect, "NATS max_reconnect"); err != nil {
+		return err
 	}
-	if o.MaxPingsOut < 1 {
-		return fmt.Errorf("max_pings_out must be > 0")
+
+	if err := validation.ValidatePositiveInt(o.MaxPingsOut, "NATS max_pings_out"); err != nil {
+		return err
 	}
+
 	return nil
 }
 

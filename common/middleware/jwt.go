@@ -106,8 +106,11 @@ func (m *JWTMiddleware) Auth() gin.HandlerFunc {
 			// Check if session is revoked
 			isValid, err := m.config.SessionValidator.ValidateSession(ctx, jti)
 			if err != nil {
-				// Log error but don't block request
-				c.Header("X-Session-Validation-Error", "true")
+				// SECURITY FIX: On validation error, reject the request to be safe
+				// This prevents potential security bypasses when the session store is unreachable
+				response.Unauthorized(c, "Session validation failed. Please try again.", err)
+				c.Abort()
+				return
 			} else if !isValid {
 				// Session has been revoked (forced logout)
 				c.Header("X-Session-Terminated", "forced-logout")

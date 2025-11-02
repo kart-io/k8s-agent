@@ -2,6 +2,7 @@ package options
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 
 	"github.com/spf13/pflag"
@@ -213,4 +214,180 @@ func SetServiceName(logging *LoggingOptions, serviceName string) {
 func CompleteWithServiceName(opts interface{}, logging *LoggingOptions, serviceName string) error {
 	SetServiceName(logging, serviceName)
 	return CompleteAll(opts)
+}
+
+// === OneX 风格的工具函数 ===
+
+// 定义单位常量 (字节大小)
+const (
+	_   = iota // ignore first value
+	KiB = 1 << (10 * iota)
+	MiB
+	GiB
+	TiB
+	PiB
+)
+
+// Join 连接前缀字符串，用于构建嵌套的配置键
+// 例如: Join("db", "mysql") -> "db.mysql."
+func Join(prefixes ...string) string {
+	if len(prefixes) == 0 {
+		return ""
+	}
+
+	result := ""
+	for _, p := range prefixes {
+		if p != "" {
+			if result != "" {
+				result += "."
+			}
+			result += p
+		}
+	}
+
+	if result != "" {
+		result += "."
+	}
+
+	return result
+}
+
+// DefaultString 返回默认字符串（如果值为空）
+func DefaultString(value, defaultValue string) string {
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
+// DefaultInt 返回默认整数（如果值为0）
+func DefaultInt(value, defaultValue int) int {
+	if value == 0 {
+		return defaultValue
+	}
+	return value
+}
+
+// DefaultInt64 返回默认 int64（如果值为0）
+func DefaultInt64(value, defaultValue int64) int64 {
+	if value == 0 {
+		return defaultValue
+	}
+	return value
+}
+
+// ClampInt 将整数限制在指定范围内
+func ClampInt(value, min, max int) int {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
+
+// ClampFloat64 将浮点数限制在指定范围内
+func ClampFloat64(value, min, max float64) float64 {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
+
+// MergeMaps 合并多个 map，后面的 map 会覆盖前面的同名键
+func MergeMaps(maps ...map[string]string) map[string]string {
+	result := make(map[string]string)
+	for _, m := range maps {
+		for k, v := range m {
+			result[k] = v
+		}
+	}
+	return result
+}
+
+// ContainsString 检查字符串切片是否包含指定字符串
+func ContainsString(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveString 从字符串切片中移除指定字符串
+func RemoveString(slice []string, str string) []string {
+	result := make([]string, 0, len(slice))
+	for _, s := range slice {
+		if s != str {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
+// CreateListener 创建网络监听器
+// 参考 OneX 项目设计，用于创建 TCP 监听器并返回监听器和端口
+// 适用于需要动态分配端口或验证监听地址的场景
+//
+// 参数:
+//   - network: 网络类型（tcp, tcp4, tcp6）
+//   - addr: 监听地址（:port 或 host:port）
+//
+// 返回:
+//   - net.Listener: 监听器实例
+//   - int: 实际监听的端口号
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	ln, port, err := CreateListener("tcp", ":0")  // 动态分配端口
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer ln.Close()
+//	fmt.Printf("Listening on port %d\n", port)
+func CreateListener(network, addr string) (net.Listener, int, error) {
+	// 创建监听器
+	ln, err := net.Listen(network, addr)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to listen on %s %s: %w", network, addr, err)
+	}
+
+	// 获取实际端口
+	tcpAddr, ok := ln.Addr().(*net.TCPAddr)
+	if !ok {
+		_ = ln.Close()
+		return nil, 0, fmt.Errorf("invalid listen address: %q", ln.Addr().String())
+	}
+
+	return ln, tcpAddr.Port, nil
+}
+
+// GetFreePort 获取一个可用的空闲端口
+// 通过创建临时监听器并立即关闭来获取可用端口
+// 注意：在高并发场景下，端口可能在返回后被其他进程占用
+//
+// 返回:
+//   - int: 可用的端口号
+//   - error: 错误信息
+//
+// 使用示例:
+//
+//	port, err := GetFreePort()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Free port: %d\n", port)
+func GetFreePort() (int, error) {
+	ln, port, err := CreateListener("tcp", ":0")
+	if err != nil {
+		return 0, err
+	}
+	_ = ln.Close()
+	return port, nil
 }

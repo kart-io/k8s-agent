@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
-	orchestrator "github.com/kart-io/k8s-agent/internal/orchestrator"
-	"github.com/kart-io/k8s-agent/internal/orchestrator/initializers"
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	orchestrator "github.com/kart-io/k8s-agent/internal/orchestrator"
+	"github.com/kart-io/k8s-agent/internal/orchestrator/initializers"
 )
 
 // Execute runs the orchestrator command

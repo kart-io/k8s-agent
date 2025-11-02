@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	commonapp "github.com/kart-io/k8s-agent/common/app"
 	commonlogger "github.com/kart-io/k8s-agent/common/logger"
 	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/config"
-	commonapp "github.com/kart-io/k8s-agent/common/app"
 )
 
 // Execute runs the monitor command

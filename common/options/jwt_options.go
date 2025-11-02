@@ -1,9 +1,9 @@
 package options
 
 import (
-	"fmt"
-
 	"github.com/spf13/pflag"
+
+	"github.com/kart-io/k8s-agent/common/options/validation"
 )
 
 // JWTOptions JWT认证配置
@@ -22,12 +22,15 @@ func NewJWTOptions() *JWTOptions {
 
 // Validate 验证配置
 func (o *JWTOptions) Validate() error {
-	if o.Secret == "" {
-		return fmt.Errorf("jwt secret is required")
+	// 使用通用验证器
+	if err := validation.ValidateRequired(o.Secret, "JWT secret"); err != nil {
+		return err
 	}
-	if o.ExpiresHours < 1 {
-		return fmt.Errorf("jwt expires_hours must be > 0")
+
+	if err := validation.ValidatePositiveInt(o.ExpiresHours, "JWT expires_hours"); err != nil {
+		return err
 	}
+
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	commoncore "github.com/kart-io/k8s-agent/common/core"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/spf13/viper"
 )
@@ -55,13 +56,13 @@ func LoadFromPath(configPath string) (*Config, error) {
 	}
 
 	// 使用回调处理 LLM 环境变量覆盖
-	postUnmarshal := func(v *viper.Viper, opts commonoptions.LoadableConfig) error {
+	postUnmarshal := func(v *viper.Viper, opts commoncore.LoadableConfig) error {
 		cfg := opts.(*configWrapper).Config
 		applyLLMEnvOverrides(cfg)
 		return nil
 	}
 
-	if err := commonoptions.LoadOptionsWithCallback(wrapper, configPath, envBindings, postUnmarshal); err != nil {
+	if err := commoncore.LoadOptionsWithCallback(wrapper, configPath, envBindings, postUnmarshal); err != nil {
 		return nil, err
 	}
 

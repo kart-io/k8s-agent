@@ -9,11 +9,11 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
-	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
-	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
+	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 )
 
 // Execute runs the cluster service command

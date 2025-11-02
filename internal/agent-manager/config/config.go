@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	commoncore "github.com/kart-io/k8s-agent/common/core"
 	"github.com/kart-io/k8s-agent/pkg/types"
 )
 
@@ -32,7 +32,7 @@ func LoadFromPath(configPath string) (*types.Config, error) {
 		"nats.url":          "NATS_URL",
 	}
 
-	if err := commonoptions.LoadOptions(wrapper, configPath, envBindings); err != nil {
+	if err := commoncore.LoadOptions(wrapper, configPath, envBindings); err != nil {
 		return nil, err
 	}
 

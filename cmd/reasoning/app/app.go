@@ -9,11 +9,11 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
-	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
-	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
+	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
 )
 
 // Execute runs the reasoning service command
@@ -45,10 +45,9 @@ type ReasoningApp struct {
 	config *reasoningconfig.Config
 
 	// 组件初始化器
-	llmInit    *initializers.LLMInitializer
-	grpcInit   *initializers.GRPCServerInitializer
-	httpInit   *initializers.HTTPServerInitializer
-	healthInit *pkginitializers.HealthCheckInitializer
+	llmInit           *initializers.LLMInitializer
+	unifiedServerInit *initializers.UnifiedServerInitializer
+	healthInit        *pkginitializers.HealthCheckInitializer
 }
 
 // Initialize 初始化应用程序
@@ -75,24 +74,18 @@ func (a *ReasoningApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	a.llmInit = initializers.NewLLMInitializer(opts.LLM, a.GetLogger())
 	bs.Register(a.llmInit)
 
-	// 2. gRPC Server (优先级 450 - 在 LLM 之后，HTTP 之前)
-	a.grpcInit = initializers.NewGRPCServerInitializer(
+	// 2. Unified Server (gRPC + HTTP using Kratos framework, OneX architecture pattern)
+	// Priority 450 - after LLM initialization
+	// A single handler implements both ReasoningServiceServer (gRPC) and ReasoningServiceHTTPServer (HTTP)
+	// This follows the OneX pattern where both protocols share the same handler methods
+	a.unifiedServerInit = initializers.NewUnifiedServerInitializer(
 		opts,
 		a.GetLogger(),
 		a.llmInit,
 	)
-	bs.Register(a.grpcInit)
+	bs.Register(a.unifiedServerInit)
 
-	// 3. HTTP Server with gRPC-Gateway (优先级 500 - 在 gRPC 之后)
-	// HTTP requests will be automatically converted to gRPC calls using the same reasoning service!
-	a.httpInit = initializers.NewHTTPServerInitializer(
-		opts,
-		a.GetLogger(),
-		a.grpcInit, // Pass gRPC init to get shared service
-	)
-	bs.Register(a.httpInit)
-
-	// 4. Health Check (优先级 600)
+	// 3. Health Check (优先级 600)
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
 		fmt.Sprintf(":%d", opts.GetHealthPort()),
 		a.GetLogger(),

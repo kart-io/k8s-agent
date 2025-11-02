@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
+	"github.com/kart-io/k8s-agent/common/bootstrap"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/api"
 	agentgrpc "github.com/kart-io/k8s-agent/internal/agent-manager/grpc"
-	"github.com/kart-io/k8s-agent/common/bootstrap"
 	"github.com/kart-io/k8s-agent/pkg/types"
 	"github.com/kart-io/logger/core"
 )

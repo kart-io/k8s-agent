@@ -11,12 +11,12 @@ import (
 	"github.com/kart-io/logger/core"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/kart-io/k8s-agent/common/idempotent"
 	"github.com/kart-io/k8s-agent/common/middleware"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/agent"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/command"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/event"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
-	"github.com/kart-io/k8s-agent/common/idempotent"
 	"github.com/kart-io/k8s-agent/pkg/types"
 )
 

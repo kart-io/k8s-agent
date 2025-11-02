@@ -9,12 +9,12 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
-	"github.com/kart-io/k8s-agent/internal/auth"
-	authconfig "github.com/kart-io/k8s-agent/internal/auth/config"
-	"github.com/kart-io/k8s-agent/internal/auth/initializers"
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	"github.com/kart-io/k8s-agent/internal/auth"
+	authconfig "github.com/kart-io/k8s-agent/internal/auth/config"
+	"github.com/kart-io/k8s-agent/internal/auth/initializers"
 )
 
 // Execute runs the auth service command

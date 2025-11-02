@@ -182,9 +182,9 @@ func convertProtoMetrics(protoMetrics *structpb.Struct) types.MetricsData {
 func convertProtoOptions(protoOpts *reasoningv1.AnalysisOptions) types.AnalysisOptions {
 	if protoOpts == nil {
 		return types.AnalysisOptions{
-			UseLLM:         true,
-			MinConfidence:  0.6,
-			LLMProvider:    "openai",
+			UseLLM:             true,
+			MinConfidence:      0.6,
+			LLMProvider:        "openai",
 			MaxRecommendations: 5,
 		}
 	}
@@ -233,15 +233,15 @@ func convertAnalysisResultToProto(
 		}
 
 		protoRec := &reasoningv1.Recommendation{
-			Id:              fmt.Sprintf("%s-rec-%d", analysisID, i),
-			Type:            convertRecommendationType(rec.Risk),
-			Title:           rec.Action,
-			Description:     rec.Description,
-			Steps:           rec.Steps,
-			Commands:        commands,
-			Priority:        5, // Default priority
-			ExpectedResult:  rec.Impact,
-			RiskAssessment:  rec.Risk,
+			Id:             fmt.Sprintf("%s-rec-%d", analysisID, i),
+			Type:           convertRecommendationType(rec.Risk),
+			Title:          rec.Action,
+			Description:    rec.Description,
+			Steps:          rec.Steps,
+			Commands:       commands,
+			Priority:       5, // Default priority
+			ExpectedResult: rec.Impact,
+			RiskAssessment: rec.Risk,
 		}
 		protoRecommendations = append(protoRecommendations, protoRec)
 	}
@@ -369,4 +369,3 @@ func getInt64(m map[string]interface{}, key string) int64 {
 	}
 	return 0
 }
-
