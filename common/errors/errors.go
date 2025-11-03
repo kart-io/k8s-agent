@@ -80,10 +80,6 @@ type AppError struct {
 	Message  string            // User-facing message
 	Metadata map[string]string // Structured metadata (replaces Details interface{})
 	Err      error             // Underlying error for wrapping
-
-	// Deprecated: Use Metadata instead for structured data
-	// Kept for backward compatibility during migration
-	Details interface{}
 }
 
 // Error 实现 error 接口
@@ -131,14 +127,6 @@ func Wrapf(code ErrorCode, err error, format string, args ...interface{}) *AppEr
 		Message: fmt.Sprintf(format, args...),
 		Err:     err,
 	}
-}
-
-// WithDetails adds detailed information.
-// Deprecated: Use KV() or WithMetadata() for structured metadata.
-// Kept for backward compatibility.
-func (e *AppError) WithDetails(details interface{}) *AppError {
-	e.Details = details
-	return e
 }
 
 // ============ OneX ErrorX Chainable Methods ============
