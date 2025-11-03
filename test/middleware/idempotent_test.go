@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kart-io/k8s-agent/common/idempotent"
+	"github.com/kart-io/k8s-agent/pkg/idempotent"
 	"github.com/kart-io/k8s-agent/common/middleware"
 )
 

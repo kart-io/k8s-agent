@@ -2,28 +2,26 @@ package initializers
 
 import (
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
-	"github.com/kart-io/k8s-agent/common/db"
-	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/k8s-agent/pkg/types"
 	"github.com/kart-io/logger/core"
 )
 
-// DatabaseInitializer 数据库初始化器（使用通用适配器）
-//
-// 现在使用 pkg/initializers.DatabaseInitializerAdapter 来消除重复代码。
+// DatabaseInitializer wraps the generic database initializer with service-specific configuration
 type DatabaseInitializer struct {
-	*pkginitializers.DatabaseInitializerAdapter
+	*pkginitializers.DatabaseInitializer
+	store *storage.PostgresStore
 }
 
-// NewDatabaseInitializer 创建数据库初始化器
+// NewDatabaseInitializer creates a database initializer for agent-manager service
 func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *DatabaseInitializer {
-	// 创建通用适配器
-	adapter := pkginitializers.NewDatabaseInitializerAdapter(opts.Database, logger)
+	// Create the base initializer
+	dbInit := pkginitializers.NewDatabaseInitializer(opts.Database, logger)
 
-	// 配置自动迁移
+	// Configure auto-migration if enabled
 	if opts.Database.AutoMigrate {
-		adapter.WithAutoMigrate(
+		dbInit.WithAutoMigrate(
 			&types.Agent{},
 			&types.Event{},
 			&types.Metrics{},
@@ -35,24 +33,17 @@ func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *Da
 		)
 	}
 
-	// 配置 Store 包装函数
-	adapter.WithStoreWrapper(func(client *db.MySQLClient) interface{} {
-		return &storage.PostgresStore{
-			MySQLClient: client,
-		}
-	})
-
 	return &DatabaseInitializer{
-		DatabaseInitializerAdapter: adapter,
+		DatabaseInitializer: dbInit,
 	}
 }
 
-// Store 获取存储实例（类型安全的便捷方法）
-//
-// 返回业务特定的 PostgresStore，供其他组件使用。
+// Store returns the storage instance (creates on first call)
 func (d *DatabaseInitializer) Store() *storage.PostgresStore {
-	if store := d.DatabaseInitializerAdapter.Store(); store != nil {
-		return store.(*storage.PostgresStore)
+	if d.store == nil && d.Client() != nil {
+		d.store = &storage.PostgresStore{
+			MySQLClient: d.Client(),
+		}
 	}
-	return nil
+	return d.store
 }

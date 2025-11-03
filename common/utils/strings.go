@@ -4,6 +4,15 @@
 
 package utils
 
+import (
+	"github.com/google/uuid"
+)
+
+// GenerateID generates a new unique ID
+func GenerateID() string {
+	return uuid.New().String()
+}
+
 // Contains checks if a string exists in a slice.
 func Contains(slice []string, item string) bool {
 	for _, s := range slice {

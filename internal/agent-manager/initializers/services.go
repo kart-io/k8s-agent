@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
-	"github.com/kart-io/k8s-agent/common/bootstrap"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/agent"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/command"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/event"

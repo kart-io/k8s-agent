@@ -2,42 +2,33 @@ package initializers
 
 import (
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
-	"github.com/kart-io/k8s-agent/common/db"
-	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/logger/core"
 )
 
-// RedisInitializer Redis 初始化器（使用通用适配器）
-//
-// 现在使用 pkg/initializers.RedisInitializerAdapter 来消除重复代码。
+// RedisInitializer wraps the generic Redis initializer with service-specific configuration
 type RedisInitializer struct {
-	*pkginitializers.RedisInitializerAdapter
+	*pkginitializers.RedisInitializer
+	store *storage.RedisStore
 }
 
-// NewRedisInitializer 创建 Redis 初始化器
+// NewRedisInitializer creates a Redis initializer for agent-manager service
 func NewRedisInitializer(opts *options.ServerOptions, logger core.Logger) *RedisInitializer {
-	// 创建通用适配器
-	adapter := pkginitializers.NewRedisInitializerAdapter(opts.Redis, logger)
-
-	// 配置 Store 包装函数
-	adapter.WithStoreWrapper(func(client *db.RedisClient) interface{} {
-		return &storage.RedisStore{
-			RedisClient: client,
-		}
-	})
+	// Create the base initializer
+	redisInit := pkginitializers.NewRedisInitializer(opts.Redis, logger)
 
 	return &RedisInitializer{
-		RedisInitializerAdapter: adapter,
+		RedisInitializer: redisInit,
 	}
 }
 
-// Store 获取存储实例（类型安全的便捷方法）
-//
-// 返回业务特定的 RedisStore，供其他组件使用。
+// Store returns the storage instance (creates on first call)
 func (r *RedisInitializer) Store() *storage.RedisStore {
-	if store := r.RedisInitializerAdapter.Store(); store != nil {
-		return store.(*storage.RedisStore)
+	if r.store == nil && r.RedisClient() != nil {
+		r.store = &storage.RedisStore{
+			RedisClient: r.RedisClient(),
+		}
 	}
-	return nil
+	return r.store
 }

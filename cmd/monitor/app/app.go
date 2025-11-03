@@ -1,11 +1,12 @@
 package app
 
 import (
+    "github.com/kart-io/k8s-agent/common/loggerutil"
 	"context"
 	"fmt"
 
-	commonapp "github.com/kart-io/k8s-agent/common/app"
-	commonlogger "github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/logger"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/config"
 )
@@ -45,7 +46,7 @@ func run(opts *config.Options) error {
 	}
 
 	// Initialize logger
-	log, err := commonlogger.InitFromOptions(logOpts)
+	log, err := loggerutil.InitFromOptions(logOpts)
 	if err != nil {
 		return fmt.Errorf("failed to init logger: %w", err)
 	}

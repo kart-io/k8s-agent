@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/common/bootstrap"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	grpcserver "github.com/kart-io/k8s-agent/common/server/grpc"

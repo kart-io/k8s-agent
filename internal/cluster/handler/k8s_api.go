@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/logger"
 	"github.com/kart-io/k8s-agent/common/pagination"
 	"github.com/kart-io/k8s-agent/common/response"
 	"github.com/kart-io/k8s-agent/common/validator"

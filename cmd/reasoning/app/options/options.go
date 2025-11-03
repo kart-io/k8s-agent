@@ -5,11 +5,12 @@
 package options
 
 import (
-	commonlogger "github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/common/loggerutil"
+	"github.com/spf13/pflag"
+
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/logger/core"
-	"github.com/spf13/pflag"
 )
 
 // ServerOptions defines options for reasoning service
@@ -80,7 +81,7 @@ func (o *ServerOptions) GetLogFields() []interface{} {
 // InitLogger initializes the logger based on logging options
 // This method is required by the Bootstrap pattern
 func (o *ServerOptions) InitLogger() (core.Logger, error) {
-	return commonlogger.InitFromOptions(o.Logging)
+	return loggerutil.InitFromOptions(o.Logging)
 }
 
 // GetHealthPort returns the health check port

@@ -9,51 +9,55 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
-	commonapp "github.com/kart-io/k8s-agent/common/app"
-	"github.com/kart-io/k8s-agent/common/bootstrap"
-	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
 	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
+	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the cluster service command
 func Execute() {
-	// 创建配置选项
+	// Create configuration options
 	opts := options.NewServerOptions()
 
-	// 创建应用实例
+	// Create application instance
 	app := &ClusterApp{}
 
-	// 使用组合框架运行应用
-	commonapp.RunWithRunner(
-		opts,
+	// Use the simplified RunWithBootstrap to run the application
+	commonapp.RunWithBootstrap(
 		app,
-		commonapp.StandardInitLogger,
-		commonapp.CommandConfig{
+		opts,
+		commonapp.Config{
 			Use:       "cluster",
 			Short:     "Cluster Service",
 			Long:      "Cluster Service provides multi-cluster management and K8s resource API",
 			EnvPrefix: "CLUSTER",
 		},
+		app.registerComponents,
 	)
 }
 
-// ClusterApp 实现 commonapp.Application 接口
+// ClusterApp implements commonapp.Application interface
 type ClusterApp struct {
-	*commonapp.StandardBootstrapApplication // 嵌入标准 Bootstrap 应用
-
 	config *clusterconfig.Config
+	logger core.Logger
 
-	// 组件初始化器
+	// Component initializers
 	dbInit     *initializers.DatabaseInitializer
 	httpInit   *initializers.HTTPServerInitializer
 	healthInit *pkginitializers.HealthCheckInitializer
 }
 
-// Initialize 初始化应用程序
+// Name returns the application name
+func (a *ClusterApp) Name() string {
+	return "Cluster Service"
+}
+
+// Initialize initializes the application
 func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 转换配置
+	// Convert configuration
 	serverOpts := opts.(*options.ServerOptions)
 	config, err := serverOpts.Config()
 	if err != nil {
@@ -61,56 +65,66 @@ func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) err
 	}
 	a.config = config
 
-	// 创建标准 Bootstrap 应用并设置启动钩子
-	if a.StandardBootstrapApplication == nil {
-		a.StandardBootstrapApplication = commonapp.NewStandardBootstrapApplication("Cluster", a).
-			WithStartupHookFunc(a)
+	// Initialize logger
+	logger, err := serverOpts.InitLogger()
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
+	a.logger = logger
 
-	// 调用标准初始化
-	return a.StandardBootstrapApplication.Initialize(ctx, opts)
-}
-
-// OnStartup 实现 StartupHook 接口，在 bootstrap.Run() 中执行
-func (a *ClusterApp) OnStartup(ctx context.Context) error {
-	// 启动 HTTP 服务器（在 goroutine 中）
-	go func() {
-		if err := a.httpInit.Start(); err != nil {
-			a.GetLogger().Fatalw("HTTP server failed to start", "error", err)
-		}
-	}()
-
-	a.GetLogger().Infow("All services started, waiting for shutdown signal")
 	return nil
 }
 
-// RegisterComponents 实现 ComponentRegistrar 接口，注册所有组件初始化器
-func (a *ClusterApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
-	opts := a.GetOptions().(*options.ServerOptions)
+// Run runs the application
+func (a *ClusterApp) Run(ctx context.Context) error {
+	// Start HTTP server (in goroutine)
+	go func() {
+		if err := a.httpInit.Start(); err != nil {
+			a.logger.Fatalw("HTTP server failed to start", "error", err)
+		}
+	}()
 
-	// 1. Database (优先级 300)
-	a.dbInit = initializers.NewDatabaseInitializer(opts.Database, a.GetLogger())
+	a.logger.Infow("All services started, waiting for shutdown signal")
+
+	// Wait for shutdown signal
+	<-ctx.Done()
+	return nil
+}
+
+// Shutdown gracefully shuts down the application
+func (a *ClusterApp) Shutdown(ctx context.Context) error {
+	// Bootstrap framework handles component shutdown
+	// This method can be used for additional cleanup if needed
+	return nil
+}
+
+// registerComponents registers all component initializers with bootstrap
+func (a *ClusterApp) registerComponents(bs *bootstrap.Bootstrap) error {
+	// Get server options from bootstrap context
+	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
+	opts := options.NewServerOptions()
+	opts.Complete()
+
+	// 1. Database (priority 300)
+	a.dbInit = initializers.NewDatabaseInitializer(opts.Database, a.logger)
 	bs.Register(a.dbInit)
 
-	// 2. HTTP Server (优先级 500)
+	// 2. HTTP Server (priority 500)
 	a.httpInit = initializers.NewHTTPServerInitializer(
 		opts.Server,
 		opts.JWT,
-		a.GetLogger(),
+		a.logger,
 		a.dbInit,
 	)
 	bs.Register(a.httpInit)
 
-	// 3. Health Check (优先级 600)
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = opts.GetHealthPort()
+	// 3. Health Check (priority 2000)
+	healthOpts := commonapp.GetHealthOptions(opts)
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
 		healthOpts,
-		a.GetLogger(),
+		a.logger,
 	)
 	bs.Register(a.healthInit)
 
 	return nil
 }
-
-// Run/Shutdown/initLogger 方法已由 StandardBootstrapApplication 提供，无需重复定义

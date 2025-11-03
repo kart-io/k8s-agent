@@ -5,11 +5,12 @@
 package options
 
 import (
-	commonlogger "github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/k8s-agent/common/loggerutil"
+	"github.com/spf13/pflag"
+
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
 	"github.com/kart-io/logger/core"
-	"github.com/spf13/pflag"
 )
 
 // ServerOptions defines options for cluster service
@@ -56,7 +57,7 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 // InitLogger initializes the logger based on logging options
 // This method is required by the Bootstrap pattern
 func (o *ServerOptions) InitLogger() (core.Logger, error) {
-	return commonlogger.InitFromOptions(o.Logging)
+	return loggerutil.InitFromOptions(o.Logging)
 }
 
 // GetServiceName returns the service name

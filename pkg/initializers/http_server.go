@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/common/bootstrap"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	httpserver "github.com/kart-io/k8s-agent/common/server/http"

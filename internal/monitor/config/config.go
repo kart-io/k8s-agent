@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	commonapp "github.com/kart-io/k8s-agent/common/app"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	commoncore "github.com/kart-io/k8s-agent/common/core"
 	"github.com/spf13/pflag"
 )

@@ -1,30 +1,22 @@
 package initializers
 
 import (
-	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/logger/core"
-	"github.com/redis/go-redis/v9"
 )
 
-// RedisInitializer Redis 初始化器（使用通用适配器）
-//
-// 现在使用 pkg/initializers.RedisInitializerAdapter 来消除重复代码。
+// RedisInitializer wraps the generic Redis initializer with auth-specific configuration
 type RedisInitializer struct {
-	*pkginitializers.RedisInitializerAdapter
+	*pkginitializers.RedisInitializer
 }
 
-// NewRedisInitializer 创建 Redis 初始化器
+// NewRedisInitializer creates a Redis initializer for auth service
 func NewRedisInitializer(cfg *config.Config, logger core.Logger) *RedisInitializer {
-	// 创建通用适配器
-	adapter := pkginitializers.NewRedisInitializerAdapter(cfg.Redis, logger)
+	// Create the base initializer
+	redisInit := pkginitializers.NewRedisInitializer(cfg.Redis, logger)
 
 	return &RedisInitializer{
-		RedisInitializerAdapter: adapter,
+		RedisInitializer: redisInit,
 	}
-}
-
-// Client 获取 Redis 客户端（类型安全的便捷方法）
-func (r *RedisInitializer) Client() *redis.Client {
-	return r.RedisInitializerAdapter.Client()
 }

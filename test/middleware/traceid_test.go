@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kart-io/k8s-agent/common/contextx"
+	"github.com/kart-io/k8s-agent/pkg/contextutil"
 	"github.com/kart-io/k8s-agent/common/middleware"
 )
 
@@ -22,7 +22,7 @@ func TestTraceID(t *testing.T) {
 
 		var capturedTraceID string
 		router.GET("/test", func(c *gin.Context) {
-			capturedTraceID = contextx.GetTraceID(c.Request.Context())
+			capturedTraceID = contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		})
 
@@ -44,7 +44,7 @@ func TestTraceID(t *testing.T) {
 		var capturedTraceID string
 
 		router.GET("/test", func(c *gin.Context) {
-			capturedTraceID = contextx.GetTraceID(c.Request.Context())
+			capturedTraceID = contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		})
 
@@ -67,11 +67,11 @@ func TestTraceID(t *testing.T) {
 		var firstTraceID, secondTraceID string
 
 		router.GET("/test", func(c *gin.Context) {
-			firstTraceID = contextx.GetTraceID(c.Request.Context())
+			firstTraceID = contextutil.GetTraceID(c.Request.Context())
 
 			// Simulate passing context to another function
 			ctx := c.Request.Context()
-			secondTraceID = contextx.GetTraceID(ctx)
+			secondTraceID = contextutil.GetTraceID(ctx)
 
 			c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		})
@@ -94,7 +94,7 @@ func TestTraceID(t *testing.T) {
 
 		router.GET("/test", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
-				"trace_id": contextx.GetTraceID(c.Request.Context()),
+				"trace_id": contextutil.GetTraceID(c.Request.Context()),
 			})
 		})
 
@@ -128,7 +128,7 @@ func TestTraceIDWithConfig(t *testing.T) {
 
 		var capturedTraceID string
 		router.GET("/test", func(c *gin.Context) {
-			capturedTraceID = contextx.GetTraceID(c.Request.Context())
+			capturedTraceID = contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		})
 
@@ -155,7 +155,7 @@ func TestTraceIDWithConfig(t *testing.T) {
 
 		var capturedTraceID string
 		router.GET("/test", func(c *gin.Context) {
-			capturedTraceID = contextx.GetTraceID(c.Request.Context())
+			capturedTraceID = contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		})
 
@@ -176,12 +176,12 @@ func TestTraceIDWithConfig(t *testing.T) {
 		}))
 
 		router.GET("/health", func(c *gin.Context) {
-			traceID := contextx.GetTraceID(c.Request.Context())
+			traceID := contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"trace_id": traceID})
 		})
 
 		router.GET("/api/test", func(c *gin.Context) {
-			traceID := contextx.GetTraceID(c.Request.Context())
+			traceID := contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"trace_id": traceID})
 		})
 
@@ -213,7 +213,7 @@ func TestTraceIDWithConfig(t *testing.T) {
 
 		var capturedTraceID string
 		router.GET("/test", func(c *gin.Context) {
-			capturedTraceID = contextx.GetTraceID(c.Request.Context())
+			capturedTraceID = contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"message": "ok"})
 		})
 
@@ -240,13 +240,13 @@ func TestTraceIDIntegration(t *testing.T) {
 
 		// Add a custom middleware that uses trace ID
 		router.Use(func(c *gin.Context) {
-			traceID := contextx.GetTraceID(c.Request.Context())
+			traceID := contextutil.GetTraceID(c.Request.Context())
 			require.NotEmpty(t, traceID, "Trace ID should be available in middleware")
 			c.Next()
 		})
 
 		router.GET("/test", func(c *gin.Context) {
-			traceID := contextx.GetTraceID(c.Request.Context())
+			traceID := contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"trace_id": traceID})
 		})
 
@@ -265,7 +265,7 @@ func TestTraceIDIntegration(t *testing.T) {
 		var capturedTraceID string
 
 		router.GET("/test", func(c *gin.Context) {
-			capturedTraceID = contextx.GetTraceID(c.Request.Context())
+			capturedTraceID = contextutil.GetTraceID(c.Request.Context())
 			c.JSON(http.StatusOK, gin.H{"trace_id": capturedTraceID})
 		})
 

@@ -1,11 +1,12 @@
 package app
 
 import (
+    "github.com/kart-io/k8s-agent/common/loggerutil"
 	"context"
 	"fmt"
 
-	commonapp "github.com/kart-io/k8s-agent/common/app"
-	commonlogger "github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/logger"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/internal/gateway/config"
 )
 
@@ -40,7 +41,7 @@ func Execute() {
 // run runs the gateway service
 func run(opts *config.Options) error {
 	// Initialize logger
-	log, err := commonlogger.InitFromOptions(opts.Logging)
+	log, err := loggerutil.InitFromOptions(opts.Logging)
 	if err != nil {
 		return fmt.Errorf("failed to init logger: %w", err)
 	}

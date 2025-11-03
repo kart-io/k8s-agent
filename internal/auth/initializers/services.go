@@ -3,7 +3,7 @@ package initializers
 import (
 	"context"
 
-	"github.com/kart-io/k8s-agent/common/bootstrap"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/k8s-agent/internal/auth/config"
 	forcedlogout "github.com/kart-io/k8s-agent/internal/auth/forced-logout"
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/audit"

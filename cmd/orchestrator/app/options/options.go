@@ -8,12 +8,13 @@ package options
 import (
 	"time"
 
+	"github.com/kart-io/k8s-agent/common/loggerutil"
+
 	"github.com/spf13/pflag"
 
-	commonapp "github.com/kart-io/k8s-agent/common/app"
-	commonlogger "github.com/kart-io/k8s-agent/common/logger"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	orchestrator "github.com/kart-io/k8s-agent/internal/orchestrator"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
 
@@ -179,5 +180,5 @@ func (o *ServerOptions) GetLogFields() []interface{} {
 // InitLogger initializes logger based on the options.
 func (o *ServerOptions) InitLogger() (core.Logger, error) {
 	// Use the common logger initialization
-	return commonlogger.InitFromOptions(o.Logging)
+	return loggerutil.InitFromOptions(o.Logging)
 }

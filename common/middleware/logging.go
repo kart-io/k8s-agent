@@ -1,14 +1,37 @@
 package middleware
 
 import (
+	"context"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"github.com/kart-io/k8s-agent/common/contextx"
-	"github.com/kart-io/k8s-agent/common/logger"
+	"github.com/kart-io/logger/core"
 )
+
+// Context keys for trace and request IDs
+type contextKey string
+
+const (
+	traceIDKey   contextKey = "trace_id"
+	requestIDKey contextKey = "request_id"
+)
+
+// getTraceID retrieves trace ID from context
+func getTraceID(ctx context.Context) string {
+	if id, ok := ctx.Value(traceIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
+
+// getRequestID retrieves request ID from context
+func getRequestID(ctx context.Context) string {
+	if id, ok := ctx.Value(requestIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
 
 // RequestLogger is a Gin middleware for structured request logging.
 // It logs request details including trace ID and request ID from context.
@@ -19,10 +42,11 @@ import (
 // Usage:
 //
 //	router := gin.New()
+//	router := gin.New()
 //	router.Use(middleware.TraceID())
 //	router.Use(middleware.RequestID())
-//	router.Use(middleware.RequestLogger())
-func RequestLogger() gin.HandlerFunc {
+//	router.Use(middleware.RequestLoggerWithLogger(logger))
+func RequestLoggerWithLogger(logger core.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
@@ -38,10 +62,10 @@ func RequestLogger() gin.HandlerFunc {
 		method := c.Request.Method
 		errorMessage := c.Errors.ByType(gin.ErrorTypePrivate).String()
 
-		// Extract trace and request IDs from context (OneX pattern)
+		// Extract trace and request IDs from context
 		ctx := c.Request.Context()
-		traceID := contextx.GetTraceID(ctx)
-		requestID := contextx.GetRequestID(ctx)
+		traceID := getTraceID(ctx)
+		requestID := getRequestID(ctx)
 
 		// Build structured log fields
 		logFields := []interface{}{
@@ -79,6 +103,12 @@ func RequestLogger() gin.HandlerFunc {
 	}
 }
 
+// RequestLogger returns a request logging middleware with a noop logger.
+// Deprecated: Use RequestLoggerWithLogger instead.
+func RequestLogger() gin.HandlerFunc {
+	return RequestLoggerWithLogger(core.NewNoOpLogger(nil))
+}
+
 // RequestID is a Gin middleware that adds request ID support.
 // It extracts or generates a request ID for each request and propagates it through:
 // 1. Request context (for downstream processing)
@@ -95,7 +125,7 @@ func RequestLogger() gin.HandlerFunc {
 //
 // The request ID can be accessed in handlers via:
 //
-//	requestID := contextx.GetRequestID(c.Request.Context())
+//	requestID := contextutil.GetRequestID(c.Request.Context())
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Try to get request ID from header
@@ -110,8 +140,8 @@ func RequestID() gin.HandlerFunc {
 		// Add request ID to response headers for client visibility
 		c.Writer.Header().Set("X-Request-ID", requestID)
 
-		// Inject into context.Context (OneX pattern)
-		ctx := contextx.WithRequestID(c.Request.Context(), requestID)
+		// Inject into context.Context
+		ctx := context.WithValue(c.Request.Context(), requestIDKey, requestID)
 		c.Request = c.Request.WithContext(ctx)
 
 		// Continue to next handler

@@ -9,44 +9,43 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
-	commonapp "github.com/kart-io/k8s-agent/common/app"
-	"github.com/kart-io/k8s-agent/common/bootstrap"
-	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/k8s-agent/internal/auth"
 	authconfig "github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/k8s-agent/internal/auth/initializers"
+	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the auth service command
 func Execute() {
-	// 创建配置选项
+	// Create configuration options
 	opts := options.NewServerOptions()
 
-	// 创建应用实例
+	// Create application instance
 	app := &AuthApp{}
 
-	// 使用组合框架运行应用
-	commonapp.RunWithRunner(
-		opts,
+	// Use the simplified RunWithBootstrap to run the application
+	commonapp.RunWithBootstrap(
 		app,
-		commonapp.StandardInitLogger,
-		commonapp.CommandConfig{
+		opts,
+		commonapp.Config{
 			Use:       "auth",
 			Short:     "Auth Service",
 			Long:      "Auth Service provides user authentication and authorization services",
 			EnvPrefix: "AUTH",
 		},
+		app.registerComponents,
 	)
 }
 
-// AuthApp 实现 commonapp.Application 接口
+// AuthApp implements commonapp.Application interface
 type AuthApp struct {
-	*commonapp.StandardBootstrapApplication // 嵌入标准 Bootstrap 应用
-
 	config *auth.Config
+	logger core.Logger
 
-	// 组件初始化器
+	// Component initializers
 	dbInit           *initializers.DatabaseInitializer
 	redisInit        *initializers.RedisInitializer
 	sessionInit      *initializers.SessionServiceInitializer
@@ -58,9 +57,14 @@ type AuthApp struct {
 	healthInit       *pkginitializers.HealthCheckInitializer
 }
 
-// Initialize 初始化应用程序
+// Name returns the application name
+func (a *AuthApp) Name() string {
+	return "Auth Service"
+}
+
+// Initialize initializes the application
 func (a *AuthApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 转换配置
+	// Convert configuration
 	serverOpts := opts.(*options.ServerOptions)
 	config, err := serverOpts.Config()
 	if err != nil {
@@ -68,72 +72,93 @@ func (a *AuthApp) Initialize(ctx context.Context, opts commonapp.Options) error 
 	}
 	a.config = config
 
-	// 创建标准 Bootstrap 应用
-	if a.StandardBootstrapApplication == nil {
-		a.StandardBootstrapApplication = commonapp.NewStandardBootstrapApplication("Auth", a)
+	// Initialize logger
+	logger, err := serverOpts.InitLogger()
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
+	a.logger = logger
 
-	// 调用标准初始化
-	return a.StandardBootstrapApplication.Initialize(ctx, opts)
+	return nil
 }
 
-// RegisterComponents 实现 ComponentRegistrar 接口，注册所有组件初始化器
-func (a *AuthApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
-	// Convert to internal options format
-	opts := a.convertToInternalOptions()
+// Run runs the application
+func (a *AuthApp) Run(ctx context.Context) error {
+	// The bootstrap framework handles running all servers
+	// This method can be used for additional application logic if needed
+	<-ctx.Done()
+	return nil
+}
 
-	// 1. Database (优先级 300)
-	a.dbInit = initializers.NewDatabaseInitializer(opts, a.GetLogger())
+// Shutdown gracefully shuts down the application
+func (a *AuthApp) Shutdown(ctx context.Context) error {
+	// Bootstrap framework handles component shutdown
+	// This method can be used for additional cleanup if needed
+	return nil
+}
+
+// registerComponents registers all component initializers with bootstrap
+func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
+	// Get server options from bootstrap context
+	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
+	opts := options.NewServerOptions()
+	opts.Complete()
+
+	// Convert to internal options format
+	internalOpts := a.convertToInternalOptions(opts)
+
+	// 1. Database (priority 300)
+	a.dbInit = initializers.NewDatabaseInitializer(internalOpts, a.logger)
 	bs.Register(a.dbInit)
 
-	// 2. Redis (优先级 400)
-	a.redisInit = initializers.NewRedisInitializer(opts, a.GetLogger())
+	// 2. Redis (priority 400)
+	a.redisInit = initializers.NewRedisInitializer(internalOpts, a.logger)
 	bs.Register(a.redisInit)
 
-	// 3. Session Service (优先级 450)
+	// 3. Session Service (priority 450)
 	a.sessionInit = initializers.NewSessionServiceInitializer(
-		opts,
-		a.GetLogger(),
+		internalOpts,
+		a.logger,
 		a.dbInit,
 		a.redisInit,
 	)
 	bs.Register(a.sessionInit)
 
-	// 4. Email Client (优先级 450)
-	a.emailInit = initializers.NewEmailClientInitializer(opts, a.GetLogger())
+	// 4. Email Client (priority 450)
+	a.emailInit = initializers.NewEmailClientInitializer(internalOpts, a.logger)
 	bs.Register(a.emailInit)
 
-	// 5. Audit Service (优先级 460)
+	// 5. Audit Service (priority 460)
 	a.auditInit = initializers.NewAuditServiceInitializer(
-		opts,
-		a.GetLogger(),
+		internalOpts,
+		a.logger,
 		a.dbInit,
 	)
 	bs.Register(a.auditInit)
 
-	// 6. Notification Service (优先级 470)
+	// 6. Notification Service (priority 470)
 	a.notificationInit = initializers.NewNotificationServiceInitializer(
-		opts,
-		a.GetLogger(),
+		internalOpts,
+		a.logger,
 		a.dbInit,
 		a.emailInit,
 	)
 	bs.Register(a.notificationInit)
 
-	// 7. Forced Logout Service (优先级 490)
+	// 7. Forced Logout Service (priority 490)
 	a.forcedLogoutInit = initializers.NewForcedLogoutServiceInitializer(
-		opts,
-		a.GetLogger(),
+		internalOpts,
+		a.logger,
 		a.sessionInit,
 		a.auditInit,
 		a.notificationInit,
 	)
 	bs.Register(a.forcedLogoutInit)
 
-	// 8. HTTP Server (优先级 600)
+	// 8. HTTP Server (priority 600)
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		opts,
-		a.GetLogger(),
+		internalOpts,
+		a.logger,
 		a.dbInit,
 		a.redisInit,
 		a.sessionInit,
@@ -144,19 +169,16 @@ func (a *AuthApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	)
 	bs.Register(a.httpInit)
 
-	// 9. Health Check Server (优先级最低，最后启动)
-	serverOpts := a.GetOptions().(*options.ServerOptions)
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = serverOpts.Server.Port
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthOpts, a.GetLogger())
+	// 9. Health Check Server (priority 2000)
+	healthOpts := commonapp.GetHealthOptions(opts)
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthOpts, a.logger)
 	bs.Register(a.healthInit)
 
 	return nil
 }
 
 // convertToInternalOptions converts cmd/auth options to internal/auth/config options
-func (a *AuthApp) convertToInternalOptions() *authconfig.Config {
-	serverOpts := a.GetOptions().(*options.ServerOptions)
+func (a *AuthApp) convertToInternalOptions(serverOpts *options.ServerOptions) *authconfig.Config {
 	return &authconfig.Config{
 		Server:   serverOpts.Server,
 		Database: serverOpts.Database,
@@ -166,5 +188,3 @@ func (a *AuthApp) convertToInternalOptions() *authconfig.Config {
 		Email:    serverOpts.Email,
 	}
 }
-
-// Run/Shutdown/initLogger 方法已由 StandardBootstrapApplication 提供，无需重复定义

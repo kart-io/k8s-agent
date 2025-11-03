@@ -6,72 +6,96 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
-	commonapp "github.com/kart-io/k8s-agent/common/app"
-	"github.com/kart-io/k8s-agent/common/bootstrap"
-	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
+	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the reasoning service command
 func Execute() {
-	// 创建配置选项
+	// Create configuration options
 	opts := options.NewServerOptions()
 
-	// 创建应用实例
+	// Create application instance
 	app := &ReasoningApp{}
 
-	// 使用组合框架运行应用
-	commonapp.RunWithRunner(
-		opts,
+	// Use the simplified RunWithBootstrap to run the application
+	commonapp.RunWithBootstrap(
 		app,
-		commonapp.StandardInitLogger,
-		commonapp.CommandConfig{
+		opts,
+		commonapp.Config{
 			Use:       "reasoning",
 			Short:     "Reasoning Service",
 			Long:      "Reasoning Service provides AI-driven root cause analysis and intelligent recommendations",
 			EnvPrefix: "REASONING",
 		},
+		app.registerComponents,
 	)
 }
 
-// ReasoningApp 实现 commonapp.Application 接口
+// ReasoningApp implements commonapp.Application interface
 type ReasoningApp struct {
-	*commonapp.StandardBootstrapApplication // 嵌入标准 Bootstrap 应用
-
 	config *reasoningconfig.Config
+	logger core.Logger
 
-	// 组件初始化器
+	// Component initializers
 	llmInit           *initializers.LLMInitializer
 	unifiedServerInit *initializers.UnifiedServerInitializer
 	healthInit        *pkginitializers.HealthCheckInitializer
 }
 
-// Initialize 初始化应用程序
+// Name returns the application name
+func (a *ReasoningApp) Name() string {
+	return "Reasoning Service"
+}
+
+// Initialize initializes the application
 func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 转换配置
+	// Convert configuration
 	serverOpts := opts.(*options.ServerOptions)
 	config := serverOpts.Config()
 	a.config = config
 
-	// 创建标准 Bootstrap 应用
-	if a.StandardBootstrapApplication == nil {
-		a.StandardBootstrapApplication = commonapp.NewStandardBootstrapApplication("Reasoning", a)
+	// Initialize logger
+	logger, err := serverOpts.InitLogger()
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
+	a.logger = logger
 
-	// 调用标准初始化
-	return a.StandardBootstrapApplication.Initialize(ctx, opts)
+	return nil
 }
 
-// RegisterComponents 实现 ComponentRegistrar 接口，注册所有组件初始化器
-func (a *ReasoningApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
-	opts := a.GetOptions().(*options.ServerOptions)
+// Run runs the application
+func (a *ReasoningApp) Run(ctx context.Context) error {
+	// The bootstrap framework handles running all servers
+	// This method can be used for additional application logic if needed
+	<-ctx.Done()
+	return nil
+}
 
-	// 1. LLM Clients (优先级 400)
-	a.llmInit = initializers.NewLLMInitializer(opts.LLM, a.GetLogger())
+// Shutdown gracefully shuts down the application
+func (a *ReasoningApp) Shutdown(ctx context.Context) error {
+	// Bootstrap framework handles component shutdown
+	// This method can be used for additional cleanup if needed
+	return nil
+}
+
+// registerComponents registers all component initializers with bootstrap
+func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
+	// Get server options from bootstrap context
+	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
+	opts := options.NewServerOptions()
+	opts.Complete()
+
+	// 1. LLM Clients (priority 400)
+	a.llmInit = initializers.NewLLMInitializer(opts.LLM, a.logger)
 	bs.Register(a.llmInit)
 
 	// 2. Unified Server (gRPC + HTTP using Kratos framework, OneX architecture pattern)
@@ -80,21 +104,18 @@ func (a *ReasoningApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	// This follows the OneX pattern where both protocols share the same handler methods
 	a.unifiedServerInit = initializers.NewUnifiedServerInitializer(
 		opts,
-		a.GetLogger(),
+		a.logger,
 		a.llmInit,
 	)
 	bs.Register(a.unifiedServerInit)
 
-	// 3. Health Check (优先级 600)
-	healthOpts := commonoptions.NewHealthOptions()
-	healthOpts.Port = opts.GetHealthPort()
+	// 3. Health Check (priority 2000)
+	healthOpts := commonapp.GetHealthOptions(opts)
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
 		healthOpts,
-		a.GetLogger(),
+		a.logger,
 	)
 	bs.Register(a.healthInit)
 
 	return nil
 }
-
-// Run/Shutdown/initLogger 方法已由 StandardBootstrapApplication 提供，无需重复定义

@@ -2,17 +2,17 @@ package initializers
 
 import (
 	"context"
-	"time"
+	// "time" // TODO: Re-enable when idempotent middleware is implemented
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
-	"github.com/kart-io/k8s-agent/common/bootstrap"
-	"github.com/kart-io/k8s-agent/common/idempotent"
-	commoninitializers "github.com/kart-io/k8s-agent/common/initializers"
-	"github.com/kart-io/k8s-agent/common/middleware"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	// "github.com/kart-io/k8s-agent/pkg/idempotent" // TODO: Re-enable when idempotent middleware is implemented
+	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+	// "github.com/kart-io/k8s-agent/common/middleware" // TODO: Re-enable when needed
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/api"
 	agentgrpc "github.com/kart-io/k8s-agent/internal/agent-manager/grpc"
@@ -89,18 +89,19 @@ func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
 		Config:   h.opts.Server,
 		RouteSetup: func(engine *gin.Engine) error {
 			// The standard GinServer already adds recovery, logging, cors, requestid.
-			// We only need to add the project-specific Idempotency middleware.
+			// TODO: Re-enable idempotency middleware once it's properly implemented as Gin middleware
+			// Currently the idempotent package doesn't provide a Gin middleware function
+			/*
 			if h.redisInit.Store() != nil && h.redisInit.Store().Client != nil {
 				redisStore := idempotent.NewRedisStore(h.redisInit.Store().Client, "agent-manager")
 				idempotentHandler := idempotent.NewHandler(redisStore, 24*time.Hour, 5*time.Minute)
-				engine.Use(middleware.Idempotent(middleware.IdempotentConfig{
-					Handler:       idempotentHandler,
-					PathBlacklist: middleware.DefaultPathBlacklist(),
-				}))
+				// Need to create a Gin middleware wrapper for the idempotent handler
+				// engine.Use(idempotentMiddleware(idempotentHandler))
 				h.logger.Info("Idempotency middleware enabled for POST operations")
 			} else {
 				h.logger.Warn("Redis not available, idempotency middleware disabled")
 			}
+			*/
 
 			// Register all API routes using handlers from h.apiServer
 			// Health endpoints

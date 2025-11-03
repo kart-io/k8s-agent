@@ -7,7 +7,7 @@ package initializers
 import (
 	"context"
 
-	"github.com/kart-io/k8s-agent/common/bootstrap"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/k8s-agent/common/health"
 	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger/core"

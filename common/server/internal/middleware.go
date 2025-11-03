@@ -2,14 +2,68 @@
 package internal
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/common/contextx"
 	"github.com/kart-io/k8s-agent/common/utils"
 	"github.com/kart-io/logger/core"
 )
+
+// Context keys for trace and request IDs
+type contextKey string
+
+const (
+	traceIDKey   contextKey = "trace_id"
+	requestIDKey contextKey = "request_id"
+)
+
+// GetTraceID retrieves trace ID from context
+func GetTraceID(ctx context.Context) string {
+	if id, ok := ctx.Value(traceIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
+
+// GetRequestID retrieves request ID from context
+func GetRequestID(ctx context.Context) string {
+	if id, ok := ctx.Value(requestIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
+
+// WithTraceID adds trace ID to context
+func WithTraceID(ctx context.Context, traceID string) context.Context {
+	return context.WithValue(ctx, traceIDKey, traceID)
+}
+
+// WithRequestID adds request ID to context
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, requestIDKey, requestID)
+}
+
+// GetOrCreateTraceID gets existing trace ID or creates a new one
+func GetOrCreateTraceID(ctx context.Context) (context.Context, string) {
+	traceID := GetTraceID(ctx)
+	if traceID == "" {
+		traceID = utils.GenerateID()
+		ctx = WithTraceID(ctx, traceID)
+	}
+	return ctx, traceID
+}
+
+// GetOrCreateRequestID gets existing request ID or creates a new one
+func GetOrCreateRequestID(ctx context.Context) (context.Context, string) {
+	requestID := GetRequestID(ctx)
+	if requestID == "" {
+		requestID = utils.GenerateID()
+		ctx = WithRequestID(ctx, requestID)
+	}
+	return ctx, requestID
+}
 
 // Middleware 定义框架无关的中间件类型
 // 中间件接收一个 HTTP handler 并返回一个新的 handler
@@ -23,8 +77,8 @@ func LoggerMiddleware(logger core.Logger) Middleware {
 			ctx := r.Context()
 
 			// Extract trace and request IDs from context
-			traceID := contextx.GetTraceID(ctx)
-			requestID := contextx.GetRequestID(ctx)
+			traceID := GetTraceID(ctx)
+			requestID := GetRequestID(ctx)
 
 			// Create response wrapper to capture status code
 			rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
@@ -53,8 +107,8 @@ func RecoveryMiddleware(logger core.Logger) Middleware {
 			defer func() {
 				if err := recover(); err != nil {
 					ctx := r.Context()
-					traceID := contextx.GetTraceID(ctx)
-					requestID := contextx.GetRequestID(ctx)
+					traceID := GetTraceID(ctx)
+					requestID := GetRequestID(ctx)
 
 					logger.Errorw("Panic recovered",
 						"error", err,
@@ -121,7 +175,7 @@ func TraceIDMiddleware() Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Get or create trace ID
 			ctx := r.Context()
-			ctx, traceID := contextx.GetOrCreateTraceID(ctx)
+			ctx, traceID := GetOrCreateTraceID(ctx)
 
 			// Update request with new context
 			r = r.WithContext(ctx)
@@ -142,9 +196,9 @@ func RequestIDMiddleware() Middleware {
 			ctx := r.Context()
 			requestID := r.Header.Get("X-Request-ID")
 			if requestID == "" {
-				ctx, requestID = contextx.GetOrCreateRequestID(ctx)
+				ctx, requestID = GetOrCreateRequestID(ctx)
 			} else {
-				ctx = contextx.WithRequestID(ctx, requestID)
+				ctx = WithRequestID(ctx, requestID)
 			}
 
 			// Update request with new context

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/k8s-agent/common/bootstrap"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger"
 	"github.com/kart-io/logger/option"
 	"github.com/stretchr/testify/assert"

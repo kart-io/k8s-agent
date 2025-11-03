@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
-	commoninitializers "github.com/kart-io/k8s-agent/common/initializers"
+	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	orchestratorv1 "github.com/kart-io/k8s-agent/pkg/api/orchestrator/v1"
 	"github.com/kart-io/logger/core"
