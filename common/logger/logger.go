@@ -7,64 +7,6 @@ import (
 	"github.com/kart-io/logger/option"
 )
 
-// Config 日志配置（简化版，适配 kart-io/logger）
-// Deprecated: Use options.LoggingOptions instead
-type Config struct {
-	Engine        string                 `yaml:"engine" json:"engine"`                 // 引擎：zap, slog
-	Level         string                 `yaml:"level" json:"level"`                   // 日志级别：debug, info, warn, error, fatal
-	Format        string                 `yaml:"format" json:"format"`                 // 日志格式：json, console
-	OutputPaths   []string               `yaml:"output_paths" json:"output_paths"`     // 输出路径：stdout, stderr, 或文件路径
-	Development   bool                   `yaml:"development" json:"development"`       // 是否为开发模式
-	EnableCaller  bool                   `yaml:"enable_caller" json:"enable_caller"`   // 是否显示调用者信息
-	OTLPEndpoint  string                 `yaml:"otlp_endpoint" json:"otlp_endpoint"`   // OTLP 端点（可选）
-	InitialFields map[string]interface{} `yaml:"initial_fields" json:"initial_fields"` // 初始字段
-}
-
-// DefaultConfig 默认配置
-func DefaultConfig() *Config {
-	return &Config{
-		Engine:       "zap",
-		Level:        "info",
-		Format:       "json",
-		OutputPaths:  []string{"stdout"},
-		Development:  false,
-		EnableCaller: true,
-	}
-}
-
-// Init 初始化日志（使用 kart-io/logger）
-// Deprecated: Use InitFromOptions instead
-func Init(config *Config) error {
-	if config == nil {
-		config = DefaultConfig()
-	}
-
-	// 转换为 kart-io/logger 的配置
-	opt := &option.LogOption{
-		Engine:       config.Engine,
-		Level:        config.Level,
-		Format:       config.Format,
-		OutputPaths:  config.OutputPaths,
-		Development:  config.Development,
-		OTLPEndpoint: config.OTLPEndpoint,
-	}
-
-	// 添加初始字段
-	if len(config.InitialFields) > 0 {
-		opt.WithInitialFields(config.InitialFields)
-	}
-
-	// 创建 logger
-	coreLogger, err := logger.New(opt)
-	if err != nil {
-		return err
-	}
-
-	// 设置为全局 logger
-	logger.SetGlobal(coreLogger)
-	return nil
-}
-
 // InitFromOptions 从 options.LoggingOptions 初始化日志
 func InitFromOptions(opts *config.LoggingOptions) (core.Logger, error) {
 	if opts == nil {
@@ -134,7 +76,9 @@ func InitGlobalFromOptions(opts *config.LoggingOptions) error {
 
 // InitWithDefaults 使用默认配置初始化日志
 func InitWithDefaults() error {
-	return Init(DefaultConfig())
+	opts := config.NewLoggingOptions()
+	_, err := InitFromOptions(opts)
+	return err
 }
 
 // Get 获取全局 logger（返回 kart-io/logger 的 core.Logger）
