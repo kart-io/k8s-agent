@@ -114,9 +114,6 @@ func RequestID() gin.HandlerFunc {
 		ctx := contextx.WithRequestID(c.Request.Context(), requestID)
 		c.Request = c.Request.WithContext(ctx)
 
-		// Also set in Gin context for backward compatibility
-		c.Set("RequestID", requestID)
-
 		// Continue to next handler
 		c.Next()
 	}

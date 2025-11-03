@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kart-io/k8s-agent/common/contextx"
+	"github.com/kart-io/k8s-agent/common/utils"
 	"github.com/kart-io/logger/core"
 )
 
@@ -79,7 +80,7 @@ func CORSMiddleware(allowOrigins []string, allowMethods []string, allowHeaders [
 			origin := r.Header.Get("Origin")
 
 			// Simple CORS - allow all origins if not specified
-			if len(allowOrigins) == 0 || contains(allowOrigins, origin) || contains(allowOrigins, "*") {
+			if len(allowOrigins) == 0 || utils.Contains(allowOrigins, origin) || utils.Contains(allowOrigins, "*") {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				if origin == "" {
 					w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -88,14 +89,14 @@ func CORSMiddleware(allowOrigins []string, allowMethods []string, allowHeaders [
 
 			// Set allowed methods
 			if len(allowMethods) > 0 {
-				w.Header().Set("Access-Control-Allow-Methods", join(allowMethods, ", "))
+				w.Header().Set("Access-Control-Allow-Methods", utils.Join(allowMethods, ", "))
 			} else {
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
 			}
 
 			// Set allowed headers
 			if len(allowHeaders) > 0 {
-				w.Header().Set("Access-Control-Allow-Headers", join(allowHeaders, ", "))
+				w.Header().Set("Access-Control-Allow-Headers", utils.Join(allowHeaders, ", "))
 			} else {
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Trace-ID")
 			}
@@ -179,25 +180,4 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
-}
-
-// Helper functions
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
-
-func join(slice []string, sep string) string {
-	result := ""
-	for i, s := range slice {
-		if i > 0 {
-			result += sep
-		}
-		result += s
-	}
-	return result
 }

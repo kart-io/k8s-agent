@@ -118,12 +118,6 @@ func (m *JWTMiddleware) Auth() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-		} else if hasJTI && m.config.SessionValidator == nil {
-			// Token has JTI but no validator configured (backward compatibility)
-			c.Header("X-Session-Tracking", "no-validator")
-		} else if !hasJTI {
-			// Token doesn't have JTI (backward compatibility with old tokens)
-			c.Header("X-Session-Tracking", "legacy-token")
 		}
 
 		// Store user information in context for handlers

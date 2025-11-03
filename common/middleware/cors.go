@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/k8s-agent/common/utils"
 )
 
 // CORS 跨域中间件
@@ -30,7 +31,7 @@ func CORSWithConfig(config CORSConfig) gin.HandlerFunc {
 		// 检查是否允许该来源
 		if config.AllowAllOrigins {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		} else if contains(config.AllowOrigins, origin) {
+		} else if utils.Contains(config.AllowOrigins, origin) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 
@@ -39,15 +40,15 @@ func CORSWithConfig(config CORSConfig) gin.HandlerFunc {
 		}
 
 		if len(config.AllowHeaders) > 0 {
-			c.Writer.Header().Set("Access-Control-Allow-Headers", joinStrings(config.AllowHeaders))
+			c.Writer.Header().Set("Access-Control-Allow-Headers", utils.Join(config.AllowHeaders, ", "))
 		}
 
 		if len(config.AllowMethods) > 0 {
-			c.Writer.Header().Set("Access-Control-Allow-Methods", joinStrings(config.AllowMethods))
+			c.Writer.Header().Set("Access-Control-Allow-Methods", utils.Join(config.AllowMethods, ", "))
 		}
 
 		if len(config.ExposeHeaders) > 0 {
-			c.Writer.Header().Set("Access-Control-Expose-Headers", joinStrings(config.ExposeHeaders))
+			c.Writer.Header().Set("Access-Control-Expose-Headers", utils.Join(config.ExposeHeaders, ", "))
 		}
 
 		if config.MaxAge > 0 {
@@ -84,26 +85,4 @@ func DefaultCORSConfig() CORSConfig {
 		AllowCredentials: true,
 		MaxAge:           43200, // 12 hours
 	}
-}
-
-// contains 检查字符串是否在切片中
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
-
-// joinStrings 连接字符串切片
-func joinStrings(slice []string) string {
-	result := ""
-	for i, s := range slice {
-		if i > 0 {
-			result += ", "
-		}
-		result += s
-	}
-	return result
 }

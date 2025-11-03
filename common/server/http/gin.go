@@ -81,8 +81,11 @@ func NewGinServerFromFullConfig(log core.Logger, config *GinServerConfig) *GinSe
 
 	// Rate limit 中间件
 	if config.RateLimit != nil && config.RateLimit.Enable {
-		// TODO: 实现 rate limit 中间件
-		log.Infow("Rate limit middleware enabled", "enable", config.RateLimit.Enable)
+		// 使用 IP 作为限流键
+		engine.Use(middleware.RateLimitByIP(config.RateLimit.Rate, config.RateLimit.Burst))
+		log.Infow("Rate limit middleware enabled",
+			"rate", config.RateLimit.Rate,
+			"burst", config.RateLimit.Burst)
 	}
 
 	httpServer := &http.Server{

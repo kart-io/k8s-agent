@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/k8s-agent/common/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -230,10 +231,10 @@ func TestDefaultCORSConfig(t *testing.T) {
 func TestContains(t *testing.T) {
 	slice := []string{"apple", "banana", "cherry"}
 
-	assert.True(t, contains(slice, "apple"))
-	assert.True(t, contains(slice, "banana"))
-	assert.False(t, contains(slice, "orange"))
-	assert.False(t, contains([]string{}, "test"))
+	assert.True(t, utils.Contains(slice, "apple"))
+	assert.True(t, utils.Contains(slice, "banana"))
+	assert.False(t, utils.Contains(slice, "orange"))
+	assert.False(t, utils.Contains([]string{}, "test"))
 }
 
 // Test helper function: joinStrings
@@ -251,7 +252,7 @@ func TestJoinStrings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := joinStrings(tt.input)
+			result := utils.Join(tt.input, ", ")
 			assert.Equal(t, tt.expected, result)
 		})
 	}

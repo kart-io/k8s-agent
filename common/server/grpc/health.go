@@ -57,7 +57,10 @@ func (a *GRPCHealthAdapter) Check(ctx context.Context, req *grpc_health_v1.Healt
 }
 
 // Watch 实现 gRPC Health Watch (流式)
+// Note: Streaming health checks are not implemented yet as they are not required
+// for the current use case. The Check() method provides sufficient health monitoring.
+// If streaming health checks are needed in the future, this method should be implemented
+// to send periodic health status updates to the client.
 func (a *GRPCHealthAdapter) Watch(req *grpc_health_v1.HealthCheckRequest, stream grpc_health_v1.Health_WatchServer) error {
-	// TODO: 实现流式健康检查
 	return nil
 }
