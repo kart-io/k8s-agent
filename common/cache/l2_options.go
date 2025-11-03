@@ -1,7 +1,11 @@
 // Package cache provides L2 cache implementation with local and remote levels.
 package cache
 
-import "time"
+import (
+	"time"
+
+	"github.com/kart-io/k8s-agent/common/serializers"
+)
 
 // L2Options configures the L2Cache behavior.
 type L2Options struct {
@@ -20,7 +24,7 @@ type L2Options struct {
 	EnableMetrics bool // Whether to collect cache metrics
 
 	// Serialization
-	Serializer Serializer // Serializer for encoding/decoding values (defaults to JSON)
+	Serializer serializers.Serializer // Serializer for encoding/decoding values (defaults to JSON)
 }
 
 // DefaultL2Options returns sensible defaults for L2Cache.
@@ -103,7 +107,7 @@ func WithMetrics(enabled bool) L2Option {
 //
 //	import "github.com/kart-io/k8s-agent/common/serializers"
 //	WithSerializer(serializers.NewMsgpackSerializer())
-func WithSerializer(serializer Serializer) L2Option {
+func WithSerializer(serializer serializers.Serializer) L2Option {
 	return func(opts *L2Options) {
 		opts.Serializer = serializer
 	}
