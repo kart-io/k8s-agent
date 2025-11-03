@@ -25,7 +25,7 @@ func NewHealthCheckInitializer(opts *options.HealthOptions, logger core.Logger) 
 	}
 }
 
-func (h *HealthCheckInitializer) Name() string                        { return "HealthCheck" }
-func (h *HealthCheckInitializer) Priority() int                       { return bootstrap.PriorityLowest }
+func (h *HealthCheckInitializer) Name() string                         { return "HealthCheck" }
+func (h *HealthCheckInitializer) Priority() int                        { return bootstrap.PriorityLowest }
 func (h *HealthCheckInitializer) Initialize(ctx context.Context) error { return h.server.Start(ctx) }
 func (h *HealthCheckInitializer) Shutdown(ctx context.Context) error   { return h.server.Stop(ctx) }

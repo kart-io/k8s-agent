@@ -4,10 +4,7 @@ package cache
 import (
 	"context"
 	"time"
-
-	"github.com/kart-io/k8s-agent/common/serializers"
 )
-
 
 // Cache defines the interface for cache operations.
 type Cache interface {
