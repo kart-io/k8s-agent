@@ -17,8 +17,18 @@ type MySQLStorage struct {
 
 // NewMySQLStorage creates a new MySQL storage using common/db
 func NewMySQLStorage(opts *options.DatabaseOptions, logger core.Logger) (*MySQLStorage, error) {
-	// 使用 Options 的 NewMySQLClient 方法创建 MySQL 客户端（简化调用链）
-	mysqlClient, err := opts.NewMySQLClient(logger)
+	// 直接使用 db 包创建 MySQL 客户端
+	mysqlClient, err := commondb.NewMySQL(logger,
+		commondb.WithHost(opts.Host),
+		commondb.WithPort(opts.Port),
+		commondb.WithUser(opts.User),
+		commondb.WithPassword(opts.Password),
+		commondb.WithDatabase(opts.Database),
+		commondb.WithMaxOpenConns(opts.MaxOpenConns),
+		commondb.WithMaxIdleConns(opts.MaxIdleConns),
+		commondb.WithConnMaxLifetime(opts.ConnMaxLifetime),
+		commondb.WithLogLevel(opts.LogLevel),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}

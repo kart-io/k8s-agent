@@ -3,26 +3,27 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/gin-gonic/gin"
+	"github.com/kart-io/k8s-agent/common/options"
+	commonserver "github.com/kart-io/k8s-agent/common/server"
+	httpserver "github.com/kart-io/k8s-agent/common/server/http"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/agent"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/config"
 	"github.com/kart-io/logger/core"
 )
 
-// Server represents the collect-agent server
-type Server struct {
+// CollectAgentService represents the collect-agent service using common/server
+type CollectAgentService struct {
 	opts          *config.Options
 	log           core.Logger
 	agentInstance *agent.Agent
-	healthServer  *agent.HealthServer
+	healthServer  commonserver.Server
 }
 
-// NewServer creates a new collect-agent server
-func NewServer(opts *config.Options, log core.Logger) (*Server, error) {
-	srv := &Server{
+// NewServer creates a new collect-agent service (使用 common/server)
+func NewServer(opts *config.Options, log core.Logger) (*CollectAgentService, error) {
+	srv := &CollectAgentService{
 		opts: opts,
 		log:  log,
 	}
@@ -35,7 +36,7 @@ func NewServer(opts *config.Options, log core.Logger) (*Server, error) {
 }
 
 // initialize initializes all server components
-func (s *Server) initialize() error {
+func (s *CollectAgentService) initialize() error {
 	var err error
 
 	// Convert Options to AgentConfig for backward compatibility with agent package
@@ -53,51 +54,125 @@ func (s *Server) initialize() error {
 		port = 8080 // default
 	}
 
-	// Create health server (now uses core.Logger directly)
-	s.healthServer = agent.NewHealthServer(s.agentInstance, port, s.log)
+	// Create health server using common/server
+	ginConfig := httpserver.NewGinServerConfig(&options.ServerOptions{
+		Host: "",
+		Port: port,
+		Mode: "release",
+	})
+
+	ginServer := httpserver.NewGinServerFromFullConfig(s.log, ginConfig)
+	engine := ginServer.GetEngine()
+
+	// Register health check handlers
+	s.setupHealthRoutes(engine)
+
+	s.healthServer = ginServer
 
 	return nil
 }
 
-// Run starts the collect-agent server
-func (s *Server) Run(ctx context.Context) error {
-	// Create context for graceful shutdown
-	ctx, cancel := context.WithCancel(ctx)
+// setupHealthRoutes sets up health check routes
+func (s *CollectAgentService) setupHealthRoutes(engine *gin.Engine) {
+	health := engine.Group("/health")
+	{
+		health.GET("/live", func(c *gin.Context) {
+			c.JSON(200, gin.H{
+				"status": "ok",
+				"time":   "placeholder", // Can be enhanced
+			})
+		})
+
+		health.GET("/ready", func(c *gin.Context) {
+			if s.agentInstance == nil {
+				c.JSON(503, gin.H{
+					"status":  "not ready",
+					"message": "agent not initialized",
+				})
+				return
+			}
+			c.JSON(200, gin.H{
+				"status": "ready",
+			})
+		})
+
+		health.GET("/status", func(c *gin.Context) {
+			if s.agentInstance == nil {
+				c.JSON(503, gin.H{
+					"status":  "unhealthy",
+					"message": "agent not initialized",
+				})
+				return
+			}
+			c.JSON(200, gin.H{
+				"status": "healthy",
+				"agent":  "collect-agent",
+			})
+		})
+	}
+
+	// Metrics endpoint (basic)
+	engine.GET("/metrics", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"metrics": "placeholder", // Can be enhanced with Prometheus metrics
+		})
+	})
+
+	s.log.Infow("Health check routes configured", "port", s.opts.Agent.HealthPort)
+}
+
+// Run starts the collect-agent service
+func (s *CollectAgentService) Run(ctx context.Context) error {
+	s.log.Infow("Starting Collect Agent Service",
+		"health_port", s.opts.Agent.HealthPort,
+	)
+
+	// Create context for agent
+	agentCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Handle shutdown signals
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
+	// Start agent in background
+	agentErrChan := make(chan error, 1)
 	go func() {
-		sig := <-sigChan
-		s.log.Infow("Received shutdown signal",
-			"signal", sig.String(),
-		)
-		cancel()
+		s.log.Info("Starting agent services...")
+		if err := s.agentInstance.Start(agentCtx); err != nil {
+			agentErrChan <- err
+		}
+		close(agentErrChan)
 	}()
 
-	// Start health server
-	if err := s.healthServer.Start(); err != nil {
-		return fmt.Errorf("failed to start health server: %w", err)
-	}
+	// Start health server using common/server
+	// This will block until signal or error
+	serverErrChan := make(chan error, 1)
+	go func() {
+		serverErrChan <- commonserver.Serve(ctx, s.healthServer, s.log)
+	}()
 
-	// Start agent
-	s.log.Info("Starting agent services...")
-	if err := s.agentInstance.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start agent: %w", err)
-	}
-
-	s.log.Info("Agent shutdown complete")
-	return nil
-}
-
-// Shutdown gracefully shuts down the server
-func (s *Server) Shutdown() error {
-	if s.healthServer != nil {
-		s.healthServer.Stop()
+	// Wait for either agent or server to fail, or context cancellation
+	select {
+	case err := <-agentErrChan:
+		if err != nil {
+			s.log.Errorw("Agent failed", "error", err)
+			return fmt.Errorf("agent failed: %w", err)
+		}
+	case err := <-serverErrChan:
+		if err != nil {
+			s.log.Errorw("Health server failed", "error", err)
+		}
+		cancel() // Stop agent
+		return err
+	case <-ctx.Done():
+		s.log.Info("Context cancelled, shutting down...")
+		cancel() // Stop agent
+		// Wait for agent to finish
+		<-agentErrChan
 	}
 
 	s.log.Info("Collect Agent shutdown complete")
 	return nil
+}
+
+// GetServer returns the health server instance (实现 ServerProvider 接口)
+func (s *CollectAgentService) GetServer() commonserver.Server {
+	return s.healthServer
 }

@@ -53,13 +53,14 @@ func run(opts *config.Options) error {
 
 	log.Info("Starting Monitor Service...")
 
-	// Create server
-	srv, err := NewServer(opts, log)
+	// Create service (使用 common/server)
+	svc, err := NewServer(opts, log)
 	if err != nil {
-		return fmt.Errorf("failed to create server: %w", err)
+		return fmt.Errorf("failed to create service: %w", err)
 	}
+	defer svc.Cleanup()
 
-	// Start server
+	// Start service (使用 common/server.Serve)
 	ctx := context.Background()
-	return srv.Run(ctx)
+	return svc.Run(ctx)
 }

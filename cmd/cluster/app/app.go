@@ -12,6 +12,7 @@ import (
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
 	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 )
@@ -101,8 +102,10 @@ func (a *ClusterApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.httpInit)
 
 	// 3. Health Check (优先级 600)
+	healthOpts := commonoptions.NewHealthOptions()
+	healthOpts.Port = opts.GetHealthPort()
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
-		fmt.Sprintf(":%d", opts.GetHealthPort()),
+		healthOpts,
 		a.GetLogger(),
 	)
 	bs.Register(a.healthInit)

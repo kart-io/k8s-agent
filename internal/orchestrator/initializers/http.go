@@ -3,23 +3,26 @@ package initializers
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	commoninitializers "github.com/kart-io/k8s-agent/common/initializers"
+	commonserver "github.com/kart-io/k8s-agent/common/server"
 	orchestratorv1 "github.com/kart-io/k8s-agent/pkg/api/orchestrator/v1"
 	"github.com/kart-io/logger/core"
 )
 
 // HTTPServerInitializer initializes the HTTP server with gRPC-Gateway
+// 使用 common/initializers 的标准 HTTP 服务器初始化器
 type HTTPServerInitializer struct {
 	opts     *options.ServerOptions
 	logger   core.Logger
 	grpcInit *GRPCServerInitializer
 
-	server *http.Server
-	mux    *runtime.ServeMux
+	// 使用标准初始化器
+	standardInit *commoninitializers.HTTPServerInitializer
+	mux          *runtime.ServeMux
 }
 
 // NewHTTPServerInitializer creates a new HTTP server initializer
@@ -76,49 +79,44 @@ func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to register workflow service handler: %w", err)
 	}
 
-	// Create HTTP server
-	i.server = &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", i.opts.Server.Host, i.opts.Server.Port),
-		Handler:           i.mux,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       60 * time.Second,
-	}
+	// 使用标准 HTTP 服务器初始化器
+	i.standardInit = commoninitializers.NewHTTPServerInitializer(
+		&commoninitializers.HTTPServerConfig{
+			Name:     "OrchestratorHTTP",
+			Priority: i.Priority(),
+			Config:   i.opts.Server,
+			RouteSetup: func(engine *gin.Engine) error {
+				// 将 gRPC-Gateway 的 mux 挂载到 Gin 的路由上
+				// 所有 /api/* 的请求都通过 gRPC-Gateway 转发到 gRPC 服务
+				engine.Any("/api/*path", gin.WrapH(i.mux))
 
-	// Start HTTP server in background
-	go func() {
-		i.logger.Infow("Starting HTTP server with gRPC-Gateway",
-			"address", i.server.Addr,
-		)
-		if err := i.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			i.logger.Errorw("HTTP server error", "error", err)
-		}
-	}()
-
-	i.logger.Infow("HTTP server initialized successfully",
-		"address", i.server.Addr,
-		"note", "HTTP requests will be automatically converted to gRPC calls",
+				i.logger.Infow("Registered gRPC-Gateway routes",
+					"pattern", "/api/*",
+					"note", "HTTP requests will be automatically converted to gRPC calls",
+				)
+				return nil
+			},
+		},
+		i.logger,
 	)
 
-	return nil
+	// 调用标准初始化器的 Initialize
+	return i.standardInit.Initialize(ctx)
 }
 
-// Shutdown stops the HTTP server
-func (i *HTTPServerInitializer) Shutdown(ctx context.Context) error {
-	if i.server == nil {
+// Close stops the HTTP server
+func (i *HTTPServerInitializer) Close(ctx context.Context) error {
+	if i.standardInit == nil {
 		return nil
 	}
 
-	i.logger.Infow("Shutting down HTTP server")
+	return i.standardInit.Close(ctx)
+}
 
-	shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	if err := i.server.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("failed to shutdown HTTP server: %w", err)
+// GetServer returns the server instance (implements ServerProvider)
+func (i *HTTPServerInitializer) GetServer() commonserver.Server {
+	if i.standardInit == nil {
+		return nil
 	}
-
-	i.logger.Infow("HTTP server shutdown complete")
-	return nil
+	return i.standardInit.GetServer()
 }

@@ -3,45 +3,43 @@ package app
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
-	"github.com/kart-io/logger/core"
-	"github.com/redis/go-redis/v9"
-
+	"github.com/gin-gonic/gin"
+	"github.com/kart-io/k8s-agent/common/options"
+	commonserver "github.com/kart-io/k8s-agent/common/server"
+	httpserver "github.com/kart-io/k8s-agent/common/server/http"
 	"github.com/kart-io/k8s-agent/internal/gateway/config"
 	"github.com/kart-io/k8s-agent/internal/gateway/middleware"
 	"github.com/kart-io/k8s-agent/internal/gateway/router"
+	"github.com/kart-io/logger/core"
+	"github.com/redis/go-redis/v9"
 )
 
-// Server represents the gateway server
-type Server struct {
-	opts    *config.Options
-	log     core.Logger
-	rdb     *redis.Client
-	httpSrv *http.Server
-	router  http.Handler
+// GatewayService represents the gateway service using common/server
+type GatewayService struct {
+	opts   *config.Options
+	log    core.Logger
+	rdb    *redis.Client
+	server commonserver.Server
 }
 
-// NewServer creates a new gateway server
-func NewServer(opts *config.Options, log core.Logger) (*Server, error) {
-	srv := &Server{
+// NewServer creates a new gateway service (使用 common/server)
+func NewServer(opts *config.Options, log core.Logger) (*GatewayService, error) {
+	svc := &GatewayService{
 		opts: opts,
 		log:  log,
 	}
 
-	if err := srv.initialize(); err != nil {
+	if err := svc.initialize(); err != nil {
 		return nil, err
 	}
 
-	return srv, nil
+	return svc, nil
 }
 
 // initialize initializes all server components
-func (s *Server) initialize() error {
+func (s *GatewayService) initialize() error {
 	// Connect to Redis
 	s.rdb = s.connectRedis()
 	if s.rdb != nil {
@@ -50,22 +48,31 @@ func (s *Server) initialize() error {
 	}
 
 	// Setup router with unified logger
-	s.router = router.Setup(s.log)
+	routerHandler := router.Setup(s.log)
 
-	// Create HTTP server
-	serverAddr := fmt.Sprintf("%s:%d", s.opts.Server.Host, s.opts.Server.Port)
-	s.httpSrv = &http.Server{
-		Addr:         serverAddr,
-		Handler:      s.router,
+	// Create Gin server config using common/server
+	ginConfig := httpserver.NewGinServerConfig(&options.ServerOptions{
+		Host:         s.opts.Server.Host,
+		Port:         s.opts.Server.Port,
+		Mode:         s.opts.Server.Mode,
 		ReadTimeout:  s.opts.Server.ReadTimeout,
 		WriteTimeout: s.opts.Server.WriteTimeout,
-	}
+		IdleTimeout:  s.opts.Server.IdleTimeout,
+	})
+
+	// Create Gin server
+	ginServer := httpserver.NewGinServerFromFullConfig(s.log, ginConfig)
+
+	// Register the gateway router as a catch-all handler
+	ginServer.GetEngine().Any("/*path", gin.WrapH(routerHandler))
+
+	s.server = ginServer
 
 	return nil
 }
 
 // connectRedis connects to Redis
-func (s *Server) connectRedis() *redis.Client {
+func (s *GatewayService) connectRedis() *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     s.opts.Redis.Addr,
 		Password: s.opts.Redis.Password,
@@ -91,49 +98,27 @@ func (s *Server) connectRedis() *redis.Client {
 	return rdb
 }
 
-// Run starts the gateway server
-func (s *Server) Run(ctx context.Context) error {
-	// Start HTTP server
-	go func() {
-		s.log.Infow("Gateway server started",
-			"addr", s.httpSrv.Addr,
-			"mode", s.opts.Server.Mode,
-		)
-		if err := s.httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.log.Fatalw("Failed to start server",
-				"error", err,
-			)
-		}
-	}()
+// Run starts the gateway service using common/server.Serve()
+func (s *GatewayService) Run(ctx context.Context) error {
+	s.log.Infow("Starting Gateway Service",
+		"addr", fmt.Sprintf("%s:%d", s.opts.Server.Host, s.opts.Server.Port),
+		"mode", s.opts.Server.Mode,
+	)
 
-	// Wait for interrupt signal
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	s.log.Info("Shutting down gateway server...")
-
-	return s.Shutdown()
+	// 使用 common/server 的标准 Serve 方法
+	// 它会自动处理信号和优雅关停
+	return commonserver.Serve(ctx, s.server, s.log)
 }
 
-// Shutdown gracefully shuts down the server
-func (s *Server) Shutdown() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+// GetServer returns the server instance (实现 ServerProvider 接口)
+func (s *GatewayService) GetServer() commonserver.Server {
+	return s.server
+}
 
-	if s.httpSrv != nil {
-		if err := s.httpSrv.Shutdown(ctx); err != nil {
-			s.log.Errorw("Gateway server forced to shutdown",
-				"error", err,
-			)
-			return err
-		}
-	}
-
+// Cleanup cleans up resources
+func (s *GatewayService) Cleanup() error {
 	if s.rdb != nil {
-		s.rdb.Close()
+		return s.rdb.Close()
 	}
-
-	s.log.Info("Gateway server exited")
 	return nil
 }

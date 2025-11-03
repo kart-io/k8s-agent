@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/logger/core"
 )
 
@@ -35,6 +36,15 @@ type Closer interface {
 type HealthChecker interface {
 	// HealthCheck returns health status.
 	HealthCheck(ctx context.Context) error
+}
+
+// ServerProvider represents a component that provides a server instance.
+// Initializers can implement this interface to register servers that should
+// be started automatically by the bootstrap system.
+type ServerProvider interface {
+	// GetServer returns the server instance from common/server package.
+	// Returns nil if no server is provided by this initializer.
+	GetServer() server.Server
 }
 
 // Bootstrap manages application lifecycle.
@@ -207,6 +217,34 @@ func (b *Bootstrap) Run(ctx context.Context, runFunc func() error) error {
 		return fmt.Errorf("initialization failed: %w", err)
 	}
 
+	// Collect all servers from initializers that implement ServerProvider
+	var servers []server.Server
+	b.mu.RLock()
+	for _, init := range b.initializers {
+		if provider, ok := init.(ServerProvider); ok {
+			if srv := provider.GetServer(); srv != nil {
+				servers = append(servers, srv)
+
+				// Log server registration
+				name := "unknown"
+				if i, ok := init.(Initializer); ok {
+					name = i.Name()
+				}
+				b.logger.Infow("Registered server from initializer", "initializer", name)
+			}
+		}
+	}
+	b.mu.RUnlock()
+
+	// Start all servers in background
+	if len(servers) > 0 {
+		b.logger.Infow("Starting servers", "count", len(servers))
+		for _, srv := range servers {
+			srv := srv // avoid closure issue
+			go srv.RunOrDie()
+		}
+	}
+
 	// Setup signal handling
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -238,6 +276,17 @@ func (b *Bootstrap) Run(ctx context.Context, runFunc func() error) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Stop all servers first
+	if len(servers) > 0 {
+		b.logger.Infow("Stopping servers", "count", len(servers))
+		for _, srv := range servers {
+			go srv.GracefulStop(shutdownCtx)
+		}
+		// Give servers time to stop
+		time.Sleep(1 * time.Second)
+	}
+
+	// Then shutdown other components
 	if err := b.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("shutdown failed: %w", err)
 	}

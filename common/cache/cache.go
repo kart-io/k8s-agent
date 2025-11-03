@@ -8,9 +8,6 @@ import (
 	"github.com/kart-io/k8s-agent/common/serializers"
 )
 
-// Serializer is an alias to serializers.Serializer for backward compatibility.
-// Deprecated: Use github.com/kart-io/k8s-agent/common/serializers.Serializer directly.
-type Serializer = serializers.Serializer
 
 // Cache defines the interface for cache operations.
 type Cache interface {

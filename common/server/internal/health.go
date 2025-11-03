@@ -1,92 +1,44 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 // Package internal provides shared internal utilities for server implementations.
 package internal
 
 import (
-	"context"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/k8s-agent/common/health"
+	"github.com/kart-io/k8s-agent/common/options"
 )
 
-// HealthChecker 健康检查接口
-type HealthChecker interface {
-	Health(ctx context.Context) error
-}
-
-// HealthCheckConfig 健康检查配置
-type HealthCheckConfig struct {
-	Checkers map[string]HealthChecker
-}
-
-// RegisterHealthEndpoints 注册健康检查端点
-func RegisterHealthEndpoints(engine *gin.Engine, checkers map[string]HealthChecker) {
-	engine.GET("/health", healthHandler(checkers))
-	engine.GET("/healthz", healthHandler(checkers)) // k8s 风格
-	engine.GET("/readiness", readinessHandler(checkers))
-	engine.GET("/liveness", livenessHandler())
-}
-
-// healthHandler 健康检查处理器 (简单存活检查)
-func healthHandler(checkers map[string]HealthChecker) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
-		})
+// RegisterHealthEndpoints 注册健康检查端点到 Gin Engine
+// 这是 common/health 到 Gin 的适配器
+// 使用 HealthOptions 配置端点路径
+func RegisterHealthEndpoints(engine *gin.Engine, manager *health.Manager, opts *options.HealthOptions) {
+	if opts == nil {
+		opts = options.NewHealthOptions()
 	}
-}
 
-// livenessHandler 存活检查 (不检查依赖)
-func livenessHandler() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "alive",
-		})
-	}
-}
+	// 完成配置以确保路径正确
+	opts.Complete()
 
-// readinessHandler 就绪检查处理器 (检查所有依赖)
-func readinessHandler(checkers map[string]HealthChecker) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx := c.Request.Context()
-		results := make(map[string]interface{})
-		allHealthy := true
+	// 使用统一的 health manager 和可配置的路径
+	engine.GET(opts.Path, func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
-		for name, checker := range checkers {
-			if err := checker.Health(ctx); err != nil {
-				results[name] = map[string]interface{}{
-					"status": "unhealthy",
-					"error":  err.Error(),
-				}
-				allHealthy = false
-			} else {
-				results[name] = map[string]interface{}{
-					"status": "healthy",
-				}
-			}
-		}
+	engine.GET(opts.ReadinessPath, func(c *gin.Context) {
+		results, allHealthy := manager.CheckAll(c.Request.Context())
 
-		statusCode := http.StatusOK
-		status := "ready"
 		if !allHealthy {
-			statusCode = http.StatusServiceUnavailable
-			status = "not ready"
+			c.JSON(503, gin.H{"status": "not ready", "checks": results})
+			return
 		}
 
-		c.JSON(statusCode, gin.H{
-			"status": status,
-			"checks": results,
-		})
-	}
-}
+		c.JSON(200, gin.H{"status": "ready", "checks": results})
+	})
 
-// HealthResponse 健康检查响应
-type HealthResponse struct {
-	Status string                 `json:"status"`
-	Checks map[string]CheckResult `json:"checks,omitempty"`
-}
-
-// CheckResult 单个检查结果
-type CheckResult struct {
-	Status string `json:"status"`
-	Error  string `json:"error,omitempty"`
+	engine.GET(opts.LivenessPath, func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "alive"})
+	})
 }

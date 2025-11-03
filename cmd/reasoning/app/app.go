@@ -6,12 +6,12 @@ package app
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
 )
@@ -86,8 +86,10 @@ func (a *ReasoningApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.unifiedServerInit)
 
 	// 3. Health Check (优先级 600)
+	healthOpts := commonoptions.NewHealthOptions()
+	healthOpts.Port = opts.GetHealthPort()
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
-		fmt.Sprintf(":%d", opts.GetHealthPort()),
+		healthOpts,
 		a.GetLogger(),
 	)
 	bs.Register(a.healthInit)

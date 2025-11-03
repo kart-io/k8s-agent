@@ -3,33 +3,34 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/kart-io/k8s-agent/common/options"
-	"github.com/kart-io/k8s-agent/internal/monitor/api"
+	commonserver "github.com/kart-io/k8s-agent/common/server"
+	httpserver "github.com/kart-io/k8s-agent/common/server/http"
 	"github.com/kart-io/k8s-agent/internal/monitor/config"
 	"github.com/kart-io/k8s-agent/internal/monitor/handler"
+	monitormiddleware "github.com/kart-io/k8s-agent/internal/monitor/middleware"
 	"github.com/kart-io/k8s-agent/internal/monitor/service"
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
 	"github.com/kart-io/logger/core"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Server represents the monitor server
-type Server struct {
+// MonitorService represents the monitor service using common/server
+type MonitorService struct {
 	opts           *config.Options
 	log            core.Logger
 	pgStorage      *storage.PostgresStorage
 	redisStorage   *storage.RedisStorage
 	monitorService *service.MonitorService
-	apiServer      *api.Server
+	server         commonserver.Server
 }
 
-// NewServer creates a new monitor server
-func NewServer(opts *config.Options, log core.Logger) (*Server, error) {
-	srv := &Server{
+// NewServer creates a new monitor service (使用 common/server)
+func NewServer(opts *config.Options, log core.Logger) (*MonitorService, error) {
+	srv := &MonitorService{
 		opts: opts,
 		log:  log,
 	}
@@ -42,7 +43,7 @@ func NewServer(opts *config.Options, log core.Logger) (*Server, error) {
 }
 
 // initialize initializes all server components
-func (s *Server) initialize() error {
+func (s *MonitorService) initialize() error {
 	var err error
 
 	// Initialize PostgreSQL storage
@@ -83,59 +84,86 @@ func (s *Server) initialize() error {
 	readTimeout, _ := time.ParseDuration(s.opts.Server.ReadTimeout)
 	writeTimeout, _ := time.ParseDuration(s.opts.Server.WriteTimeout)
 
-	// Determine metrics port
-	metricsPort := 0
-	if s.opts.Prometheus.Enabled {
-		metricsPort = s.opts.Prometheus.Port
-	}
-
-	// Create API server
-	s.apiServer = api.NewServer(&api.ServerConfig{
+	// Create Gin server config using common/server
+	ginConfig := httpserver.NewGinServerConfig(&options.ServerOptions{
+		Host:         "",
 		Port:         s.opts.Server.Port,
 		Mode:         s.opts.Server.Mode,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
-		JWTSecret:    s.opts.JWT.Secret,
-		MetricsPort:  metricsPort,
-	}, metricsHandler, s.log)
+	})
+
+	// Create Gin server
+	ginServer := httpserver.NewGinServerFromFullConfig(s.log, ginConfig)
+	engine := ginServer.GetEngine()
+
+	// Add monitor-specific middleware
+	engine.Use(gin.Recovery())
+	engine.Use(monitormiddleware.Logger(s.log))
+	engine.Use(monitormiddleware.CORS())
+
+	// Setup routes
+	s.setupRoutes(engine, metricsHandler)
+
+	s.server = ginServer
 
 	return nil
 }
 
-// Run starts the monitor server
-func (s *Server) Run(ctx context.Context) error {
-	// Start API server
-	go func() {
-		if err := s.apiServer.Start(); err != nil {
-			s.log.Fatalw("Server failed to start",
-				"error", err,
-			)
-		}
-	}()
+// setupRoutes sets up all API routes
+func (s *MonitorService) setupRoutes(engine *gin.Engine, metricsHandler *handler.MetricsHandler) {
+	// 健康检查
+	engine.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
-	// Wait for interrupt signal
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	s.log.Info("Shutting down server...")
-
-	return s.Shutdown()
-}
-
-// Shutdown gracefully shuts down the server
-func (s *Server) Shutdown() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if s.apiServer != nil {
-		if err := s.apiServer.Shutdown(ctx); err != nil {
-			s.log.Errorw("Server forced to shutdown",
-				"error", err,
-			)
+	// API v1
+	v1 := engine.Group("/api/v1")
+	{
+		// 认证保护的路由 (简化版 - 实际应该使用 JWT middleware)
+		authRoutes := v1.Group("")
+		// authRoutes.Use(middleware.AuthMiddleware(s.opts.JWT.Secret))
+		{
+			// 监控指标
+			metrics := authRoutes.Group("/metrics")
+			{
+				metrics.GET("/summary", metricsHandler.GetSummary)
+				metrics.GET("/agents", metricsHandler.GetAgentMetrics)
+				metrics.GET("/trends", metricsHandler.GetTrends)
+			}
 		}
 	}
 
+	// Prometheus metrics endpoint (if enabled)
+	if s.opts.Prometheus.Enabled {
+		engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
+		s.log.Infow("Prometheus metrics enabled",
+			"endpoint", "/metrics",
+		)
+	}
+
+	s.log.Infow("Monitor API routes configured")
+}
+
+// Run starts the monitor service using common/server.Serve()
+func (s *MonitorService) Run(ctx context.Context) error {
+	s.log.Infow("Starting Monitor Service",
+		"port", s.opts.Server.Port,
+		"mode", s.opts.Server.Mode,
+	)
+
+	// 使用 common/server 的标准 Serve 方法
+	// 它会自动处理信号和优雅关停
+	return commonserver.Serve(ctx, s.server, s.log)
+}
+
+// GetServer returns the server instance (实现 ServerProvider 接口)
+func (s *MonitorService) GetServer() commonserver.Server {
+	return s.server
+}
+
+// Cleanup cleans up resources
+func (s *MonitorService) Cleanup() error {
 	if s.redisStorage != nil {
 		s.redisStorage.Close()
 	}
@@ -144,6 +172,6 @@ func (s *Server) Shutdown() error {
 		s.pgStorage.Close()
 	}
 
-	s.log.Info("Server exited")
+	s.log.Info("Monitor service resources cleaned up")
 	return nil
 }

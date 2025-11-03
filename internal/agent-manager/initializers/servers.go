@@ -2,32 +2,41 @@ package initializers
 
 import (
 	"context"
-	"fmt"
-	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"google.golang.org/grpc"
 
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
+	"github.com/kart-io/k8s-agent/common/idempotent"
+	commoninitializers "github.com/kart-io/k8s-agent/common/initializers"
+	"github.com/kart-io/k8s-agent/common/middleware"
+	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/api"
 	agentgrpc "github.com/kart-io/k8s-agent/internal/agent-manager/grpc"
+	agentv1 "github.com/kart-io/k8s-agent/pkg/api/agent/v1"
 	"github.com/kart-io/k8s-agent/pkg/types"
 	"github.com/kart-io/logger/core"
 )
 
-// HTTPServerInitializer HTTP API 服务器初始化器
+// HTTPServerInitializer is a wrapper around the common HTTP server initializer.
 type HTTPServerInitializer struct {
-	opts       *options.ServerOptions
-	logger     core.Logger
+	standardInit *commoninitializers.HTTPServerInitializer
+	logger       core.Logger
+	opts         *options.ServerOptions
+	apiServer    *api.Server // Reused for its handler methods and dependency injection
+
+	// Dependencies for handlers
 	registry   *RegistryInitializer
 	dispatcher *DispatcherInitializer
 	dbInit     *DatabaseInitializer
 	redisInit  *RedisInitializer
 	natsInit   *NATSInitializer
-	apiServer  *api.Server
-	eventProc  interface{} // 临时存储 event processor
-	errChan    chan error  // 服务器错误通道
 }
 
-// NewHTTPServerInitializer 创建 HTTP 服务器初始化器
+// NewHTTPServerInitializer creates a new HTTP server initializer.
 func NewHTTPServerInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -48,102 +57,145 @@ func NewHTTPServerInitializer(
 	}
 }
 
-// Name 返回初始化器名称
 func (h *HTTPServerInitializer) Name() string {
-	return "http-server"
+	return "agent-manager-http-server"
 }
 
-// Priority 返回初始化优先级
 func (h *HTTPServerInitializer) Priority() int {
 	return bootstrap.PriorityHTTP
 }
 
-// Initialize 执行初始化
 func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
-	h.logger.Infow("Initializing HTTP API server",
-		"host", h.opts.Server.Host,
-		"port", h.opts.Server.Port,
-	)
-
-	// 从 NATS 初始化器获取 event processor
-	eventProc := h.natsInit.EventProcessor()
-
-	// 创建 API 服务器
+	// Create the api.Server which holds all dependencies and handler logic.
+	// We will use it to register routes, but not to start the server itself.
 	h.apiServer = api.NewServer(
 		types.ServerConfig{
-			Host:         h.opts.Server.Host,
-			Port:         h.opts.Server.Port,
-			ReadTimeout:  h.opts.Server.ReadTimeout,
-			WriteTimeout: h.opts.Server.WriteTimeout,
-			GracefulStop: h.opts.Server.GracefulStop,
+			// This config is now managed by the common server,
+			// but api.NewServer needs it. We pass it for consistency.
+			Host: h.opts.Server.Host,
+			Port: h.opts.Server.Port,
 		},
 		h.registry.Registry(),
-		eventProc,
+		h.natsInit.EventProcessor(),
 		h.dispatcher.Dispatcher(),
 		h.dbInit.Store(),
 		h.redisInit.Store(),
 		h.logger,
 	)
 
-	// 创建错误通道用于捕获服务器启动错误
-	h.errChan = make(chan error, 1)
+	serverConfig := &commoninitializers.HTTPServerConfig{
+		Name:     h.Name(),
+		Priority: h.Priority(),
+		Config:   h.opts.Server,
+		RouteSetup: func(engine *gin.Engine) error {
+			// The standard GinServer already adds recovery, logging, cors, requestid.
+			// We only need to add the project-specific Idempotency middleware.
+			if h.redisInit.Store() != nil && h.redisInit.Store().Client != nil {
+				redisStore := idempotent.NewRedisStore(h.redisInit.Store().Client, "agent-manager")
+				idempotentHandler := idempotent.NewHandler(redisStore, 24*time.Hour, 5*time.Minute)
+				engine.Use(middleware.Idempotent(middleware.IdempotentConfig{
+					Handler:       idempotentHandler,
+					PathBlacklist: middleware.DefaultPathBlacklist(),
+				}))
+				h.logger.Info("Idempotency middleware enabled for POST operations")
+			} else {
+				h.logger.Warn("Redis not available, idempotency middleware disabled")
+			}
 
-	// 在后台启动 HTTP 服务器
-	go func() {
-		if err := h.apiServer.Start(); err != nil && err != http.ErrServerClosed {
-			h.logger.Errorw("HTTP server fatal error", "error", err)
-			h.errChan <- err
-		}
-	}()
+			// Register all API routes using handlers from h.apiServer
+			// Health endpoints
+			health := engine.Group("/health")
+			{
+				health.GET("/live", h.apiServer.HandleLiveness)
+				health.GET("/ready", h.apiServer.HandleReadiness)
+				health.GET("/status", h.apiServer.HandleStatus)
+			}
 
-	// 启动错误监听器
-	go h.monitorServerErrors()
+			// Metrics endpoint
+			engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	h.logger.Infow("HTTP API server initialized successfully",
-		"address", fmt.Sprintf("%s:%d", h.opts.Server.Host, h.opts.Server.Port),
-	)
-	return nil
-}
+			// API v1
+			v1 := engine.Group("/api/v1")
+			{
+				// Agent management
+				agents := v1.Group("/agents")
+				{
+					agents.GET("", h.apiServer.HandleListAgents)
+					agents.GET("/:id", h.apiServer.HandleGetAgent)
+					agents.DELETE("/:id", h.apiServer.HandleDeleteAgent)
+				}
 
-// monitorServerErrors 监听服务器致命错误
-func (h *HTTPServerInitializer) monitorServerErrors() {
-	for err := range h.errChan {
-		if err != nil {
-			h.logger.Fatalw("HTTP server encountered fatal error, shutting down",
-				"error", err,
-				"component", "http-server",
-			)
-		}
+				// Cluster management
+				clusters := v1.Group("/clusters")
+				{
+					clusters.GET("", h.apiServer.HandleListClusters)
+					clusters.GET("/:id", h.apiServer.HandleGetCluster)
+					clusters.POST("", h.apiServer.HandleCreateCluster)
+					clusters.PUT("/:id", h.apiServer.HandleUpdateCluster)
+					clusters.DELETE("/:id", h.apiServer.HandleDeleteCluster)
+					clusters.GET("/:id/health", h.apiServer.HandleClusterHealth)
+				}
+
+				// Event management
+				events := v1.Group("/events")
+				{
+					events.GET("", h.apiServer.HandleListEvents)
+					events.GET("/:id", h.apiServer.HandleGetEvent)
+					events.POST("/search", h.apiServer.HandleSearchEvents)
+				}
+
+				// Command management
+				commands := v1.Group("/commands")
+				{
+					commands.POST("", h.apiServer.HandleSendCommand)
+					commands.GET("/:id", h.apiServer.HandleGetCommand)
+					commands.GET("/:id/result", h.apiServer.HandleGetCommandResult)
+					commands.GET("/:id/events", h.apiServer.HandleGetCommandEvents)
+					commands.GET("", h.apiServer.HandleListPendingCommands)
+				}
+
+				// Operation tracking
+				operations := v1.Group("/operations")
+				{
+					operations.POST("", h.apiServer.HandleRecordOperation)
+					operations.GET("/:id/events", h.apiServer.HandleGetOperationEvents)
+				}
+			}
+			h.logger.Info("All HTTP API routes registered")
+			return nil
+		},
 	}
+
+	h.standardInit = commoninitializers.NewHTTPServerInitializer(serverConfig, h.logger)
+	return h.standardInit.Initialize(ctx)
 }
 
-// Close 关闭 HTTP 服务器
+// GetServer implements commonserver.ServerProvider.
+func (h *HTTPServerInitializer) GetServer() commonserver.Server {
+	if h.standardInit == nil {
+		return nil
+	}
+	return h.standardInit.GetServer()
+}
+
+// Close is a no-op because the server lifecycle is managed by bootstrap.
 func (h *HTTPServerInitializer) Close(ctx context.Context) error {
-	if h.apiServer != nil {
-		h.logger.Infow("Stopping HTTP API server")
-		if err := h.apiServer.Stop(); err != nil {
-			return err
-		}
-	}
-	// 关闭错误通道
-	if h.errChan != nil {
-		close(h.errChan)
-	}
 	return nil
 }
 
-// GRPCServerInitializer gRPC 服务器初始化器
+// GRPCServerInitializer is a wrapper around the common gRPC server initializer.
 type GRPCServerInitializer struct {
-	opts       *options.ServerOptions
-	logger     core.Logger
+	standardInit *commoninitializers.GRPCServerInitializer
+	logger       core.Logger
+	opts         *options.ServerOptions
+
+	// Dependencies for services
 	registry   *RegistryInitializer
 	dispatcher *DispatcherInitializer
 	dbInit     *DatabaseInitializer
-	grpcServer *agentgrpc.Server
-	errChan    chan error // 服务器错误通道
 }
 
-// NewGRPCServerInitializer 创建 gRPC 服务器初始化器
+// NewGRPCServerInitializer creates a new gRPC server initializer.
 func NewGRPCServerInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -160,89 +212,49 @@ func NewGRPCServerInitializer(
 	}
 }
 
-// Name 返回初始化器名称
 func (g *GRPCServerInitializer) Name() string {
-	return "grpc-server"
+	return "agent-manager-grpc-server"
 }
 
-// Priority 返回初始化优先级
 func (g *GRPCServerInitializer) Priority() int {
 	return bootstrap.PriorityGRPC
 }
 
-// Initialize 执行初始化
 func (g *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	if !g.opts.GRPC.Enable {
 		g.logger.Infow("gRPC server is disabled, skipping initialization")
 		return nil
 	}
 
-	g.logger.Infow("Initializing gRPC server",
-		"host", g.opts.GRPC.Host,
-		"port", g.opts.GRPC.Port,
-	)
+	// Create service instances that will handle gRPC requests
+	agentService := agentgrpc.NewAgentServiceServer(g.registry.Registry(), g.logger)
+	commandService := agentgrpc.NewCommandServiceServer(g.dispatcher.Dispatcher(), g.dbInit.Store(), g.logger)
 
-	grpcOpts := &agentgrpc.ServerOptions{
-		Host:             g.opts.GRPC.Host,
-		Port:             g.opts.GRPC.Port,
-		MaxRecvMsgSize:   g.opts.GRPC.MaxRecvMsgSize,
-		MaxSendMsgSize:   g.opts.GRPC.MaxSendMsgSize,
-		KeepaliveTime:    g.opts.GRPC.KeepAliveTime,
-		KeepaliveTimeout: g.opts.GRPC.KeepAliveTimeout,
-		Registry:         g.registry.Registry(),
-		Dispatcher:       g.dispatcher.Dispatcher(),
-		Store:            g.dbInit.Store(),
+	serverConfig := &commoninitializers.GRPCServerConfig{
+		Name:     g.Name(),
+		Priority: g.Priority(),
+		Config:   g.opts.GRPC,
+		ServiceRegister: func(s *grpc.Server) error {
+			agentv1.RegisterAgentServiceServer(s, agentService)
+			agentv1.RegisterCommandServiceServer(s, commandService)
+			g.logger.Info("All gRPC services registered")
+			return nil
+		},
 	}
 
-	grpcServer, err := agentgrpc.NewServer(grpcOpts, g.logger)
-	if err != nil {
-		return fmt.Errorf("failed to create gRPC server: %w", err)
-	}
-	g.grpcServer = grpcServer
-
-	// 创建错误通道用于捕获服务器启动错误
-	g.errChan = make(chan error, 1)
-
-	// 在后台启动 gRPC 服务器
-	go func() {
-		if err := g.grpcServer.Start(ctx); err != nil {
-			g.logger.Errorw("gRPC server fatal error", "error", err)
-			g.errChan <- err
-		}
-	}()
-
-	// 启动错误监听器
-	go g.monitorServerErrors()
-
-	g.logger.Infow("gRPC server initialized successfully",
-		"address", g.grpcServer.Address(),
-	)
-	return nil
+	g.standardInit = commoninitializers.NewGRPCServerInitializer(serverConfig, g.logger)
+	return g.standardInit.Initialize(ctx)
 }
 
-// monitorServerErrors 监听服务器致命错误
-func (g *GRPCServerInitializer) monitorServerErrors() {
-	for err := range g.errChan {
-		if err != nil {
-			g.logger.Fatalw("gRPC server encountered fatal error, shutting down",
-				"error", err,
-				"component", "grpc-server",
-			)
-		}
+// GetServer implements commonserver.ServerProvider.
+func (g *GRPCServerInitializer) GetServer() commonserver.Server {
+	if g.standardInit == nil {
+		return nil
 	}
+	return g.standardInit.GetServer()
 }
 
-// Close 关闭 gRPC 服务器
+// Close is a no-op because the server lifecycle is managed by bootstrap.
 func (g *GRPCServerInitializer) Close(ctx context.Context) error {
-	if g.grpcServer != nil {
-		g.logger.Infow("Stopping gRPC server")
-		if err := g.grpcServer.Stop(); err != nil {
-			return err
-		}
-	}
-	// 关闭错误通道
-	if g.errChan != nil {
-		close(g.errChan)
-	}
 	return nil
 }

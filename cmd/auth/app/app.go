@@ -12,6 +12,7 @@ import (
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/auth"
 	authconfig "github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/k8s-agent/internal/auth/initializers"
@@ -145,7 +146,9 @@ func (a *AuthApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 
 	// 9. Health Check Server (优先级最低，最后启动)
 	serverOpts := a.GetOptions().(*options.ServerOptions)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(fmt.Sprintf(":%d", serverOpts.Server.Port), a.GetLogger())
+	healthOpts := commonoptions.NewHealthOptions()
+	healthOpts.Port = serverOpts.Server.Port
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthOpts, a.GetLogger())
 	bs.Register(a.healthInit)
 
 	return nil

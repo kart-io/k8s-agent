@@ -8,6 +8,7 @@ import (
 	commonapp "github.com/kart-io/k8s-agent/common/app"
 	"github.com/kart-io/k8s-agent/common/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/common/initializers"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	orchestrator "github.com/kart-io/k8s-agent/internal/orchestrator"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/initializers"
 )
@@ -133,9 +134,9 @@ func (a *OrchestratorApp) RegisterComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.httpInit)
 
 	// 9. Health Check Server (优先级最低，最后启动)
-	healthPort := opts.GetHealthPort()
-	healthAddr := fmt.Sprintf(":%d", healthPort)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthAddr, a.GetLogger())
+	healthOpts := commonoptions.NewHealthOptions()
+	healthOpts.Port = opts.GetHealthPort()
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthOpts, a.GetLogger())
 	bs.Register(a.healthInit)
 
 	return nil

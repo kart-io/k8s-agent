@@ -1,91 +1,51 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package app
 
 import (
-	"fmt"
-	"net/http"
-	"time"
+	"context"
+
+	"github.com/kart-io/k8s-agent/common/health"
+	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/logger/core"
 )
 
-// DefaultHealthCheckServer 默认的健康检查服务器
-type DefaultHealthCheckServer struct {
-	addr string
-	srv  *http.Server
+// NewHealthCheckServer 创建健康检查服务器
+// 这是 common/health 的便捷包装
+func NewHealthCheckServer(opts *options.HealthOptions, logger core.Logger) health.Server {
+	return health.NewHTTPServer(opts, logger)
 }
 
-// NewDefaultHealthCheckServer 创建默认的健康检查服务器
-// addr: 监听地址，如 ":8090"
-func NewDefaultHealthCheckServer(addr string) *DefaultHealthCheckServer {
-	if addr == "" {
-		addr = ":8090"
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
-	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ready"))
-	})
-
-	srv := &http.Server{
-		Addr:         addr,
-		Handler:      mux,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
-	}
-
-	return &DefaultHealthCheckServer{
-		addr: addr,
-		srv:  srv,
-	}
-}
-
-// Start 启动健康检查服务器（非阻塞）
-func (s *DefaultHealthCheckServer) Start() error {
-	go func() {
-		fmt.Printf("Health check server listening on %s\n", s.addr)
-		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Health check server error: %v\n", err)
+// GetHealthOptions 从 Options 中获取健康检查配置
+func GetHealthOptions(opts Options) *options.HealthOptions {
+	// 1. HealthOptionsProvider
+	if provider, ok := opts.(HealthOptionsProvider); ok {
+		if healthOpts := provider.GetHealthOptions(); healthOpts != nil {
+			return healthOpts
 		}
-	}()
-	return nil
-}
-
-// Stop 停止健康检查服务器
-func (s *DefaultHealthCheckServer) Stop() error {
-	if s.srv != nil {
-		return s.srv.Close()
 	}
-	return nil
-}
 
-// DefaultHealthCheckFunc 返回默认的健康检查函数
-// 它会启动一个简单的 HTTP 服务器，监听 /healthz 和 /readyz 端点
-func DefaultHealthCheckFunc(addr string) HealthCheckFunc {
-	return func() error {
-		server := NewDefaultHealthCheckServer(addr)
-		return server.Start()
-	}
-}
-
-// GetHealthCheckAddr 从 Options 中获取健康检查地址
-// 如果 Options 实现了 HealthPortProvider 接口，则使用其提供的端口
-// 否则返回默认地址 ":8090"
-func GetHealthCheckAddr(opts Options) string {
+	// 2. HealthPortProvider (向后兼容)
 	if provider, ok := opts.(HealthPortProvider); ok {
 		port := provider.GetHealthPort()
 		if port > 0 {
-			return fmt.Sprintf(":%d", port)
+			healthOpts := options.NewHealthOptions()
+			healthOpts.Port = port
+			return healthOpts
 		}
 	}
-	return ":8090" // 默认端口
+
+	// 3. 默认配置
+	return options.NewHealthOptions()
 }
 
 // DefaultHealthCheckFuncFromOptions 从 Options 创建健康检查函数
-// 它会自动检测 Options 是否实现了 HealthPortProvider 接口
 func DefaultHealthCheckFuncFromOptions(opts Options) HealthCheckFunc {
-	addr := GetHealthCheckAddr(opts)
-	return DefaultHealthCheckFunc(addr)
+	healthOpts := GetHealthOptions(opts)
+	return func() error {
+		server := NewHealthCheckServer(healthOpts, nil)
+		return server.Start(context.Background())
+	}
 }

@@ -265,29 +265,7 @@ func (app *App) Command() *cobra.Command {
 	return app.cmd
 }
 
-// ==================== 向后兼容的便捷函数 ====================
-
-// NewCommand 创建一个新的 Cobra 命令（向后兼容）
-func NewCommand(opts Options, runFunc RunFunc, cfg CommandConfig) *cobra.Command {
-	app := NewApp(opts, runFunc, cfg)
-	return app.Command()
-}
-
-// Execute 执行命令（向后兼容）
-func Execute(cmd *cobra.Command) {
-	if err := cmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-// Run 创建并执行命令的便捷函数（向后兼容）
-func Run(opts Options, runFunc RunFunc, cfg CommandConfig) {
-	app := NewApp(opts, runFunc, cfg)
-	app.Run()
-}
-
-// RunWithOptions 创建并执行命令的增强版本（支持功能选项）
+// RunWithOptions 创建并执行命令（支持功能选项）
 func RunWithOptions(opts Options, runFunc RunFunc, cfg CommandConfig, appOpts ...AppOption) {
 	app := NewApp(opts, runFunc, cfg, appOpts...)
 	app.Run()
