@@ -10,7 +10,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	"github.com/kart-io/k8s-agent/internal/auth"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
@@ -73,19 +72,6 @@ func (o *ServerOptions) Complete() error {
 func (o *ServerOptions) Validate() []error {
 	// 使用通用工具函数统一验证所有子选项
 	return commonoptions.ValidateAll(o)
-}
-
-// Config builds an auth.Config based on ServerOptions.
-func (o *ServerOptions) Config() (*auth.Config, error) {
-	return &auth.Config{
-		Server:   o.Server,
-		Database: o.Database,
-		Redis:    o.Redis,
-		JWT:      o.JWT,
-		Logging:  o.Logging,
-		Email:    o.Email,
-		Metrics:  o.Metrics,
-	}, nil
 }
 
 // GetServiceName returns the service name.

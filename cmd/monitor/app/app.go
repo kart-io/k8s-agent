@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kart-io/k8s-agent/common/loggerutil"
-	"github.com/kart-io/k8s-agent/common/options"
-	"github.com/kart-io/k8s-agent/internal/monitor/config"
+	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
@@ -15,7 +13,7 @@ import (
 // Execute runs the monitor command.
 func Execute() {
 	// Create configuration options
-	opts := config.NewOptions()
+	opts := options.NewOptions()
 
 	// Create application instance
 	app := &MonitorApp{}
@@ -35,7 +33,7 @@ func Execute() {
 
 // MonitorApp implements commonapp.Application interface.
 type MonitorApp struct {
-	config *config.Options
+	opts   *options.Options // 直接使用Options
 	logger core.Logger
 	server *MonitorService
 }
@@ -47,20 +45,11 @@ func (a *MonitorApp) Name() string {
 
 // Initialize initializes the application.
 func (a *MonitorApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Convert configuration
-	configOpts := opts.(*config.Options)
-	a.config = configOpts
-
-	// Convert LoggingConfig to LoggingOptions for compatibility
-	logOpts := &options.LoggingOptions{
-		Engine:      "slog",
-		Level:       configOpts.Logging.Level,
-		Format:      configOpts.Logging.Format,
-		OutputPaths: []string{configOpts.Logging.Output},
-	}
+	// 直接保存Options，不需要转换
+	a.opts = opts.(*options.Options)
 
 	// Initialize logger
-	logger, err := loggerutil.InitFromOptions(logOpts)
+	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -69,7 +58,7 @@ func (a *MonitorApp) Initialize(ctx context.Context, opts commonapp.Options) err
 	a.logger.Info("Starting Monitor Service...")
 
 	// Create service
-	svc, err := NewServer(configOpts, logger)
+	svc, err := NewServer(a.opts, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create service: %w", err)
 	}

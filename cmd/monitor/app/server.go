@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	httpserver "github.com/kart-io/k8s-agent/common/server/http"
-	"github.com/kart-io/k8s-agent/internal/monitor/config"
 	"github.com/kart-io/k8s-agent/internal/monitor/handler"
 	monitormiddleware "github.com/kart-io/k8s-agent/internal/monitor/middleware"
 	"github.com/kart-io/k8s-agent/internal/monitor/service"
@@ -21,7 +21,7 @@ import (
 
 // MonitorService represents the monitor service using common/server.
 type MonitorService struct {
-	opts           *config.Options
+	opts           *options.Options
 	log            core.Logger
 	pgStorage      *storage.PostgresStorage
 	redisStorage   *storage.RedisStorage
@@ -30,7 +30,7 @@ type MonitorService struct {
 }
 
 // NewServer creates a new monitor service (使用 common/server).
-func NewServer(opts *config.Options, log core.Logger) (*MonitorService, error) {
+func NewServer(opts *options.Options, log core.Logger) (*MonitorService, error) {
 	srv := &MonitorService{
 		opts: opts,
 		log:  log,
@@ -48,7 +48,7 @@ func (s *MonitorService) initialize() error {
 	var err error
 
 	// Initialize PostgreSQL storage
-	dbOpts := &options.DatabaseOptions{
+	dbOpts := &commonoptions.DatabaseOptions{
 		Host:         s.opts.Database.Host,
 		Port:         s.opts.Database.Port,
 		User:         s.opts.Database.User,
@@ -88,7 +88,7 @@ func (s *MonitorService) initialize() error {
 	writeTimeout, _ := time.ParseDuration(s.opts.Server.WriteTimeout)
 
 	// Create Gin server config using common/server
-	ginConfig := httpserver.NewGinServerConfig(&options.ServerOptions{
+	ginConfig := httpserver.NewGinServerConfig(&commonoptions.ServerOptions{
 		Host:         "",
 		Port:         s.opts.Server.Port,
 		Mode:         s.opts.Server.Mode,

@@ -6,7 +6,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	agentmanager "github.com/kart-io/k8s-agent/internal/agent-manager"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -38,7 +37,7 @@ func Execute() {
 
 // AgentManagerApp implements commonapp.Application interface.
 type AgentManagerApp struct {
-	config *agentmanager.Config
+	opts   *options.ServerOptions // 直接使用ServerOptions
 	logger core.Logger
 
 	// Component initializers
@@ -59,16 +58,11 @@ func (a *AgentManagerApp) Name() string {
 
 // Initialize initializes the application.
 func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Convert configuration
-	serverOpts := opts.(*options.ServerOptions)
-	config, err := serverOpts.Config()
-	if err != nil {
-		return fmt.Errorf("failed to build config: %w", err)
-	}
-	a.config = config
+	// 直接保存ServerOptions，不需要转换
+	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger
-	logger, err := serverOpts.InitLogger()
+	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -94,24 +88,19 @@ func (a *AgentManagerApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *AgentManagerApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Get server options from bootstrap context
-	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
-	opts := options.NewServerOptions()
-	if err := opts.Complete(); err != nil {
-		return fmt.Errorf("failed to complete options: %w", err)
-	}
+	// 直接使用已有的opts，不需要重新创建
 
 	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(opts, a.logger)
+	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
 	bs.Register(a.dbInit)
 
 	// 2. Redis (priority 400)
-	a.redisInit = initializers.NewRedisInitializer(opts, a.logger)
+	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
 	bs.Register(a.redisInit)
 
 	// 3. Registry (priority 450 - after Database and Redis)
 	a.registryInit = initializers.NewRegistryInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.dbInit,
 		a.redisInit,
@@ -120,7 +109,7 @@ func (a *AgentManagerApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 4. NATS (priority 500)
 	a.natsInit = initializers.NewNATSInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.registryInit,
 		a.dbInit,
@@ -130,7 +119,7 @@ func (a *AgentManagerApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 5. Dispatcher (priority 600 - after NATS)
 	a.dispatcherInit = initializers.NewDispatcherInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.dbInit,
 		a.redisInit,
@@ -141,7 +130,7 @@ func (a *AgentManagerApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 6. HTTP Server (priority 1000)
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.registryInit,
 		a.dispatcherInit,
@@ -152,9 +141,9 @@ func (a *AgentManagerApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.httpInit)
 
 	// 7. gRPC Server (priority 1100)
-	if opts.GRPC.Enable {
+	if a.opts.GRPC.Enable {
 		a.grpcInit = initializers.NewGRPCServerInitializer(
-			opts,
+			a.opts,
 			a.logger,
 			a.registryInit,
 			a.dispatcherInit,

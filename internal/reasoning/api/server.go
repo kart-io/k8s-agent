@@ -10,6 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	commonserver "github.com/kart-io/k8s-agent/common/server"
+	httpserver "github.com/kart-io/k8s-agent/common/server/http"
 	"github.com/kart-io/k8s-agent/internal/reasoning/agents/k8s_tool"
 	"github.com/kart-io/k8s-agent/internal/reasoning/agents/reasoning"
 	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
@@ -22,19 +27,22 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/orchestrator"
 	"github.com/kart-io/k8s-agent/internal/reasoning/recommender"
 	"github.com/kart-io/k8s-agent/internal/reasoning/types"
+	"github.com/kart-io/logger/core"
 )
 
-// Server represents the HTTP API server.
+// Server represents the HTTP API server using common/server framework.
 type Server struct {
 	config       *config.Config
 	analyzer     *analyzer.RootCauseAnalyzer
 	recommender  *recommender.Engine
 	llmClients   []llm.Client
-	orchestrator *orchestrator.Orchestrator // 新增 Orchestrator
+	orchestrator *orchestrator.Orchestrator
+	ginServer    commonserver.Server // 使用 common/server 的 Server 接口
+	log          core.Logger
 }
 
 // NewServer creates a new API server with all required components including Orchestrator.
-func NewServer(cfg *config.Config, llmClients []llm.Client) *Server {
+func NewServer(cfg *config.Config, llmClients []llm.Client, logger core.Logger) *Server {
 	// Initialize LLM Proxy
 	llmProxy, err := proxy.NewProxyAdapter(&cfg.LLM)
 	if err != nil {
@@ -93,13 +101,36 @@ func NewServer(cfg *config.Config, llmClients []llm.Client) *Server {
 			log.Printf("Successfully initialized Orchestrator (memory disabled)")
 		}
 
-		return &Server{
+		// 创建 common/server 的配置
+		serverOpts := &commonoptions.ServerOptions{
+			Host:         cfg.Server.Host,
+			Port:         cfg.Server.Port,
+			Mode:         "release",
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 30 * time.Second,
+			IdleTimeout:  120 * time.Second,
+		}
+
+		// 创建 Gin 服务器配置
+		ginConfig := httpserver.NewGinServerConfig(serverOpts)
+
+		// 创建 Gin 服务器
+		ginServer := httpserver.NewGinServerFromFullConfig(logger, ginConfig)
+
+		s := &Server{
 			config:       cfg,
 			analyzer:     analyzer.NewRootCauseAnalyzer(cfg, llmClients),
 			recommender:  recommender.NewEngine(cfg, llmClients),
 			llmClients:   llmClients,
 			orchestrator: orch,
+			ginServer:    ginServer,
+			log:          logger,
 		}
+
+		// 设置路由
+		s.setupRoutes(ginServer.GetEngine())
+
+		return s
 	}
 
 	// Initialize Orchestrator with Memory Manager
@@ -119,81 +150,197 @@ func NewServer(cfg *config.Config, llmClients []llm.Client) *Server {
 		log.Printf("Successfully initialized Orchestrator")
 	}
 
-	return &Server{
+	// 创建 common/server 的配置
+	serverOpts := &commonoptions.ServerOptions{
+		Host:         cfg.Server.Host,
+		Port:         cfg.Server.Port,
+		Mode:         "release",
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	// 创建 Gin 服务器配置
+	ginConfig := httpserver.NewGinServerConfig(serverOpts)
+
+	// 创建 Gin 服务器
+	ginServer := httpserver.NewGinServerFromFullConfig(logger, ginConfig)
+
+	s := &Server{
 		config:       cfg,
 		analyzer:     analyzer.NewRootCauseAnalyzer(cfg, llmClients),
 		recommender:  recommender.NewEngine(cfg, llmClients),
 		llmClients:   llmClients,
 		orchestrator: orch,
+		ginServer:    ginServer,
+		log:          logger,
 	}
+
+	// 设置路由
+	s.setupRoutes(ginServer.GetEngine())
+
+	return s
 }
 
 // NewServerWithOrchestrator creates a new API server with Orchestrator.
-func NewServerWithOrchestrator(cfg *config.Config, llmClients []llm.Client, orch *orchestrator.Orchestrator) *Server {
-	return &Server{
+func NewServerWithOrchestrator(cfg *config.Config, llmClients []llm.Client, orch *orchestrator.Orchestrator, logger core.Logger) *Server {
+	// 创建 common/server 的配置
+	serverOpts := &commonoptions.ServerOptions{
+		Host:         cfg.Server.Host,
+		Port:         cfg.Server.Port,
+		Mode:         "release",
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	// 创建 Gin 服务器配置
+	ginConfig := httpserver.NewGinServerConfig(serverOpts)
+
+	// 创建 Gin 服务器
+	ginServer := httpserver.NewGinServerFromFullConfig(logger, ginConfig)
+
+	s := &Server{
 		config:       cfg,
 		analyzer:     analyzer.NewRootCauseAnalyzer(cfg, llmClients),
 		recommender:  recommender.NewEngine(cfg, llmClients),
 		llmClients:   llmClients,
 		orchestrator: orch,
+		ginServer:    ginServer,
+		log:          logger,
 	}
+
+	// 设置路由
+	s.setupRoutes(ginServer.GetEngine())
+
+	return s
 }
 
-// Start starts the HTTP server.
-func (s *Server) Start() error {
-	mux := http.NewServeMux()
+// setupRoutes 设置所有路由
+func (s *Server) setupRoutes(engine *gin.Engine) {
+	// 设置中间件
+	engine.Use(s.corsMiddleware())
+	engine.Use(s.loggingMiddleware())
 
 	// Health check
-	mux.HandleFunc("/health", s.handleHealth)
+	engine.GET("/health", s.handleHealth)
 
-	// Analysis endpoints
-	mux.HandleFunc("/api/v1/analyze/root-cause", s.handleRootCauseAnalysis)
-	mux.HandleFunc("/api/v1/analyze/k8s-event", s.handleK8sEventAnalysis)
+	// API v1
+	v1 := engine.Group("/api/v1")
+	{
+		// Analysis endpoints
+		analyze := v1.Group("/analyze")
+		{
+			analyze.POST("/root-cause", s.handleRootCauseAnalysis)
+			analyze.POST("/k8s-event", s.handleK8sEventAnalysis)
+		}
 
-	// New orchestrator endpoint
-	mux.HandleFunc("/api/v1/orchestrator/analyze", s.handleOrchestratorAnalysis)
-
-	addr := fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
-	fmt.Printf("Starting Reasoning Service on %s\n", addr)
-
-	server := &http.Server{
-		Addr:         addr,
-		Handler:      s.corsMiddleware(s.loggingMiddleware(mux)),
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		// Orchestrator endpoint
+		orchestratorGroup := v1.Group("/orchestrator")
+		{
+			orchestratorGroup.POST("/analyze", s.handleOrchestratorAnalysis)
+		}
 	}
 
-	return server.ListenAndServe()
+	if s.log != nil {
+		s.log.Infow("Reasoning service routes configured",
+			"port", s.config.Server.Port,
+			"orchestrator_enabled", s.orchestrator != nil,
+			"llm_count", len(s.llmClients),
+		)
+	}
 }
 
-func (s *Server) corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// Start starts the HTTP server using common/server framework.
+// Note: This method is for backward compatibility
+func (s *Server) Start() error {
+	return s.Run(context.Background())
+}
+
+// Run runs the server using common/server framework
+func (s *Server) Run(ctx context.Context) error {
+	if s.log != nil {
+		s.log.Infow("Starting reasoning service with common/server framework",
+			"host", s.config.Server.Host,
+			"port", s.config.Server.Port,
+		)
+	}
+
+	// 使用 common/server 的 Serve 方法来管理生命周期
+	return commonserver.Serve(ctx, s.ginServer, s.log)
+}
+
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.log != nil {
+		s.log.Info("Reasoning service shutting down")
+	}
+
+	// common/server 的 Serve 方法会自动处理优雅关闭
+	return nil
+}
+
+// GetServer returns the underlying common/server.Server instance
+func (s *Server) GetServer() commonserver.Server {
+	return s.ginServer
+}
+
+// GetEngine returns the Gin Engine instance (for testing or other needs)
+func (s *Server) GetEngine() *gin.Engine {
+	if ginSrv, ok := s.ginServer.(*httpserver.GinServer); ok {
+		return ginSrv.GetEngine()
+	}
+	return nil
+}
+
+// corsMiddleware returns a Gin CORS middleware
+func (s *Server) corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Max-Age", "3600")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Header("Access-Control-Max-Age", "3600")
 
 		// Handle preflight requests
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusOK)
 			return
 		}
 
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }
 
-func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// loggingMiddleware returns a Gin logging middleware
+func (s *Server) loggingMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		start := time.Now()
-		next.ServeHTTP(w, r)
+		c.Next()
 		duration := time.Since(start)
-		fmt.Printf("%s %s %s %v\n", r.Method, r.URL.Path, r.RemoteAddr, duration)
-	})
+
+		if s.log != nil {
+			s.log.Infow("Request processed",
+				"method", c.Request.Method,
+				"path", c.Request.URL.Path,
+				"remote_addr", c.ClientIP(),
+				"duration", duration,
+				"status", c.Writer.Status(),
+			)
+		} else {
+			fmt.Printf("%s %s %s %v %d\n",
+				c.Request.Method,
+				c.Request.URL.Path,
+				c.ClientIP(),
+				duration,
+				c.Writer.Status(),
+			)
+		}
+	}
 }
 
-func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+// handleHealth handles health check endpoint
+func (s *Server) handleHealth(c *gin.Context) {
 	health := types.HealthResponse{
 		Status:  "healthy",
 		Service: "reasoning-service-go",
@@ -206,23 +353,16 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now(),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(health); err != nil {
-		// Log error to stderr since we don't have a logger field
-		fmt.Fprintf(os.Stderr, "Failed to encode health response: %v\n", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, health)
 }
 
-func (s *Server) handleRootCauseAnalysis(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+// handleRootCauseAnalysis handles root cause analysis requests
+func (s *Server) handleRootCauseAnalysis(c *gin.Context) {
 	var req types.AnalysisRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Invalid request: %v", err),
+		})
 		return
 	}
 
@@ -235,7 +375,7 @@ func (s *Server) handleRootCauseAnalysis(w http.ResponseWriter, r *http.Request)
 	}
 
 	start := time.Now()
-	ctx, cancel := context.WithTimeout(r.Context(), s.config.GetRequestTimeout())
+	ctx, cancel := context.WithTimeout(c.Request.Context(), s.config.GetRequestTimeout())
 	defer cancel()
 
 	// Analyze root cause
@@ -251,20 +391,22 @@ func (s *Server) handleRootCauseAnalysis(w http.ResponseWriter, r *http.Request)
 	// Generate recommendations
 	if result.Result != nil && result.Result.RootCause != nil {
 		if err := s.recommender.GenerateRecommendations(ctx, result, &req.Context); err != nil {
-			// Log error to stderr since we don't have a logger field
-			fmt.Fprintf(os.Stderr, "Failed to generate recommendations for request %s: %v\n", req.RequestID, err)
+			// Log error
+			if s.log != nil {
+				s.log.Errorw("Failed to generate recommendations",
+					"request_id", req.RequestID,
+					"error", err,
+				)
+			} else {
+				fmt.Fprintf(os.Stderr, "Failed to generate recommendations for request %s: %v\n", req.RequestID, err)
+			}
 			// Continue without recommendations
 		}
 	}
 
 	result.ProcessingTime = time.Since(start).Seconds()
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(result); err != nil {
-		// Log error to stderr since we don't have a logger field
-		fmt.Fprintf(os.Stderr, "Failed to encode analysis result: %v\n", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, result)
 }
 
 // K8sEventRequest represents a simplified request for K8s event analysis.
@@ -538,31 +680,33 @@ type K8sEventAnalysisResponse struct {
 	Recommendations []string `json:"recommendations,omitempty"`
 }
 
-func (s *Server) handleK8sEventAnalysis(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+// handleK8sEventAnalysis handles K8s event analysis requests
+func (s *Server) handleK8sEventAnalysis(c *gin.Context) {
 	var req K8sEventRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Invalid request: %v", err),
+		})
 		return
 	}
 
 	// Validate event data
 	if req.Event == nil {
-		http.Error(w, "Event data is required", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Event data is required",
+		})
 		return
 	}
 
 	// Check if orchestrator is available
 	if s.orchestrator == nil {
-		http.Error(w, "Orchestrator not initialized", http.StatusServiceUnavailable)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Orchestrator not initialized",
+		})
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), s.config.GetRequestTimeout())
+	ctx, cancel := context.WithTimeout(c.Request.Context(), s.config.GetRequestTimeout())
 	defer cancel()
 
 	// 转换为 Orchestrator 请求
@@ -571,15 +715,14 @@ func (s *Server) handleK8sEventAnalysis(w http.ResponseWriter, r *http.Request) 
 	// 调用 Orchestrator
 	orchResp, err := s.orchestrator.Analyze(ctx, orchReq)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Analysis failed: %v", err), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Analysis failed: %v", err),
+		})
 		return
 	}
 
 	// 转换 Orchestrator 响应为 K8s Event 响应格式
 	response := s.convertOrchestratorToK8sEventResponse(orchResp)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	// 使用标准 APIResponse 格式包装响应
 	apiResp := APIResponse{
@@ -588,31 +731,24 @@ func (s *Server) handleK8sEventAnalysis(w http.ResponseWriter, r *http.Request) 
 		Data:    response,
 	}
 
-	// 创建 JSON encoder 并禁用 HTML 转义
-	encoder := json.NewEncoder(w)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(apiResp); err != nil {
-		// Error already sent to client, just log
-		fmt.Fprintf(os.Stderr, "Failed to encode response: %v\n", err)
-	}
+	c.JSON(http.StatusOK, apiResp)
 }
 
 // handleOrchestratorAnalysis handles analysis requests using the new Orchestrator.
-func (s *Server) handleOrchestratorAnalysis(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (s *Server) handleOrchestratorAnalysis(c *gin.Context) {
 	// Check if orchestrator is enabled
 	if s.orchestrator == nil {
-		http.Error(w, "Orchestrator not enabled", http.StatusServiceUnavailable)
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Orchestrator not enabled",
+		})
 		return
 	}
 
 	var req orchestrator.AnalysisRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Invalid request: %v", err),
+		})
 		return
 	}
 
@@ -627,21 +763,17 @@ func (s *Server) handleOrchestratorAnalysis(w http.ResponseWriter, r *http.Reque
 		req.DetailLevel = "normal"
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 60*time.Second)
 	defer cancel()
 
 	// Call orchestrator
 	result, err := s.orchestrator.Analyze(ctx, &req)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Analysis failed: %v", err), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Analysis failed: %v", err),
+		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(result); err != nil {
-		// Error already sent to client, just log
-		fmt.Fprintf(os.Stderr, "Failed to encode orchestrator result: %v\n", err)
-	}
+	c.JSON(http.StatusOK, result)
 }

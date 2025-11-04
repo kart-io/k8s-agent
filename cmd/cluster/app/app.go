@@ -10,7 +10,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
 	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -42,7 +41,7 @@ func Execute() {
 
 // ClusterApp implements commonapp.Application interface.
 type ClusterApp struct {
-	config *clusterconfig.Config
+	opts   *options.ServerOptions // 直接使用ServerOptions
 	logger core.Logger
 
 	// Component initializers
@@ -58,16 +57,11 @@ func (a *ClusterApp) Name() string {
 
 // Initialize initializes the application.
 func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Convert configuration
-	serverOpts := opts.(*options.ServerOptions)
-	config, err := serverOpts.Config()
-	if err != nil {
-		return fmt.Errorf("failed to build config: %w", err)
-	}
-	a.config = config
+	// 直接保存ServerOptions，不需要转换
+	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger
-	logger, err := serverOpts.InitLogger()
+	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -78,14 +72,9 @@ func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) err
 
 // Run runs the application.
 func (a *ClusterApp) Run(ctx context.Context) error {
-	// Start HTTP server (in goroutine)
-	go func() {
-		if err := a.httpInit.Start(); err != nil {
-			a.logger.Fatalw("HTTP server failed to start", "error", err)
-		}
-	}()
-
-	a.logger.Infow("All services started, waiting for shutdown signal")
+	// The bootstrap framework handles running all servers
+	// This method can be used for additional application logic if needed
+	a.logger.Infow("Cluster service running, waiting for shutdown signal")
 
 	// Wait for shutdown signal
 	<-ctx.Done()
@@ -101,21 +90,16 @@ func (a *ClusterApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *ClusterApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Get server options from bootstrap context
-	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
-	opts := options.NewServerOptions()
-	if err := opts.Complete(); err != nil {
-		return fmt.Errorf("failed to complete options: %w", err)
-	}
+	// 直接使用已有的opts，不需要重新创建
 
 	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(opts.Database, a.logger)
+	a.dbInit = initializers.NewDatabaseInitializer(a.opts.Database, a.logger)
 	bs.Register(a.dbInit)
 
 	// 2. HTTP Server (priority 500)
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		opts.Server,
-		opts.JWT,
+		a.opts.Server,
+		a.opts.JWT,
 		a.logger,
 		a.dbInit,
 	)

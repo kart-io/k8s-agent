@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kart-io/k8s-agent/common/loggerutil"
-	"github.com/kart-io/k8s-agent/internal/gateway/config"
+	"github.com/kart-io/k8s-agent/cmd/gateway/app/options"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
@@ -14,7 +13,7 @@ import (
 // Execute runs the gateway command.
 func Execute() {
 	// Create configuration options
-	opts := config.NewOptions()
+	opts := options.NewOptions()
 
 	// Create application instance
 	app := &GatewayApp{}
@@ -34,7 +33,7 @@ func Execute() {
 
 // GatewayApp implements commonapp.Application interface.
 type GatewayApp struct {
-	config *config.Options
+	opts   *options.Options // 直接使用Options
 	logger core.Logger
 	server *GatewayService
 }
@@ -46,12 +45,11 @@ func (a *GatewayApp) Name() string {
 
 // Initialize initializes the application.
 func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Convert configuration
-	configOpts := opts.(*config.Options)
-	a.config = configOpts
+	// 直接保存Options，不需要转换
+	a.opts = opts.(*options.Options)
 
 	// Initialize logger
-	logger, err := loggerutil.InitFromOptions(configOpts.Logging)
+	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -60,7 +58,7 @@ func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) err
 	a.logger.Info("Starting Gateway Service...")
 
 	// Create service
-	svc, err := NewServer(configOpts, logger)
+	svc, err := NewServer(a.opts, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create service: %w", err)
 	}

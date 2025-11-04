@@ -7,6 +7,7 @@ import (
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
+	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/k8s-agent/internal/reasoning/handler"
 	"github.com/kart-io/k8s-agent/internal/reasoning/server"
 	"github.com/kart-io/logger/core"
@@ -57,7 +58,7 @@ func (i *UnifiedServerInitializer) Initialize(ctx context.Context) error {
 
 	// Get LLM clients and create analyzer
 	llmClients := i.llmInit.GetClients()
-	cfg := i.opts.Config()
+	cfg := config.NewConfigFromOptions(i.opts)
 	rootCauseAnalyzer := analyzer.NewRootCauseAnalyzer(cfg, llmClients)
 
 	// Create unified handler (implements both gRPC and HTTP interfaces)

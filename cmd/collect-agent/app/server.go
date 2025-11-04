@@ -6,24 +6,24 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/k8s-agent/cmd/collect-agent/app/options"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	httpserver "github.com/kart-io/k8s-agent/common/server/http"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/agent"
-	"github.com/kart-io/k8s-agent/internal/collect-agent/config"
 	"github.com/kart-io/logger/core"
 )
 
 // CollectAgentService represents the collect-agent service using common/server.
 type CollectAgentService struct {
-	opts          *config.Options
+	opts          *options.Options
 	log           core.Logger
 	agentInstance *agent.Agent
 	healthServer  commonserver.Server
 }
 
 // NewServer creates a new collect-agent service (使用 common/server).
-func NewServer(opts *config.Options, log core.Logger) (*CollectAgentService, error) {
+func NewServer(opts *options.Options, log core.Logger) (*CollectAgentService, error) {
 	srv := &CollectAgentService{
 		opts: opts,
 		log:  log,
@@ -56,7 +56,7 @@ func (s *CollectAgentService) initialize() error {
 	}
 
 	// Create health server using common/server
-	ginConfig := httpserver.NewGinServerConfig(&options.ServerOptions{
+	ginConfig := httpserver.NewGinServerConfig(&commonoptions.ServerOptions{
 		Host: "",
 		Port: port,
 		Mode: "release",

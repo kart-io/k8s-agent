@@ -20,10 +20,10 @@ const (
 	DuplicateFilterTTL = 5 * time.Minute
 
 	// SeverityLevels for event severity categorization
-	SeverityLow      = 2
-	SeverityMedium   = 3
-	SeverityHigh     = 4
-	SeverityDivider  = 2 // Used for determining urgency levels
+	SeverityLow     = 2
+	SeverityMedium  = 3
+	SeverityHigh    = 4
+	SeverityDivider = 2 // Used for determining urgency levels
 
 	// MaxRetryAttempts for event processing
 	MaxRetryAttempts = 10

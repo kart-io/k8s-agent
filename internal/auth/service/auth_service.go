@@ -8,7 +8,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/kart-io/k8s-agent/internal/auth/config"
+	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/jwt"
 	"github.com/kart-io/k8s-agent/internal/auth/model"
@@ -20,11 +20,11 @@ import (
 type AuthService struct {
 	db    *storage.PostgresDB
 	redis *storage.RedisClient
-	cfg   *config.Config
+	cfg   *options.ServerOptions
 }
 
 // NewAuthService creates a new auth service.
-func NewAuthService(db *storage.PostgresDB, redis *storage.RedisClient, cfg *config.Config) *AuthService {
+func NewAuthService(db *storage.PostgresDB, redis *storage.RedisClient, cfg *options.ServerOptions) *AuthService {
 	return &AuthService{
 		db:    db,
 		redis: redis,

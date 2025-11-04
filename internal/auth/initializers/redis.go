@@ -1,7 +1,7 @@
 package initializers
 
 import (
-	"github.com/kart-io/k8s-agent/internal/auth/config"
+	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
@@ -12,7 +12,7 @@ type RedisInitializer struct {
 }
 
 // NewRedisInitializer creates a Redis initializer for auth service.
-func NewRedisInitializer(cfg *config.Config, logger core.Logger) *RedisInitializer {
+func NewRedisInitializer(cfg *options.ServerOptions, logger core.Logger) *RedisInitializer {
 	// Create the base initializer
 	redisInit := pkginitializers.NewRedisInitializer(cfg.Redis, logger)
 

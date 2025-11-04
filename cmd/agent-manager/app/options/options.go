@@ -10,7 +10,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	agentmanager "github.com/kart-io/k8s-agent/internal/agent-manager"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
@@ -77,20 +76,6 @@ func (o *ServerOptions) Complete() error {
 func (o *ServerOptions) Validate() []error {
 	// 使用通用工具函数统一验证所有子选项
 	return commonoptions.ValidateAll(o)
-}
-
-// Config builds an agentmanager.Config based on ServerOptions.
-// This method converts startup-layer configuration to business-layer configuration.
-func (o *ServerOptions) Config() (*agentmanager.Config, error) {
-	return &agentmanager.Config{
-		Server:   o.Server,
-		GRPC:     o.GRPC,
-		Database: o.Database,
-		Redis:    o.Redis,
-		NATS:     o.NATS,
-		Logging:  o.Logging,
-		Metrics:  o.Metrics,
-	}, nil
 }
 
 // GetServiceName returns the service name.

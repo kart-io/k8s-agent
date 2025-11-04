@@ -10,7 +10,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -42,7 +41,7 @@ func Execute() {
 
 // ReasoningApp implements commonapp.Application interface.
 type ReasoningApp struct {
-	config *reasoningconfig.Config
+	opts   *options.ServerOptions // 直接使用ServerOptions
 	logger core.Logger
 
 	// Component initializers
@@ -58,13 +57,11 @@ func (a *ReasoningApp) Name() string {
 
 // Initialize initializes the application.
 func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Convert configuration
-	serverOpts := opts.(*options.ServerOptions)
-	config := serverOpts.Config()
-	a.config = config
+	// 直接保存ServerOptions，不需要转换
+	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger
-	logger, err := serverOpts.InitLogger()
+	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -90,15 +87,10 @@ func (a *ReasoningApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Get server options from bootstrap context
-	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
-	opts := options.NewServerOptions()
-	if err := opts.Complete(); err != nil {
-		return fmt.Errorf("failed to complete options: %w", err)
-	}
+	// 直接使用已有的opts，不需要重新创建
 
 	// 1. LLM Clients (priority 400)
-	a.llmInit = initializers.NewLLMInitializer(opts.LLM, a.logger)
+	a.llmInit = initializers.NewLLMInitializer(a.opts.LLM, a.logger)
 	bs.Register(a.llmInit)
 
 	// 2. Unified Server (gRPC + HTTP using Kratos framework, OneX architecture pattern)
@@ -106,7 +98,7 @@ func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	// A single handler implements both ReasoningServiceServer (gRPC) and ReasoningServiceHTTPServer (HTTP)
 	// This follows the OneX pattern where both protocols share the same handler methods
 	a.unifiedServerInit = initializers.NewUnifiedServerInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.llmInit,
 	)

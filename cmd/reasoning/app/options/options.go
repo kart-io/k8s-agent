@@ -9,7 +9,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/logger/core"
 )
 
@@ -87,19 +86,4 @@ func (o *ServerOptions) InitLogger() (core.Logger, error) {
 // 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *ServerOptions) GetHealthPort() int {
 	return o.Server.Port // Reasoning 健康检查端口
-}
-
-// Config converts ServerOptions to internal reasoning config
-// This method is required by the Bootstrap pattern.
-func (o *ServerOptions) Config() *reasoningconfig.Config {
-	return &reasoningconfig.Config{
-		Server:      *o.Server,
-		LLM:         *o.LLM,
-		Memory:      *o.Memory,
-		Analysis:    *o.Analysis,
-		Prediction:  *o.Prediction,
-		Learning:    *o.Learning,
-		Performance: *o.Performance,
-		Logging:     *o.Logging,
-	}
 }

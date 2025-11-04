@@ -10,8 +10,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	"github.com/kart-io/k8s-agent/internal/auth"
-	authconfig "github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/k8s-agent/internal/auth/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -43,7 +41,7 @@ func Execute() {
 
 // AuthApp implements commonapp.Application interface.
 type AuthApp struct {
-	config *auth.Config
+	opts   *options.ServerOptions // 直接使用 ServerOptions，不转换
 	logger core.Logger
 
 	// Component initializers
@@ -65,16 +63,11 @@ func (a *AuthApp) Name() string {
 
 // Initialize initializes the application.
 func (a *AuthApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Convert configuration
-	serverOpts := opts.(*options.ServerOptions)
-	config, err := serverOpts.Config()
-	if err != nil {
-		return fmt.Errorf("failed to build config: %w", err)
-	}
-	a.config = config
+	// 直接保存 ServerOptions，不需要转换
+	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger
-	logger, err := serverOpts.InitLogger()
+	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -100,27 +93,19 @@ func (a *AuthApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Get server options from bootstrap context
-	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
-	opts := options.NewServerOptions()
-	if err := opts.Complete(); err != nil {
-		return fmt.Errorf("failed to complete options: %w", err)
-	}
-
-	// Convert to internal options format
-	internalOpts := a.convertToInternalOptions(opts)
+	// 直接使用已有的 opts，不需要重新创建或转换
 
 	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(internalOpts, a.logger)
+	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
 	bs.Register(a.dbInit)
 
 	// 2. Redis (priority 400)
-	a.redisInit = initializers.NewRedisInitializer(internalOpts, a.logger)
+	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
 	bs.Register(a.redisInit)
 
 	// 3. Session Service (priority 450)
 	a.sessionInit = initializers.NewSessionServiceInitializer(
-		internalOpts,
+		a.opts,
 		a.logger,
 		a.dbInit,
 		a.redisInit,
@@ -128,12 +113,12 @@ func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.sessionInit)
 
 	// 4. Email Client (priority 450)
-	a.emailInit = initializers.NewEmailClientInitializer(internalOpts, a.logger)
+	a.emailInit = initializers.NewEmailClientInitializer(a.opts, a.logger)
 	bs.Register(a.emailInit)
 
 	// 5. Audit Service (priority 460)
 	a.auditInit = initializers.NewAuditServiceInitializer(
-		internalOpts,
+		a.opts,
 		a.logger,
 		a.dbInit,
 	)
@@ -141,7 +126,7 @@ func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 6. Notification Service (priority 470)
 	a.notificationInit = initializers.NewNotificationServiceInitializer(
-		internalOpts,
+		a.opts,
 		a.logger,
 		a.dbInit,
 		a.emailInit,
@@ -150,7 +135,7 @@ func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 7. Forced Logout Service (priority 490)
 	a.forcedLogoutInit = initializers.NewForcedLogoutServiceInitializer(
-		internalOpts,
+		a.opts,
 		a.logger,
 		a.sessionInit,
 		a.auditInit,
@@ -160,7 +145,7 @@ func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 8. HTTP Server (priority 600)
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		internalOpts,
+		a.opts,
 		a.logger,
 		a.dbInit,
 		a.redisInit,
@@ -178,16 +163,4 @@ func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.healthInit)
 
 	return nil
-}
-
-// convertToInternalOptions converts cmd/auth options to internal/auth/config options.
-func (a *AuthApp) convertToInternalOptions(serverOpts *options.ServerOptions) *authconfig.Config {
-	return &authconfig.Config{
-		Server:   serverOpts.Server,
-		Database: serverOpts.Database,
-		Redis:    serverOpts.Redis,
-		JWT:      serverOpts.JWT,
-		Logging:  serverOpts.Logging,
-		Email:    serverOpts.Email,
-	}
 }

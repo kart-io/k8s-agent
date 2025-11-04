@@ -6,6 +6,7 @@ import (
 
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
 	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
+	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 	grpcserver "github.com/kart-io/k8s-agent/internal/reasoning/grpc"
 	"github.com/kart-io/k8s-agent/internal/reasoning/service"
 	"github.com/kart-io/logger/core"
@@ -59,7 +60,7 @@ func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 
 	// Get LLM clients and create analyzer
 	llmClients := i.llmInit.GetClients()
-	cfg := i.opts.Config()
+	cfg := config.NewConfigFromOptions(i.opts)
 	rootCauseAnalyzer := analyzer.NewRootCauseAnalyzer(cfg, llmClients)
 
 	// Create shared reasoning service

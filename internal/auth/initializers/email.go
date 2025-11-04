@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/kart-io/k8s-agent/internal/auth/config"
+	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
 	"github.com/kart-io/k8s-agent/internal/auth/email"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
@@ -12,14 +12,14 @@ import (
 
 // EmailClientInitializer Email 客户端初始化器.
 type EmailClientInitializer struct {
-	cfg    *config.Config
+	cfg    *options.ServerOptions
 	logger core.Logger
 	client email.Client
 }
 
 // NewEmailClientInitializer 创建 Email 客户端初始化器.
 func NewEmailClientInitializer(
-	cfg *config.Config,
+	cfg *options.ServerOptions,
 	logger core.Logger,
 ) *EmailClientInitializer {
 	return &EmailClientInitializer{

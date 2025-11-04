@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/k8s-agent/cmd/gateway/app/options"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	httpserver "github.com/kart-io/k8s-agent/common/server/http"
-	"github.com/kart-io/k8s-agent/internal/gateway/config"
 	"github.com/kart-io/k8s-agent/internal/gateway/middleware"
 	"github.com/kart-io/k8s-agent/internal/gateway/router"
 	"github.com/kart-io/logger/core"
@@ -19,14 +19,14 @@ import (
 
 // GatewayService represents the gateway service using common/server.
 type GatewayService struct {
-	opts   *config.Options
+	opts   *options.Options
 	log    core.Logger
 	rdb    *redis.Client
 	server commonserver.Server
 }
 
 // NewServer creates a new gateway service (使用 common/server).
-func NewServer(opts *config.Options, log core.Logger) (*GatewayService, error) {
+func NewServer(opts *options.Options, log core.Logger) (*GatewayService, error) {
 	svc := &GatewayService{
 		opts: opts,
 		log:  log,
@@ -50,7 +50,7 @@ func (s *GatewayService) initialize() {
 	routerHandler := router.Setup(s.log)
 
 	// Create Gin server config using common/server
-	ginConfig := httpserver.NewGinServerConfig(&options.ServerOptions{
+	ginConfig := httpserver.NewGinServerConfig(&commonoptions.ServerOptions{
 		Host:         s.opts.Server.Host,
 		Port:         s.opts.Server.Port,
 		Mode:         s.opts.Server.Mode,

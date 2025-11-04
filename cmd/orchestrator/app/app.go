@@ -6,7 +6,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	orchestrator "github.com/kart-io/k8s-agent/internal/orchestrator"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -38,7 +37,7 @@ func Execute() {
 
 // OrchestratorApp implements commonapp.Application interface.
 type OrchestratorApp struct {
-	config *orchestrator.Config
+	opts   *options.ServerOptions // 直接使用ServerOptions
 	logger core.Logger
 
 	// Component initializers
@@ -60,16 +59,11 @@ func (a *OrchestratorApp) Name() string {
 
 // Initialize initializes the application.
 func (a *OrchestratorApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Convert configuration
-	serverOpts := opts.(*options.ServerOptions)
-	config, err := serverOpts.Config()
-	if err != nil {
-		return fmt.Errorf("failed to build config: %w", err)
-	}
-	a.config = config
+	// 直接保存ServerOptions，不需要转换
+	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger
-	logger, err := serverOpts.InitLogger()
+	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -95,28 +89,23 @@ func (a *OrchestratorApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Get server options from bootstrap context
-	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
-	opts := options.NewServerOptions()
-	if err := opts.Complete(); err != nil {
-		return fmt.Errorf("failed to complete options: %w", err)
-	}
+	// 直接使用已有的opts，不需要重新创建
 
 	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(opts, a.logger)
+	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
 	bs.Register(a.dbInit)
 
 	// 2. Redis (priority 400)
-	a.redisInit = initializers.NewRedisInitializer(opts, a.logger)
+	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
 	bs.Register(a.redisInit)
 
 	// 3. NATS (priority 500)
-	a.natsInit = initializers.NewNATSInitializer(opts, a.logger)
+	a.natsInit = initializers.NewNATSInitializer(a.opts, a.logger)
 	bs.Register(a.natsInit)
 
 	// 4. Workflow Engine (priority 550 - after Database and Redis)
 	a.workflowInit = initializers.NewWorkflowInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.dbInit,
 		a.redisInit,
@@ -125,7 +114,7 @@ func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 5. Strategy Manager (priority 600 - after Workflow)
 	a.strategyInit = initializers.NewStrategyInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.dbInit,
 		a.workflowInit,
@@ -134,7 +123,7 @@ func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 6. Subscriber (priority 650 - after Strategy)
 	a.subInit = initializers.NewSubscriberInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.natsInit,
 		a.strategyInit,
@@ -143,7 +132,7 @@ func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
 
 	// 7. gRPC Server (priority 700 - after Workflow and Strategy)
 	a.grpcInit = initializers.NewGRPCServerInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.workflowInit,
 		a.dbInit,
@@ -153,7 +142,7 @@ func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	// 8. HTTP Server with gRPC-Gateway (priority 800 - after gRPC)
 	// HTTP requests will be automatically converted to gRPC calls using the same workflow service!
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		opts,
+		a.opts,
 		a.logger,
 		a.grpcInit, // Pass gRPC init to get shared service
 	)

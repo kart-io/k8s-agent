@@ -9,7 +9,6 @@ import (
 
 	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
 	"github.com/kart-io/logger/core"
 )
 
@@ -73,35 +72,4 @@ func (o *ServerOptions) GetLogFields() []interface{} {
 // 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *ServerOptions) GetHealthPort() int {
 	return o.Server.Port // Cluster 健康检查端口
-}
-
-// Config converts ServerOptions to internal cluster config
-// This method is required by the Bootstrap pattern.
-func (o *ServerOptions) Config() (*clusterconfig.Config, error) {
-	// Convert to legacy config format for backward compatibility
-	return &clusterconfig.Config{
-		Server: clusterconfig.ServerConfig{
-			Port:         o.Server.Port,
-			Mode:         o.Server.Mode,
-			ReadTimeout:  o.Server.ReadTimeout.String(),
-			WriteTimeout: o.Server.WriteTimeout.String(),
-		},
-		Database: clusterconfig.DatabaseConfig{
-			Host:         o.Database.Host,
-			Port:         o.Database.Port,
-			User:         o.Database.User,
-			Password:     o.Database.Password,
-			DBName:       o.Database.Database,
-			SSLMode:      o.Database.SSLMode,
-			MaxOpenConns: o.Database.MaxOpenConns,
-			MaxIdleConns: o.Database.MaxIdleConns,
-		},
-		JWT: clusterconfig.JWTConfig{
-			Secret: o.JWT.Secret,
-		},
-		Logging: clusterconfig.LoggingConfig{
-			Level:  o.Logging.Level,
-			Format: o.Logging.Format,
-		},
-	}, nil
 }
