@@ -12,7 +12,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// BenchmarkEventProcessing benchmarks event processing throughput
+// BenchmarkEventProcessing benchmarks event processing throughput.
 func BenchmarkEventProcessing(b *testing.B) {
 	logger := core.NewNoOpLogger(nil)
 	clientset := fake.NewSimpleClientset()
@@ -44,7 +44,7 @@ func BenchmarkEventProcessing(b *testing.B) {
 	}
 }
 
-// BenchmarkMetricsCollection benchmarks metrics collection performance
+// BenchmarkMetricsCollection benchmarks metrics collection performance.
 func BenchmarkMetricsCollection(b *testing.B) {
 	logger := core.NewNoOpLogger(nil)
 
@@ -73,7 +73,7 @@ func BenchmarkMetricsCollection(b *testing.B) {
 	}
 }
 
-// BenchmarkCommandValidation benchmarks command validation performance
+// BenchmarkCommandValidation benchmarks command validation performance.
 func BenchmarkCommandValidation(b *testing.B) {
 	logger := core.NewNoOpLogger(nil)
 	clientset := fake.NewSimpleClientset()
@@ -90,11 +90,11 @@ func BenchmarkCommandValidation(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		executor.validateCommand(cmd)
+		_ = executor.validateCommand(cmd)
 	}
 }
 
-// BenchmarkChannelThroughput benchmarks channel communication throughput
+// BenchmarkChannelThroughput benchmarks channel communication throughput.
 func BenchmarkChannelThroughput(b *testing.B) {
 	eventChan := make(chan *types.Event, 1000)
 
@@ -119,7 +119,7 @@ func BenchmarkChannelThroughput(b *testing.B) {
 	}
 }
 
-// BenchmarkAgentStatus benchmarks status retrieval
+// BenchmarkAgentStatus benchmarks status retrieval.
 func BenchmarkAgentStatus(b *testing.B) {
 	logger := core.NewNoOpLogger(nil)
 	config := &types.AgentConfig{
@@ -155,7 +155,7 @@ func BenchmarkAgentStatus(b *testing.B) {
 	}
 }
 
-// BenchmarkConcurrentEventProcessing benchmarks concurrent event processing
+// BenchmarkConcurrentEventProcessing benchmarks concurrent event processing.
 func BenchmarkConcurrentEventProcessing(b *testing.B) {
 	logger := core.NewNoOpLogger(nil)
 	clientset := fake.NewSimpleClientset()
@@ -186,7 +186,7 @@ func BenchmarkConcurrentEventProcessing(b *testing.B) {
 	})
 }
 
-// BenchmarkMemoryAllocation benchmarks memory allocation patterns
+// BenchmarkMemoryAllocation benchmarks memory allocation patterns.
 func BenchmarkMemoryAllocation(b *testing.B) {
 	b.ReportAllocs()
 

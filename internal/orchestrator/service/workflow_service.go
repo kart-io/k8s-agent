@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -17,7 +18,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// WorkflowServiceServer implements the WorkflowService gRPC service
+// WorkflowServiceServer implements the WorkflowService gRPC service.
 type WorkflowServiceServer struct {
 	orchestratorv1.UnimplementedWorkflowServiceServer
 
@@ -26,7 +27,7 @@ type WorkflowServiceServer struct {
 	logger core.Logger
 }
 
-// NewWorkflowServiceServer creates a new WorkflowServiceServer
+// NewWorkflowServiceServer creates a new WorkflowServiceServer.
 func NewWorkflowServiceServer(
 	engine *workflow.Engine,
 	store *storage.PostgresStore,
@@ -39,7 +40,7 @@ func NewWorkflowServiceServer(
 	}
 }
 
-// CreateWorkflow creates a new workflow
+// CreateWorkflow creates a new workflow.
 func (s *WorkflowServiceServer) CreateWorkflow(
 	ctx context.Context,
 	req *orchestratorv1.CreateWorkflowRequest,
@@ -112,7 +113,7 @@ func (s *WorkflowServiceServer) CreateWorkflow(
 	}, nil
 }
 
-// GetWorkflow retrieves a workflow by ID
+// GetWorkflow retrieves a workflow by ID.
 func (s *WorkflowServiceServer) GetWorkflow(
 	ctx context.Context,
 	req *orchestratorv1.GetWorkflowRequest,
@@ -140,7 +141,7 @@ func (s *WorkflowServiceServer) GetWorkflow(
 	}, nil
 }
 
-// ListWorkflows lists workflows
+// ListWorkflows lists workflows.
 func (s *WorkflowServiceServer) ListWorkflows(
 	ctx context.Context,
 	req *orchestratorv1.ListWorkflowsRequest,
@@ -181,18 +182,27 @@ func (s *WorkflowServiceServer) ListWorkflows(
 		protoWorkflows = append(protoWorkflows, protoWf)
 	}
 
+	// Safe conversion to int32
+	workflowCount := len(protoWorkflows)
+	var pageSizeInt32 int32
+	if workflowCount > int(0x7FFFFFFF) {
+		pageSizeInt32 = 0x7FFFFFFF
+	} else {
+		pageSizeInt32 = int32(workflowCount)
+	}
+
 	return &orchestratorv1.ListWorkflowsResponse{
 		Workflows: protoWorkflows,
 		Pagination: &paginationv1.PaginationMetadata{
-			Total:      int64(len(protoWorkflows)),
+			Total:      int64(workflowCount),
 			Page:       1,
-			PageSize:   int32(len(protoWorkflows)),
+			PageSize:   pageSizeInt32,
 			TotalPages: 1,
 		},
 	}, nil
 }
 
-// ExecuteWorkflow executes a workflow
+// ExecuteWorkflow executes a workflow.
 func (s *WorkflowServiceServer) ExecuteWorkflow(
 	ctx context.Context,
 	req *orchestratorv1.ExecuteWorkflowRequest,
@@ -234,7 +244,7 @@ func (s *WorkflowServiceServer) ExecuteWorkflow(
 	}, nil
 }
 
-// GetExecutionStatus retrieves execution status
+// GetExecutionStatus retrieves execution status.
 func (s *WorkflowServiceServer) GetExecutionStatus(
 	ctx context.Context,
 	req *orchestratorv1.GetExecutionStatusRequest,
@@ -351,10 +361,16 @@ func workflowToProto(wf *types.Workflow) (*orchestratorv1.Workflow, error) {
 			}
 		}
 
-		// Get retry count from RetryPolicy
+		// Get retry count from RetryPolicy with safe conversion
 		retryCount := int32(0)
 		if step.RetryPolicy != nil {
-			retryCount = int32(step.RetryPolicy.MaxRetries)
+			maxRetries := step.RetryPolicy.MaxRetries
+			if int64(maxRetries) > math.MaxInt32 {
+				retryCount = math.MaxInt32
+			} else {
+				// #nosec G115 -- overflow checked above
+				retryCount = int32(maxRetries)
+			}
 		}
 
 		protoStep := &orchestratorv1.WorkflowStep{

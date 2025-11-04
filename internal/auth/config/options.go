@@ -7,7 +7,7 @@ import (
 )
 
 // Options defines options for auth service
-// This replaces the old Config struct to align with the pkg/app framework
+// This replaces the old Config struct to align with the pkg/app framework.
 type Options struct {
 	Server   *commonoptions.ServerOptions   `json:"server" mapstructure:"server"`
 	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
@@ -17,7 +17,7 @@ type Options struct {
 	Email    *commonoptions.EmailOptions    `json:"email" mapstructure:"email"`
 }
 
-// NewOptions creates a new Options instance with default values
+// NewOptions creates a new Options instance with default values.
 func NewOptions() *Options {
 	return &Options{
 		Server:   commonoptions.NewServerOptions(),
@@ -29,7 +29,7 @@ func NewOptions() *Options {
 	}
 }
 
-// Validate validates all the required options
+// Validate validates all the required options.
 func (o *Options) Validate() []error {
 	var errs []error
 
@@ -60,7 +60,7 @@ func (o *Options) Validate() []error {
 	return errs
 }
 
-// Complete fills in any fields not set that are required to have valid data
+// Complete fills in any fields not set that are required to have valid data.
 func (o *Options) Complete() error {
 	// Complete all sub-options
 	if err := o.Server.Complete(); err != nil {
@@ -91,7 +91,7 @@ func (o *Options) Complete() error {
 }
 
 // AddFlags adds flags to the flag set
-// Note: --config/-c flag is automatically added by pkg/app framework
+// Note: --config/-c flag is automatically added by pkg/app framework.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
 	o.Database.AddFlags(fs)

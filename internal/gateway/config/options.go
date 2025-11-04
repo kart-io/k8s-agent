@@ -9,7 +9,7 @@ import (
 )
 
 // Options defines options for gateway service
-// This implements the pkg/app.Options interface
+// This implements the pkg/app.Options interface.
 type Options struct {
 	Server  *commonoptions.ServerOptions  `json:"server" mapstructure:"server"`
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
@@ -25,14 +25,14 @@ type Options struct {
 	Metrics     MetricsOptions     `json:"metrics" mapstructure:"metrics"`
 }
 
-// RateLimitOptions holds rate limiting configuration
+// RateLimitOptions holds rate limiting configuration.
 type RateLimitOptions struct {
 	Enabled           bool `json:"enabled" mapstructure:"enabled"`
 	RequestsPerSecond int  `json:"requests_per_second" mapstructure:"requests_per_second"`
 	Burst             int  `json:"burst" mapstructure:"burst"`
 }
 
-// CORSOptions holds CORS configuration
+// CORSOptions holds CORS configuration.
 type CORSOptions struct {
 	Enabled          bool          `json:"enabled" mapstructure:"enabled"`
 	AllowOrigins     []string      `json:"allow_origins" mapstructure:"allow_origins"`
@@ -43,7 +43,7 @@ type CORSOptions struct {
 	MaxAge           time.Duration `json:"max_age" mapstructure:"max_age"`
 }
 
-// ServiceOptions holds individual service configuration
+// ServiceOptions holds individual service configuration.
 type ServiceOptions struct {
 	Name        string        `json:"name" mapstructure:"name"`
 	URL         string        `json:"url" mapstructure:"url"`
@@ -52,7 +52,7 @@ type ServiceOptions struct {
 	HealthCheck string        `json:"health_check" mapstructure:"health_check"`
 }
 
-// ServicesOptions holds all backend services configuration
+// ServicesOptions holds all backend services configuration.
 type ServicesOptions struct {
 	Auth         ServiceOptions `json:"auth" mapstructure:"auth"`
 	AgentManager ServiceOptions `json:"agent_manager" mapstructure:"agent_manager"`
@@ -60,7 +60,7 @@ type ServicesOptions struct {
 	Reasoning    ServiceOptions `json:"reasoning" mapstructure:"reasoning"`
 }
 
-// RouteOptions holds route configuration
+// RouteOptions holds route configuration.
 type RouteOptions struct {
 	Path         string `json:"path" mapstructure:"path"`
 	Service      string `json:"service" mapstructure:"service"`
@@ -68,20 +68,20 @@ type RouteOptions struct {
 	AuthRequired bool   `json:"auth_required" mapstructure:"auth_required"`
 }
 
-// HealthCheckOptions holds health check configuration
+// HealthCheckOptions holds health check configuration.
 type HealthCheckOptions struct {
 	Enabled  bool          `json:"enabled" mapstructure:"enabled"`
 	Interval time.Duration `json:"interval" mapstructure:"interval"`
 	Timeout  time.Duration `json:"timeout" mapstructure:"timeout"`
 }
 
-// MetricsOptions holds metrics configuration
+// MetricsOptions holds metrics configuration.
 type MetricsOptions struct {
 	Enabled bool   `json:"enabled" mapstructure:"enabled"`
 	Path    string `json:"path" mapstructure:"path"`
 }
 
-// NewOptions creates a new Options instance with default values
+// NewOptions creates a new Options instance with default values.
 func NewOptions() *Options {
 	return &Options{
 		Server:  commonoptions.NewServerOptions(),
@@ -144,7 +144,7 @@ func NewOptions() *Options {
 	}
 }
 
-// Validate validates all the required options
+// Validate validates all the required options.
 func (o *Options) Validate() []error {
 	var errs []error
 
@@ -177,7 +177,7 @@ func (o *Options) Validate() []error {
 	return errs
 }
 
-// Complete fills in any fields not set that are required to have valid data
+// Complete fills in any fields not set that are required to have valid data.
 func (o *Options) Complete() error {
 	if err := o.Server.Complete(); err != nil {
 		return err
@@ -220,13 +220,13 @@ func (o *Options) Complete() error {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions
+// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *Options) GetHealthPort() int {
 	return 8095 // Gateway 健康检查端口
 }
 
 // AddFlags adds flags to the flag set
-// Note: --config/-c flag is automatically added by pkg/app framework
+// Note: --config/-c flag is automatically added by pkg/app framework.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
 	o.Logging.AddFlags(fs)

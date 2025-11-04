@@ -84,7 +84,7 @@ func (s *Server) setupRoutes(metricsHandler *handler.MetricsHandler) {
 	}
 }
 
-// Start 启动服务器
+// Start 启动服务器.
 func (s *Server) Start() error {
 	// 启动 Prometheus metrics 服务器
 	if s.metricsPort > 0 {
@@ -98,20 +98,25 @@ func (s *Server) Start() error {
 	return nil
 }
 
-// Shutdown 优雅关闭
+// Shutdown 优雅关闭.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.log.Info("Shutting down server...")
 	return s.httpServer.Shutdown(ctx)
 }
 
-// startMetricsServer 启动 Prometheus 指标服务器
+// startMetricsServer 启动 Prometheus 指标服务器.
 func (s *Server) startMetricsServer() {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.metricsPort),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", s.metricsPort),
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MB
 	}
 
 	s.log.Infow("Starting Prometheus metrics server", "port", s.metricsPort)

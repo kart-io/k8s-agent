@@ -20,6 +20,11 @@ import (
 const (
 	// UserAgent is the userAgent name when starting orchestrator server.
 	UserAgent = "aetherius-orchestrator"
+
+	// Default timeout and retry settings
+	defaultAITimeout   = 30 * time.Second
+	defaultMaxRetries  = 3
+	defaultHTTPTimeout = 30 * time.Second
 )
 
 // ServerOptions contains the configuration options for the orchestrator server.
@@ -59,8 +64,8 @@ func NewAIOptions() *AIOptions {
 	return &AIOptions{
 		ReasoningServiceURL: "http://localhost:8083", // Reasoning service 端口
 		AgentManagerURL:     "http://localhost:8081", // Agent Manager 端口
-		Timeout:             30 * time.Second,
-		MaxRetries:          3,
+		Timeout:             defaultAITimeout,
+		MaxRetries:          defaultMaxRetries,
 	}
 }
 
@@ -90,10 +95,10 @@ func (o *AIOptions) Complete() error {
 		o.AgentManagerURL = "http://localhost:8081"
 	}
 	if o.Timeout == 0 {
-		o.Timeout = 30 * time.Second
+		o.Timeout = defaultAITimeout
 	}
 	if o.MaxRetries == 0 {
-		o.MaxRetries = 3
+		o.MaxRetries = defaultMaxRetries
 	}
 	return nil
 }
@@ -116,7 +121,7 @@ func NewServerOptions() *ServerOptions {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions
+// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *ServerOptions) GetHealthPort() int {
 	return o.Server.Port // Orchestrator 健康检查端口
 }
@@ -159,12 +164,12 @@ func (o *ServerOptions) Config() (*orchestrator.Config, error) {
 	}, nil
 }
 
-// GetServiceName returns the service name
+// GetServiceName returns the service name.
 func (o *ServerOptions) GetServiceName() string {
 	return "Orchestrator"
 }
 
-// GetLogFields returns log fields for initialization logging
+// GetLogFields returns log fields for initialization logging.
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,

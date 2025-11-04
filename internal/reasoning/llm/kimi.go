@@ -7,20 +7,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
 // KimiClient implements the Client interface for Kimi (Moonshot AI)
-// Kimi provides OpenAI-compatible API with excellent long-text capability
+// Kimi provides OpenAI-compatible API with excellent long-text capability.
 type KimiClient struct {
 	config     *Config
 	httpClient *http.Client
 }
 
-// NewKimiClient creates a new Kimi client
+// NewKimiClient creates a new Kimi client.
 func NewKimiClient(config *Config) (*KimiClient, error) {
 	if config.APIKey == "" {
-		return nil, fmt.Errorf("Kimi API key is required")
+		return nil, fmt.Errorf("kimi API key is required")
 	}
 
 	if config.BaseURL == "" {
@@ -76,7 +77,7 @@ type kimiResponse struct {
 	} `json:"usage"`
 }
 
-// Complete implements the Client interface
+// Complete implements the Client interface.
 func (c *KimiClient) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	model := c.config.Model
 	if req.Model != "" {
@@ -117,11 +118,16 @@ func (c *KimiClient) Complete(ctx context.Context, req *CompletionRequest) (*Com
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but don't fail the request
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Kimi API error (status %d): %s", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("kimi API error (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var apiResp kimiResponse
@@ -141,7 +147,7 @@ func (c *KimiClient) Complete(ctx context.Context, req *CompletionRequest) (*Com
 	}, nil
 }
 
-// AnalyzeRootCause uses Kimi to analyze root cause
+// AnalyzeRootCause uses Kimi to analyze root cause.
 func (c *KimiClient) AnalyzeRootCause(ctx context.Context, event map[string]interface{}, logs string, metrics string) (string, error) {
 	eventJSON, _ := json.MarshalIndent(event, "", "  ")
 
@@ -173,7 +179,7 @@ Provide your root cause analysis.`, string(eventJSON), logs, metrics)
 	return resp.Content, nil
 }
 
-// GenerateRecommendations uses Kimi to generate recommendations
+// GenerateRecommendations uses Kimi to generate recommendations.
 func (c *KimiClient) GenerateRecommendations(ctx context.Context, rootCause string, contextInfo string) (string, error) {
 	systemPrompt := RecommendationsSystemPrompt
 
@@ -197,12 +203,12 @@ Provide recommended actions to fix this issue.`, rootCause, contextInfo)
 	return resp.Content, nil
 }
 
-// Provider returns the provider type
+// Provider returns the provider type.
 func (c *KimiClient) Provider() Provider {
 	return ProviderKimi
 }
 
-// IsAvailable checks if Kimi is available
+// IsAvailable checks if Kimi is available.
 func (c *KimiClient) IsAvailable() bool {
 	return c.config.APIKey != ""
 }

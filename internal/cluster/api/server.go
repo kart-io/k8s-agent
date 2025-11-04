@@ -9,8 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/kart-io/k8s-agent/common/middleware"
-	"github.com/kart-io/k8s-agent/internal/cluster/handler"
-	handler2 "github.com/kart-io/k8s-agent/internal/cluster/handler"
+	handlerpkg "github.com/kart-io/k8s-agent/internal/cluster/handler"
 	"github.com/kart-io/logger/core"
 )
 
@@ -24,19 +23,19 @@ type ServerConfig struct {
 
 type Server struct {
 	config         *ServerConfig
-	handler        *handler.ClusterHandler
-	k8sAPIHandler  *handler.K8sAPIHandler
-	versionHandler *handler.VersionHandler
+	handler        *handlerpkg.ClusterHandler
+	k8sAPIHandler  *handlerpkg.K8sAPIHandler
+	versionHandler *handlerpkg.VersionHandler
 	log            core.Logger
 	engine         *gin.Engine
 	server         *http.Server
 }
 
-// NewServer 创建新的服务器实例
+// NewServer 创建新的服务器实例.
 func NewServer(
 	config *ServerConfig,
-	handler *handler.ClusterHandler,
-	k8sAPIHandler *handler.K8sAPIHandler,
+	handler *handlerpkg.ClusterHandler,
+	k8sAPIHandler *handlerpkg.K8sAPIHandler,
 	logger core.Logger,
 ) *Server {
 	gin.SetMode(config.Mode)
@@ -54,7 +53,7 @@ func NewServer(
 		config:         config,
 		handler:        handler,
 		k8sAPIHandler:  k8sAPIHandler,
-		versionHandler: handler2.NewVersionHandler(),
+		versionHandler: handlerpkg.NewVersionHandler(),
 		log:            logger,
 		engine:         engine,
 	}
@@ -63,7 +62,7 @@ func NewServer(
 	return s
 }
 
-// setupRoutes 设置 K8s API 路由
+// setupRoutes 设置 K8s API 路由.
 func (s *Server) setupRoutes() {
 	// Health check
 	s.engine.GET("/health", s.handler.HealthCheck)

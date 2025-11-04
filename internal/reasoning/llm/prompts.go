@@ -1,6 +1,6 @@
 package llm
 
-// RootCauseAnalysisSystemPrompt 根因分析的系统提示词（中文优化版）
+// RootCauseAnalysisSystemPrompt 根因分析的系统提示词（中文优化版）.
 const RootCauseAnalysisSystemPrompt = `你是一位 Kubernetes 故障诊断专家。请分析提供的事件、日志和指标，识别问题的根本原因。
 
 请提供清晰、简洁的分析，包含以下内容：
@@ -61,7 +61,7 @@ const RootCauseAnalysisSystemPrompt = `你是一位 Kubernetes 故障诊断专�
 
 请严格按照 JSON 格式回复，不要添加额外的文本或 markdown 代码块。`
 
-// RecommendationsSystemPrompt 生成建议的系统提示词（中文优化版，包含命令和 YAML）
+// RecommendationsSystemPrompt 生成建议的系统提示词（中文优化版，包含命令和 YAML）.
 const RecommendationsSystemPrompt = `你是一位资深的 Kubernetes 运维工程师。根据已识别的根本原因，请提供可操作的修复建议，包括具体的命令和 YAML 配置。
 
 对于每条建议，请包含：

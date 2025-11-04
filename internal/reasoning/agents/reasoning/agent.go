@@ -11,7 +11,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/chains/root_cause"
 )
 
-// ReasoningAgent Reasoning Agent 实现
+// ReasoningAgent Reasoning Agent 实现.
 type ReasoningAgent struct {
 	// Chains
 	rootCauseChain   *root_cause.RootCauseChain
@@ -24,7 +24,7 @@ type ReasoningAgent struct {
 	config *AgentConfig
 }
 
-// NewReasoningAgent 创建新的 Reasoning Agent
+// NewReasoningAgent 创建新的 Reasoning Agent.
 func NewReasoningAgent(
 	rootCauseChain *root_cause.RootCauseChain,
 	descriptionChain *description.DescriptionChain,
@@ -59,7 +59,7 @@ func NewReasoningAgent(
 	}, nil
 }
 
-// Analyze 执行完整的故障分析推理
+// Analyze 执行完整的故障分析推理.
 func (a *ReasoningAgent) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisOutput, error) {
 	if input == nil {
 		return nil, fmt.Errorf("input is nil")
@@ -176,7 +176,7 @@ func (a *ReasoningAgent) Analyze(ctx context.Context, input *AnalysisInput) (*An
 	return output, nil
 }
 
-// AnalyzeRootCause 仅执行根因分析
+// AnalyzeRootCause 仅执行根因分析.
 func (a *ReasoningAgent) AnalyzeRootCause(ctx context.Context, input *AnalysisInput) (*root_cause.AnalysisOutput, error) {
 	if !a.config.EnableRootCause {
 		return nil, fmt.Errorf("root cause analysis is disabled")
@@ -189,7 +189,7 @@ func (a *ReasoningAgent) AnalyzeRootCause(ctx context.Context, input *AnalysisIn
 	return a.rootCauseChain.Analyze(ctx, rcInput)
 }
 
-// GenerateDescription 仅生成故障描述
+// GenerateDescription 仅生成故障描述.
 func (a *ReasoningAgent) GenerateDescription(ctx context.Context, input *AnalysisInput) (*description.DescriptionOutput, error) {
 	if !a.config.EnableDescription {
 		return nil, fmt.Errorf("description generation is disabled")
@@ -202,7 +202,7 @@ func (a *ReasoningAgent) GenerateDescription(ctx context.Context, input *Analysi
 	return a.descriptionChain.Generate(ctx, descInput)
 }
 
-// fetchK8sContext 获取 K8s 上下文信息
+// fetchK8sContext 获取 K8s 上下文信息.
 func (a *ReasoningAgent) fetchK8sContext(ctx context.Context, input *AnalysisInput) (*K8sContext, error) {
 	k8sCtx := &K8sContext{
 		FetchedAt: time.Now(),
@@ -288,7 +288,7 @@ func (a *ReasoningAgent) fetchK8sContext(ctx context.Context, input *AnalysisInp
 	return k8sCtx, nil
 }
 
-// buildRootCauseInput 构建根因分析输入
+// buildRootCauseInput 构建根因分析输入.
 func (a *ReasoningAgent) buildRootCauseInput(input *AnalysisInput) *root_cause.AnalysisInput {
 	rcInput := &root_cause.AnalysisInput{
 		FailureType:    input.FailureType,
@@ -317,7 +317,7 @@ func (a *ReasoningAgent) buildRootCauseInput(input *AnalysisInput) *root_cause.A
 	return rcInput
 }
 
-// buildDescriptionInput 构建描述生成输入
+// buildDescriptionInput 构建描述生成输入.
 func (a *ReasoningAgent) buildDescriptionInput(input *AnalysisInput) *description.DescriptionInput {
 	descInput := &description.DescriptionInput{
 		FailureType:     input.FailureType,
@@ -350,7 +350,7 @@ func (a *ReasoningAgent) buildDescriptionInput(input *AnalysisInput) *descriptio
 	return descInput
 }
 
-// applyDefaults 应用默认值
+// applyDefaults 应用默认值.
 func (a *ReasoningAgent) applyDefaults(input *AnalysisInput) {
 	if input.Language == "" {
 		input.Language = a.config.DefaultLanguage
@@ -363,7 +363,7 @@ func (a *ReasoningAgent) applyDefaults(input *AnalysisInput) {
 	}
 }
 
-// convertEvents 转换事件格式
+// convertEvents 转换事件格式.
 func convertEvents(events []k8s_tool.EventInfo) []root_cause.K8sEvent {
 	result := make([]root_cause.K8sEvent, len(events))
 	for i, e := range events {
@@ -378,7 +378,7 @@ func convertEvents(events []k8s_tool.EventInfo) []root_cause.K8sEvent {
 	return result
 }
 
-// convertEventsToDesc 转换事件格式到描述
+// convertEventsToDesc 转换事件格式到描述.
 func convertEventsToDesc(events []k8s_tool.EventInfo) []description.PodEvent {
 	result := make([]description.PodEvent, len(events))
 	for i, e := range events {
@@ -393,7 +393,7 @@ func convertEventsToDesc(events []k8s_tool.EventInfo) []description.PodEvent {
 	return result
 }
 
-// convertMetrics 转换指标格式
+// convertMetrics 转换指标格式.
 func convertMetrics(metrics *k8s_tool.MetricsInfo) map[string]float64 {
 	return map[string]float64{
 		"cpu_utilization":     metrics.CPU.Utilization,
@@ -404,7 +404,7 @@ func convertMetrics(metrics *k8s_tool.MetricsInfo) map[string]float64 {
 	}
 }
 
-// validateConfig 验证配置
+// validateConfig 验证配置.
 func validateConfig(config *AgentConfig) error {
 	if config.Timeout < 0 {
 		return fmt.Errorf("timeout cannot be negative")
@@ -418,7 +418,7 @@ func validateConfig(config *AgentConfig) error {
 	return nil
 }
 
-// DefaultAgentConfig 返回默认配置
+// DefaultAgentConfig 返回默认配置.
 func DefaultAgentConfig() *AgentConfig {
 	return &AgentConfig{
 		RootCauseConfig:    root_cause.DefaultChainConfig(),

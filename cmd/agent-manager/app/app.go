@@ -14,7 +14,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Execute runs the agent-manager command
+// Execute runs the agent-manager command.
 func Execute() {
 	// Create configuration options
 	opts := options.NewServerOptions()
@@ -36,7 +36,7 @@ func Execute() {
 	)
 }
 
-// AgentManagerApp implements commonapp.Application interface
+// AgentManagerApp implements commonapp.Application interface.
 type AgentManagerApp struct {
 	config *agentmanager.Config
 	logger core.Logger
@@ -52,12 +52,12 @@ type AgentManagerApp struct {
 	healthInit     *pkginitializers.HealthCheckInitializer
 }
 
-// Name returns the application name
+// Name returns the application name.
 func (a *AgentManagerApp) Name() string {
 	return "Agent Manager"
 }
 
-// Initialize initializes the application
+// Initialize initializes the application.
 func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// Convert configuration
 	serverOpts := opts.(*options.ServerOptions)
@@ -77,7 +77,7 @@ func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options
 	return nil
 }
 
-// Run runs the application
+// Run runs the application.
 func (a *AgentManagerApp) Run(ctx context.Context) error {
 	// The bootstrap framework handles running all servers
 	// This method can be used for additional application logic if needed
@@ -85,19 +85,21 @@ func (a *AgentManagerApp) Run(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown gracefully shuts down the application
+// Shutdown gracefully shuts down the application.
 func (a *AgentManagerApp) Shutdown(ctx context.Context) error {
 	// Bootstrap framework handles component shutdown
 	// This method can be used for additional cleanup if needed
 	return nil
 }
 
-// registerComponents registers all component initializers with bootstrap
+// registerComponents registers all component initializers with bootstrap.
 func (a *AgentManagerApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	// Get server options from bootstrap context
 	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
 	opts := options.NewServerOptions()
-	opts.Complete()
+	if err := opts.Complete(); err != nil {
+		return fmt.Errorf("failed to complete options: %w", err)
+	}
 
 	// 1. Database (priority 300)
 	a.dbInit = initializers.NewDatabaseInitializer(opts, a.logger)

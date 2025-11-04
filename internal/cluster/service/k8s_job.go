@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sJobService Job 管理服务
+// K8sJobService Job 管理服务.
 type K8sJobService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sJobService 创建新的 Job 服务
+// NewK8sJobService 创建新的 Job 服务.
 func NewK8sJobService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sJobService {
 	return &K8sJobService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sJobService(storage *storage.MySQLStorage, clusterService *K8sClusterS
 	}
 }
 
-// JobInfo Job 信息
+// JobInfo Job 信息.
 type JobInfo struct {
 	Name                    string            `json:"name"`
 	Namespace               string            `json:"namespace"`
@@ -44,7 +44,7 @@ type JobInfo struct {
 	CreatedAt               string            `json:"createdAt"`
 }
 
-// ListJobs 获取 Job 列表
+// ListJobs 获取 Job 列表.
 func (s *K8sJobService) ListJobs(ctx context.Context, clusterID, namespace string, offset, limit int) ([]JobInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -77,7 +77,7 @@ func (s *K8sJobService) ListJobs(ctx context.Context, clusterID, namespace strin
 	return result, total, nil
 }
 
-// GetJob 获取 Job 详情
+// GetJob 获取 Job 详情.
 func (s *K8sJobService) GetJob(ctx context.Context, clusterID, namespace, jobName string) (*JobInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -93,7 +93,7 @@ func (s *K8sJobService) GetJob(ctx context.Context, clusterID, namespace, jobNam
 	return &jobInfo, nil
 }
 
-// CreateJob 创建 Job
+// CreateJob 创建 Job.
 func (s *K8sJobService) CreateJob(ctx context.Context, clusterID, namespace string, job *batchv1.Job) (*JobInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -115,7 +115,7 @@ func (s *K8sJobService) CreateJob(ctx context.Context, clusterID, namespace stri
 	return &jobInfo, nil
 }
 
-// DeleteJob 删除 Job
+// DeleteJob 删除 Job.
 func (s *K8sJobService) DeleteJob(ctx context.Context, clusterID, namespace, jobName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *K8sJobService) DeleteJob(ctx context.Context, clusterID, namespace, job
 	return nil
 }
 
-// convertJobInfo 转换 Job 信息
+// convertJobInfo 转换 Job 信息.
 func (s *K8sJobService) convertJobInfo(job *batchv1.Job) JobInfo {
 	jobInfo := JobInfo{
 		Name:                    job.Name,

@@ -13,13 +13,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sDaemonSetService DaemonSet 管理服务
+// K8sDaemonSetService DaemonSet 管理服务.
 type K8sDaemonSetService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sDaemonSetService 创建新的 DaemonSet 服务
+// NewK8sDaemonSetService 创建新的 DaemonSet 服务.
 func NewK8sDaemonSetService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sDaemonSetService {
 	return &K8sDaemonSetService{
 		storage:        storage,
@@ -27,7 +27,7 @@ func NewK8sDaemonSetService(storage *storage.MySQLStorage, clusterService *K8sCl
 	}
 }
 
-// DaemonSetInfo DaemonSet 信息
+// DaemonSetInfo DaemonSet 信息.
 type DaemonSetInfo struct {
 	Name                   string            `json:"name"`
 	Namespace              string            `json:"namespace"`
@@ -43,7 +43,7 @@ type DaemonSetInfo struct {
 	CreatedAt              string            `json:"createdAt"`
 }
 
-// ListDaemonSets 获取 DaemonSet 列表
+// ListDaemonSets 获取 DaemonSet 列表.
 func (s *K8sDaemonSetService) ListDaemonSets(ctx context.Context, clusterID, namespace string, offset, limit int) ([]DaemonSetInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -76,7 +76,7 @@ func (s *K8sDaemonSetService) ListDaemonSets(ctx context.Context, clusterID, nam
 	return result, total, nil
 }
 
-// GetDaemonSet 获取 DaemonSet 详情
+// GetDaemonSet 获取 DaemonSet 详情.
 func (s *K8sDaemonSetService) GetDaemonSet(ctx context.Context, clusterID, namespace, daemonsetName string) (*DaemonSetInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -92,7 +92,7 @@ func (s *K8sDaemonSetService) GetDaemonSet(ctx context.Context, clusterID, names
 	return &dsInfo, nil
 }
 
-// RestartDaemonSet 重启 DaemonSet
+// RestartDaemonSet 重启 DaemonSet.
 func (s *K8sDaemonSetService) RestartDaemonSet(ctx context.Context, clusterID, namespace, daemonsetName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -106,10 +106,10 @@ func (s *K8sDaemonSetService) RestartDaemonSet(ctx context.Context, clusterID, n
 	}
 
 	// 添加重启注解（通过修改 Pod 模板的注解来触发重启）
-	if daemonset.Spec.Template.ObjectMeta.Annotations == nil {
-		daemonset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	if daemonset.Spec.Template.Annotations == nil {
+		daemonset.Spec.Template.Annotations = make(map[string]string)
 	}
-	daemonset.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+	daemonset.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 
 	// 更新 DaemonSet
 	_, err = client.Clientset().AppsV1().DaemonSets(namespace).Update(ctx, daemonset, metav1.UpdateOptions{})
@@ -126,7 +126,7 @@ func (s *K8sDaemonSetService) RestartDaemonSet(ctx context.Context, clusterID, n
 	return nil
 }
 
-// DeleteDaemonSet 删除 DaemonSet
+// DeleteDaemonSet 删除 DaemonSet.
 func (s *K8sDaemonSetService) DeleteDaemonSet(ctx context.Context, clusterID, namespace, daemonsetName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -147,7 +147,7 @@ func (s *K8sDaemonSetService) DeleteDaemonSet(ctx context.Context, clusterID, na
 	return nil
 }
 
-// convertDaemonSetInfo 转换 DaemonSet 信息
+// convertDaemonSetInfo 转换 DaemonSet 信息.
 func (s *K8sDaemonSetService) convertDaemonSetInfo(daemonset *appsv1.DaemonSet) DaemonSetInfo {
 	updateStrategy := string(daemonset.Spec.UpdateStrategy.Type)
 

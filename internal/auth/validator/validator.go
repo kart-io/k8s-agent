@@ -7,15 +7,15 @@ import (
 )
 
 var (
-	// Email regex pattern
+	// Email regex pattern.
 	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-	// Username regex: alphanumeric, underscore, hyphen
+	// Username regex: alphanumeric, underscore, hyphen.
 	usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)
-	// Phone regex: basic international format
+	// Phone regex: basic international format.
 	phoneRegex = regexp.MustCompile(`^[+]?[0-9]{10,15}$`)
 )
 
-// ValidateUsername validates username format and length
+// ValidateUsername validates username format and length.
 func ValidateUsername(username string) error {
 	if len(username) < 3 {
 		return fmt.Errorf("username must be at least 3 characters")
@@ -29,7 +29,7 @@ func ValidateUsername(username string) error {
 	return nil
 }
 
-// ValidatePassword validates password strength
+// ValidatePassword validates password strength.
 func ValidatePassword(password string) error {
 	if len(password) < 8 {
 		return fmt.Errorf("password must be at least 8 characters")
@@ -74,7 +74,7 @@ func ValidatePassword(password string) error {
 	return nil
 }
 
-// ValidateEmail validates email format
+// ValidateEmail validates email format.
 func ValidateEmail(email string) error {
 	if email == "" {
 		return fmt.Errorf("email is required")
@@ -88,7 +88,7 @@ func ValidateEmail(email string) error {
 	return nil
 }
 
-// ValidatePhone validates phone number format (optional)
+// ValidatePhone validates phone number format (optional).
 func ValidatePhone(phone string) error {
 	if phone == "" {
 		return nil // Phone is optional
@@ -99,7 +99,7 @@ func ValidatePhone(phone string) error {
 	return nil
 }
 
-// ValidateRequired checks if a field is not empty
+// ValidateRequired checks if a field is not empty.
 func ValidateRequired(field, fieldName string) error {
 	if field == "" {
 		return fmt.Errorf("%s is required", fieldName)
@@ -107,7 +107,7 @@ func ValidateRequired(field, fieldName string) error {
 	return nil
 }
 
-// ValidateLength validates string length
+// ValidateLength validates string length.
 func ValidateLength(value, fieldName string, min, max int) error {
 	length := len(value)
 	if min > 0 && length < min {
@@ -119,7 +119,7 @@ func ValidateLength(value, fieldName string, min, max int) error {
 	return nil
 }
 
-// ValidatePermissionType validates permission type
+// ValidatePermissionType validates permission type.
 func ValidatePermissionType(permType string) error {
 	validTypes := map[string]bool{
 		"menu":   true,
@@ -132,7 +132,7 @@ func ValidatePermissionType(permType string) error {
 	return nil
 }
 
-// ValidateStatus validates status value
+// ValidateStatus validates status value.
 func ValidateStatus(status int) error {
 	if status != 0 && status != 1 {
 		return fmt.Errorf("invalid status: must be 0 (disabled) or 1 (active)")
@@ -140,7 +140,7 @@ func ValidateStatus(status int) error {
 	return nil
 }
 
-// ValidateUUID validates UUID format (basic check)
+// ValidateUUID validates UUID format (basic check).
 func ValidateUUID(id string) error {
 	if len(id) != 36 {
 		return fmt.Errorf("invalid UUID format")

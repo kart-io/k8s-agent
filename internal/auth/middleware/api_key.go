@@ -9,7 +9,7 @@ import (
 )
 
 // APIKeyAuth creates API key authentication middleware
-// Alternative to JWT for service accounts
+// Alternative to JWT for service accounts.
 func APIKeyAuth(apikeyService *service.APIKeyService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract key and secret from headers

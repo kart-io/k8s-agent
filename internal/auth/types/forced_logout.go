@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// ForcedLogoutEvent represents an audit event
+// ForcedLogoutEvent represents an audit event.
 type ForcedLogoutEvent struct {
 	ID              int64           `json:"id" gorm:"primaryKey"`
 	EventID         string          `json:"event_id" gorm:"uniqueIndex;not null"`
@@ -29,15 +29,15 @@ type ForcedLogoutEvent struct {
 	CreatedAt       time.Time       `json:"created_at"`
 }
 
-// TableName specifies the table name
+// TableName specifies the table name.
 func (ForcedLogoutEvent) TableName() string {
 	return "forced_logout_events"
 }
 
-// SessionMetadata is a JSON array of session details
+// SessionMetadata is a JSON array of session details.
 type SessionMetadata []SessionDetail
 
-// SessionDetail represents a single session in the metadata
+// SessionDetail represents a single session in the metadata.
 type SessionDetail struct {
 	JTI        string    `json:"jti"`
 	IPAddress  string    `json:"ip_address"`
@@ -45,7 +45,7 @@ type SessionDetail struct {
 	LoginAt    time.Time `json:"login_at"`
 }
 
-// Scan implements sql.Scanner for JSONB
+// Scan implements sql.Scanner for JSONB.
 func (sm *SessionMetadata) Scan(value interface{}) error {
 	if value == nil {
 		*sm = SessionMetadata{}
@@ -58,15 +58,17 @@ func (sm *SessionMetadata) Scan(value interface{}) error {
 	return json.Unmarshal(bytes, sm)
 }
 
-// Value implements driver.Valuer for JSONB
+// Value implements driver.Valuer for JSONB.
+// Returns NULL for empty metadata, otherwise returns JSON.
 func (sm SessionMetadata) Value() (driver.Value, error) {
 	if len(sm) == 0 {
-		return nil, nil
+		// Return NULL for empty metadata (this is intentional for SQL)
+		return nil, nil //nolint:nilnil // SQL NULL representation
 	}
 	return json.Marshal(sm)
 }
 
-// ForcedLogoutNotification represents a notification delivery record
+// ForcedLogoutNotification represents a notification delivery record.
 type ForcedLogoutNotification struct {
 	ID             int64                  `json:"id" gorm:"primaryKey"`
 	NotificationID string                 `json:"notification_id" gorm:"uniqueIndex;not null"`
@@ -88,12 +90,12 @@ type ForcedLogoutNotification struct {
 	UpdatedAt      time.Time              `json:"updated_at"`
 }
 
-// TableName specifies the table name
+// TableName specifies the table name.
 func (ForcedLogoutNotification) TableName() string {
 	return "forced_logout_notifications"
 }
 
-// NotificationVariables holds template variables
+// NotificationVariables holds template variables.
 type NotificationVariables struct {
 	Username   string    `json:"username"`
 	Timestamp  time.Time `json:"timestamp"`
@@ -104,7 +106,7 @@ type NotificationVariables struct {
 	LoginURL   string    `json:"login_url"`
 }
 
-// Scan implements sql.Scanner for JSONB
+// Scan implements sql.Scanner for JSONB.
 func (nv *NotificationVariables) Scan(value interface{}) error {
 	if value == nil {
 		return nil
@@ -116,7 +118,7 @@ func (nv *NotificationVariables) Scan(value interface{}) error {
 	return json.Unmarshal(bytes, nv)
 }
 
-// Value implements driver.Valuer for JSONB
+// Value implements driver.Valuer for JSONB.
 func (nv NotificationVariables) Value() (driver.Value, error) {
 	return json.Marshal(nv)
 }

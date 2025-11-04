@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Workflow represents a diagnostic workflow
+// Workflow represents a diagnostic workflow.
 type Workflow struct {
 	ID            string                 `json:"id" gorm:"primaryKey"`
 	Name          string                 `json:"name" gorm:"index;not null"`
@@ -20,7 +20,7 @@ type Workflow struct {
 	UpdatedAt     time.Time              `json:"updated_at"`
 }
 
-// WorkflowStatus represents workflow status
+// WorkflowStatus represents workflow status.
 type WorkflowStatus string
 
 const (
@@ -29,7 +29,7 @@ const (
 	WorkflowStatusDraft    WorkflowStatus = "draft"
 )
 
-// WorkflowStep represents a step in workflow
+// WorkflowStep represents a step in workflow.
 type WorkflowStep struct {
 	ID          string                 `json:"id"`
 	Type        StepType               `json:"type"`
@@ -43,7 +43,7 @@ type WorkflowStep struct {
 	OnFailure   []string               `json:"on_failure,omitempty"` // Next step IDs
 }
 
-// StepType represents workflow step type
+// StepType represents workflow step type.
 type StepType string
 
 const (
@@ -56,14 +56,14 @@ const (
 	StepTypeParallel     StepType = "parallel"
 )
 
-// Condition represents execution condition
+// Condition represents execution condition.
 type Condition struct {
 	Field    string      `json:"field"`
 	Operator string      `json:"operator"` // eq, ne, gt, lt, contains, matches
 	Value    interface{} `json:"value"`
 }
 
-// RetryPolicy defines retry behavior
+// RetryPolicy defines retry behavior.
 type RetryPolicy struct {
 	MaxRetries    int           `json:"max_retries"`
 	InitialDelay  time.Duration `json:"initial_delay"`
@@ -71,7 +71,7 @@ type RetryPolicy struct {
 	BackoffFactor float64       `json:"backoff_factor"`
 }
 
-// WorkflowExecution represents a workflow execution instance
+// WorkflowExecution represents a workflow execution instance.
 type WorkflowExecution struct {
 	ID             string                 `json:"id" gorm:"primaryKey"`
 	WorkflowID     string                 `json:"workflow_id" gorm:"index;not null"`
@@ -87,7 +87,7 @@ type WorkflowExecution struct {
 	Duration       time.Duration          `json:"duration"`
 }
 
-// ExecutionStatus represents execution status
+// ExecutionStatus represents execution status.
 type ExecutionStatus string
 
 const (
@@ -99,7 +99,7 @@ const (
 	ExecutionStatusTimeout   ExecutionStatus = "timeout"
 )
 
-// StepExecution represents a step execution
+// StepExecution represents a step execution.
 type StepExecution struct {
 	StepID      string                 `json:"step_id"`
 	Status      ExecutionStatus        `json:"status"`
@@ -112,7 +112,7 @@ type StepExecution struct {
 	Duration    time.Duration          `json:"duration"`
 }
 
-// Strategy represents a diagnostic strategy
+// Strategy represents a diagnostic strategy.
 type Strategy struct {
 	ID          string                 `json:"id" gorm:"primaryKey"`
 	Name        string                 `json:"name" gorm:"index;not null"`
@@ -127,14 +127,14 @@ type Strategy struct {
 	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
-// Symptom represents a failure symptom pattern
+// Symptom represents a failure symptom pattern.
 type Symptom struct {
 	Type       string                 `json:"type"` // event, metric, log
 	Pattern    string                 `json:"pattern"`
 	Conditions map[string]interface{} `json:"conditions"`
 }
 
-// Task represents a scheduled or queued task
+// Task represents a scheduled or queued task.
 type Task struct {
 	ID          string                 `json:"id" gorm:"primaryKey"`
 	Type        TaskType               `json:"type" gorm:"index"`
@@ -152,7 +152,7 @@ type Task struct {
 	CreatedAt   time.Time              `json:"created_at"`
 }
 
-// TaskType represents task type
+// TaskType represents task type.
 type TaskType string
 
 const (
@@ -162,7 +162,7 @@ const (
 	TaskTypeNotification  TaskType = "notification"
 )
 
-// TaskStatus represents task status
+// TaskStatus represents task status.
 type TaskStatus string
 
 const (
@@ -173,7 +173,7 @@ const (
 	TaskStatusCancelled TaskStatus = "cancelled"
 )
 
-// RemediationAction represents an automated remediation action
+// RemediationAction represents an automated remediation action.
 type RemediationAction struct {
 	ID              string                 `json:"id" gorm:"primaryKey"`
 	Name            string                 `json:"name" gorm:"index;not null"`
@@ -189,7 +189,7 @@ type RemediationAction struct {
 	UpdatedAt       time.Time              `json:"updated_at"`
 }
 
-// RiskLevel represents risk level
+// RiskLevel represents risk level.
 type RiskLevel string
 
 const (
@@ -199,7 +199,7 @@ const (
 	RiskLevelCritical RiskLevel = "critical"
 )
 
-// RollbackConfig defines rollback configuration
+// RollbackConfig defines rollback configuration.
 type RollbackConfig struct {
 	Enabled    bool                   `json:"enabled"`
 	ActionType string                 `json:"action_type"`
@@ -207,7 +207,7 @@ type RollbackConfig struct {
 	TriggerOn  []string               `json:"trigger_on"` // failure, timeout, manual
 }
 
-// RemediationExecution represents a remediation execution
+// RemediationExecution represents a remediation execution.
 type RemediationExecution struct {
 	ID          string                 `json:"id" gorm:"primaryKey"`
 	ActionID    string                 `json:"action_id" gorm:"index"`
@@ -224,7 +224,7 @@ type RemediationExecution struct {
 	RollbackAt  *time.Time             `json:"rollback_at,omitempty"`
 }
 
-// AIAnalysisRequest represents an AI analysis request
+// AIAnalysisRequest represents an AI analysis request.
 type AIAnalysisRequest struct {
 	ID          string                 `json:"id" gorm:"primaryKey"`
 	ExecutionID string                 `json:"execution_id" gorm:"index"`
@@ -237,7 +237,7 @@ type AIAnalysisRequest struct {
 	CompletedAt *time.Time             `json:"completed_at,omitempty"`
 }
 
-// AIAnalysisType represents AI analysis type
+// AIAnalysisType represents AI analysis type.
 type AIAnalysisType string
 
 const (
@@ -246,7 +246,7 @@ const (
 	AIAnalysisTypeRecommendation AIAnalysisType = "recommendation"
 )
 
-// AIAnalysisResult represents AI analysis result
+// AIAnalysisResult represents AI analysis result.
 type AIAnalysisResult struct {
 	RootCause       *RootCauseAnalysis     `json:"root_cause,omitempty"`
 	Recommendations []Recommendation       `json:"recommendations,omitempty"`
@@ -256,7 +256,7 @@ type AIAnalysisResult struct {
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// RootCauseAnalysis represents root cause analysis
+// RootCauseAnalysis represents root cause analysis.
 type RootCauseAnalysis struct {
 	Type        string   `json:"type"`
 	Description string   `json:"description"`
@@ -264,7 +264,7 @@ type RootCauseAnalysis struct {
 	Evidence    []string `json:"evidence"`
 }
 
-// Recommendation represents a recommendation
+// Recommendation represents a recommendation.
 type Recommendation struct {
 	Action      string                 `json:"action"`
 	Description string                 `json:"description"`
@@ -275,7 +275,7 @@ type Recommendation struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Config represents orchestrator configuration
+// Config represents orchestrator configuration.
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
 	NATS     NATSConfig     `yaml:"nats"`
@@ -286,7 +286,7 @@ type Config struct {
 	Logging  LoggingConfig  `yaml:"logging"`
 }
 
-// ServerConfig represents server configuration
+// ServerConfig represents server configuration.
 type ServerConfig struct {
 	Host         string        `yaml:"host"`
 	Port         int           `yaml:"port"`
@@ -295,21 +295,21 @@ type ServerConfig struct {
 	GracefulStop time.Duration `yaml:"graceful_stop"`
 }
 
-// NATSConfig represents NATS configuration
+// NATSConfig represents NATS configuration.
 type NATSConfig struct {
 	URL           string        `yaml:"url"`
 	MaxReconnect  int           `yaml:"max_reconnect"`
 	ReconnectWait time.Duration `yaml:"reconnect_wait"`
 }
 
-// TemporalConfig represents Temporal workflow engine configuration
+// TemporalConfig represents Temporal workflow engine configuration.
 type TemporalConfig struct {
 	HostPort  string `yaml:"host_port"`
 	Namespace string `yaml:"namespace"`
 	TaskQueue string `yaml:"task_queue"`
 }
 
-// DatabaseConfig represents database configuration
+// DatabaseConfig represents database configuration.
 type DatabaseConfig struct {
 	Host            string        `yaml:"host"`
 	Port            int           `yaml:"port"`
@@ -322,7 +322,7 @@ type DatabaseConfig struct {
 	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime"`
 }
 
-// RedisConfig represents Redis configuration
+// RedisConfig represents Redis configuration.
 type RedisConfig struct {
 	Addr         string        `yaml:"addr"`
 	Password     string        `yaml:"password"`
@@ -332,7 +332,7 @@ type RedisConfig struct {
 	DialTimeout  time.Duration `yaml:"dial_timeout"`
 }
 
-// AIConfig represents AI service configuration
+// AIConfig represents AI service configuration.
 type AIConfig struct {
 	ReasoningServiceURL string        `yaml:"reasoning_service_url"`
 	AgentManagerURL     string        `yaml:"agent_manager_url"`
@@ -340,14 +340,14 @@ type AIConfig struct {
 	MaxRetries          int           `yaml:"max_retries"`
 }
 
-// LoggingConfig represents logging configuration
+// LoggingConfig represents logging configuration.
 type LoggingConfig struct {
 	Level      string `yaml:"level"`
 	Format     string `yaml:"format"`
 	OutputPath string `yaml:"output_path"`
 }
 
-// InternalEvent represents an event from agent-manager
+// InternalEvent represents an event from agent-manager.
 type InternalEvent struct {
 	Type      string                 `json:"type"`
 	ClusterID string                 `json:"cluster_id"`

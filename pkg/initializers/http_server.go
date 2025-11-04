@@ -29,10 +29,9 @@ type HTTPServerConfig struct {
 // HTTPServerInitializer initializes a Gin HTTP server and integrates it with the bootstrap lifecycle.
 // It implements bootstrap.Initializer and bootstrap.ServerProvider.
 type HTTPServerInitializer struct {
-	config        *HTTPServerConfig
-	logger        core.Logger
-	server        commonserver.Server
-	jwtMiddleware *gin.HandlerFunc // Store JWT middleware if configured
+	config *HTTPServerConfig
+	logger core.Logger
+	server commonserver.Server
 }
 
 // NewHTTPServerInitializer creates a new HTTPServerInitializer.

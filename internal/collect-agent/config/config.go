@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 // Legacy compatibility - map Options to AgentConfig for backward compatibility
-// Deprecated: Use Options directly instead
+// Deprecated: Use Options directly instead.
 func (o *Options) ToAgentConfig() *types.AgentConfig {
 	return &types.AgentConfig{
 		ClusterID:         o.Agent.ClusterID,
@@ -31,7 +32,7 @@ func (o *Options) ToAgentConfig() *types.AgentConfig {
 }
 
 // FromAgentConfig creates Options from legacy AgentConfig
-// Deprecated: Use NewOptions() instead
+// Deprecated: Use NewOptions() instead.
 func FromAgentConfig(cfg *types.AgentConfig) *Options {
 	opts := NewOptions()
 	opts.Agent.ClusterID = cfg.ClusterID
@@ -49,17 +50,22 @@ func FromAgentConfig(cfg *types.AgentConfig) *Options {
 	return opts
 }
 
-// LoadConfig loads configuration from a file path or creates default config
+// LoadConfig loads configuration from a file path or creates default config.
 func LoadConfig(configPath string) (*types.AgentConfig, error) {
 	if configPath == "" {
 		return types.DefaultConfig(), nil
 	}
 
+	// #nosec G304 - configPath is provided by user via command-line flag, not from untrusted input
 	file, err := os.Open(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open config file %s: %w", configPath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Failed to close config file: %v", err)
+		}
+	}()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
@@ -82,7 +88,7 @@ func LoadConfig(configPath string) (*types.AgentConfig, error) {
 	return config, nil
 }
 
-// overrideWithEnv overrides configuration values with environment variables
+// overrideWithEnv overrides configuration values with environment variables.
 func overrideWithEnv(config *types.AgentConfig) {
 	if val := os.Getenv("CLUSTER_ID"); val != "" {
 		config.ClusterID = val
@@ -127,7 +133,7 @@ func overrideWithEnv(config *types.AgentConfig) {
 	}
 }
 
-// validateConfig validates the configuration values
+// validateConfig validates the configuration values.
 func validateConfig(config *types.AgentConfig) error {
 	if config.CentralEndpoint == "" {
 		return fmt.Errorf("central_endpoint is required")
@@ -169,18 +175,23 @@ func validateConfig(config *types.AgentConfig) error {
 	return nil
 }
 
-// SaveConfig saves the configuration to a file
+// SaveConfig saves the configuration to a file.
 func SaveConfig(config *types.AgentConfig, configPath string) error {
 	data, err := yaml.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
+	// #nosec G304 - configPath is provided by user via command-line flag, not from untrusted input
 	file, err := os.Create(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Failed to close config file after write: %v", err)
+		}
+	}()
 
 	_, err = file.Write(data)
 	if err != nil {
@@ -190,7 +201,7 @@ func SaveConfig(config *types.AgentConfig, configPath string) error {
 	return nil
 }
 
-// GetDefaultConfigYAML returns the default configuration as YAML string
+// GetDefaultConfigYAML returns the default configuration as YAML string.
 func GetDefaultConfigYAML() string {
 	config := types.DefaultConfig()
 	data, _ := yaml.Marshal(config)

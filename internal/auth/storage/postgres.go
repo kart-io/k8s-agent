@@ -15,14 +15,14 @@ import (
 )
 
 // PostgresDB wraps GORM database connection
-// Note: Kept the name for backward compatibility, but now using MySQL
+// Note: Kept the name for backward compatibility, but now using MySQL.
 type PostgresDB struct {
 	DB     *gorm.DB
 	Logger core.Logger
 }
 
 // NewPostgresDB creates a new MySQL connection using GORM
-// Note: Kept the name for backward compatibility, but now using MySQL
+// Note: Kept the name for backward compatibility, but now using MySQL.
 func NewPostgresDB(cfg *commonoptions.DatabaseOptions, log core.Logger) (*PostgresDB, error) {
 	// Build connection string (DSN) for MySQL
 	// Format: user:password@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
@@ -58,7 +58,9 @@ func NewPostgresDB(cfg *commonoptions.DatabaseOptions, log core.Logger) (*Postgr
 	sqlDB.SetConnMaxLifetime(time.Hour) // Connections last max 1 hour
 
 	// Verify connection
-	if err := sqlDB.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(ctx); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
@@ -89,7 +91,7 @@ func NewPostgresDB(cfg *commonoptions.DatabaseOptions, log core.Logger) (*Postgr
 	}, nil
 }
 
-// Close closes the database connection
+// Close closes the database connection.
 func (p *PostgresDB) Close() error {
 	sqlDB, err := p.DB.DB()
 	if err != nil {
@@ -98,14 +100,14 @@ func (p *PostgresDB) Close() error {
 	return sqlDB.Close()
 }
 
-// GormLogger adapts kart-io/logger to GORM's logger interface
+// GormLogger adapts kart-io/logger to GORM's logger interface.
 type GormLogger struct {
 	log                       core.Logger
 	slowThreshold             time.Duration
 	ignoreRecordNotFoundError bool
 }
 
-// NewGormLogger creates a new GORM logger adapter
+// NewGormLogger creates a new GORM logger adapter.
 func NewGormLogger(log core.Logger) *GormLogger {
 	return &GormLogger{
 		log:                       log,
@@ -114,30 +116,30 @@ func NewGormLogger(log core.Logger) *GormLogger {
 	}
 }
 
-// LogMode implements gorm.io/gorm/logger.Interface
+// LogMode implements gorm.io/gorm/logger.Interface.
 func (l *GormLogger) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
 	// Return a new instance with the specified log level
 	// Note: kart-io/logger level is controlled globally, so we just return self
 	return l
 }
 
-// Info implements gorm.io/gorm/logger.Interface
+// Info implements gorm.io/gorm/logger.Interface.
 func (l *GormLogger) Info(ctx context.Context, msg string, data ...interface{}) {
 	l.log.Infow(fmt.Sprintf(msg, data...))
 }
 
-// Warn implements gorm.io/gorm/logger.Interface
+// Warn implements gorm.io/gorm/logger.Interface.
 func (l *GormLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
 	l.log.Warnw(fmt.Sprintf(msg, data...))
 }
 
-// Error implements gorm.io/gorm/logger.Interface
+// Error implements gorm.io/gorm/logger.Interface.
 func (l *GormLogger) Error(ctx context.Context, msg string, data ...interface{}) {
 	l.log.Errorw(fmt.Sprintf(msg, data...))
 }
 
 // Trace implements gorm.io/gorm/logger.Interface
-// This is called for every SQL query and logs query execution details
+// This is called for every SQL query and logs query execution details.
 func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	elapsed := time.Since(begin)
 	sql, rows := fc()

@@ -9,7 +9,7 @@ import (
 )
 
 // Options defines options for collect-agent service
-// This implements the pkg/app.Options interface
+// This implements the pkg/app.Options interface.
 type Options struct {
 	// Common options from common/options package
 	Logging *options.LoggingOptions `json:"logging" mapstructure:"logging"`
@@ -19,7 +19,7 @@ type Options struct {
 	// Add service-specific options here if needed
 }
 
-// NewOptions creates a new Options instance with default values
+// NewOptions creates a new Options instance with default values.
 func NewOptions() *Options {
 	agentOpts := options.NewAgentOptions()
 	agentOpts.HealthPort = 8097 // Collect-Agent 健康检查端口
@@ -30,7 +30,7 @@ func NewOptions() *Options {
 	}
 }
 
-// Validate validates all the required options
+// Validate validates all the required options.
 func (o *Options) Validate() []error {
 	var errs []error
 
@@ -47,7 +47,7 @@ func (o *Options) Validate() []error {
 	return errs
 }
 
-// Complete fills in any fields not set that are required to have valid data
+// Complete fills in any fields not set that are required to have valid data.
 func (o *Options) Complete() error {
 	if err := o.Logging.Complete(); err != nil {
 		return err
@@ -61,7 +61,7 @@ func (o *Options) Complete() error {
 }
 
 // AddFlags adds flags to the flag set
-// Note: --config/-c flag is automatically added by pkg/app framework
+// Note: --config/-c flag is automatically added by pkg/app framework.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Logging.AddFlags(fs)
 	o.Agent.AddFlags(fs)
@@ -69,57 +69,57 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 
 // Deprecated compatibility methods - map to new Agent options structure
 
-// GetClusterID returns the cluster ID (for backward compatibility)
+// GetClusterID returns the cluster ID (for backward compatibility).
 func (o *Options) GetClusterID() string {
 	return o.Agent.ClusterID
 }
 
-// GetClusterName returns the cluster name (for backward compatibility)
+// GetClusterName returns the cluster name (for backward compatibility).
 func (o *Options) GetClusterName() string {
 	return o.Agent.ClusterName
 }
 
-// GetCentralEndpoint returns the central endpoint (for backward compatibility)
+// GetCentralEndpoint returns the central endpoint (for backward compatibility).
 func (o *Options) GetCentralEndpoint() string {
 	return o.Agent.CentralEndpoint
 }
 
-// GetReconnectDelay returns the reconnect delay (for backward compatibility)
+// GetReconnectDelay returns the reconnect delay (for backward compatibility).
 func (o *Options) GetReconnectDelay() time.Duration {
 	return o.Agent.ReconnectDelay
 }
 
-// GetHeartbeatInterval returns the heartbeat interval (for backward compatibility)
+// GetHeartbeatInterval returns the heartbeat interval (for backward compatibility).
 func (o *Options) GetHeartbeatInterval() time.Duration {
 	return o.Agent.HeartbeatInterval
 }
 
-// GetMetricsInterval returns the metrics interval (for backward compatibility)
+// GetMetricsInterval returns the metrics interval (for backward compatibility).
 func (o *Options) GetMetricsInterval() time.Duration {
 	return o.Agent.MetricsInterval
 }
 
-// GetBufferSize returns the buffer size (for backward compatibility)
+// GetBufferSize returns the buffer size (for backward compatibility).
 func (o *Options) GetBufferSize() int {
 	return o.Agent.BufferSize
 }
 
-// GetMaxRetries returns the max retries (for backward compatibility)
+// GetMaxRetries returns the max retries (for backward compatibility).
 func (o *Options) GetMaxRetries() int {
 	return o.Agent.MaxRetries
 }
 
-// IsMetricsEnabled returns whether metrics are enabled (for backward compatibility)
+// IsMetricsEnabled returns whether metrics are enabled (for backward compatibility).
 func (o *Options) IsMetricsEnabled() bool {
 	return o.Agent.EnableMetrics
 }
 
-// IsEventsEnabled returns whether events are enabled (for backward compatibility)
+// IsEventsEnabled returns whether events are enabled (for backward compatibility).
 func (o *Options) IsEventsEnabled() bool {
 	return o.Agent.EnableEvents
 }
 
-// GetHealthPort returns the health port (for backward compatibility)
+// GetHealthPort returns the health port (for backward compatibility).
 func (o *Options) GetHealthPort() int {
 	return o.Agent.HealthPort
 }

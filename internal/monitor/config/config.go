@@ -9,40 +9,53 @@ import (
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 )
 
-// Options 实现 commonapp.Options 接口
+const (
+	// Default ports
+	defaultHTTPPort       = 8095
+	defaultMySQLPort      = 3306
+	defaultRedisPort      = 6379
+	defaultPrometheusPort = 9095
+
+	// Default connection pool settings
+	defaultMaxOpenConns = 100
+	defaultMaxIdleConns = 10
+	defaultRedisPoolSize = 100
+)
+
+// Options 实现 commonapp.Options 接口.
 type Options struct {
 	ConfigFile string // 配置文件路径
 	*Config           // 嵌入原有的 Config 结构
 }
 
-// NewOptions 创建配置选项
+// NewOptions 创建配置选项.
 func NewOptions() *Options {
 	return &Options{
 		Config: &Config{
 			Server: ServerConfig{
-				Port:         8095,
+				Port:         defaultHTTPPort,
 				Mode:         "release",
 				ReadTimeout:  "60s",
 				WriteTimeout: "60s",
 			},
 			Database: DatabaseConfig{
 				Host:         "localhost",
-				Port:         3306,
+				Port:         defaultMySQLPort,
 				User:         "aetherius",
 				Password:     "aetherius",
 				DBName:       "aetherius_monitor",
-				MaxOpenConns: 100,
-				MaxIdleConns: 10,
+				MaxOpenConns: defaultMaxOpenConns,
+				MaxIdleConns: defaultMaxIdleConns,
 			},
 			Redis: RedisConfig{
 				Host:     "localhost",
-				Port:     6379,
+				Port:     defaultRedisPort,
 				DB:       0,
-				PoolSize: 100,
+				PoolSize: defaultRedisPoolSize,
 			},
 			Prometheus: PrometheusConfig{
 				Enabled: true,
-				Port:    9095,
+				Port:    defaultPrometheusPort,
 			},
 			JWT: JWTConfig{
 				Secret:     "change-this-secret",
@@ -57,7 +70,7 @@ func NewOptions() *Options {
 	}
 }
 
-// AddFlags 添加命令行标志
+// AddFlags 添加命令行标志.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.ConfigFile, "config", "c", "", "配置文件路径")
 	fs.IntVar(&o.Server.Port, "port", o.Server.Port, "服务器端口")
@@ -65,7 +78,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&o.Database.Port, "db-port", o.Database.Port, "数据库端口")
 }
 
-// Complete 完成配置初始化
+// Complete 完成配置初始化.
 func (o *Options) Complete() error {
 	if o.ConfigFile != "" {
 		cfg, err := LoadFromPath(o.ConfigFile)
@@ -77,7 +90,7 @@ func (o *Options) Complete() error {
 	return nil
 }
 
-// Validate 验证配置
+// Validate 验证配置.
 func (o *Options) Validate() []error {
 	if err := validate(o.Config); err != nil {
 		return []error{err}
@@ -86,15 +99,15 @@ func (o *Options) Validate() []error {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions
+// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *Options) GetHealthPort() int {
 	return 8096 // Monitor 健康检查端口
 }
 
-// 确保 Options 实现 commonapp.Options 接口
+// 确保 Options 实现 commonapp.Options 接口.
 var _ commonapp.Options = (*Options)(nil)
 
-// Config holds all configuration
+// Config holds all configuration.
 type Config struct {
 	Server     ServerConfig     `mapstructure:"server"`
 	Database   DatabaseConfig   `mapstructure:"database"`
@@ -106,7 +119,7 @@ type Config struct {
 	Metrics    MetricsConfig    `mapstructure:"metrics"`
 }
 
-// ServerConfig holds server configuration
+// ServerConfig holds server configuration.
 type ServerConfig struct {
 	Port         int    `mapstructure:"port"`
 	Mode         string `mapstructure:"mode"`
@@ -114,7 +127,7 @@ type ServerConfig struct {
 	WriteTimeout string `mapstructure:"write_timeout"`
 }
 
-// DatabaseConfig holds database configuration
+// DatabaseConfig holds database configuration.
 type DatabaseConfig struct {
 	Host         string `mapstructure:"host"`
 	Port         int    `mapstructure:"port"`
@@ -126,7 +139,7 @@ type DatabaseConfig struct {
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
 }
 
-// RedisConfig holds Redis configuration
+// RedisConfig holds Redis configuration.
 type RedisConfig struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
@@ -135,39 +148,39 @@ type RedisConfig struct {
 	PoolSize int    `mapstructure:"pool_size"`
 }
 
-// PrometheusConfig holds Prometheus configuration
+// PrometheusConfig holds Prometheus configuration.
 type PrometheusConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 	Port    int  `mapstructure:"port"`
 }
 
-// JWTConfig holds JWT configuration
+// JWTConfig holds JWT configuration.
 type JWTConfig struct {
 	Secret     string `mapstructure:"secret"`
 	Expiration string `mapstructure:"expiration"`
 }
 
-// LoggingConfig holds logging configuration
+// LoggingConfig holds logging configuration.
 type LoggingConfig struct {
 	Level  string `mapstructure:"level"`
 	Format string `mapstructure:"format"`
 	Output string `mapstructure:"output"`
 }
 
-// AlertConfig holds alert configuration
+// AlertConfig holds alert configuration.
 type AlertConfig struct {
 	CheckInterval string              `mapstructure:"check_interval"`
 	Channels      AlertChannelsConfig `mapstructure:"channels"`
 }
 
-// AlertChannelsConfig holds alert channels configuration
+// AlertChannelsConfig holds alert channels configuration.
 type AlertChannelsConfig struct {
 	Email   EmailAlertConfig   `mapstructure:"email"`
 	Webhook WebhookAlertConfig `mapstructure:"webhook"`
 	Slack   SlackAlertConfig   `mapstructure:"slack"`
 }
 
-// EmailAlertConfig holds email alert configuration
+// EmailAlertConfig holds email alert configuration.
 type EmailAlertConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
 	SMTPHost string `mapstructure:"smtp_host"`
@@ -175,30 +188,30 @@ type EmailAlertConfig struct {
 	From     string `mapstructure:"from"`
 }
 
-// WebhookAlertConfig holds webhook alert configuration
+// WebhookAlertConfig holds webhook alert configuration.
 type WebhookAlertConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	URL     string `mapstructure:"url"`
 }
 
-// SlackAlertConfig holds Slack alert configuration
+// SlackAlertConfig holds Slack alert configuration.
 type SlackAlertConfig struct {
 	Enabled    bool   `mapstructure:"enabled"`
 	WebhookURL string `mapstructure:"webhook_url"`
 }
 
-// MetricsConfig holds metrics configuration
+// MetricsConfig holds metrics configuration.
 type MetricsConfig struct {
 	RetentionDays       int    `mapstructure:"retention_days"`
 	AggregationInterval string `mapstructure:"aggregation_interval"`
 }
 
-// Load loads configuration from file and environment variables
+// Load loads configuration from file and environment variables.
 func Load() (*Config, error) {
 	return LoadFromPath("")
 }
 
-// LoadFromPath loads configuration from a specific file path
+// LoadFromPath loads configuration from a specific file path.
 func LoadFromPath(configPath string) (*Config, error) {
 	config := &Config{}
 
@@ -218,18 +231,18 @@ func LoadFromPath(configPath string) (*Config, error) {
 	return config, nil
 }
 
-// configWrapper 包装 Config 以实现 Options 接口
+// configWrapper 包装 Config 以实现 Options 接口.
 type configWrapper struct {
 	*Config
 }
 
-// Complete 实现 Options 接口
+// Complete 实现 Options 接口.
 func (w *configWrapper) Complete() error {
 	// monitor 的 Config 不需要特殊的 Complete 逻辑
 	return nil
 }
 
-// Validate 实现 Options 接口
+// Validate 实现 Options 接口.
 func (w *configWrapper) Validate() []error {
 	if err := validate(w.Config); err != nil {
 		return []error{err}
@@ -237,7 +250,7 @@ func (w *configWrapper) Validate() []error {
 	return nil
 }
 
-// validate validates configuration
+// validate validates configuration.
 func validate(cfg *Config) error {
 	if cfg.Server.Port == 0 {
 		return fmt.Errorf("server.port is required")

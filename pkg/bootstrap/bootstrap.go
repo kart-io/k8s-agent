@@ -226,10 +226,7 @@ func (b *Bootstrap) Run(ctx context.Context, runFunc func() error) error {
 				servers = append(servers, srv)
 
 				// Log server registration
-				name := "unknown"
-				if i, ok := init.(Initializer); ok {
-					name = i.Name()
-				}
+				name := init.Name()
 				b.logger.Infow("Registered server from initializer", "initializer", name)
 			}
 		}

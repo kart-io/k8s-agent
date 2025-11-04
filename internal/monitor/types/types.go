@@ -2,7 +2,7 @@ package types
 
 import "time"
 
-// MetricsSummary 监控概览
+// MetricsSummary 监控概览.
 type MetricsSummary struct {
 	TotalAgents     int       `json:"total_agents"`
 	OnlineAgents    int       `json:"online_agents"`
@@ -19,7 +19,7 @@ type MetricsSummary struct {
 	LastUpdateTime  time.Time `json:"last_update_time"`
 }
 
-// AgentMetrics Agent 指标
+// AgentMetrics Agent 指标.
 type AgentMetrics struct {
 	AgentID       string    `json:"agent_id"`
 	AgentName     string    `json:"agent_name"`
@@ -33,7 +33,7 @@ type AgentMetrics struct {
 	Uptime        int64     `json:"uptime"` // seconds
 }
 
-// EventMetrics 事件指标
+// EventMetrics 事件指标.
 type EventMetrics struct {
 	EventType      string    `json:"event_type"`
 	Severity       string    `json:"severity"`
@@ -41,13 +41,13 @@ type EventMetrics struct {
 	LastOccurrence time.Time `json:"last_occurrence"`
 }
 
-// TrendData 趋势数据
+// TrendData 趋势数据.
 type TrendData struct {
 	Timestamp time.Time              `json:"timestamp"`
 	Metrics   map[string]interface{} `json:"metrics"`
 }
 
-// Alert 告警规则
+// Alert 告警规则.
 type Alert struct {
 	ID          string           `json:"id"`
 	Name        string           `json:"name"`
@@ -61,7 +61,7 @@ type Alert struct {
 	UpdatedAt   time.Time        `json:"updated_at"`
 }
 
-// AlertCondition 告警条件
+// AlertCondition 告警条件.
 type AlertCondition struct {
 	Metric    string      `json:"metric"`
 	Operator  string      `json:"operator"` // gt, lt, eq, gte, lte
@@ -69,7 +69,7 @@ type AlertCondition struct {
 	Duration  string      `json:"duration"` // 持续时间
 }
 
-// AlertHistory 告警历史
+// AlertHistory 告警历史.
 type AlertHistory struct {
 	ID          string     `json:"id"`
 	AlertID     string     `json:"alert_id"`
@@ -80,7 +80,7 @@ type AlertHistory struct {
 	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
 }
 
-// DashboardOverview 仪表盘概览
+// DashboardOverview 仪表盘概览.
 type DashboardOverview struct {
 	Summary      MetricsSummary `json:"summary"`
 	RecentAlerts []AlertHistory `json:"recent_alerts"`
@@ -89,7 +89,7 @@ type DashboardOverview struct {
 	Trends       []TrendData    `json:"trends"`
 }
 
-// ChartData 图表数据
+// ChartData 图表数据.
 type ChartData struct {
 	Title  string                   `json:"title"`
 	Type   string                   `json:"type"` // line, bar, pie, gauge

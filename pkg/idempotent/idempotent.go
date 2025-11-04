@@ -138,7 +138,13 @@ func (h *Handler) Execute(ctx context.Context, key string, fn func(context.Conte
 	}
 
 	// Ensure lock is released
-	defer h.store.Release(ctx, key)
+	defer func() {
+		if err := h.store.Release(ctx, key); err != nil {
+			// Log error but don't fail the operation
+			// Note: Without a logger, we can't properly log this
+			_ = err
+		}
+	}()
 
 	// Create processing record
 	now := time.Now()

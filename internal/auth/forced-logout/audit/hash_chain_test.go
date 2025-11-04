@@ -436,7 +436,7 @@ func TestPtrToStringOrEmpty(t *testing.T) {
 	}
 }
 
-// Helper function to create string pointers
+// Helper function to create string pointers.
 func stringPtr(s string) *string {
 	return &s
 }

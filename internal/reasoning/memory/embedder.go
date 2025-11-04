@@ -7,12 +7,12 @@ import (
 	"math"
 )
 
-// MockEmbedder Mock 嵌入生成器（用于测试）
+// MockEmbedder Mock 嵌入生成器（用于测试）.
 type MockEmbedder struct {
 	dimension int
 }
 
-// NewMockEmbedder 创建新的 Mock 嵌入生成器
+// NewMockEmbedder 创建新的 Mock 嵌入生成器.
 func NewMockEmbedder(dimension int) (*MockEmbedder, error) {
 	if dimension <= 0 {
 		return nil, fmt.Errorf("dimension must be positive")
@@ -24,7 +24,7 @@ func NewMockEmbedder(dimension int) (*MockEmbedder, error) {
 }
 
 // Embed 生成文本嵌入
-// 使用简单的哈希算法生成确定性的嵌入向量
+// 使用简单的哈希算法生成确定性的嵌入向量.
 func (e *MockEmbedder) Embed(ctx context.Context, text string) ([]float64, error) {
 	if text == "" {
 		return nil, fmt.Errorf("text is required")
@@ -37,7 +37,7 @@ func (e *MockEmbedder) Embed(ctx context.Context, text string) ([]float64, error
 	for i := 0; i < e.dimension; i++ {
 		h := fnv.New64a()
 		// 混合文本和维度索引
-		h.Write([]byte(fmt.Sprintf("%s-%d", text, i)))
+		_, _ = fmt.Fprintf(h, "%s-%d", text, i)
 		hashValue := h.Sum64()
 
 		// 将哈希值归一化到 [-1, 1] 范围
@@ -50,7 +50,7 @@ func (e *MockEmbedder) Embed(ctx context.Context, text string) ([]float64, error
 	return embedding, nil
 }
 
-// EmbedBatch 批量生成嵌入
+// EmbedBatch 批量生成嵌入.
 func (e *MockEmbedder) EmbedBatch(ctx context.Context, texts []string) ([][]float64, error) {
 	if len(texts) == 0 {
 		return nil, fmt.Errorf("texts is required")
@@ -69,7 +69,7 @@ func (e *MockEmbedder) EmbedBatch(ctx context.Context, texts []string) ([][]floa
 	return embeddings, nil
 }
 
-// normalizeVector 归一化向量到单位长度
+// normalizeVector 归一化向量到单位长度.
 func normalizeVector(v []float64) []float64 {
 	var norm float64
 	for _, val := range v {

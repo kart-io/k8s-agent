@@ -8,19 +8,19 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// Service provides business logic for session management
+// Service provides business logic for session management.
 type Service struct {
 	repo Repository
 }
 
-// NewService creates a new session service
+// NewService creates a new session service.
 func NewService(repo Repository) *Service {
 	return &Service{
 		repo: repo,
 	}
 }
 
-// CreateSession validates and stores a new session
+// CreateSession validates and stores a new session.
 func (s *Service) CreateSession(ctx context.Context, session *types.SessionInfo) error {
 	// Validate required fields
 	if session.JTI == "" || session.UserID == "" {
@@ -35,12 +35,12 @@ func (s *Service) CreateSession(ctx context.Context, session *types.SessionInfo)
 	return s.repo.StoreSession(ctx, session)
 }
 
-// GetSession retrieves a single session by JTI
+// GetSession retrieves a single session by JTI.
 func (s *Service) GetSession(ctx context.Context, jti string) (*types.SessionInfo, error) {
 	return s.repo.GetSession(ctx, jti)
 }
 
-// GetUserSessions retrieves all active sessions for a user
+// GetUserSessions retrieves all active sessions for a user.
 func (s *Service) GetUserSessions(ctx context.Context, userID string, limit, offset int) (*types.SessionListResponse, error) {
 	if limit <= 0 {
 		limit = 50 // Default limit
@@ -74,7 +74,7 @@ func (s *Service) GetUserSessions(ctx context.Context, userID string, limit, off
 	}, nil
 }
 
-// ValidateSession checks if a session is valid and not revoked
+// ValidateSession checks if a session is valid and not revoked.
 func (s *Service) ValidateSession(ctx context.Context, jti string) (bool, error) {
 	// Check if revoked
 	revoked, err := s.repo.IsRevoked(ctx, jti)
@@ -88,13 +88,15 @@ func (s *Service) ValidateSession(ctx context.Context, jti string) (bool, error)
 	// Check if session exists
 	_, err = s.repo.GetSession(ctx, jti)
 	if err != nil {
+		// Session not found means it's not active (could be expired or never existed)
+		_ = err // Explicitly ignore error
 		return false, nil
 	}
 
 	return true, nil
 }
 
-// TerminateSession revokes a single session
+// TerminateSession revokes a single session.
 func (s *Service) TerminateSession(ctx context.Context, jti, userID, revokedBy, reason, eventID string) error {
 	// Verify session exists
 	session, err := s.repo.GetSession(ctx, jti)
@@ -110,7 +112,7 @@ func (s *Service) TerminateSession(ctx context.Context, jti, userID, revokedBy, 
 	return s.repo.RevokeSession(ctx, jti, userID, revokedBy, reason, eventID)
 }
 
-// TerminateUserSessions revokes all sessions for a user
+// TerminateUserSessions revokes all sessions for a user.
 func (s *Service) TerminateUserSessions(ctx context.Context, userID, revokedBy, reason, eventID string) (int, error) {
 	// Get all user sessions
 	sessions, _, err := s.repo.ListUserSessions(ctx, userID, 1000, 0) // Max 1000 sessions
@@ -136,7 +138,7 @@ func (s *Service) TerminateUserSessions(ctx context.Context, userID, revokedBy, 
 	return len(sessions), nil
 }
 
-// detectDeviceType determines device type from User-Agent
+// detectDeviceType determines device type from User-Agent.
 func detectDeviceType(userAgent string) string {
 	ua := strings.ToLower(userAgent)
 
@@ -149,7 +151,7 @@ func detectDeviceType(userAgent string) string {
 	return "desktop"
 }
 
-// parseDeviceName extracts readable device name from User-Agent
+// parseDeviceName extracts readable device name from User-Agent.
 func parseDeviceName(userAgent string) string {
 	// Simple implementation - can be enhanced with proper UA parser
 	ua := userAgent

@@ -13,14 +13,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// LLMInitializer initializes LLM clients
+// LLMInitializer initializes LLM clients.
 type LLMInitializer struct {
 	opts       *commonoptions.LLMOptions
 	logger     core.Logger
 	llmClients []llm.Client
 }
 
-// NewLLMInitializer creates a new LLM initializer
+// NewLLMInitializer creates a new LLM initializer.
 func NewLLMInitializer(opts *commonoptions.LLMOptions, logger core.Logger) *LLMInitializer {
 	return &LLMInitializer{
 		opts:   opts,
@@ -28,7 +28,7 @@ func NewLLMInitializer(opts *commonoptions.LLMOptions, logger core.Logger) *LLMI
 	}
 }
 
-// Initialize initializes LLM clients
+// Initialize initializes LLM clients.
 func (i *LLMInitializer) Initialize(ctx context.Context) error {
 	if !i.opts.Enabled {
 		i.logger.Info("LLM support disabled")
@@ -84,24 +84,24 @@ func (i *LLMInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown closes all LLM clients
+// Shutdown closes all LLM clients.
 func (i *LLMInitializer) Shutdown(ctx context.Context) error {
 	i.logger.Info("Shutting down LLM clients")
 	// LLM clients don't need explicit cleanup
 	return nil
 }
 
-// Priority returns the initialization priority (higher = earlier)
+// Priority returns the initialization priority (higher = earlier).
 func (i *LLMInitializer) Priority() int {
 	return 400 // LLM should be initialized early
 }
 
-// Name returns the name of this initializer
+// Name returns the name of this initializer.
 func (i *LLMInitializer) Name() string {
 	return "LLM"
 }
 
-// GetClients returns the initialized LLM clients
+// GetClients returns the initialized LLM clients.
 func (i *LLMInitializer) GetClients() []llm.Client {
 	return i.llmClients
 }

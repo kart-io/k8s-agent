@@ -10,14 +10,14 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/types"
 )
 
-// Engine generates recommendations based on root cause
+// Engine generates recommendations based on root cause.
 type Engine struct {
 	config     *config.Config
 	llmClients []llm.Client
 	rules      map[types.RootCauseType][]types.Recommendation
 }
 
-// NewEngine creates a new recommendation engine
+// NewEngine creates a new recommendation engine.
 func NewEngine(cfg *config.Config, llmClients []llm.Client) *Engine {
 	engine := &Engine{
 		config:     cfg,
@@ -28,7 +28,7 @@ func NewEngine(cfg *config.Config, llmClients []llm.Client) *Engine {
 	return engine
 }
 
-// loadRules loads recommendation rules
+// loadRules loads recommendation rules.
 func (e *Engine) loadRules() {
 	e.rules[types.OOMKiller] = []types.Recommendation{
 		{
@@ -539,7 +539,7 @@ spec:
 	// Add more rules for other root cause types...
 }
 
-// GenerateRecommendations generates recommendations
+// GenerateRecommendations generates recommendations.
 func (e *Engine) GenerateRecommendations(ctx context.Context, result *types.AnalysisResult, analysisCtx *types.AnalysisContext) error {
 	if result.Result == nil || result.Result.RootCause == nil {
 		return nil

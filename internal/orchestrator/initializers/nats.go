@@ -10,14 +10,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// NATSInitializer NATS初始化器
+// NATSInitializer NATS初始化器.
 type NATSInitializer struct {
 	opts   *options.ServerOptions
 	logger core.Logger
 	conn   *nats.Conn
 }
 
-// NewNATSInitializer 创建NATS初始化器
+// NewNATSInitializer 创建NATS初始化器.
 func NewNATSInitializer(opts *options.ServerOptions, logger core.Logger) *NATSInitializer {
 	return &NATSInitializer{
 		opts:   opts,
@@ -25,17 +25,17 @@ func NewNATSInitializer(opts *options.ServerOptions, logger core.Logger) *NATSIn
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (n *NATSInitializer) Name() string {
 	return "nats"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (n *NATSInitializer) Priority() int {
 	return bootstrap.PriorityMQ
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (n *NATSInitializer) Initialize(ctx context.Context) error {
 	n.logger.Infow("Connecting to NATS",
 		"url", n.opts.NATS.URL,
@@ -58,7 +58,7 @@ func (n *NATSInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭NATS连接
+// Close 关闭NATS连接.
 func (n *NATSInitializer) Close(ctx context.Context) error {
 	if n.conn != nil {
 		n.conn.Close()
@@ -66,7 +66,7 @@ func (n *NATSInitializer) Close(ctx context.Context) error {
 	return nil
 }
 
-// HealthCheck 检查NATS健康状态
+// HealthCheck 检查NATS健康状态.
 func (n *NATSInitializer) HealthCheck(ctx context.Context) error {
 	if n.conn == nil {
 		return nil
@@ -77,7 +77,7 @@ func (n *NATSInitializer) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// Conn 获取NATS连接
+// Conn 获取NATS连接.
 func (n *NATSInitializer) Conn() *nats.Conn {
 	return n.conn
 }

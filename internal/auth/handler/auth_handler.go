@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// AuthHandler handles authentication-related HTTP requests
+// AuthHandler handles authentication-related HTTP requests.
 type AuthHandler struct {
 	db              *gorm.DB
 	jwtSecret       []byte
@@ -23,7 +24,7 @@ type AuthHandler struct {
 	sessionService  *session.Service
 }
 
-// NewAuthHandler creates a new authentication handler
+// NewAuthHandler creates a new authentication handler.
 func NewAuthHandler(db *gorm.DB, jwtSecret string, jwtExpiresHours int, sessionService *session.Service) *AuthHandler {
 	return &AuthHandler{
 		db:              db,
@@ -33,7 +34,7 @@ func NewAuthHandler(db *gorm.DB, jwtSecret string, jwtExpiresHours int, sessionS
 	}
 }
 
-// LoginHandler handles user login requests with session tracking
+// LoginHandler handles user login requests with session tracking.
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var loginReq types.LoginRequest
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
@@ -44,7 +45,7 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	// Retrieve user from database
 	var user types.User
 	if err := h.db.Where("username = ?", loginReq.Username).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			response.Unauthorized(c, "Invalid username or password", nil)
 			return
 		}
@@ -144,7 +145,7 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 }
 
 // LogoutHandler handles user logout requests
-// In the future, this can be enhanced to revoke the session
+// In the future, this can be enhanced to revoke the session.
 func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 	// Extract JTI from token if available
 	// For now, just return success
@@ -152,7 +153,7 @@ func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 	response.SuccessWithMessage(c, "Logged out successfully", nil)
 }
 
-// GetCurrentUserHandler returns the current authenticated user's information
+// GetCurrentUserHandler returns the current authenticated user's information.
 func (h *AuthHandler) GetCurrentUserHandler(c *gin.Context) {
 	// Extract user ID from JWT claims (set by JWT middleware)
 	userID, exists := c.Get("user_id")
@@ -187,7 +188,7 @@ func (h *AuthHandler) GetCurrentUserHandler(c *gin.Context) {
 }
 
 // GetAccessCodesHandler returns an array of permission codes for the authenticated user
-// This is used by the frontend to determine what features/pages the user can access
+// This is used by the frontend to determine what features/pages the user can access.
 func (h *AuthHandler) GetAccessCodesHandler(c *gin.Context) {
 	// Extract user ID from JWT claims (set by JWT middleware)
 	userID, exists := c.Get("user_id")

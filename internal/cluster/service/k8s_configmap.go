@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sConfigMapService ConfigMap 管理服务
+// K8sConfigMapService ConfigMap 管理服务.
 type K8sConfigMapService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sConfigMapService 创建新的 ConfigMap 服务
+// NewK8sConfigMapService 创建新的 ConfigMap 服务.
 func NewK8sConfigMapService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sConfigMapService {
 	return &K8sConfigMapService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sConfigMapService(storage *storage.MySQLStorage, clusterService *K8sCl
 	}
 }
 
-// ConfigMapInfo ConfigMap 信息
+// ConfigMapInfo ConfigMap 信息.
 type ConfigMapInfo struct {
 	Name        string            `json:"name"`
 	Namespace   string            `json:"namespace"`
@@ -37,7 +37,7 @@ type ConfigMapInfo struct {
 	CreatedAt   string            `json:"createdAt"`
 }
 
-// CreateConfigMapRequest 创建 ConfigMap 请求
+// CreateConfigMapRequest 创建 ConfigMap 请求.
 type CreateConfigMapRequest struct {
 	Name        string            `json:"name" binding:"required"`
 	Namespace   string            `json:"namespace" binding:"required"`
@@ -47,7 +47,7 @@ type CreateConfigMapRequest struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-// ListConfigMaps 获取 ConfigMap 列表
+// ListConfigMaps 获取 ConfigMap 列表.
 func (s *K8sConfigMapService) ListConfigMaps(ctx context.Context, clusterID, namespace string, offset, limit int) ([]ConfigMapInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *K8sConfigMapService) ListConfigMaps(ctx context.Context, clusterID, nam
 	return result, total, nil
 }
 
-// GetConfigMap 获取 ConfigMap 详情
+// GetConfigMap 获取 ConfigMap 详情.
 func (s *K8sConfigMapService) GetConfigMap(ctx context.Context, clusterID, namespace, configmapName string) (*ConfigMapInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *K8sConfigMapService) GetConfigMap(ctx context.Context, clusterID, names
 	return &cmInfo, nil
 }
 
-// CreateConfigMap 创建 ConfigMap
+// CreateConfigMap 创建 ConfigMap.
 func (s *K8sConfigMapService) CreateConfigMap(ctx context.Context, clusterID string, req *CreateConfigMapRequest) (*ConfigMapInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -130,7 +130,7 @@ func (s *K8sConfigMapService) CreateConfigMap(ctx context.Context, clusterID str
 	return &cmInfo, nil
 }
 
-// UpdateConfigMap 更新 ConfigMap
+// UpdateConfigMap 更新 ConfigMap.
 func (s *K8sConfigMapService) UpdateConfigMap(ctx context.Context, clusterID, namespace, configmapName string, req *CreateConfigMapRequest) (*ConfigMapInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -164,7 +164,7 @@ func (s *K8sConfigMapService) UpdateConfigMap(ctx context.Context, clusterID, na
 	return &cmInfo, nil
 }
 
-// DeleteConfigMap 删除 ConfigMap
+// DeleteConfigMap 删除 ConfigMap.
 func (s *K8sConfigMapService) DeleteConfigMap(ctx context.Context, clusterID, namespace, configmapName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -185,7 +185,7 @@ func (s *K8sConfigMapService) DeleteConfigMap(ctx context.Context, clusterID, na
 	return nil
 }
 
-// convertConfigMapInfo 转换 ConfigMap 信息
+// convertConfigMapInfo 转换 ConfigMap 信息.
 func (s *K8sConfigMapService) convertConfigMapInfo(configmap *corev1.ConfigMap) ConfigMapInfo {
 	return ConfigMapInfo{
 		Name:        configmap.Name,

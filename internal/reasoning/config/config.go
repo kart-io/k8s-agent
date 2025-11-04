@@ -12,7 +12,7 @@ import (
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 )
 
-// Type aliases for backward compatibility
+// Type aliases for backward compatibility.
 type (
 	LLMConfig         = commonoptions.LLMOptions
 	LLMProviderConfig = commonoptions.LLMProviderConfig
@@ -26,7 +26,7 @@ type (
 	AnomalyConfig     = commonoptions.AnomalyOptions
 )
 
-// Config represents the application configuration
+// Config represents the application configuration.
 type Config struct {
 	Server      commonoptions.ServerOptions      `mapstructure:"server"`
 	LLM         commonoptions.LLMOptions         `mapstructure:"llm"`
@@ -38,12 +38,12 @@ type Config struct {
 	Memory      commonoptions.MemoryOptions      `mapstructure:"memory"`
 }
 
-// Load loads configuration from file and environment variables
+// Load loads configuration from file and environment variables.
 func Load() (*Config, error) {
 	return LoadFromPath("")
 }
 
-// LoadFromPath loads configuration from a specific file path
+// LoadFromPath loads configuration from a specific file path.
 func LoadFromPath(configPath string) (*Config, error) {
 	config := &Config{}
 
@@ -70,19 +70,19 @@ func LoadFromPath(configPath string) (*Config, error) {
 	return config, nil
 }
 
-// configWrapper 包装 Config 以实现 Options 接口
+// configWrapper 包装 Config 以实现 Options 接口.
 type configWrapper struct {
 	*Config
 }
 
-// Complete 实现 Options 接口
+// Complete 实现 Options 接口.
 func (w *configWrapper) Complete() error {
 	// reasoning 的 Config 不需要特殊的 Complete 逻辑
 	// LLM 环境变量已在 postUnmarshal 回调中处理
 	return nil
 }
 
-// Validate 实现 Options 接口
+// Validate 实现 Options 接口.
 func (w *configWrapper) Validate() []error {
 	if err := validate(w.Config); err != nil {
 		return []error{err}
@@ -90,7 +90,7 @@ func (w *configWrapper) Validate() []error {
 	return nil
 }
 
-// applyLLMEnvOverrides applies LLM API key overrides from environment variables
+// applyLLMEnvOverrides applies LLM API key overrides from environment variables.
 func applyLLMEnvOverrides(config *Config) {
 	// LLM API keys from environment
 	for i := range config.LLM.Providers {
@@ -149,7 +149,7 @@ func applyLLMEnvOverrides(config *Config) {
 	}
 }
 
-// validate validates the configuration
+// validate validates the configuration.
 func validate(config *Config) error {
 	if err := config.Server.Validate(); err != nil {
 		return fmt.Errorf("server validation failed: %w", err)
@@ -195,12 +195,12 @@ func validate(config *Config) error {
 	return nil
 }
 
-// GetRequestTimeout returns the request timeout duration
+// GetRequestTimeout returns the request timeout duration.
 func (c *Config) GetRequestTimeout() time.Duration {
 	return c.Performance.GetRequestTimeoutDuration()
 }
 
-// GetAccuracyUpdateInterval returns the accuracy update interval duration
+// GetAccuracyUpdateInterval returns the accuracy update interval duration.
 func (c *Config) GetAccuracyUpdateInterval() time.Duration {
 	duration, err := time.ParseDuration(c.Learning.AccuracyUpdateInterval)
 	if err != nil {

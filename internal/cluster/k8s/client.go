@@ -16,7 +16,7 @@ type Client struct {
 	config           *rest.Config
 }
 
-// NewClientFromKubeConfig 从 kubeconfig 创建客户端
+// NewClientFromKubeConfig 从 kubeconfig 创建客户端.
 func NewClientFromKubeConfig(kubeconfigData []byte) (*Client, error) {
 	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigData)
 	if err != nil {
@@ -26,12 +26,12 @@ func NewClientFromKubeConfig(kubeconfigData []byte) (*Client, error) {
 	return newClient(config)
 }
 
-// NewClientFromConfig 从 rest.Config 创建客户端
+// NewClientFromConfig 从 rest.Config 创建客户端.
 func NewClientFromConfig(config *rest.Config) (*Client, error) {
 	return newClient(config)
 }
 
-// NewInClusterClient 创建 in-cluster 客户端
+// NewInClusterClient 创建 in-cluster 客户端.
 func NewInClusterClient() (*Client, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -59,23 +59,23 @@ func newClient(config *rest.Config) (*Client, error) {
 	}, nil
 }
 
-// Clientset 返回 K8s 客户端
+// Clientset 返回 K8s 客户端.
 func (c *Client) Clientset() *kubernetes.Clientset {
 	return c.clientset
 }
 
-// MetricsClientset 返回 metrics 客户端
+// MetricsClientset 返回 metrics 客户端.
 func (c *Client) MetricsClientset() *versioned.Clientset {
 	return c.metricsClientset
 }
 
-// CheckConnection 检查连接
+// CheckConnection 检查连接.
 func (c *Client) CheckConnection(ctx context.Context) error {
 	_, err := c.clientset.Discovery().ServerVersion()
 	return err
 }
 
-// GetServerVersion 获取服务器版本
+// GetServerVersion 获取服务器版本.
 func (c *Client) GetServerVersion(ctx context.Context) (string, error) {
 	version, err := c.clientset.Discovery().ServerVersion()
 	if err != nil {

@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-// Client provides email sending functionality
+// Client provides email sending functionality.
 type Client interface {
 	Send(ctx context.Context, msg *Message) (*Receipt, error)
 }
 
-// Config holds email configuration
+// Config holds email configuration.
 type Config struct {
 	Host     string
 	Port     int
@@ -24,7 +24,7 @@ type Config struct {
 	Timeout  time.Duration
 }
 
-// Message represents an email message
+// Message represents an email message.
 type Message struct {
 	ID       string
 	Title    string
@@ -34,32 +34,32 @@ type Message struct {
 	Metadata map[string]interface{}
 }
 
-// Target represents an email recipient
+// Target represents an email recipient.
 type Target struct {
 	Type     string
 	Value    string // email address
 	Platform string
 }
 
-// Receipt represents the result of sending an email
+// Receipt represents the result of sending an email.
 type Receipt struct {
 	MessageID string
 	Results   []Result
 }
 
-// Result represents the result for a single recipient
+// Result represents the result for a single recipient.
 type Result struct {
 	Platform string
 	Success  bool
 	Error    string
 }
 
-// smtpClient implements the Client interface using SMTP
+// smtpClient implements the Client interface using SMTP.
 type smtpClient struct {
 	config *Config
 }
 
-// NewClient creates a new email client
+// NewClient creates a new email client.
 func NewClient(config *Config) (Client, error) {
 	if config == nil {
 		return &noopClient{}, nil
@@ -74,7 +74,7 @@ func NewClient(config *Config) (Client, error) {
 	}, nil
 }
 
-// Send sends an email message
+// Send sends an email message.
 func (c *smtpClient) Send(ctx context.Context, msg *Message) (*Receipt, error) {
 	if len(msg.Targets) == 0 {
 		return nil, fmt.Errorf("no targets specified")
@@ -128,10 +128,10 @@ func (c *smtpClient) Send(ctx context.Context, msg *Message) (*Receipt, error) {
 	return receipt, nil
 }
 
-// noopClient is a no-op implementation for testing/development
+// noopClient is a no-op implementation for testing/development.
 type noopClient struct{}
 
-// Send logs the message instead of sending it
+// Send logs the message instead of sending it.
 func (c *noopClient) Send(ctx context.Context, msg *Message) (*Receipt, error) {
 	log.Printf("[EMAIL NO-OP] Would send email: %s to %d recipients", msg.Title, len(msg.Targets))
 

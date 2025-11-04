@@ -13,12 +13,12 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// HealthCheckInitializer Bootstrap 适配器
+// HealthCheckInitializer Bootstrap 适配器.
 type HealthCheckInitializer struct {
 	server health.Server
 }
 
-// NewHealthCheckInitializer 创建初始化器
+// NewHealthCheckInitializer 创建初始化器.
 func NewHealthCheckInitializer(opts *options.HealthOptions, logger core.Logger) *HealthCheckInitializer {
 	return &HealthCheckInitializer{
 		server: health.NewHTTPServer(opts, logger),

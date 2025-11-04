@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sEndpointService Endpoints 管理服务
+// K8sEndpointService Endpoints 管理服务.
 type K8sEndpointService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sEndpointService 创建新的 Endpoints 服务
+// NewK8sEndpointService 创建新的 Endpoints 服务.
 func NewK8sEndpointService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sEndpointService {
 	return &K8sEndpointService{
 		storage:        storage,
@@ -26,28 +26,28 @@ func NewK8sEndpointService(storage *storage.MySQLStorage, clusterService *K8sClu
 	}
 }
 
-// EndpointAddress 端点地址信息
+// EndpointAddress 端点地址信息.
 type EndpointAddress struct {
 	IP       string `json:"ip"`
 	NodeName string `json:"nodeName,omitempty"`
 	Hostname string `json:"hostname,omitempty"`
 }
 
-// EndpointPort 端点端口信息
+// EndpointPort 端点端口信息.
 type EndpointPort struct {
 	Name     string `json:"name,omitempty"`
 	Port     int32  `json:"port"`
 	Protocol string `json:"protocol"`
 }
 
-// EndpointSubset 端点子集
+// EndpointSubset 端点子集.
 type EndpointSubset struct {
 	Addresses         []EndpointAddress `json:"addresses,omitempty"`
 	NotReadyAddresses []EndpointAddress `json:"notReadyAddresses,omitempty"`
 	Ports             []EndpointPort    `json:"ports,omitempty"`
 }
 
-// EndpointInfo Endpoints 信息
+// EndpointInfo Endpoints 信息.
 type EndpointInfo struct {
 	Name      string            `json:"name"`
 	Namespace string            `json:"namespace"`
@@ -56,7 +56,7 @@ type EndpointInfo struct {
 	CreatedAt string            `json:"createdAt"`
 }
 
-// ListEndpoints 获取 Endpoints 列表
+// ListEndpoints 获取 Endpoints 列表.
 func (s *K8sEndpointService) ListEndpoints(ctx context.Context, clusterID, namespace string, offset, limit int) ([]EndpointInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *K8sEndpointService) ListEndpoints(ctx context.Context, clusterID, names
 	return result, total, nil
 }
 
-// GetEndpoint 获取 Endpoint 详情
+// GetEndpoint 获取 Endpoint 详情.
 func (s *K8sEndpointService) GetEndpoint(ctx context.Context, clusterID, namespace, endpointName string) (*EndpointInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -105,7 +105,7 @@ func (s *K8sEndpointService) GetEndpoint(ctx context.Context, clusterID, namespa
 	return &epInfo, nil
 }
 
-// DeleteEndpoint 删除 Endpoint
+// DeleteEndpoint 删除 Endpoint.
 func (s *K8sEndpointService) DeleteEndpoint(ctx context.Context, clusterID, namespace, endpointName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -126,7 +126,7 @@ func (s *K8sEndpointService) DeleteEndpoint(ctx context.Context, clusterID, name
 	return nil
 }
 
-// convertEndpointInfo 转换 Endpoints 信息
+// convertEndpointInfo 转换 Endpoints 信息.
 func (s *K8sEndpointService) convertEndpointInfo(endpoint *corev1.Endpoints) EndpointInfo {
 	subsets := make([]EndpointSubset, 0, len(endpoint.Subsets))
 

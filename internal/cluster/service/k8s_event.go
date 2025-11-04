@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sEventService Event 管理服务
+// K8sEventService Event 管理服务.
 type K8sEventService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sEventService 创建新的 Event 服务
+// NewK8sEventService 创建新的 Event 服务.
 func NewK8sEventService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sEventService {
 	return &K8sEventService{
 		storage:        storage,
@@ -25,7 +25,7 @@ func NewK8sEventService(storage *storage.MySQLStorage, clusterService *K8sCluste
 	}
 }
 
-// ListEvents 获取 Event 列表
+// ListEvents 获取 Event 列表.
 func (s *K8sEventService) ListEvents(ctx context.Context, clusterID, namespace string, eventType string, eventReason string, offset, limit int) ([]corev1.Event, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -78,7 +78,7 @@ func (s *K8sEventService) ListEvents(ctx context.Context, clusterID, namespace s
 	return pagedEvents, total, nil
 }
 
-// GetEvent 获取单个 Event 详情
+// GetEvent 获取单个 Event 详情.
 func (s *K8sEventService) GetEvent(ctx context.Context, clusterID, namespace, name string) (*corev1.Event, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {

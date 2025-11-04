@@ -15,7 +15,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// CommandServiceServer implements the CommandService gRPC service
+// CommandServiceServer implements the CommandService gRPC service.
 type CommandServiceServer struct {
 	agentv1.UnimplementedCommandServiceServer
 	dispatcher *command.Dispatcher
@@ -23,7 +23,7 @@ type CommandServiceServer struct {
 	logger     core.Logger
 }
 
-// NewCommandServiceServer creates a new CommandServiceServer instance
+// NewCommandServiceServer creates a new CommandServiceServer instance.
 func NewCommandServiceServer(dispatcher *command.Dispatcher, store *storage.PostgresStore, logger core.Logger) *CommandServiceServer {
 	return &CommandServiceServer{
 		dispatcher: dispatcher,
@@ -32,7 +32,7 @@ func NewCommandServiceServer(dispatcher *command.Dispatcher, store *storage.Post
 	}
 }
 
-// ExecuteCommand dispatches a command for execution
+// ExecuteCommand dispatches a command for execution.
 func (s *CommandServiceServer) ExecuteCommand(ctx context.Context, req *agentv1.ExecuteCommandRequest) (*agentv1.ExecuteCommandResponse, error) {
 	s.logger.Infow("Executing command",
 		"agent_id", req.AgentId,
@@ -88,7 +88,7 @@ func (s *CommandServiceServer) ExecuteCommand(ctx context.Context, req *agentv1.
 	}, nil
 }
 
-// GetCommandStatus retrieves the status of a command
+// GetCommandStatus retrieves the status of a command.
 func (s *CommandServiceServer) GetCommandStatus(ctx context.Context, req *agentv1.GetCommandStatusRequest) (*agentv1.GetCommandStatusResponse, error) {
 	if req.CommandId == "" {
 		return nil, status.Error(codes.InvalidArgument, "command_id is required")
@@ -112,7 +112,7 @@ func (s *CommandServiceServer) GetCommandStatus(ctx context.Context, req *agentv
 	}, nil
 }
 
-// CancelCommand cancels a pending or running command
+// CancelCommand cancels a pending or running command.
 func (s *CommandServiceServer) CancelCommand(ctx context.Context, req *agentv1.CancelCommandRequest) (*agentv1.CancelCommandResponse, error) {
 	if req.CommandId == "" {
 		return nil, status.Error(codes.InvalidArgument, "command_id is required")
@@ -155,7 +155,7 @@ func (s *CommandServiceServer) CancelCommand(ctx context.Context, req *agentv1.C
 
 // Helper functions
 
-// convertCommandToProto converts types.Command to protobuf Command
+// convertCommandToProto converts types.Command to protobuf Command.
 func convertCommandToProto(cmd *types.Command) *agentv1.Command {
 	if cmd == nil {
 		return nil
@@ -185,7 +185,7 @@ func convertCommandToProto(cmd *types.Command) *agentv1.Command {
 	}
 }
 
-// convertCommandTypeToProto converts command type string to protobuf Type
+// convertCommandTypeToProto converts command type string to protobuf Type.
 func convertCommandTypeToProto(cmdType string) agentv1.Command_Type {
 	switch cmdType {
 	case "kubectl":
@@ -201,7 +201,7 @@ func convertCommandTypeToProto(cmdType string) agentv1.Command_Type {
 	}
 }
 
-// convertProtoCommandType converts protobuf Type to command type string
+// convertProtoCommandType converts protobuf Type to command type string.
 func convertProtoCommandType(cmdType agentv1.Command_Type) string {
 	switch cmdType {
 	case agentv1.Command_KUBECTL:
@@ -217,7 +217,7 @@ func convertProtoCommandType(cmdType agentv1.Command_Type) string {
 	}
 }
 
-// convertCommandStatusToProto converts types.CommandStatus to protobuf Status
+// convertCommandStatusToProto converts types.CommandStatus to protobuf Status.
 func convertCommandStatusToProto(cmdStatus types.CommandStatus) agentv1.Command_Status {
 	switch cmdStatus {
 	case types.CommandStatusPending:

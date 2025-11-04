@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	// HTTP request metrics
+	// HTTP request metrics.
 	httpRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "auth_service_http_requests_total",
@@ -28,7 +28,7 @@ var (
 		[]string{"method", "path"},
 	)
 
-	// Authentication metrics
+	// Authentication metrics.
 	authAttemptsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "auth_service_auth_attempts_total",
@@ -37,7 +37,7 @@ var (
 		[]string{"type", "result"}, // type: jwt|apikey, result: success|failure
 	)
 
-	// Database metrics
+	// Database metrics.
 	dbQueriesTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "auth_service_db_queries_total",
@@ -55,7 +55,7 @@ var (
 		[]string{"operation"},
 	)
 
-	// Cache metrics
+	// Cache metrics.
 	cacheHitsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "auth_service_cache_hits_total",
@@ -72,7 +72,7 @@ var (
 		[]string{"cache_type"},
 	)
 
-	// Active users gauge
+	// Active users gauge.
 	activeUsersGauge = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "auth_service_active_users",
@@ -80,7 +80,7 @@ var (
 		},
 	)
 
-	// API key metrics
+	// API key metrics.
 	apiKeyValidationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "auth_service_apikey_validations_total",
@@ -90,7 +90,7 @@ var (
 	)
 )
 
-// PrometheusMiddleware records HTTP metrics
+// PrometheusMiddleware records HTTP metrics.
 func PrometheusMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
@@ -111,7 +111,7 @@ func PrometheusMiddleware() gin.HandlerFunc {
 	}
 }
 
-// RecordAuthAttempt records authentication attempt
+// RecordAuthAttempt records authentication attempt.
 func RecordAuthAttempt(authType string, success bool) {
 	result := "success"
 	if !success {
@@ -120,28 +120,28 @@ func RecordAuthAttempt(authType string, success bool) {
 	authAttemptsTotal.WithLabelValues(authType, result).Inc()
 }
 
-// RecordDBQuery records database query
+// RecordDBQuery records database query.
 func RecordDBQuery(operation string, duration time.Duration) {
 	dbQueriesTotal.WithLabelValues(operation).Inc()
 	dbQueryDuration.WithLabelValues(operation).Observe(duration.Seconds())
 }
 
-// RecordCacheHit records cache hit
+// RecordCacheHit records cache hit.
 func RecordCacheHit(cacheType string) {
 	cacheHitsTotal.WithLabelValues(cacheType).Inc()
 }
 
-// RecordCacheMiss records cache miss
+// RecordCacheMiss records cache miss.
 func RecordCacheMiss(cacheType string) {
 	cacheMissesTotal.WithLabelValues(cacheType).Inc()
 }
 
-// SetActiveUsers sets the number of active users
+// SetActiveUsers sets the number of active users.
 func SetActiveUsers(count float64) {
 	activeUsersGauge.Set(count)
 }
 
-// RecordAPIKeyValidation records API key validation result
+// RecordAPIKeyValidation records API key validation result.
 func RecordAPIKeyValidation(result string) {
 	apiKeyValidationsTotal.WithLabelValues(result).Inc()
 }

@@ -63,9 +63,7 @@ func (c *Config) NewServer(ctx context.Context, logger core.Logger) (*Server, er
 	}
 
 	// Register all components
-	if err := s.registerComponents(); err != nil {
-		return nil, fmt.Errorf("failed to register components: %w", err)
-	}
+	s.registerComponents()
 
 	s.logger.Infow("Auth server initialized successfully",
 		"id", ID,
@@ -106,7 +104,7 @@ func setupSignalContext() context.Context {
 }
 
 // registerComponents registers all component initializers with the bootstrap system.
-func (s *Server) registerComponents() error {
+func (s *Server) registerComponents() {
 	opts := s.convertToInternalOptions()
 
 	// 1. Database (priority 300)
@@ -170,8 +168,6 @@ func (s *Server) registerComponents() error {
 		s.emailInit,
 	)
 	s.bootstrap.Register(s.httpInit)
-
-	return nil
 }
 
 // convertToInternalOptions converts Config to the internal options format

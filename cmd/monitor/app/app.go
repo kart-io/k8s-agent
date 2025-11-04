@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/kart-io/k8s-agent/common/loggerutil"
 	"github.com/kart-io/k8s-agent/common/options"
@@ -11,7 +12,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Execute runs the monitor command
+// Execute runs the monitor command.
 func Execute() {
 	// Create configuration options
 	opts := config.NewOptions()
@@ -32,19 +33,19 @@ func Execute() {
 	)
 }
 
-// MonitorApp implements commonapp.Application interface
+// MonitorApp implements commonapp.Application interface.
 type MonitorApp struct {
 	config *config.Options
 	logger core.Logger
 	server *MonitorService
 }
 
-// Name returns the application name
+// Name returns the application name.
 func (a *MonitorApp) Name() string {
 	return "Monitor Service"
 }
 
-// Initialize initializes the application
+// Initialize initializes the application.
 func (a *MonitorApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// Convert configuration
 	configOpts := opts.(*config.Options)
@@ -77,16 +78,19 @@ func (a *MonitorApp) Initialize(ctx context.Context, opts commonapp.Options) err
 	return nil
 }
 
-// Run runs the application
+// Run runs the application.
 func (a *MonitorApp) Run(ctx context.Context) error {
 	// Start service
 	return a.server.Run(ctx)
 }
 
-// Shutdown gracefully shuts down the application
+// Shutdown gracefully shuts down the application.
 func (a *MonitorApp) Shutdown(ctx context.Context) error {
 	if a.logger != nil {
-		a.logger.Flush()
+		if err := a.logger.Flush(); err != nil {
+			// Can't log the error since logger is being flushed
+			fmt.Fprintf(os.Stderr, "Failed to flush logger: %v\n", err)
+		}
 	}
 	return nil
 }

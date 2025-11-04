@@ -9,12 +9,12 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
 )
 
-// SessionHandler handles session-related HTTP requests
+// SessionHandler handles session-related HTTP requests.
 type SessionHandler struct {
 	sessionService *session.Service
 }
 
-// NewSessionHandler creates a new session handler
+// NewSessionHandler creates a new session handler.
 func NewSessionHandler(sessionService *session.Service) *SessionHandler {
 	return &SessionHandler{
 		sessionService: sessionService,
@@ -22,7 +22,7 @@ func NewSessionHandler(sessionService *session.Service) *SessionHandler {
 }
 
 // ListUserSessions handles GET /api/v1/sessions/users/:userId
-// Lists all active sessions for a specific user
+// Lists all active sessions for a specific user.
 func (h *SessionHandler) ListUserSessions(c *gin.Context) {
 	// Extract userId from path parameter
 	userID := c.Param("userId")
@@ -114,7 +114,7 @@ func (h *SessionHandler) ListUserSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, sessionList)
 }
 
-// parseIntQuery parses an integer query parameter with default value
+// parseIntQuery parses an integer query parameter with default value.
 func (h *SessionHandler) parseIntQuery(c *gin.Context, key string, defaultValue int) (int, error) {
 	valueStr := c.Query(key)
 	if valueStr == "" {

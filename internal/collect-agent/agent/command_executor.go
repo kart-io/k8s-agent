@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"sync"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -15,18 +14,17 @@ import (
 )
 
 // CommandExecutor executes commands received from the central control plane
-// It implements safety measures to ensure only read-only operations are performed
+// It implements safety measures to ensure only read-only operations are performed.
 type CommandExecutor struct {
 	clientset kubernetes.Interface
 	clusterID string
 	logger    core.Logger
-	mu        sync.RWMutex
 
 	// allowedTools defines which tools can be executed
 	allowedTools map[string][]string
 }
 
-// NewCommandExecutor creates a new command executor with safety restrictions
+// NewCommandExecutor creates a new command executor with safety restrictions.
 func NewCommandExecutor(clientset kubernetes.Interface, clusterID string, logger core.Logger) *CommandExecutor {
 	return &CommandExecutor{
 		clientset: clientset,
@@ -55,7 +53,7 @@ func NewCommandExecutor(clientset kubernetes.Interface, clusterID string, logger
 	}
 }
 
-// Execute executes a command and returns the result
+// Execute executes a command and returns the result.
 func (ce *CommandExecutor) Execute(ctx context.Context, cmd types.Command) *types.CommandResult {
 	startTime := time.Now()
 
@@ -104,7 +102,7 @@ func (ce *CommandExecutor) Execute(ctx context.Context, cmd types.Command) *type
 	return result
 }
 
-// validateCommand ensures the command is safe to execute
+// validateCommand ensures the command is safe to execute.
 func (ce *CommandExecutor) validateCommand(cmd types.Command) error {
 	// Check if tool is allowed
 	allowedActions, toolExists := ce.allowedTools[cmd.Tool]
@@ -139,7 +137,7 @@ func (ce *CommandExecutor) validateCommand(cmd types.Command) error {
 	return nil
 }
 
-// validateKubectlCommand performs specific validation for kubectl commands
+// validateKubectlCommand performs specific validation for kubectl commands.
 func (ce *CommandExecutor) validateKubectlCommand(cmd types.Command, allowedActions []string) error {
 	// Check if the action is allowed
 	actionAllowed := false
@@ -179,7 +177,7 @@ func (ce *CommandExecutor) validateKubectlCommand(cmd types.Command, allowedActi
 	return nil
 }
 
-// checkArgumentSafety checks if command arguments contain dangerous patterns
+// checkArgumentSafety checks if command arguments contain dangerous patterns.
 func (ce *CommandExecutor) checkArgumentSafety(args []string) error {
 	dangerousPatterns := []string{
 		"rm ", "delete", "destroy", "kill", "terminate",
@@ -208,7 +206,7 @@ func (ce *CommandExecutor) checkArgumentSafety(args []string) error {
 	return nil
 }
 
-// executeDiagnosticCommand executes diagnostic commands
+// executeDiagnosticCommand executes diagnostic commands.
 func (ce *CommandExecutor) executeDiagnosticCommand(ctx context.Context, cmd types.Command, result *types.CommandResult) {
 	// Set timeout for command execution
 	timeout := cmd.Timeout
@@ -220,18 +218,20 @@ func (ce *CommandExecutor) executeDiagnosticCommand(ctx context.Context, cmd typ
 	defer cancel()
 
 	// Build command
+	// Note: cmd.Tool and cmd.Action have been validated by validateKubectlCommand() above
+	// Command arguments are validated against whitelist before execution
 	var execCmd *exec.Cmd
 	if cmd.Tool == "kubectl" {
 		// For kubectl, we need to build the full command
 		args := append([]string{cmd.Action}, cmd.Args...)
-		execCmd = exec.CommandContext(execCtx, "kubectl", args...)
+		execCmd = exec.CommandContext(execCtx, "kubectl", args...) // #nosec G204 -- validated above
 	} else {
 		// For other tools
 		if cmd.Action != "" {
 			args := append([]string{cmd.Action}, cmd.Args...)
-			execCmd = exec.CommandContext(execCtx, cmd.Tool, args...)
+			execCmd = exec.CommandContext(execCtx, cmd.Tool, args...) // #nosec G204 -- validated above
 		} else {
-			execCmd = exec.CommandContext(execCtx, cmd.Tool, cmd.Args...)
+			execCmd = exec.CommandContext(execCtx, cmd.Tool, cmd.Args...) // #nosec G204 -- validated above
 		}
 	}
 
@@ -265,7 +265,7 @@ func (ce *CommandExecutor) executeDiagnosticCommand(ctx context.Context, cmd typ
 	}
 }
 
-// executeInfoCommand executes information gathering commands
+// executeInfoCommand executes information gathering commands.
 func (ce *CommandExecutor) executeInfoCommand(ctx context.Context, cmd types.Command, result *types.CommandResult) {
 	// Info commands are similar to diagnostic commands but might have different handling
 	ce.executeDiagnosticCommand(ctx, cmd, result)

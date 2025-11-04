@@ -18,20 +18,20 @@ import (
 	agentv1 "github.com/kart-io/k8s-agent/pkg/api/agent/v1"
 )
 
-// AgentServer 实现 Agent Service
+// AgentServer 实现 Agent Service.
 type AgentServer struct {
 	agentv1.UnimplementedAgentServiceServer
 	agents map[string]*agentv1.Agent // 简单的内存存储
 }
 
-// NewAgentServer 创建新的 Agent 服务器
+// NewAgentServer 创建新的 Agent 服务器.
 func NewAgentServer() *AgentServer {
 	return &AgentServer{
 		agents: make(map[string]*agentv1.Agent),
 	}
 }
 
-// RegisterAgent 实现注册 Agent RPC
+// RegisterAgent 实现注册 Agent RPC.
 func (s *AgentServer) RegisterAgent(ctx context.Context, req *agentv1.RegisterAgentRequest) (*agentv1.RegisterAgentResponse, error) {
 	log.Printf("Registering agent: name=%s, cluster=%s", req.Name, req.ClusterName)
 
@@ -65,7 +65,7 @@ func (s *AgentServer) RegisterAgent(ctx context.Context, req *agentv1.RegisterAg
 	}, nil
 }
 
-// Heartbeat 实现心跳 RPC
+// Heartbeat 实现心跳 RPC.
 func (s *AgentServer) Heartbeat(ctx context.Context, req *agentv1.HeartbeatRequest) (*agentv1.HeartbeatResponse, error) {
 	log.Printf("Heartbeat from agent: id=%s, status=%v", req.AgentId, req.Status)
 
@@ -85,7 +85,7 @@ func (s *AgentServer) Heartbeat(ctx context.Context, req *agentv1.HeartbeatReque
 	}, nil
 }
 
-// GetAgent 实现获取 Agent RPC
+// GetAgent 实现获取 Agent RPC.
 func (s *AgentServer) GetAgent(ctx context.Context, req *agentv1.GetAgentRequest) (*agentv1.GetAgentResponse, error) {
 	log.Printf("Getting agent: id=%s", req.AgentId)
 
@@ -99,7 +99,7 @@ func (s *AgentServer) GetAgent(ctx context.Context, req *agentv1.GetAgentRequest
 	}, nil
 }
 
-// ListAgents 实现列出 Agent RPC
+// ListAgents 实现列出 Agent RPC.
 func (s *AgentServer) ListAgents(ctx context.Context, req *agentv1.ListAgentsRequest) (*agentv1.ListAgentsResponse, error) {
 	log.Printf("Listing agents: cluster=%s", req.ClusterId)
 
@@ -124,7 +124,7 @@ func (s *AgentServer) ListAgents(ctx context.Context, req *agentv1.ListAgentsReq
 	}, nil
 }
 
-// UnregisterAgent 实现注销 Agent RPC
+// UnregisterAgent 实现注销 Agent RPC.
 func (s *AgentServer) UnregisterAgent(ctx context.Context, req *agentv1.UnregisterAgentRequest) (*agentv1.UnregisterAgentResponse, error) {
 	log.Printf("Unregistering agent: id=%s", req.AgentId)
 
@@ -144,7 +144,8 @@ func (s *AgentServer) UnregisterAgent(ctx context.Context, req *agentv1.Unregist
 func main() {
 	// 监听端口
 	port := 50051
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	lc := net.ListenConfig{}
+	lis, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}

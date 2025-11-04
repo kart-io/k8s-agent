@@ -18,7 +18,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// HTTPServerInitializer HTTP 服务器初始化器
+// HTTPServerInitializer HTTP 服务器初始化器.
 type HTTPServerInitializer struct {
 	cfg              *config.Config
 	logger           core.Logger
@@ -33,7 +33,7 @@ type HTTPServerInitializer struct {
 	errChan          chan error // 服务器错误通道
 }
 
-// NewHTTPServerInitializer 创建 HTTP 服务器初始化器
+// NewHTTPServerInitializer 创建 HTTP 服务器初始化器.
 func NewHTTPServerInitializer(
 	cfg *config.Config,
 	logger core.Logger,
@@ -58,17 +58,17 @@ func NewHTTPServerInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (h *HTTPServerInitializer) Name() string {
 	return "http-server"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (h *HTTPServerInitializer) Priority() int {
 	return bootstrap.PriorityHTTP
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	h.logger.Infow("Initializing HTTP server",
 		"host", h.cfg.Server.Host,
@@ -78,7 +78,9 @@ func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	// 创建 Gin 引擎
 	gin.SetMode(h.cfg.Server.Mode)
 	router := gin.Default()
-	router.SetTrustedProxies(nil)
+	if err := router.SetTrustedProxies(nil); err != nil {
+		return fmt.Errorf("failed to set trusted proxies: %w", err)
+	}
 
 	// 创建 PostgresDB 包装器 (用于兼容现有handlers)
 	dbConn := &storage.PostgresDB{DB: h.dbInit.DB()}
@@ -189,8 +191,13 @@ func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	// 创建 HTTP 服务器
 	addr := fmt.Sprintf("%s:%d", h.cfg.Server.Host, h.cfg.Server.Port)
 	h.server = &http.Server{
-		Addr:    addr,
-		Handler: router,
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MB
 	}
 
 	// 创建错误通道用于捕获服务器启动错误
@@ -212,7 +219,7 @@ func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// monitorServerErrors 监听服务器致命错误
+// monitorServerErrors 监听服务器致命错误.
 func (h *HTTPServerInitializer) monitorServerErrors() {
 	for err := range h.errChan {
 		if err != nil {
@@ -224,7 +231,7 @@ func (h *HTTPServerInitializer) monitorServerErrors() {
 	}
 }
 
-// Close 关闭服务器
+// Close 关闭服务器.
 func (h *HTTPServerInitializer) Close(ctx context.Context) error {
 	if h.server != nil {
 		h.logger.Infow("Shutting down HTTP server")

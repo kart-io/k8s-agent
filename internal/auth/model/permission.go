@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Permission represents a system permission in the database
+// Permission represents a system permission in the database.
 type Permission struct {
 	ID          string    `gorm:"column:id;primaryKey;type:varchar(36)" db:"id"`
 	ParentID    *string   `gorm:"column:parent_id;index;type:varchar(36)" db:"parent_id"` // Nullable, pointer for GORM
@@ -27,7 +27,7 @@ type Permission struct {
 	Roles    []Role       `gorm:"many2many:role_permissions;foreignKey:ID;joinForeignKey:PermissionID;References:ID;joinReferences:RoleID"`
 }
 
-// TableName returns the table name for Permission
+// TableName returns the table name for Permission.
 func (Permission) TableName() string {
 	return "permissions"
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/memory"
 )
 
-// NewOrchestrator 创建新的 Orchestrator
+// NewOrchestrator 创建新的 Orchestrator.
 func NewOrchestrator(
 	reasoningAgent *reasoning.ReasoningAgent,
 	rootCauseChain *root_cause.RootCauseChain,
@@ -62,7 +62,7 @@ func NewOrchestrator(
 	}, nil
 }
 
-// Analyze 执行完整的故障分析流程
+// Analyze 执行完整的故障分析流程.
 func (o *Orchestrator) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request is nil")
@@ -195,7 +195,7 @@ func (o *Orchestrator) Analyze(ctx context.Context, req *AnalysisRequest) (*Anal
 	return response, nil
 }
 
-// loadMemoryContext 加载历史上下文和相似案例
+// loadMemoryContext 加载历史上下文和相似案例.
 func (o *Orchestrator) loadMemoryContext(ctx context.Context, req *AnalysisRequest) ([]*memory.CaseMemory, int, error) {
 	var similarCases []*memory.CaseMemory
 	var conversationCount int
@@ -227,7 +227,7 @@ func (o *Orchestrator) loadMemoryContext(ctx context.Context, req *AnalysisReque
 	return similarCases, conversationCount, nil
 }
 
-// analyzeRootCause 执行根因分析
+// analyzeRootCause 执行根因分析.
 func (o *Orchestrator) analyzeRootCause(ctx context.Context, req *AnalysisRequest, similarCases []*memory.CaseMemory) (*root_cause.AnalysisOutput, error) {
 	// 应用超时
 	if o.config.RootCauseTimeout > 0 {
@@ -288,7 +288,7 @@ func (o *Orchestrator) analyzeRootCause(ctx context.Context, req *AnalysisReques
 	return o.rootCauseChain.Analyze(ctx, input)
 }
 
-// generateDescription 生成故障描述
+// generateDescription 生成故障描述.
 func (o *Orchestrator) generateDescription(ctx context.Context, req *AnalysisRequest, rootCause *root_cause.AnalysisOutput) (*description.DescriptionOutput, error) {
 	// 应用超时
 	if o.config.DescriptionTimeout > 0 {
@@ -348,7 +348,7 @@ func (o *Orchestrator) generateDescription(ctx context.Context, req *AnalysisReq
 	return o.descriptionChain.Generate(ctx, input)
 }
 
-// saveToMemory 保存分析结果到 Memory
+// saveToMemory 保存分析结果到 Memory.
 func (o *Orchestrator) saveToMemory(ctx context.Context, req *AnalysisRequest, resp *AnalysisResponse) error {
 	// 保存对话
 	if req.SessionID != "" {
@@ -405,7 +405,7 @@ func (o *Orchestrator) saveToMemory(ctx context.Context, req *AnalysisRequest, r
 	return nil
 }
 
-// validateConfig 验证配置
+// validateConfig 验证配置.
 func validateConfig(config *OrchestratorConfig) error {
 	if config.Timeout < 0 {
 		return fmt.Errorf("timeout cannot be negative")

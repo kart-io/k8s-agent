@@ -10,12 +10,12 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// UserHandler handles user management HTTP requests
+// UserHandler handles user management HTTP requests.
 type UserHandler struct {
 	userService *service.UserService
 }
 
-// NewUserHandler creates a new user handler
+// NewUserHandler creates a new user handler.
 func NewUserHandler(userService *service.UserService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
@@ -23,7 +23,7 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 }
 
 // List retrieves list of users with pagination
-// GET /api/v1/users
+// GET /api/v1/users.
 func (h *UserHandler) List(c *gin.Context) {
 	// Parse pagination parameters
 	var params types.PaginationParams
@@ -59,7 +59,7 @@ func (h *UserHandler) List(c *gin.Context) {
 }
 
 // GetByID retrieves a user by ID
-// GET /api/v1/users/:id
+// GET /api/v1/users/:id.
 func (h *UserHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -85,7 +85,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 }
 
 // Create creates a new user
-// POST /api/v1/users
+// POST /api/v1/users.
 func (h *UserHandler) Create(c *gin.Context) {
 	var req types.UserCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -111,7 +111,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 }
 
 // Update updates user information
-// PUT /api/v1/users/:id
+// PUT /api/v1/users/:id.
 func (h *UserHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -148,7 +148,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 }
 
 // Delete soft deletes a user
-// DELETE /api/v1/users/:id
+// DELETE /api/v1/users/:id.
 func (h *UserHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -175,7 +175,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 }
 
 // AssignRoles assigns roles to a user
-// POST /api/v1/users/:id/roles
+// POST /api/v1/users/:id/roles.
 func (h *UserHandler) AssignRoles(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {

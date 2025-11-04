@@ -9,17 +9,22 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// HashChain provides cryptographic hash chain operations for tamper detection
+const (
+	// genesisHash is used as the previous hash for the first event in a chain
+	genesisHash = "genesis"
+)
+
+// HashChain provides cryptographic hash chain operations for tamper detection.
 type HashChain struct{}
 
-// NewHashChain creates a new hash chain instance
+// NewHashChain creates a new hash chain instance.
 func NewHashChain() *HashChain {
 	return &HashChain{}
 }
 
 // ComputeHash generates a SHA-256 hash for an audit event
 // Hash includes: event_id, timestamp, actor_id, target_user_id, session_count, reason, previous_hash
-// This ensures any modification to these fields will break the chain
+// This ensures any modification to these fields will break the chain.
 func (hc *HashChain) ComputeHash(event *types.ForcedLogoutEvent) string {
 	// Build the data string to hash
 	data := fmt.Sprintf("%s|%s|%s|%s|%d|%s|%s",
@@ -37,14 +42,14 @@ func (hc *HashChain) ComputeHash(event *types.ForcedLogoutEvent) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// ValidateHash verifies that an event's current_hash matches its computed hash
+// ValidateHash verifies that an event's current_hash matches its computed hash.
 func (hc *HashChain) ValidateHash(event *types.ForcedLogoutEvent) bool {
 	expectedHash := hc.ComputeHash(event)
 	return event.CurrentHash == expectedHash
 }
 
 // ValidateChain verifies the integrity of a chain of events
-// Returns nil if the chain is valid, error describing the failure point if invalid
+// Returns nil if the chain is valid, error describing the failure point if invalid.
 func (hc *HashChain) ValidateChain(events []types.ForcedLogoutEvent) error {
 	if len(events) == 0 {
 		// Empty chain is valid
@@ -52,9 +57,10 @@ func (hc *HashChain) ValidateChain(events []types.ForcedLogoutEvent) error {
 	}
 
 	// Validate first event
-	if ptrToStringOrEmpty(events[0].PreviousHash) != "genesis" {
-		return fmt.Errorf("first event (event_id: %s) must have previous_hash='genesis', got: '%s'",
+	if ptrToStringOrEmpty(events[0].PreviousHash) != genesisHash {
+		return fmt.Errorf("first event (event_id: %s) must have previous_hash='%s', got: '%s'",
 			events[0].EventID,
+			genesisHash,
 			ptrToStringOrEmpty(events[0].PreviousHash))
 	}
 
@@ -89,19 +95,19 @@ func (hc *HashChain) ValidateChain(events []types.ForcedLogoutEvent) error {
 }
 
 // DetectTampering checks if any event in the chain has been tampered with
-// Returns the first tampered event's index and details, or nil if chain is valid
+// Returns the first tampered event's index and details, or nil if chain is valid.
 func (hc *HashChain) DetectTampering(events []types.ForcedLogoutEvent) *TamperDetection {
 	if len(events) == 0 {
 		return nil
 	}
 
 	// Check first event genesis
-	if ptrToStringOrEmpty(events[0].PreviousHash) != "genesis" {
+	if ptrToStringOrEmpty(events[0].PreviousHash) != genesisHash {
 		return &TamperDetection{
 			EventIndex:  0,
 			EventID:     events[0].EventID,
 			TamperType:  TamperTypeInvalidGenesis,
-			Description: fmt.Sprintf("First event previous_hash should be 'genesis', got: '%s'", ptrToStringOrEmpty(events[0].PreviousHash)),
+			Description: fmt.Sprintf("First event previous_hash should be '%s', got: '%s'", genesisHash, ptrToStringOrEmpty(events[0].PreviousHash)),
 		}
 	}
 
@@ -140,7 +146,7 @@ func (hc *HashChain) DetectTampering(events []types.ForcedLogoutEvent) *TamperDe
 	return nil
 }
 
-// TamperType represents the type of tampering detected
+// TamperType represents the type of tampering detected.
 type TamperType string
 
 const (
@@ -149,7 +155,7 @@ const (
 	TamperTypeBrokenChain    TamperType = "broken_chain"
 )
 
-// TamperDetection represents a detected tampering in the audit chain
+// TamperDetection represents a detected tampering in the audit chain.
 type TamperDetection struct {
 	EventIndex  int        `json:"event_index"`
 	EventID     string     `json:"event_id"`
@@ -157,7 +163,7 @@ type TamperDetection struct {
 	Description string     `json:"description"`
 }
 
-// ptrToStringOrEmpty safely converts a string pointer to a string, returning empty string if nil
+// ptrToStringOrEmpty safely converts a string pointer to a string, returning empty string if nil.
 func ptrToStringOrEmpty(ptr *string) string {
 	if ptr == nil {
 		return ""

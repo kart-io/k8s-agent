@@ -11,7 +11,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// MockRepository is a mock implementation of Repository interface
+// MockRepository is a mock implementation of Repository interface.
 type MockRepository struct {
 	mock.Mock
 }

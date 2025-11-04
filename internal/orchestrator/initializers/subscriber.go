@@ -8,7 +8,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// SubscriberInitializer 事件订阅器初始化器
+// SubscriberInitializer 事件订阅器初始化器.
 type SubscriberInitializer struct {
 	opts         *options.ServerOptions
 	logger       core.Logger
@@ -17,7 +17,7 @@ type SubscriberInitializer struct {
 	subscriber   *subscriber.Subscriber
 }
 
-// NewSubscriberInitializer 创建事件订阅器初始化器
+// NewSubscriberInitializer 创建事件订阅器初始化器.
 func NewSubscriberInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -32,17 +32,17 @@ func NewSubscriberInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (s *SubscriberInitializer) Name() string {
 	return "event-subscriber"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (s *SubscriberInitializer) Priority() int {
 	return 650 // 在 Strategy (600) 之后
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (s *SubscriberInitializer) Initialize(ctx context.Context) error {
 	s.logger.Info("Initializing event subscriber")
 
@@ -64,21 +64,24 @@ func (s *SubscriberInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭事件订阅器
+// Close 关闭事件订阅器.
 func (s *SubscriberInitializer) Close(ctx context.Context) error {
 	if s.subscriber != nil {
-		s.subscriber.Stop()
+		if err := s.subscriber.Stop(); err != nil {
+			s.logger.Errorw("Failed to stop subscriber", "error", err)
+			return err
+		}
 	}
 	return nil
 }
 
-// HealthCheck 检查事件订阅器健康状态
+// HealthCheck 检查事件订阅器健康状态.
 func (s *SubscriberInitializer) HealthCheck(ctx context.Context) error {
 	// Subscriber health is checked via NATS connection
 	return nil
 }
 
-// Subscriber 获取订阅器实例
+// Subscriber 获取订阅器实例.
 func (s *SubscriberInitializer) Subscriber() *subscriber.Subscriber {
 	return s.subscriber
 }

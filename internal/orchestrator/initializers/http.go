@@ -15,7 +15,7 @@ import (
 )
 
 // HTTPServerInitializer initializes the HTTP server with gRPC-Gateway
-// 使用 common/initializers 的标准 HTTP 服务器初始化器
+// 使用 common/initializers 的标准 HTTP 服务器初始化器.
 type HTTPServerInitializer struct {
 	opts     *options.ServerOptions
 	logger   core.Logger
@@ -26,7 +26,7 @@ type HTTPServerInitializer struct {
 	mux          *runtime.ServeMux
 }
 
-// NewHTTPServerInitializer creates a new HTTP server initializer
+// NewHTTPServerInitializer creates a new HTTP server initializer.
 func NewHTTPServerInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -39,17 +39,17 @@ func NewHTTPServerInitializer(
 	}
 }
 
-// Name returns the initializer name
+// Name returns the initializer name.
 func (i *HTTPServerInitializer) Name() string {
 	return "HTTPServer"
 }
 
-// Priority returns the initialization priority
+// Priority returns the initialization priority.
 func (i *HTTPServerInitializer) Priority() int {
 	return 800 // After gRPC server (700)
 }
 
-// Initialize sets up and starts the HTTP server with gRPC-Gateway
+// Initialize sets up and starts the HTTP server with gRPC-Gateway.
 func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	i.logger.Infow("Initializing HTTP server with gRPC-Gateway",
 		"host", i.opts.Server.Host,
@@ -105,7 +105,7 @@ func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	return i.standardInit.Initialize(ctx)
 }
 
-// Close stops the HTTP server
+// Close stops the HTTP server.
 func (i *HTTPServerInitializer) Close(ctx context.Context) error {
 	if i.standardInit == nil {
 		return nil
@@ -114,7 +114,7 @@ func (i *HTTPServerInitializer) Close(ctx context.Context) error {
 	return i.standardInit.Close(ctx)
 }
 
-// GetServer returns the server instance (implements ServerProvider)
+// GetServer returns the server instance (implements ServerProvider).
 func (i *HTTPServerInitializer) GetServer() commonserver.Server {
 	if i.standardInit == nil {
 		return nil

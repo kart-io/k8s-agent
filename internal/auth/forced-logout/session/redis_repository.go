@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,13 +12,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// RedisRepository implements Repository using Redis
+// RedisRepository implements Repository using Redis.
 type RedisRepository struct {
 	client *redis.Client
 	ttl    time.Duration // JWT expiration time
 }
 
-// NewRedisRepository creates a new Redis-based session repository
+// NewRedisRepository creates a new Redis-based session repository.
 func NewRedisRepository(client *redis.Client, jwtExpiresHours int) *RedisRepository {
 	return &RedisRepository{
 		client: client,
@@ -25,7 +26,7 @@ func NewRedisRepository(client *redis.Client, jwtExpiresHours int) *RedisReposit
 	}
 }
 
-// StoreSession stores a new session in Redis
+// StoreSession stores a new session in Redis.
 func (r *RedisRepository) StoreSession(ctx context.Context, session *types.SessionInfo) error {
 	pipe := r.client.Pipeline()
 
@@ -53,11 +54,11 @@ func (r *RedisRepository) StoreSession(ctx context.Context, session *types.Sessi
 	return nil
 }
 
-// GetSession retrieves session metadata by JTI
+// GetSession retrieves session metadata by JTI.
 func (r *RedisRepository) GetSession(ctx context.Context, jti string) (*types.SessionInfo, error) {
 	sessionKey := fmt.Sprintf("session:%s", jti)
 	data, err := r.client.Get(ctx, sessionKey).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return nil, fmt.Errorf("session not found")
 	}
 	if err != nil {
@@ -72,7 +73,7 @@ func (r *RedisRepository) GetSession(ctx context.Context, jti string) (*types.Se
 	return &session, nil
 }
 
-// ListUserSessions retrieves all active sessions for a user with pagination
+// ListUserSessions retrieves all active sessions for a user with pagination.
 func (r *RedisRepository) ListUserSessions(ctx context.Context, userID string, limit, offset int) ([]types.SessionInfo, int, error) {
 	userSessionsKey := fmt.Sprintf("user:sessions:%s", userID)
 
@@ -102,7 +103,7 @@ func (r *RedisRepository) ListUserSessions(ctx context.Context, userID string, l
 	return sessions, int(total), nil
 }
 
-// RevokeSession adds session to blacklist and removes from active sets
+// RevokeSession adds session to blacklist and removes from active sets.
 func (r *RedisRepository) RevokeSession(ctx context.Context, jti, userID, revokedBy, reason, eventID string) error {
 	pipe := r.client.Pipeline()
 
@@ -138,7 +139,7 @@ func (r *RedisRepository) RevokeSession(ctx context.Context, jti, userID, revoke
 	return nil
 }
 
-// IsRevoked checks if a session JTI is blacklisted
+// IsRevoked checks if a session JTI is blacklisted.
 func (r *RedisRepository) IsRevoked(ctx context.Context, jti string) (bool, error) {
 	revokedKey := fmt.Sprintf("revoked:%s", jti)
 	exists, err := r.client.Exists(ctx, revokedKey).Result()
@@ -148,7 +149,7 @@ func (r *RedisRepository) IsRevoked(ctx context.Context, jti string) (bool, erro
 	return exists == 1, nil
 }
 
-// BulkRevokeSessions revokes multiple sessions in one operation using pipelining
+// BulkRevokeSessions revokes multiple sessions in one operation using pipelining.
 func (r *RedisRepository) BulkRevokeSessions(ctx context.Context, jtis []string, userID, revokedBy, reason, eventID string) error {
 	pipe := r.client.Pipeline()
 

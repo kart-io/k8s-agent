@@ -7,17 +7,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
 // CustomClient implements a generic OpenAI-compatible LLM client
-// This allows connecting to any custom LLM service that follows OpenAI's API format
+// This allows connecting to any custom LLM service that follows OpenAI's API format.
 type CustomClient struct {
 	config     *Config
 	httpClient *http.Client
 }
 
-// NewCustomClient creates a new custom LLM client
+// NewCustomClient creates a new custom LLM client.
 func NewCustomClient(config *Config) (*CustomClient, error) {
 	if config.BaseURL == "" {
 		return nil, fmt.Errorf("base_url is required for custom LLM provider")
@@ -67,7 +68,7 @@ type customResponse struct {
 	} `json:"usage"`
 }
 
-// Complete sends a completion request to the custom LLM service
+// Complete sends a completion request to the custom LLM service.
 func (c *CustomClient) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	model := c.config.Model
 	if req.Model != "" {
@@ -118,7 +119,12 @@ func (c *CustomClient) Complete(ctx context.Context, req *CompletionRequest) (*C
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but don't fail the request
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -146,7 +152,7 @@ func (c *CustomClient) Complete(ctx context.Context, req *CompletionRequest) (*C
 	}, nil
 }
 
-// AnalyzeRootCause analyzes root cause using the custom LLM
+// AnalyzeRootCause analyzes root cause using the custom LLM.
 func (c *CustomClient) AnalyzeRootCause(ctx context.Context, event map[string]interface{}, logs string, metrics string) (string, error) {
 	eventJSON, _ := json.Marshal(event)
 
@@ -184,7 +190,7 @@ Provide your root cause analysis.`, string(eventJSON), logs, metrics)
 	return resp.Content, nil
 }
 
-// GenerateRecommendations generates recommendations using the custom LLM
+// GenerateRecommendations generates recommendations using the custom LLM.
 func (c *CustomClient) GenerateRecommendations(ctx context.Context, rootCause string, contextInfo string) (string, error) {
 	systemPrompt := `You are an expert Kubernetes operations engineer. Based on the identified root cause, provide actionable recommendations to fix the issue. For each recommendation, include:
 1. Action name
@@ -217,12 +223,12 @@ Provide recommended actions to fix this issue.`, rootCause, contextInfo)
 	return resp.Content, nil
 }
 
-// Provider returns the provider type
+// Provider returns the provider type.
 func (c *CustomClient) Provider() Provider {
 	return ProviderCustom
 }
 
-// IsAvailable checks if the custom LLM service is available
+// IsAvailable checks if the custom LLM service is available.
 func (c *CustomClient) IsAvailable() bool {
 	// Try to ping the service with a simple request
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -257,7 +263,12 @@ func (c *CustomClient) IsAvailable() bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but don't fail the health check
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
 
 	// Accept any 2xx or 4xx status (4xx means service is up but our request might be invalid)
 	return resp.StatusCode >= 200 && resp.StatusCode < 500

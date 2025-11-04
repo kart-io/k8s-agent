@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -11,17 +12,17 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// PermissionService handles permission management business logic
+// PermissionService handles permission management business logic.
 type PermissionService struct {
 	db *storage.PostgresDB
 }
 
-// NewPermissionService creates a new permission service
+// NewPermissionService creates a new permission service.
 func NewPermissionService(db *storage.PostgresDB) *PermissionService {
 	return &PermissionService{db: db}
 }
 
-// List retrieves all permissions with optional filtering
+// List retrieves all permissions with optional filtering.
 func (s *PermissionService) List(typeFilter, statusFilter string) ([]types.Permission, error) {
 	query := s.db.DB.Model(&model.Permission{})
 
@@ -64,7 +65,7 @@ func (s *PermissionService) List(typeFilter, statusFilter string) ([]types.Permi
 	return permissions, nil
 }
 
-// GetTree builds hierarchical permission tree
+// GetTree builds hierarchical permission tree.
 func (s *PermissionService) GetTree() ([]*types.PermissionNode, error) {
 	// Get root permissions (parent_id IS NULL) using GORM Preload
 	var roots []model.Permission
@@ -78,14 +79,14 @@ func (s *PermissionService) GetTree() ([]*types.PermissionNode, error) {
 
 	// Convert to PermissionNode tree
 	tree := make([]*types.PermissionNode, len(roots))
-	for i, root := range roots {
-		tree[i] = convertToPermissionNode(&root)
+	for i := range roots {
+		tree[i] = convertToPermissionNode(&roots[i])
 	}
 
 	return tree, nil
 }
 
-// convertToPermissionNode recursively converts model.Permission to types.PermissionNode
+// convertToPermissionNode recursively converts model.Permission to types.PermissionNode.
 func convertToPermissionNode(perm *model.Permission) *types.PermissionNode {
 	node := &types.PermissionNode{
 		ID:       perm.ID,
@@ -111,12 +112,12 @@ func convertToPermissionNode(perm *model.Permission) *types.PermissionNode {
 	return node
 }
 
-// GetByID retrieves a permission by ID
+// GetByID retrieves a permission by ID.
 func (s *PermissionService) GetByID(id string) (*types.Permission, error) {
 	var perm model.Permission
 	err := s.db.DB.Where("id = ?", id).First(&perm).Error
 
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("permission not found")
 	}
 	if err != nil {
@@ -145,7 +146,7 @@ func (s *PermissionService) GetByID(id string) (*types.Permission, error) {
 	return result, nil
 }
 
-// Create creates a new permission
+// Create creates a new permission.
 func (s *PermissionService) Create(req *types.PermissionRequest) (*types.Permission, error) {
 	// Check if code already exists
 	var count int64
@@ -206,7 +207,7 @@ func (s *PermissionService) Create(req *types.PermissionRequest) (*types.Permiss
 	return s.GetByID(permID)
 }
 
-// Update updates a permission
+// Update updates a permission.
 func (s *PermissionService) Update(id string, req *types.PermissionRequest) error {
 	// Build update data map for non-empty fields
 	updateData := make(map[string]interface{})
@@ -250,7 +251,7 @@ func (s *PermissionService) Update(id string, req *types.PermissionRequest) erro
 	return nil
 }
 
-// Delete deletes a permission (checks if assigned to roles)
+// Delete deletes a permission (checks if assigned to roles).
 func (s *PermissionService) Delete(id string) error {
 	// Check if permission is assigned to roles
 	var roleCount int64

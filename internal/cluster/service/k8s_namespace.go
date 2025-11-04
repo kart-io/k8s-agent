@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sNamespaceService 命名空间管理服务
+// K8sNamespaceService 命名空间管理服务.
 type K8sNamespaceService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sNamespaceService 创建新的命名空间服务
+// NewK8sNamespaceService 创建新的命名空间服务.
 func NewK8sNamespaceService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sNamespaceService {
 	return &K8sNamespaceService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sNamespaceService(storage *storage.MySQLStorage, clusterService *K8sCl
 	}
 }
 
-// NamespaceInfo 命名空间信息
+// NamespaceInfo 命名空间信息.
 type NamespaceInfo struct {
 	Name      string            `json:"name"`
 	Status    string            `json:"status"`
@@ -34,7 +34,7 @@ type NamespaceInfo struct {
 	CreatedAt string            `json:"createdAt"`
 }
 
-// ListNamespaces 获取命名空间列表
+// ListNamespaces 获取命名空间列表.
 func (s *K8sNamespaceService) ListNamespaces(ctx context.Context, clusterID string, offset, limit int) ([]NamespaceInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -72,7 +72,7 @@ func (s *K8sNamespaceService) ListNamespaces(ctx context.Context, clusterID stri
 	return result, total, nil
 }
 
-// GetNamespace 获取命名空间详情
+// GetNamespace 获取命名空间详情.
 func (s *K8sNamespaceService) GetNamespace(ctx context.Context, clusterID, namespaceName string) (*NamespaceInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -92,7 +92,7 @@ func (s *K8sNamespaceService) GetNamespace(ctx context.Context, clusterID, names
 	}, nil
 }
 
-// CreateNamespace 创建命名空间
+// CreateNamespace 创建命名空间.
 func (s *K8sNamespaceService) CreateNamespace(ctx context.Context, clusterID, name string, labels map[string]string) (*NamespaceInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -124,7 +124,7 @@ func (s *K8sNamespaceService) CreateNamespace(ctx context.Context, clusterID, na
 	}, nil
 }
 
-// DeleteNamespace 删除命名空间
+// DeleteNamespace 删除命名空间.
 func (s *K8sNamespaceService) DeleteNamespace(ctx context.Context, clusterID, namespaceName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {

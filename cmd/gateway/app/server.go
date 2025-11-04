@@ -17,7 +17,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// GatewayService represents the gateway service using common/server
+// GatewayService represents the gateway service using common/server.
 type GatewayService struct {
 	opts   *config.Options
 	log    core.Logger
@@ -25,22 +25,20 @@ type GatewayService struct {
 	server commonserver.Server
 }
 
-// NewServer creates a new gateway service (使用 common/server)
+// NewServer creates a new gateway service (使用 common/server).
 func NewServer(opts *config.Options, log core.Logger) (*GatewayService, error) {
 	svc := &GatewayService{
 		opts: opts,
 		log:  log,
 	}
 
-	if err := svc.initialize(); err != nil {
-		return nil, err
-	}
+	svc.initialize()
 
 	return svc, nil
 }
 
-// initialize initializes all server components
-func (s *GatewayService) initialize() error {
+// initialize initializes all server components.
+func (s *GatewayService) initialize() {
 	// Connect to Redis
 	s.rdb = s.connectRedis()
 	if s.rdb != nil {
@@ -68,11 +66,9 @@ func (s *GatewayService) initialize() error {
 	ginServer.GetEngine().Any("/*path", gin.WrapH(routerHandler))
 
 	s.server = ginServer
-
-	return nil
 }
 
-// connectRedis connects to Redis
+// connectRedis connects to Redis.
 func (s *GatewayService) connectRedis() *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     s.opts.Redis.Addr,
@@ -99,7 +95,7 @@ func (s *GatewayService) connectRedis() *redis.Client {
 	return rdb
 }
 
-// Run starts the gateway service using common/server.Serve()
+// Run starts the gateway service using common/server.Serve().
 func (s *GatewayService) Run(ctx context.Context) error {
 	s.log.Infow("Starting Gateway Service",
 		"addr", fmt.Sprintf("%s:%d", s.opts.Server.Host, s.opts.Server.Port),
@@ -111,12 +107,12 @@ func (s *GatewayService) Run(ctx context.Context) error {
 	return commonserver.Serve(ctx, s.server, s.log)
 }
 
-// GetServer returns the server instance (实现 ServerProvider 接口)
+// GetServer returns the server instance (实现 ServerProvider 接口).
 func (s *GatewayService) GetServer() commonserver.Server {
 	return s.server
 }
 
-// Cleanup cleans up resources
+// Cleanup cleans up resources.
 func (s *GatewayService) Cleanup() error {
 	if s.rdb != nil {
 		return s.rdb.Close()

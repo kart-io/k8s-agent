@@ -12,16 +12,16 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// HealthCheckFunc is a function that performs a health check
+// HealthCheckFunc is a function that performs a health check.
 type HealthCheckFunc func() error
 
 // NewHealthCheckServer creates a health check server
-// This is a convenience wrapper for common/health
+// This is a convenience wrapper for common/health.
 func NewHealthCheckServer(opts *options.HealthOptions, logger core.Logger) health.Server {
 	return health.NewHTTPServer(opts, logger)
 }
 
-// DefaultHealthCheckFunc creates a simple health check function
+// DefaultHealthCheckFunc creates a simple health check function.
 func DefaultHealthCheckFunc(healthOpts *options.HealthOptions) HealthCheckFunc {
 	return func() error {
 		server := NewHealthCheckServer(healthOpts, nil)

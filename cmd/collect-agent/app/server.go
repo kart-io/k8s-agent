@@ -14,7 +14,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// CollectAgentService represents the collect-agent service using common/server
+// CollectAgentService represents the collect-agent service using common/server.
 type CollectAgentService struct {
 	opts          *config.Options
 	log           core.Logger
@@ -22,7 +22,7 @@ type CollectAgentService struct {
 	healthServer  commonserver.Server
 }
 
-// NewServer creates a new collect-agent service (使用 common/server)
+// NewServer creates a new collect-agent service (使用 common/server).
 func NewServer(opts *config.Options, log core.Logger) (*CollectAgentService, error) {
 	srv := &CollectAgentService{
 		opts: opts,
@@ -36,7 +36,7 @@ func NewServer(opts *config.Options, log core.Logger) (*CollectAgentService, err
 	return srv, nil
 }
 
-// initialize initializes all server components
+// initialize initializes all server components.
 func (s *CollectAgentService) initialize() error {
 	var err error
 
@@ -73,7 +73,7 @@ func (s *CollectAgentService) initialize() error {
 	return nil
 }
 
-// setupHealthRoutes sets up health check routes
+// setupHealthRoutes sets up health check routes.
 func (s *CollectAgentService) setupHealthRoutes(engine *gin.Engine) {
 	health := engine.Group("/health")
 	{
@@ -122,7 +122,7 @@ func (s *CollectAgentService) setupHealthRoutes(engine *gin.Engine) {
 	s.log.Infow("Health check routes configured", "port", s.opts.Agent.HealthPort)
 }
 
-// Run starts the collect-agent service
+// Run starts the collect-agent service.
 func (s *CollectAgentService) Run(ctx context.Context) error {
 	s.log.Infow("Starting Collect Agent Service",
 		"health_port", s.opts.Agent.HealthPort,
@@ -173,7 +173,7 @@ func (s *CollectAgentService) Run(ctx context.Context) error {
 	return nil
 }
 
-// GetServer returns the health server instance (实现 ServerProvider 接口)
+// GetServer returns the health server instance (实现 ServerProvider 接口).
 func (s *CollectAgentService) GetServer() commonserver.Server {
 	return s.healthServer
 }

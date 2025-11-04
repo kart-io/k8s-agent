@@ -7,17 +7,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
 // DeepSeekClient implements the Client interface for DeepSeek
-// DeepSeek API is OpenAI-compatible
+// DeepSeek API is OpenAI-compatible.
 type DeepSeekClient struct {
 	config     *Config
 	httpClient *http.Client
 }
 
-// NewDeepSeekClient creates a new DeepSeek client
+// NewDeepSeekClient creates a new DeepSeek client.
 func NewDeepSeekClient(config *Config) (*DeepSeekClient, error) {
 	if config.APIKey == "" {
 		return nil, fmt.Errorf("DeepSeek API key is required")
@@ -76,7 +77,7 @@ type deepSeekResponse struct {
 	} `json:"usage"`
 }
 
-// Complete implements the Client interface
+// Complete implements the Client interface.
 func (c *DeepSeekClient) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	model := c.config.Model
 	if req.Model != "" {
@@ -117,7 +118,12 @@ func (c *DeepSeekClient) Complete(ctx context.Context, req *CompletionRequest) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but don't fail the request
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -141,7 +147,7 @@ func (c *DeepSeekClient) Complete(ctx context.Context, req *CompletionRequest) (
 	}, nil
 }
 
-// AnalyzeRootCause uses DeepSeek to analyze root cause
+// AnalyzeRootCause uses DeepSeek to analyze root cause.
 func (c *DeepSeekClient) AnalyzeRootCause(ctx context.Context, event map[string]interface{}, logs string, metrics string) (string, error) {
 	eventJSON, _ := json.MarshalIndent(event, "", "  ")
 
@@ -173,7 +179,7 @@ Provide your root cause analysis.`, string(eventJSON), logs, metrics)
 	return resp.Content, nil
 }
 
-// GenerateRecommendations uses DeepSeek to generate recommendations
+// GenerateRecommendations uses DeepSeek to generate recommendations.
 func (c *DeepSeekClient) GenerateRecommendations(ctx context.Context, rootCause string, contextInfo string) (string, error) {
 	systemPrompt := RecommendationsSystemPrompt
 
@@ -197,12 +203,12 @@ Provide recommended actions to fix this issue.`, rootCause, contextInfo)
 	return resp.Content, nil
 }
 
-// Provider returns the provider type
+// Provider returns the provider type.
 func (c *DeepSeekClient) Provider() Provider {
 	return ProviderDeepSeek
 }
 
-// IsAvailable checks if DeepSeek is available
+// IsAvailable checks if DeepSeek is available.
 func (c *DeepSeekClient) IsAvailable() bool {
 	return c.config.APIKey != ""
 }

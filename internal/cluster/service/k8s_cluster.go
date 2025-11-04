@@ -14,13 +14,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sClusterService 集群管理服务
+// K8sClusterService 集群管理服务.
 type K8sClusterService struct {
 	storage *storage.MySQLStorage
 	clients map[string]*k8s.Client // cluster_id -> client
 }
 
-// NewK8sClusterService 创建新的集群服务
+// NewK8sClusterService 创建新的集群服务.
 func NewK8sClusterService(storage *storage.MySQLStorage) *K8sClusterService {
 	return &K8sClusterService{
 		storage: storage,
@@ -28,7 +28,7 @@ func NewK8sClusterService(storage *storage.MySQLStorage) *K8sClusterService {
 	}
 }
 
-// ClusterInfo 集群信息
+// ClusterInfo 集群信息.
 type ClusterInfo struct {
 	ID             string            `json:"id"`
 	Name           string            `json:"name"`
@@ -47,7 +47,7 @@ type ClusterInfo struct {
 	UpdatedAt      time.Time         `json:"updatedAt"`
 }
 
-// ClusterHealth 集群健康状态
+// ClusterHealth 集群健康状态.
 type ClusterHealth struct {
 	ClusterID   string    `json:"clusterId"`
 	Status      string    `json:"status"`
@@ -58,7 +58,7 @@ type ClusterHealth struct {
 	CheckedAt   time.Time `json:"checkedAt"`
 }
 
-// ListClusters 获取集群列表
+// ListClusters 获取集群列表.
 func (s *K8sClusterService) ListClusters(ctx context.Context, offset, limit int) ([]ClusterInfo, int64, error) {
 	// 查询总数
 	var total int64
@@ -79,7 +79,12 @@ func (s *K8sClusterService) ListClusters(ctx context.Context, offset, limit int)
 	if err != nil {
 		return nil, 0, errors.NewDatabaseError(fmt.Errorf("failed to query clusters: %w", err))
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			// Ignore error, can't log without logger
+			_ = err
+		}
+	}()
 
 	clusters := make([]ClusterInfo, 0)
 	for rows.Next() {
@@ -102,6 +107,11 @@ func (s *K8sClusterService) ListClusters(ctx context.Context, offset, limit int)
 		clusters = append(clusters, cluster)
 	}
 
+	// Check for errors during iteration
+	if err := rows.Err(); err != nil {
+		return nil, 0, errors.NewDatabaseError(fmt.Errorf("error iterating cluster rows: %w", err))
+	}
+
 	// 为每个集群填充统计信息
 	for i := range clusters {
 		if err := s.populateClusterStats(ctx, &clusters[i]); err != nil {
@@ -115,7 +125,7 @@ func (s *K8sClusterService) ListClusters(ctx context.Context, offset, limit int)
 	return clusters, total, nil
 }
 
-// GetCluster 获取集群详情
+// GetCluster 获取集群详情.
 func (s *K8sClusterService) GetCluster(ctx context.Context, clusterID string) (*ClusterInfo, error) {
 	query := `
 		SELECT id, name, description, endpoint, version, status, region, provider, kubeconfig, created_at, updated_at
@@ -150,7 +160,7 @@ func (s *K8sClusterService) GetCluster(ctx context.Context, clusterID string) (*
 	return &cluster, nil
 }
 
-// populateClusterStats 填充集群统计信息
+// populateClusterStats 填充集群统计信息.
 func (s *K8sClusterService) populateClusterStats(ctx context.Context, cluster *ClusterInfo) error {
 	client, err := s.getClient(ctx, cluster.ID)
 	if err != nil {
@@ -181,7 +191,7 @@ func (s *K8sClusterService) populateClusterStats(ctx context.Context, cluster *C
 	return nil
 }
 
-// CreateCluster 创建集群
+// CreateCluster 创建集群.
 func (s *K8sClusterService) CreateCluster(
 	ctx context.Context,
 	name, description, endpoint, kubeconfig, region, provider string,
@@ -201,7 +211,7 @@ func (s *K8sClusterService) CreateCluster(
 	version, err := client.GetServerVersion(ctx)
 	if err != nil {
 		logger.Warnw("Failed to get server version", "error", err.Error())
-		version = "unknown"
+		version = StatusUnknown
 	}
 
 	// 创建集群记录
@@ -214,7 +224,7 @@ func (s *K8sClusterService) CreateCluster(
 		Description: description,
 		Endpoint:    endpoint,
 		Version:     version,
-		Status:      "healthy",
+		Status:      StatusHealthy,
 		Region:      region,
 		Provider:    provider,
 		Labels:      labels,
@@ -248,7 +258,7 @@ func (s *K8sClusterService) CreateCluster(
 	return cluster, nil
 }
 
-// UpdateCluster 更新集群信息
+// UpdateCluster 更新集群信息.
 func (s *K8sClusterService) UpdateCluster(
 	ctx context.Context,
 	clusterID, name, description string,
@@ -277,7 +287,7 @@ func (s *K8sClusterService) UpdateCluster(
 	return s.GetCluster(ctx, clusterID)
 }
 
-// DeleteCluster 删除集群
+// DeleteCluster 删除集群.
 func (s *K8sClusterService) DeleteCluster(ctx context.Context, clusterID string) error {
 	query := "DELETE FROM clusters WHERE id = ?"
 	result, err := s.storage.DB().ExecContext(ctx, query, clusterID)
@@ -298,7 +308,7 @@ func (s *K8sClusterService) DeleteCluster(ctx context.Context, clusterID string)
 	return nil
 }
 
-// GetClusterHealth 获取集群健康状态
+// GetClusterHealth 获取集群健康状态.
 func (s *K8sClusterService) GetClusterHealth(ctx context.Context, clusterID string) (*ClusterHealth, error) {
 	client, err := s.getClient(ctx, clusterID)
 	if err != nil {
@@ -314,7 +324,7 @@ func (s *K8sClusterService) GetClusterHealth(ctx context.Context, clusterID stri
 	readyNodes := 0
 	for _, node := range nodes.Items {
 		for _, condition := range node.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status == "True" {
+			if condition.Type == ConditionTypeReady && condition.Status == "True" {
 				readyNodes++
 				break
 			}
@@ -334,7 +344,7 @@ func (s *K8sClusterService) GetClusterHealth(ctx context.Context, clusterID stri
 		}
 	}
 
-	status := "healthy"
+	status := StatusHealthy
 	if readyNodes < len(nodes.Items) {
 		status = "degraded"
 	}
@@ -353,13 +363,13 @@ func (s *K8sClusterService) GetClusterHealth(ctx context.Context, clusterID stri
 	}, nil
 }
 
-// ClusterOption 集群选择器选项
+// ClusterOption 集群选择器选项.
 type ClusterOption struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
 }
 
-// GetClusterOptions 获取集群选择器列表
+// GetClusterOptions 获取集群选择器列表.
 func (s *K8sClusterService) GetClusterOptions(ctx context.Context) ([]ClusterOption, error) {
 	query := `
 		SELECT id, name
@@ -371,7 +381,12 @@ func (s *K8sClusterService) GetClusterOptions(ctx context.Context) ([]ClusterOpt
 	if err != nil {
 		return nil, errors.NewDatabaseError(fmt.Errorf("failed to query cluster options: %w", err))
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			// Ignore error, can't log without logger
+			_ = err
+		}
+	}()
 
 	options := make([]ClusterOption, 0)
 	for rows.Next() {
@@ -386,10 +401,15 @@ func (s *K8sClusterService) GetClusterOptions(ctx context.Context) ([]ClusterOpt
 		})
 	}
 
+	// Check for errors during iteration
+	if err := rows.Err(); err != nil {
+		return nil, errors.NewDatabaseError(fmt.Errorf("error iterating cluster option rows: %w", err))
+	}
+
 	return options, nil
 }
 
-// getClient 获取集群客户端
+// getClient 获取集群客户端.
 func (s *K8sClusterService) getClient(ctx context.Context, clusterID string) (*k8s.Client, error) {
 	// 先从缓存获取
 	if client, ok := s.clients[clusterID]; ok {

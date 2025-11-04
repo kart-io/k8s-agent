@@ -14,7 +14,7 @@ const (
 	MaxPageSize     = 100
 )
 
-// GetPaginationParams extracts and validates pagination parameters from request
+// GetPaginationParams extracts and validates pagination parameters from request.
 func GetPaginationParams(c *gin.Context) types.PaginationParams {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", strconv.Itoa(DefaultPage)))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", strconv.Itoa(DefaultPageSize)))
@@ -47,12 +47,12 @@ func GetPaginationParams(c *gin.Context) types.PaginationParams {
 	}
 }
 
-// CalculateOffset calculates the database offset from page and pageSize
+// CalculateOffset calculates the database offset from page and pageSize.
 func CalculateOffset(page, pageSize int) int {
 	return (page - 1) * pageSize
 }
 
-// CalculateTotalPages calculates total pages from total records and page size
+// CalculateTotalPages calculates total pages from total records and page size.
 func CalculateTotalPages(total int64, pageSize int) int {
 	if pageSize <= 0 {
 		return 0
@@ -64,7 +64,7 @@ func CalculateTotalPages(total int64, pageSize int) int {
 	return totalPages
 }
 
-// BuildPaginatedResponse builds a paginated response
+// BuildPaginatedResponse builds a paginated response.
 func BuildPaginatedResponse(items interface{}, total int64, params types.PaginationParams) types.PaginatedResponse {
 	return types.PaginatedResponse{
 		Items:      items,
@@ -75,12 +75,12 @@ func BuildPaginatedResponse(items interface{}, total int64, params types.Paginat
 	}
 }
 
-// GetLimitOffset returns LIMIT and OFFSET values for SQL queries
+// GetLimitOffset returns LIMIT and OFFSET values for SQL queries.
 func GetLimitOffset(params types.PaginationParams) (limit, offset int) {
 	return params.PageSize, CalculateOffset(params.Page, params.PageSize)
 }
 
-// BuildOrderBy builds ORDER BY clause for SQL queries
+// BuildOrderBy builds ORDER BY clause for SQL queries.
 func BuildOrderBy(params types.PaginationParams, allowedFields map[string]string) string {
 	// Check if sort field is allowed
 	field, ok := allowedFields[params.Sort]

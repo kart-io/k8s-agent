@@ -11,14 +11,14 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// TemplateEngine handles email template rendering
+// TemplateEngine handles email template rendering.
 type TemplateEngine struct {
 	templateDir string
 	htmlTmpl    *template.Template
 	textTmpl    *texttemplate.Template
 }
 
-// NewTemplateEngine creates a new template engine
+// NewTemplateEngine creates a new template engine.
 func NewTemplateEngine(templateDir string) (*TemplateEngine, error) {
 	engine := &TemplateEngine{
 		templateDir: templateDir,
@@ -43,7 +43,7 @@ func NewTemplateEngine(templateDir string) (*TemplateEngine, error) {
 	return engine, nil
 }
 
-// TemplateData represents the data passed to email templates
+// TemplateData represents the data passed to email templates.
 type TemplateData struct {
 	Username   string
 	Timestamp  string
@@ -54,7 +54,7 @@ type TemplateData struct {
 	LoginURL   string
 }
 
-// RenderTemplate renders both HTML and text versions of the forced logout email
+// RenderTemplate renders both HTML and text versions of the forced logout email.
 func (te *TemplateEngine) RenderTemplate(variables types.NotificationVariables) (*RenderedEmail, error) {
 	// Validate required variables
 	if err := te.validateVariables(variables); err != nil {
@@ -91,7 +91,7 @@ func (te *TemplateEngine) RenderTemplate(variables types.NotificationVariables) 
 	}, nil
 }
 
-// renderHTML renders the HTML email body
+// renderHTML renders the HTML email body.
 func (te *TemplateEngine) renderHTML(data TemplateData) (string, error) {
 	var buf bytes.Buffer
 	if err := te.htmlTmpl.Execute(&buf, data); err != nil {
@@ -100,7 +100,7 @@ func (te *TemplateEngine) renderHTML(data TemplateData) (string, error) {
 	return buf.String(), nil
 }
 
-// renderText renders the plain text email body
+// renderText renders the plain text email body.
 func (te *TemplateEngine) renderText(data TemplateData) (string, error) {
 	var buf bytes.Buffer
 	if err := te.textTmpl.Execute(&buf, data); err != nil {
@@ -109,7 +109,7 @@ func (te *TemplateEngine) renderText(data TemplateData) (string, error) {
 	return buf.String(), nil
 }
 
-// validateVariables ensures all required template variables are present
+// validateVariables ensures all required template variables are present.
 func (te *TemplateEngine) validateVariables(vars types.NotificationVariables) error {
 	if vars.Username == "" {
 		return fmt.Errorf("username is required")
@@ -124,14 +124,14 @@ func (te *TemplateEngine) validateVariables(vars types.NotificationVariables) er
 	return nil
 }
 
-// RenderedEmail represents a fully rendered email with both HTML and text versions
+// RenderedEmail represents a fully rendered email with both HTML and text versions.
 type RenderedEmail struct {
 	Subject  string
 	HTMLBody string
 	TextBody string
 }
 
-// CreateNotificationVariables creates NotificationVariables from session and actor info
+// CreateNotificationVariables creates NotificationVariables from session and actor info.
 func CreateNotificationVariables(
 	username string,
 	timestamp time.Time,

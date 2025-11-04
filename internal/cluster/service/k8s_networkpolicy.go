@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sNetworkPolicyService NetworkPolicy 管理服务
+// K8sNetworkPolicyService NetworkPolicy 管理服务.
 type K8sNetworkPolicyService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sNetworkPolicyService 创建新的 NetworkPolicy 服务
+// NewK8sNetworkPolicyService 创建新的 NetworkPolicy 服务.
 func NewK8sNetworkPolicyService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sNetworkPolicyService {
 	return &K8sNetworkPolicyService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sNetworkPolicyService(storage *storage.MySQLStorage, clusterService *K
 	}
 }
 
-// NetworkPolicyInfo NetworkPolicy 信息
+// NetworkPolicyInfo NetworkPolicy 信息.
 type NetworkPolicyInfo struct {
 	Name        string                     `json:"name"`
 	Namespace   string                     `json:"namespace"`
@@ -39,38 +39,38 @@ type NetworkPolicyInfo struct {
 	CreatedAt   string                     `json:"createdAt"`
 }
 
-// NetworkPolicyIngressRule Ingress 规则
+// NetworkPolicyIngressRule Ingress 规则.
 type NetworkPolicyIngressRule struct {
 	Ports []NetworkPolicyPort `json:"ports,omitempty"`
 	From  []NetworkPolicyPeer `json:"from,omitempty"`
 }
 
-// NetworkPolicyEgressRule Egress 规则
+// NetworkPolicyEgressRule Egress 规则.
 type NetworkPolicyEgressRule struct {
 	Ports []NetworkPolicyPort `json:"ports,omitempty"`
 	To    []NetworkPolicyPeer `json:"to,omitempty"`
 }
 
-// NetworkPolicyPort 端口规则
+// NetworkPolicyPort 端口规则.
 type NetworkPolicyPort struct {
 	Protocol string `json:"protocol"`
 	Port     string `json:"port"`
 }
 
-// NetworkPolicyPeer 网络策略对等方
+// NetworkPolicyPeer 网络策略对等方.
 type NetworkPolicyPeer struct {
 	PodSelector       map[string]string `json:"podSelector,omitempty"`
 	NamespaceSelector map[string]string `json:"namespaceSelector,omitempty"`
 	IPBlock           *IPBlock          `json:"ipBlock,omitempty"`
 }
 
-// IPBlock IP 块
+// IPBlock IP 块.
 type IPBlock struct {
 	CIDR   string   `json:"cidr"`
 	Except []string `json:"except,omitempty"`
 }
 
-// ListNetworkPolicies 获取 NetworkPolicy 列表
+// ListNetworkPolicies 获取 NetworkPolicy 列表.
 func (s *K8sNetworkPolicyService) ListNetworkPolicies(ctx context.Context, clusterID, namespace string, offset, limit int) ([]NetworkPolicyInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *K8sNetworkPolicyService) ListNetworkPolicies(ctx context.Context, clust
 	return result, total, nil
 }
 
-// GetNetworkPolicy 获取 NetworkPolicy 详情
+// GetNetworkPolicy 获取 NetworkPolicy 详情.
 func (s *K8sNetworkPolicyService) GetNetworkPolicy(ctx context.Context, clusterID, namespace, networkPolicyName string) (*NetworkPolicyInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -119,7 +119,7 @@ func (s *K8sNetworkPolicyService) GetNetworkPolicy(ctx context.Context, clusterI
 	return &networkPolicyInfo, nil
 }
 
-// CreateNetworkPolicy 创建 NetworkPolicy
+// CreateNetworkPolicy 创建 NetworkPolicy.
 func (s *K8sNetworkPolicyService) CreateNetworkPolicy(ctx context.Context, clusterID, namespace string, networkPolicy *networkingv1.NetworkPolicy) (*NetworkPolicyInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -141,7 +141,7 @@ func (s *K8sNetworkPolicyService) CreateNetworkPolicy(ctx context.Context, clust
 	return &networkPolicyInfo, nil
 }
 
-// UpdateNetworkPolicy 更新 NetworkPolicy
+// UpdateNetworkPolicy 更新 NetworkPolicy.
 func (s *K8sNetworkPolicyService) UpdateNetworkPolicy(ctx context.Context, clusterID, namespace string, networkPolicy *networkingv1.NetworkPolicy) (*NetworkPolicyInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -163,7 +163,7 @@ func (s *K8sNetworkPolicyService) UpdateNetworkPolicy(ctx context.Context, clust
 	return &networkPolicyInfo, nil
 }
 
-// DeleteNetworkPolicy 删除 NetworkPolicy
+// DeleteNetworkPolicy 删除 NetworkPolicy.
 func (s *K8sNetworkPolicyService) DeleteNetworkPolicy(ctx context.Context, clusterID, namespace, networkPolicyName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -184,7 +184,7 @@ func (s *K8sNetworkPolicyService) DeleteNetworkPolicy(ctx context.Context, clust
 	return nil
 }
 
-// convertNetworkPolicyInfo 转换 NetworkPolicy 信息
+// convertNetworkPolicyInfo 转换 NetworkPolicy 信息.
 func (s *K8sNetworkPolicyService) convertNetworkPolicyInfo(np *networkingv1.NetworkPolicy) NetworkPolicyInfo {
 	// 确保 Labels 和 Annotations 不为 nil
 	labels := np.Labels
@@ -243,8 +243,8 @@ func (s *K8sNetworkPolicyService) convertNetworkPolicyInfo(np *networkingv1.Netw
 		}
 
 		// 转换来源
-		for _, from := range ingress.From {
-			peer := s.convertNetworkPolicyPeer(&from)
+		for i := range ingress.From {
+			peer := s.convertNetworkPolicyPeer(&ingress.From[i])
 			ingressRule.From = append(ingressRule.From, peer)
 		}
 
@@ -277,8 +277,8 @@ func (s *K8sNetworkPolicyService) convertNetworkPolicyInfo(np *networkingv1.Netw
 		}
 
 		// 转换目标
-		for _, to := range egress.To {
-			peer := s.convertNetworkPolicyPeer(&to)
+		for i := range egress.To {
+			peer := s.convertNetworkPolicyPeer(&egress.To[i])
 			egressRule.To = append(egressRule.To, peer)
 		}
 
@@ -288,7 +288,7 @@ func (s *K8sNetworkPolicyService) convertNetworkPolicyInfo(np *networkingv1.Netw
 	return networkPolicyInfo
 }
 
-// convertNetworkPolicyPeer 转换网络策略对等方
+// convertNetworkPolicyPeer 转换网络策略对等方.
 func (s *K8sNetworkPolicyService) convertNetworkPolicyPeer(peer *networkingv1.NetworkPolicyPeer) NetworkPolicyPeer {
 	policyPeer := NetworkPolicyPeer{}
 

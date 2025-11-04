@@ -9,7 +9,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/chains/root_cause"
 )
 
-// Agent 定义 Reasoning Agent 接口
+// Agent 定义 Reasoning Agent 接口.
 type Agent interface {
 	// Analyze 执行完整的故障分析推理
 	Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisOutput, error)
@@ -21,7 +21,7 @@ type Agent interface {
 	GenerateDescription(ctx context.Context, input *AnalysisInput) (*description.DescriptionOutput, error)
 }
 
-// AnalysisInput Reasoning Agent 分析输入
+// AnalysisInput Reasoning Agent 分析输入.
 type AnalysisInput struct {
 	// 故障基本信息
 	FailureType  string    `json:"failure_type"`  // 故障类型
@@ -52,7 +52,7 @@ type AnalysisInput struct {
 	ResourceStatus map[string]string     `json:"resource_status"`
 }
 
-// AnalysisOutput Reasoning Agent 分析输出
+// AnalysisOutput Reasoning Agent 分析输出.
 type AnalysisOutput struct {
 	// 分析结果
 	RootCause   *root_cause.AnalysisOutput     `json:"root_cause"`  // 根因分析结果
@@ -69,7 +69,7 @@ type AnalysisOutput struct {
 	Timestamp    time.Time     `json:"timestamp"`     // 时间戳
 }
 
-// K8sContext K8s 上下文信息
+// K8sContext K8s 上下文信息.
 type K8sContext struct {
 	// 资源信息
 	PodInfo        *k8s_tool.PodInfo        `json:"pod_info"`
@@ -87,7 +87,7 @@ type K8sContext struct {
 	FetchedAt time.Time `json:"fetched_at"`
 }
 
-// ReasoningStep 推理步骤
+// ReasoningStep 推理步骤.
 type ReasoningStep struct {
 	Step        int           `json:"step"`        // 步骤编号
 	Action      string        `json:"action"`      // 执行的操作
@@ -98,7 +98,7 @@ type ReasoningStep struct {
 	Error       string        `json:"error"`       // 错误信息
 }
 
-// AgentConfig Reasoning Agent 配置
+// AgentConfig Reasoning Agent 配置.
 type AgentConfig struct {
 	// Chains 配置
 	RootCauseConfig   *root_cause.ChainConfig  `json:"root_cause_config"`
@@ -120,7 +120,7 @@ type AgentConfig struct {
 	Timeout time.Duration `json:"timeout"` // 总超时时间
 }
 
-// AnalysisPhase 分析阶段
+// AnalysisPhase 分析阶段.
 type AnalysisPhase string
 
 const (
@@ -131,7 +131,7 @@ const (
 	PhaseComplete    AnalysisPhase = "complete"    // 完成
 )
 
-// AnalysisError 分析错误
+// AnalysisError 分析错误.
 type AnalysisError struct {
 	Phase   AnalysisPhase `json:"phase"`   // 发生错误的阶段
 	Message string        `json:"message"` // 错误信息

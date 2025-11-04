@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// DefaultManager Memory 管理器默认实现
+// DefaultManager Memory 管理器默认实现.
 type DefaultManager struct {
 	// 对话记忆
 	conversationMemory ConversationMemory
@@ -22,7 +22,7 @@ type DefaultManager struct {
 	config *ManagerConfig
 }
 
-// NewManager 创建新的 Memory 管理器
+// NewManager 创建新的 Memory 管理器.
 func NewManager(config *ManagerConfig) (*DefaultManager, error) {
 	if config == nil {
 		config = defaultManagerConfig()
@@ -74,7 +74,7 @@ func NewManager(config *ManagerConfig) (*DefaultManager, error) {
 	return m, nil
 }
 
-// AddConversation 添加对话到记忆
+// AddConversation 添加对话到记忆.
 func (m *DefaultManager) AddConversation(ctx context.Context, conv *Conversation) error {
 	if !m.config.EnableConversation {
 		return fmt.Errorf("conversation memory is disabled")
@@ -87,7 +87,7 @@ func (m *DefaultManager) AddConversation(ctx context.Context, conv *Conversation
 	return m.conversationMemory.Add(ctx, conv)
 }
 
-// GetConversationHistory 获取对话历史
+// GetConversationHistory 获取对话历史.
 func (m *DefaultManager) GetConversationHistory(ctx context.Context, sessionID string, limit int) ([]*Conversation, error) {
 	if !m.config.EnableConversation {
 		return nil, fmt.Errorf("conversation memory is disabled")
@@ -104,7 +104,7 @@ func (m *DefaultManager) GetConversationHistory(ctx context.Context, sessionID s
 	return m.conversationMemory.Get(ctx, sessionID, limit)
 }
 
-// SearchSimilarCases 搜索相似案例
+// SearchSimilarCases 搜索相似案例.
 func (m *DefaultManager) SearchSimilarCases(ctx context.Context, query string, limit int) ([]*CaseMemory, error) {
 	if !m.config.EnableVectorStore {
 		return nil, fmt.Errorf("vector store is disabled")
@@ -180,7 +180,7 @@ func (m *DefaultManager) SearchSimilarCases(ctx context.Context, query string, l
 	return cases, nil
 }
 
-// AddCase 添加案例到向量存储
+// AddCase 添加案例到向量存储.
 func (m *DefaultManager) AddCase(ctx context.Context, caseMemory *CaseMemory) error {
 	if !m.config.EnableVectorStore {
 		return fmt.Errorf("vector store is disabled")
@@ -256,7 +256,7 @@ func (m *DefaultManager) AddCase(ctx context.Context, caseMemory *CaseMemory) er
 	return nil
 }
 
-// Clear 清空指定会话的记忆
+// Clear 清空指定会话的记忆.
 func (m *DefaultManager) Clear(ctx context.Context, sessionID string) error {
 	if !m.config.EnableConversation {
 		return fmt.Errorf("conversation memory is disabled")
@@ -269,7 +269,7 @@ func (m *DefaultManager) Clear(ctx context.Context, sessionID string) error {
 	return m.conversationMemory.Clear(ctx, sessionID)
 }
 
-// buildCaseText 构建用于嵌入的案例文本
+// buildCaseText 构建用于嵌入的案例文本.
 func buildCaseText(caseMemory *CaseMemory) string {
 	text := caseMemory.Description
 
@@ -300,12 +300,12 @@ func buildCaseText(caseMemory *CaseMemory) string {
 	return text
 }
 
-// generateCaseID 生成案例 ID
+// generateCaseID 生成案例 ID.
 func generateCaseID() string {
 	return fmt.Sprintf("case_%d", time.Now().UnixNano())
 }
 
-// validateManagerConfig 验证配置
+// validateManagerConfig 验证配置.
 func validateManagerConfig(config *ManagerConfig) error {
 	if config.MaxConversationLength <= 0 {
 		return fmt.Errorf("max_conversation_length must be positive")
@@ -328,7 +328,7 @@ func validateManagerConfig(config *ManagerConfig) error {
 	return nil
 }
 
-// defaultManagerConfig 返回默认配置
+// defaultManagerConfig 返回默认配置.
 func defaultManagerConfig() *ManagerConfig {
 	return &ManagerConfig{
 		EnableConversation:    true,

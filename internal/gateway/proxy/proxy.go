@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,14 +17,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Proxy 代理处理器
+// Proxy 代理处理器.
 type Proxy struct {
 	logger   core.Logger
 	client   *http.Client
 	services map[string]types.ServiceConfig
 }
 
-// NewProxy 创建代理处理器
+// NewProxy 创建代理处理器.
 func NewProxy(logger core.Logger) *Proxy {
 	// 加载服务配置
 	var services map[string]types.ServiceConfig
@@ -40,7 +41,7 @@ func NewProxy(logger core.Logger) *Proxy {
 	}
 }
 
-// HandleRequest 处理代理请求
+// HandleRequest 处理代理请求.
 func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 获取服务配置
@@ -79,7 +80,7 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 		}
 
 		// 创建代理请求
-		proxyReq, err := http.NewRequest(c.Request.Method, targetURL, bytes.NewReader(bodyBytes))
+		proxyReq, err := http.NewRequestWithContext(c.Request.Context(), c.Request.Method, targetURL, bytes.NewReader(bodyBytes))
 		if err != nil {
 			p.logger.Errorw("Failed to create proxy request", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -112,7 +113,11 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 			})
 			return
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				p.logger.Warnw("Failed to close response body", "error", err)
+			}
+		}()
 
 		// 读取响应体
 		respBody, err := io.ReadAll(resp.Body)
@@ -145,7 +150,7 @@ func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 	}
 }
 
-// buildTargetURL 构建目标 URL
+// buildTargetURL 构建目标 URL.
 func (p *Proxy) buildTargetURL(service types.ServiceConfig, reqURL *url.URL) (string, error) {
 	targetURL, err := url.Parse(service.URL)
 	if err != nil {
@@ -158,7 +163,7 @@ func (p *Proxy) buildTargetURL(service types.ServiceConfig, reqURL *url.URL) (st
 	return targetURL.String(), nil
 }
 
-// copyHeaders 复制请求头
+// copyHeaders 复制请求头.
 func (p *Proxy) copyHeaders(src, dst http.Header) {
 	// 不复制的头
 	skipHeaders := map[string]bool{
@@ -180,7 +185,7 @@ func (p *Proxy) copyHeaders(src, dst http.Header) {
 	}
 }
 
-// GetServiceHealth 获取服务健康状态
+// GetServiceHealth 获取服务健康状态.
 func (p *Proxy) GetServiceHealth(serviceName string) (*types.HealthStatus, error) {
 	service, exists := p.services[serviceName]
 	if !exists {
@@ -189,7 +194,10 @@ func (p *Proxy) GetServiceHealth(serviceName string) (*types.HealthStatus, error
 
 	healthURL := strings.TrimRight(service.URL, "/") + service.HealthCheck
 
-	req, err := http.NewRequest("GET", healthURL, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", healthURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +212,12 @@ func (p *Proxy) GetServiceHealth(serviceName string) (*types.HealthStatus, error
 			Message:   err.Error(),
 		}, nil
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Just log, don't fail health check for close error
+			_ = err
+		}
+	}()
 
 	status := "healthy"
 	if resp.StatusCode != http.StatusOK {

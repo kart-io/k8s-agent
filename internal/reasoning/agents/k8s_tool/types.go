@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Tool 定义 K8s 工具接口
+// Tool 定义 K8s 工具接口.
 type Tool interface {
 	// Name 返回工具名称
 	Name() string
@@ -17,7 +17,7 @@ type Tool interface {
 	Execute(ctx context.Context, input *ToolInput) (*ToolOutput, error)
 }
 
-// ToolInput 工具输入
+// ToolInput 工具输入.
 type ToolInput struct {
 	// 基本参数
 	ClusterID    string `json:"cluster_id"`    // 集群 ID
@@ -35,7 +35,7 @@ type ToolInput struct {
 	Limit         int    `json:"limit"`          // 结果限制
 }
 
-// ToolOutput 工具输出
+// ToolOutput 工具输出.
 type ToolOutput struct {
 	// 执行结果
 	Success  bool        `json:"success"`   // 是否成功
@@ -49,7 +49,7 @@ type ToolOutput struct {
 	Timestamp time.Time     `json:"timestamp"` // 时间戳
 }
 
-// PodInfo Pod 信息
+// PodInfo Pod 信息.
 type PodInfo struct {
 	Name        string            `json:"name"`
 	Namespace   string            `json:"namespace"`
@@ -66,7 +66,7 @@ type PodInfo struct {
 	Conditions  []PodCondition    `json:"conditions"`
 }
 
-// ContainerInfo 容器信息
+// ContainerInfo 容器信息.
 type ContainerInfo struct {
 	Name         string               `json:"name"`
 	Image        string               `json:"image"`
@@ -78,13 +78,13 @@ type ContainerInfo struct {
 	Resources    ResourceRequirements `json:"resources"`
 }
 
-// ResourceRequirements 资源需求
+// ResourceRequirements 资源需求.
 type ResourceRequirements struct {
 	Requests map[string]string `json:"requests"`
 	Limits   map[string]string `json:"limits"`
 }
 
-// PodCondition Pod 条件
+// PodCondition Pod 条件.
 type PodCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
@@ -93,7 +93,7 @@ type PodCondition struct {
 	Message            string    `json:"message"`
 }
 
-// EventInfo 事件信息
+// EventInfo 事件信息.
 type EventInfo struct {
 	Type           string    `json:"type"`
 	Reason         string    `json:"reason"`
@@ -105,7 +105,7 @@ type EventInfo struct {
 	Object         string    `json:"object"`
 }
 
-// LogsOptions 日志选项
+// LogsOptions 日志选项.
 type LogsOptions struct {
 	Container    string `json:"container"`     // 容器名称
 	Follow       bool   `json:"follow"`        // 是否跟随
@@ -115,7 +115,7 @@ type LogsOptions struct {
 	Timestamps   bool   `json:"timestamps"`    // 是否包含时间戳
 }
 
-// DeploymentInfo Deployment 信息
+// DeploymentInfo Deployment 信息.
 type DeploymentInfo struct {
 	Name              string                `json:"name"`
 	Namespace         string                `json:"namespace"`
@@ -130,7 +130,7 @@ type DeploymentInfo struct {
 	Conditions        []DeploymentCondition `json:"conditions"`
 }
 
-// DeploymentCondition Deployment 条件
+// DeploymentCondition Deployment 条件.
 type DeploymentCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
@@ -140,7 +140,7 @@ type DeploymentCondition struct {
 	Message            string    `json:"message"`
 }
 
-// ServiceInfo Service 信息
+// ServiceInfo Service 信息.
 type ServiceInfo struct {
 	Name       string            `json:"name"`
 	Namespace  string            `json:"namespace"`
@@ -153,7 +153,7 @@ type ServiceInfo struct {
 	Age        string            `json:"age"`
 }
 
-// ServicePort Service 端口
+// ServicePort Service 端口.
 type ServicePort struct {
 	Name       string `json:"name"`
 	Protocol   string `json:"protocol"`
@@ -162,7 +162,7 @@ type ServicePort struct {
 	NodePort   int32  `json:"node_port"`
 }
 
-// NodeInfo Node 信息
+// NodeInfo Node 信息.
 type NodeInfo struct {
 	Name             string            `json:"name"`
 	Status           string            `json:"status"`
@@ -180,7 +180,7 @@ type NodeInfo struct {
 	Conditions       []NodeCondition   `json:"conditions"`
 }
 
-// NodeCondition Node 条件
+// NodeCondition Node 条件.
 type NodeCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
@@ -190,7 +190,7 @@ type NodeCondition struct {
 	Message            string    `json:"message"`
 }
 
-// MetricsInfo 指标信息
+// MetricsInfo 指标信息.
 type MetricsInfo struct {
 	ResourceType string         `json:"resource_type"`
 	ResourceName string         `json:"resource_name"`
@@ -202,7 +202,7 @@ type MetricsInfo struct {
 	Network      NetworkMetric  `json:"network"`
 }
 
-// ResourceMetric 资源指标
+// ResourceMetric 资源指标.
 type ResourceMetric struct {
 	Current     string  `json:"current"`     // 当前使用量
 	Limit       string  `json:"limit"`       // 限制
@@ -210,7 +210,7 @@ type ResourceMetric struct {
 	Utilization float64 `json:"utilization"` // 利用率百分比
 }
 
-// NetworkMetric 网络指标
+// NetworkMetric 网络指标.
 type NetworkMetric struct {
 	RxBytes  int64 `json:"rx_bytes"`  // 接收字节数
 	TxBytes  int64 `json:"tx_bytes"`  // 发送字节数
@@ -218,7 +218,7 @@ type NetworkMetric struct {
 	TxErrors int64 `json:"tx_errors"` // 发送错误数
 }
 
-// ToolConfig K8s 工具配置
+// ToolConfig K8s 工具配置.
 type ToolConfig struct {
 	// Kubeconfig 路径
 	KubeconfigPath string `json:"kubeconfig_path"`
@@ -237,7 +237,7 @@ type ToolConfig struct {
 	CacheTTL    time.Duration `json:"cache_ttl"`    // 缓存过期时间
 }
 
-// SupportedActions 支持的操作
+// SupportedActions 支持的操作.
 var SupportedActions = []string{
 	"get",      // 获取资源
 	"describe", // 描述资源详情
@@ -248,7 +248,7 @@ var SupportedActions = []string{
 	"top",      // 获取资源使用情况
 }
 
-// SupportedResourceTypes 支持的资源类型
+// SupportedResourceTypes 支持的资源类型.
 var SupportedResourceTypes = []string{
 	"pod",
 	"deployment",

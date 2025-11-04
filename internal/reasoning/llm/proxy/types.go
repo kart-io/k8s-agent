@@ -2,7 +2,7 @@ package proxy
 
 import "time"
 
-// CompletionRequest 补全请求结构
+// CompletionRequest 补全请求结构.
 type CompletionRequest struct {
 	Messages    []Message // 消息列表
 	Temperature float64   // 温度参数 (0.0-1.0)
@@ -10,13 +10,13 @@ type CompletionRequest struct {
 	StopWords   []string  // 停止词列表
 }
 
-// Message 消息结构
+// Message 消息结构.
 type Message struct {
 	Role    string // 角色: "system", "user", "assistant"
 	Content string // 消息内容
 }
 
-// CompletionResponse 补全响应结构
+// CompletionResponse 补全响应结构.
 type CompletionResponse struct {
 	Content      string        // 生成的内容
 	Provider     string        // 实际使用的提供商
@@ -27,7 +27,7 @@ type CompletionResponse struct {
 	FinishReason string        // 完成原因
 }
 
-// UsageMetrics 使用指标
+// UsageMetrics 使用指标.
 type UsageMetrics struct {
 	TotalRequests   int                        // 总请求数
 	SuccessfulCalls int                        // 成功调用数
@@ -36,7 +36,7 @@ type UsageMetrics struct {
 	ProviderStats   map[string]ProviderMetrics // 各提供商的统计数据
 }
 
-// ProviderMetrics 提供商指标
+// ProviderMetrics 提供商指标.
 type ProviderMetrics struct {
 	Calls      int           // 调用次数
 	Successes  int           // 成功次数
@@ -45,7 +45,7 @@ type ProviderMetrics struct {
 	AvgLatency time.Duration // 平均延迟
 }
 
-// ProviderStatus 提供商状态
+// ProviderStatus 提供商状态.
 type ProviderStatus struct {
 	Name      string    // 提供商名称
 	Healthy   bool      // 健康状态

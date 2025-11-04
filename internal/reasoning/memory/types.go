@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Manager 定义 Memory 管理器接口
+// Manager 定义 Memory 管理器接口.
 type Manager interface {
 	// AddConversation 添加对话到记忆
 	AddConversation(ctx context.Context, conv *Conversation) error
@@ -23,7 +23,7 @@ type Manager interface {
 	Clear(ctx context.Context, sessionID string) error
 }
 
-// Conversation 对话记录
+// Conversation 对话记录.
 type Conversation struct {
 	ID        string                 `json:"id"`         // 对话 ID
 	SessionID string                 `json:"session_id"` // 会话 ID
@@ -33,7 +33,7 @@ type Conversation struct {
 	Metadata  map[string]interface{} `json:"metadata"`   // 元数据
 }
 
-// CaseMemory 案例记忆
+// CaseMemory 案例记忆.
 type CaseMemory struct {
 	ID           string                 `json:"id"`            // 案例 ID
 	Description  string                 `json:"description"`   // 描述
@@ -50,7 +50,7 @@ type CaseMemory struct {
 	Metadata     map[string]interface{} `json:"metadata"`      // 元数据
 }
 
-// ConversationMemory 对话记忆接口
+// ConversationMemory 对话记忆接口.
 type ConversationMemory interface {
 	// Add 添加对话
 	Add(ctx context.Context, conv *Conversation) error
@@ -65,7 +65,7 @@ type ConversationMemory interface {
 	Count(ctx context.Context, sessionID string) (int, error)
 }
 
-// VectorStore 向量存储接口
+// VectorStore 向量存储接口.
 type VectorStore interface {
 	// Add 添加向量
 	Add(ctx context.Context, id string, embedding []float64, metadata map[string]interface{}) error
@@ -80,7 +80,7 @@ type VectorStore interface {
 	Clear(ctx context.Context) error
 }
 
-// SearchResult 搜索结果
+// SearchResult 搜索结果.
 type SearchResult struct {
 	ID        string                 `json:"id"`        // ID
 	Score     float64                `json:"score"`     // 相似度分数
@@ -88,7 +88,7 @@ type SearchResult struct {
 	Metadata  map[string]interface{} `json:"metadata"`  // 元数据
 }
 
-// Embedder 嵌入生成器接口
+// Embedder 嵌入生成器接口.
 type Embedder interface {
 	// Embed 生成文本嵌入
 	Embed(ctx context.Context, text string) ([]float64, error)
@@ -97,7 +97,7 @@ type Embedder interface {
 	EmbedBatch(ctx context.Context, texts []string) ([][]float64, error)
 }
 
-// ManagerConfig Memory 管理器配置
+// ManagerConfig Memory 管理器配置.
 type ManagerConfig struct {
 	// ConversationMemory 配置
 	EnableConversation    bool `json:"enable_conversation"`     // 是否启用对话记忆
@@ -118,40 +118,40 @@ type ManagerConfig struct {
 	SimilarityThreshold float64 `json:"similarity_threshold"` // 相似度阈值
 }
 
-// ConversationMemoryConfig 对话记忆配置
+// ConversationMemoryConfig 对话记忆配置.
 type ConversationMemoryConfig struct {
 	MaxLength int           `json:"max_length"` // 最大记忆长度
 	TTL       time.Duration `json:"ttl"`        // 过期时间
 }
 
-// VectorStoreConfig 向量存储配置
+// VectorStoreConfig 向量存储配置.
 type VectorStoreConfig struct {
 	Type      string `json:"type"`      // 类型: "chroma", "memory"
 	Path      string `json:"path"`      // 路径
 	Dimension int    `json:"dimension"` // 维度
 }
 
-// EmbedderConfig 嵌入生成器配置
+// EmbedderConfig 嵌入生成器配置.
 type EmbedderConfig struct {
 	Model    string `json:"model"`    // 模型名称
 	Provider string `json:"provider"` // 提供商: "openai", "local"
 	APIKey   string `json:"api_key"`  // API Key
 }
 
-// 支持的向量存储类型
+// 支持的向量存储类型.
 const (
 	VectorStoreTypeMemory = "memory" // 内存存储（用于测试）
 	VectorStoreTypeChroma = "chroma" // Chroma 向量数据库
 )
 
-// 支持的嵌入提供商
+// 支持的嵌入提供商.
 const (
 	EmbedderProviderOpenAI = "openai" // OpenAI
 	EmbedderProviderLocal  = "local"  // 本地模型
 	EmbedderProviderMock   = "mock"   // Mock（用于测试）
 )
 
-// 默认配置值
+// 默认配置值.
 const (
 	DefaultMaxConversationLength = 10             // 默认最大对话长度
 	DefaultSearchLimit           = 5              // 默认搜索结果数量

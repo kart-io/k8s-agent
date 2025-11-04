@@ -20,8 +20,7 @@ func TestDetectFromEnvironment(t *testing.T) {
 
 	// Test with environment variable set
 	expectedID := "test-cluster-123"
-	os.Setenv("CLUSTER_ID", expectedID)
-	defer os.Unsetenv("CLUSTER_ID")
+	t.Setenv("CLUSTER_ID", expectedID)
 
 	clusterID, err := detector.detectFromEnvironment(context.Background())
 	if err != nil {
@@ -32,7 +31,7 @@ func TestDetectFromEnvironment(t *testing.T) {
 	}
 
 	// Test without environment variable
-	os.Unsetenv("CLUSTER_ID")
+	_ = os.Unsetenv("CLUSTER_ID")
 	_, err = detector.detectFromEnvironment(context.Background())
 	if err == nil {
 		t.Error("Expected error when CLUSTER_ID not set, got nil")
@@ -153,8 +152,7 @@ func TestDetectClusterID(t *testing.T) {
 
 	// Test with environment variable (highest priority)
 	expectedID := "env-cluster-123"
-	os.Setenv("CLUSTER_ID", expectedID)
-	defer os.Unsetenv("CLUSTER_ID")
+	t.Setenv("CLUSTER_ID", expectedID)
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -176,7 +174,7 @@ func TestDetectClusterID(t *testing.T) {
 	}
 
 	// Test without environment variable (fallback to other methods)
-	os.Unsetenv("CLUSTER_ID")
+	_ = os.Unsetenv("CLUSTER_ID")
 	clusterID, err = detector.DetectClusterID(context.Background())
 	if err != nil {
 		t.Errorf("Expected no error with fallback methods, got %v", err)
@@ -216,11 +214,11 @@ func BenchmarkDetectClusterID(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		detector.DetectClusterID(context.Background())
+		_, _ = detector.DetectClusterID(context.Background())
 	}
 }
 
-// TestDetectFromAKS tests Azure AKS cluster detection
+// TestDetectFromAKS tests Azure AKS cluster detection.
 func TestDetectFromAKS(t *testing.T) {
 	logger := core.NewNoOpLogger(nil)
 

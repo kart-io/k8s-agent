@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sLimitRangeService LimitRange 管理服务
+// K8sLimitRangeService LimitRange 管理服务.
 type K8sLimitRangeService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sLimitRangeService 创建新的 LimitRange 服务
+// NewK8sLimitRangeService 创建新的 LimitRange 服务.
 func NewK8sLimitRangeService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sLimitRangeService {
 	return &K8sLimitRangeService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sLimitRangeService(storage *storage.MySQLStorage, clusterService *K8sC
 	}
 }
 
-// LimitRangeInfo LimitRange 信息
+// LimitRangeInfo LimitRange 信息.
 type LimitRangeInfo struct {
 	Name        string               `json:"name"`
 	Namespace   string               `json:"namespace"`
@@ -36,7 +36,7 @@ type LimitRangeInfo struct {
 	CreatedAt   string               `json:"createdAt"`
 }
 
-// LimitRangeItemInfo LimitRange 限制项
+// LimitRangeItemInfo LimitRange 限制项.
 type LimitRangeItemInfo struct {
 	Type                 string            `json:"type"`
 	Max                  map[string]string `json:"max,omitempty"`
@@ -46,7 +46,7 @@ type LimitRangeItemInfo struct {
 	MaxLimitRequestRatio map[string]string `json:"maxLimitRequestRatio,omitempty"`
 }
 
-// ListLimitRanges 获取 LimitRange 列表
+// ListLimitRanges 获取 LimitRange 列表.
 func (s *K8sLimitRangeService) ListLimitRanges(ctx context.Context, clusterID, namespace string, offset, limit int) ([]LimitRangeInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *K8sLimitRangeService) ListLimitRanges(ctx context.Context, clusterID, n
 	return result, total, nil
 }
 
-// GetLimitRange 获取 LimitRange 详情
+// GetLimitRange 获取 LimitRange 详情.
 func (s *K8sLimitRangeService) GetLimitRange(ctx context.Context, clusterID, namespace, limitRangeName string) (*LimitRangeInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -95,7 +95,7 @@ func (s *K8sLimitRangeService) GetLimitRange(ctx context.Context, clusterID, nam
 	return &limitRangeInfo, nil
 }
 
-// CreateLimitRange 创建 LimitRange
+// CreateLimitRange 创建 LimitRange.
 func (s *K8sLimitRangeService) CreateLimitRange(ctx context.Context, clusterID, namespace string, limitRange *corev1.LimitRange) (*LimitRangeInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -117,7 +117,7 @@ func (s *K8sLimitRangeService) CreateLimitRange(ctx context.Context, clusterID, 
 	return &limitRangeInfo, nil
 }
 
-// UpdateLimitRange 更新 LimitRange
+// UpdateLimitRange 更新 LimitRange.
 func (s *K8sLimitRangeService) UpdateLimitRange(ctx context.Context, clusterID, namespace string, limitRange *corev1.LimitRange) (*LimitRangeInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *K8sLimitRangeService) UpdateLimitRange(ctx context.Context, clusterID, 
 	return &limitRangeInfo, nil
 }
 
-// DeleteLimitRange 删除 LimitRange
+// DeleteLimitRange 删除 LimitRange.
 func (s *K8sLimitRangeService) DeleteLimitRange(ctx context.Context, clusterID, namespace, limitRangeName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *K8sLimitRangeService) DeleteLimitRange(ctx context.Context, clusterID, 
 	return nil
 }
 
-// convertLimitRangeInfo 转换 LimitRange 信息
+// convertLimitRangeInfo 转换 LimitRange 信息.
 func (s *K8sLimitRangeService) convertLimitRangeInfo(lr *corev1.LimitRange) LimitRangeInfo {
 	// 确保 Labels 和 Annotations 不为 nil
 	labels := lr.Labels
@@ -197,7 +197,7 @@ func (s *K8sLimitRangeService) convertLimitRangeInfo(lr *corev1.LimitRange) Limi
 	return limitRangeInfo
 }
 
-// convertResourceList 转换资源列表为字符串 map
+// convertResourceList 转换资源列表为字符串 map.
 func convertResourceList(resourceList corev1.ResourceList) map[string]string {
 	if resourceList == nil {
 		return nil

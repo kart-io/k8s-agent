@@ -27,7 +27,7 @@ func NewClusterService(storage *storage.MySQLStorage, logger core.Logger) *Clust
 	}
 }
 
-// AddCluster 添加集群
+// AddCluster 添加集群.
 func (s *ClusterService) AddCluster(ctx context.Context, cluster *types.Cluster) error {
 	// 测试连接
 	client, err := k8s.NewClientFromKubeConfig([]byte(cluster.KubeConfig))
@@ -47,7 +47,7 @@ func (s *ClusterService) AddCluster(ctx context.Context, cluster *types.Cluster)
 		cluster.Version = version
 	}
 
-	cluster.Status = "healthy"
+	cluster.Status = StatusHealthy
 	cluster.CreatedAt = time.Now()
 	cluster.UpdatedAt = time.Now()
 
@@ -71,9 +71,9 @@ func (s *ClusterService) AddCluster(ctx context.Context, cluster *types.Cluster)
 	return nil
 }
 
-// GetClusterHealth 获取集群健康状态
+// GetClusterHealth 获取集群健康状态.
 func (s *ClusterService) GetClusterHealth(ctx context.Context, clusterID string) (*types.ClusterHealth, error) {
-	client, err := s.getClient(clusterID)
+	client, err := s.getClient(ctx, clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (s *ClusterService) GetClusterHealth(ctx context.Context, clusterID string)
 	readyNodes := 0
 	for _, node := range nodes.Items {
 		for _, condition := range node.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status == "True" {
+			if condition.Type == ConditionTypeReady && condition.Status == "True" {
 				readyNodes++
 				break
 			}
@@ -107,7 +107,7 @@ func (s *ClusterService) GetClusterHealth(ctx context.Context, clusterID string)
 		}
 	}
 
-	status := "healthy"
+	status := StatusHealthy
 	if readyNodes < len(nodes.Items) {
 		status = "degraded"
 	}
@@ -126,9 +126,9 @@ func (s *ClusterService) GetClusterHealth(ctx context.Context, clusterID string)
 	}, nil
 }
 
-// GetPods 获取 Pod 列表
+// GetPods 获取 Pod 列表.
 func (s *ClusterService) GetPods(ctx context.Context, clusterID, namespace string) ([]types.Pod, error) {
-	client, err := s.getClient(clusterID)
+	client, err := s.getClient(ctx, clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (s *ClusterService) GetPods(ctx context.Context, clusterID, namespace strin
 	for _, pod := range pods.Items {
 		containers := make([]types.Container, 0, len(pod.Status.ContainerStatuses))
 		for _, cs := range pod.Status.ContainerStatuses {
-			state := "unknown"
+			state := StatusUnknown
 			if cs.State.Running != nil {
 				state = "running"
 			} else if cs.State.Waiting != nil {
@@ -176,7 +176,7 @@ func (s *ClusterService) GetPods(ctx context.Context, clusterID, namespace strin
 	return result, nil
 }
 
-func (s *ClusterService) getClient(clusterID string) (*k8s.Client, error) {
+func (s *ClusterService) getClient(ctx context.Context, clusterID string) (*k8s.Client, error) {
 	// 先从缓存获取
 	if client, ok := s.clients[clusterID]; ok {
 		return client, nil
@@ -185,7 +185,7 @@ func (s *ClusterService) getClient(clusterID string) (*k8s.Client, error) {
 	// 从数据库加载
 	var kubeconfigData string
 	query := "SELECT kubeconfig FROM clusters WHERE id = ?"
-	err := s.storage.DB().QueryRow(query, clusterID).Scan(&kubeconfigData)
+	err := s.storage.DB().QueryRowContext(ctx, query, clusterID).Scan(&kubeconfigData)
 	if err != nil {
 		return nil, fmt.Errorf("cluster not found: %w", err)
 	}

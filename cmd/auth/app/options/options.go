@@ -88,12 +88,12 @@ func (o *ServerOptions) Config() (*auth.Config, error) {
 	}, nil
 }
 
-// GetServiceName returns the service name
+// GetServiceName returns the service name.
 func (o *ServerOptions) GetServiceName() string {
 	return "Auth"
 }
 
-// GetLogFields returns log fields for initialization logging
+// GetLogFields returns log fields for initialization logging.
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,

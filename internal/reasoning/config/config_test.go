@@ -236,7 +236,7 @@ logging:
   format: "json"
 `
 
-	err := os.WriteFile(configPath, []byte(configContent), 0o644)
+	err := os.WriteFile(configPath, []byte(configContent), 0o600)
 	if err != nil {
 		t.Fatalf("Failed to create test config file: %v", err)
 	}
@@ -385,17 +385,17 @@ func TestLLMEnvOverrides(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clear environment
 			for key := range tt.envVars {
-				os.Unsetenv(key)
+				_ = os.Unsetenv(key)
 			}
 
 			// Set test environment variables
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 			defer func() {
 				// Clean up
 				for key := range tt.envVars {
-					os.Unsetenv(key)
+					_ = os.Unsetenv(key)
 				}
 			}()
 
@@ -428,14 +428,9 @@ func TestLLMEnvOverrides(t *testing.T) {
 
 func TestCustomProviderEnvOverrides(t *testing.T) {
 	// Test that custom provider also supports base URL and model overrides
-	os.Setenv("CUSTOM_LLM_API_KEY", "custom-key-123")
-	os.Setenv("CUSTOM_LLM_BASE_URL", "https://custom.example.com/v1")
-	os.Setenv("CUSTOM_LLM_MODEL", "custom-model-v2")
-	defer func() {
-		os.Unsetenv("CUSTOM_LLM_API_KEY")
-		os.Unsetenv("CUSTOM_LLM_BASE_URL")
-		os.Unsetenv("CUSTOM_LLM_MODEL")
-	}()
+	t.Setenv("CUSTOM_LLM_API_KEY", "custom-key-123")
+	t.Setenv("CUSTOM_LLM_BASE_URL", "https://custom.example.com/v1")
+	t.Setenv("CUSTOM_LLM_MODEL", "custom-model-v2")
 
 	cfg := &Config{
 		LLM: LLMConfig{

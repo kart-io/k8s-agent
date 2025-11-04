@@ -15,7 +15,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// ServerOptions NATS Server 配置选项
+// ServerOptions NATS Server 配置选项.
 type ServerOptions struct {
 	url             string
 	maxReconnect    int
@@ -25,52 +25,52 @@ type ServerOptions struct {
 	enableJetStream bool
 }
 
-// ServerOption NATS Server 配置选项函数
+// ServerOption NATS Server 配置选项函数.
 type ServerOption func(*ServerOptions)
 
-// WithURL 设置 NATS 服务器地址
+// WithURL 设置 NATS 服务器地址.
 func WithURL(url string) ServerOption {
 	return func(o *ServerOptions) {
 		o.url = url
 	}
 }
 
-// WithMaxReconnect 设置最大重连次数
+// WithMaxReconnect 设置最大重连次数.
 func WithMaxReconnect(n int) ServerOption {
 	return func(o *ServerOptions) {
 		o.maxReconnect = n
 	}
 }
 
-// WithReconnectWait 设置重连等待时间
+// WithReconnectWait 设置重连等待时间.
 func WithReconnectWait(d time.Duration) ServerOption {
 	return func(o *ServerOptions) {
 		o.reconnectWait = d
 	}
 }
 
-// WithPingInterval 设置 Ping 间隔时间
+// WithPingInterval 设置 Ping 间隔时间.
 func WithPingInterval(d time.Duration) ServerOption {
 	return func(o *ServerOptions) {
 		o.pingInterval = d
 	}
 }
 
-// WithMaxPingsOut 设置最大未响应 Ping 数量
+// WithMaxPingsOut 设置最大未响应 Ping 数量.
 func WithMaxPingsOut(n int) ServerOption {
 	return func(o *ServerOptions) {
 		o.maxPingsOut = n
 	}
 }
 
-// WithEnableJetStream 启用 JetStream
+// WithEnableJetStream 启用 JetStream.
 func WithEnableJetStream(enable bool) ServerOption {
 	return func(o *ServerOptions) {
 		o.enableJetStream = enable
 	}
 }
 
-// defaultServerOptions 返回默认 NATS Server 配置
+// defaultServerOptions 返回默认 NATS Server 配置.
 func defaultServerOptions() *ServerOptions {
 	return &ServerOptions{
 		url:             "nats://localhost:4222",
@@ -82,7 +82,7 @@ func defaultServerOptions() *ServerOptions {
 	}
 }
 
-// Server manages NATS server connection and subscriptions
+// Server manages NATS server connection and subscriptions.
 type Server struct {
 	conn    *nats.Conn
 	logger  core.Logger
@@ -104,7 +104,7 @@ type Server struct {
 	errorCount       int64
 }
 
-// NewServer creates a new NATS server instance
+// NewServer creates a new NATS server instance.
 func NewServer(
 	registry *agent.Registry,
 	eventProcessor *event.Processor,
@@ -128,7 +128,7 @@ func NewServer(
 	}
 }
 
-// Start starts the NATS server and subscriptions
+// Start starts the NATS server and subscriptions.
 func (s *Server) Start(ctx context.Context) error {
 	s.logger.Infow("Starting NATS server", "url", s.options.url)
 
@@ -151,7 +151,7 @@ func (s *Server) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the NATS server
+// Stop stops the NATS server.
 func (s *Server) Stop() error {
 	s.logger.Info("Stopping NATS server")
 
@@ -178,7 +178,7 @@ func (s *Server) Stop() error {
 	return nil
 }
 
-// connect establishes connection to NATS server
+// connect establishes connection to NATS server.
 func (s *Server) connect() error {
 	opts := []nats.Option{
 		nats.Name("agent-manager"),
@@ -202,7 +202,7 @@ func (s *Server) connect() error {
 	return nil
 }
 
-// setupSubscriptions sets up all NATS subscriptions
+// setupSubscriptions sets up all NATS subscriptions.
 func (s *Server) setupSubscriptions() error {
 	// Subscribe to agent registration
 	if err := s.subscribeRegister(); err != nil {
@@ -232,7 +232,7 @@ func (s *Server) setupSubscriptions() error {
 	return nil
 }
 
-// subscribeRegister subscribes to agent registration messages
+// subscribeRegister subscribes to agent registration messages.
 func (s *Server) subscribeRegister() error {
 	subject := "aetherius.agent.*.register"
 
@@ -252,7 +252,7 @@ func (s *Server) subscribeRegister() error {
 	return nil
 }
 
-// subscribeHeartbeat subscribes to agent heartbeat messages
+// subscribeHeartbeat subscribes to agent heartbeat messages.
 func (s *Server) subscribeHeartbeat() error {
 	subject := "aetherius.agent.*.heartbeat"
 
@@ -272,7 +272,7 @@ func (s *Server) subscribeHeartbeat() error {
 	return nil
 }
 
-// subscribeEvents subscribes to agent event messages
+// subscribeEvents subscribes to agent event messages.
 func (s *Server) subscribeEvents() error {
 	subject := "aetherius.agent.*.event"
 
@@ -292,7 +292,7 @@ func (s *Server) subscribeEvents() error {
 	return nil
 }
 
-// subscribeMetrics subscribes to agent metrics messages
+// subscribeMetrics subscribes to agent metrics messages.
 func (s *Server) subscribeMetrics() error {
 	subject := "aetherius.agent.*.metrics"
 
@@ -312,7 +312,7 @@ func (s *Server) subscribeMetrics() error {
 	return nil
 }
 
-// subscribeResults subscribes to command result messages
+// subscribeResults subscribes to command result messages.
 func (s *Server) subscribeResults() error {
 	subject := "aetherius.agent.*.result"
 
@@ -334,7 +334,7 @@ func (s *Server) subscribeResults() error {
 
 // Message handlers
 
-// handleRegister handles agent registration messages
+// handleRegister handles agent registration messages.
 func (s *Server) handleRegister(msg *nats.Msg) {
 	s.messagesReceived++
 
@@ -388,7 +388,7 @@ func (s *Server) handleRegister(msg *nats.Msg) {
 	s.sendResponse(msg, ack)
 }
 
-// handleHeartbeat handles agent heartbeat messages
+// handleHeartbeat handles agent heartbeat messages.
 func (s *Server) handleHeartbeat(msg *nats.Msg) {
 	s.messagesReceived++
 
@@ -418,7 +418,7 @@ func (s *Server) handleHeartbeat(msg *nats.Msg) {
 		"cluster_id", heartbeat.ClusterID)
 }
 
-// handleEvent handles agent event messages
+// handleEvent handles agent event messages.
 func (s *Server) handleEvent(msg *nats.Msg) {
 	s.messagesReceived++
 
@@ -445,7 +445,7 @@ func (s *Server) handleEvent(msg *nats.Msg) {
 		"severity", event.Severity)
 }
 
-// handleMetrics handles agent metrics messages
+// handleMetrics handles agent metrics messages.
 func (s *Server) handleMetrics(msg *nats.Msg) {
 	s.messagesReceived++
 
@@ -494,7 +494,7 @@ func (s *Server) handleMetrics(msg *nats.Msg) {
 		"pod_count", podCount)
 }
 
-// handleResult handles command result messages
+// handleResult handles command result messages.
 func (s *Server) handleResult(msg *nats.Msg) {
 	s.messagesReceived++
 
@@ -512,7 +512,7 @@ func (s *Server) handleResult(msg *nats.Msg) {
 		"status", result.Status)
 }
 
-// PublishCommand publishes a command to an agent
+// PublishCommand publishes a command to an agent.
 func (s *Server) PublishCommand(clusterID string, cmd *types.Command) error {
 	subject := fmt.Sprintf("aetherius.agent.%s.command", clusterID)
 
@@ -535,7 +535,7 @@ func (s *Server) PublishCommand(clusterID string, cmd *types.Command) error {
 	return nil
 }
 
-// sendResponse sends a response message
+// sendResponse sends a response message.
 func (s *Server) sendResponse(msg *nats.Msg, response interface{}) {
 	data, err := json.Marshal(response)
 	if err != nil {
@@ -571,7 +571,7 @@ func (s *Server) handleError(conn *nats.Conn, sub *nats.Subscription, err error)
 	s.errorCount++
 }
 
-// connectionMonitor monitors connection health
+// connectionMonitor monitors connection health.
 func (s *Server) connectionMonitor() {
 	defer s.wg.Done()
 
@@ -590,7 +590,7 @@ func (s *Server) connectionMonitor() {
 	}
 }
 
-// GetStatistics returns server statistics
+// GetStatistics returns server statistics.
 func (s *Server) GetStatistics() map[string]interface{} {
 	var connected bool
 	var connectedURL string
@@ -610,7 +610,7 @@ func (s *Server) GetStatistics() map[string]interface{} {
 	}
 }
 
-// Health checks NATS server health
+// Health checks NATS server health.
 func (s *Server) Health() error {
 	if s.conn == nil {
 		return fmt.Errorf("not connected")
@@ -621,7 +621,7 @@ func (s *Server) Health() error {
 	return nil
 }
 
-// GetConnection returns the underlying NATS connection
+// GetConnection returns the underlying NATS connection.
 func (s *Server) GetConnection() *nats.Conn {
 	return s.conn
 }

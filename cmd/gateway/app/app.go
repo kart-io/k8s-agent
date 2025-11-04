@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/kart-io/k8s-agent/common/loggerutil"
 	"github.com/kart-io/k8s-agent/internal/gateway/config"
@@ -10,7 +11,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Execute runs the gateway command
+// Execute runs the gateway command.
 func Execute() {
 	// Create configuration options
 	opts := config.NewOptions()
@@ -31,19 +32,19 @@ func Execute() {
 	)
 }
 
-// GatewayApp implements commonapp.Application interface
+// GatewayApp implements commonapp.Application interface.
 type GatewayApp struct {
 	config *config.Options
 	logger core.Logger
 	server *GatewayService
 }
 
-// Name returns the application name
+// Name returns the application name.
 func (a *GatewayApp) Name() string {
 	return "Gateway Service"
 }
 
-// Initialize initializes the application
+// Initialize initializes the application.
 func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// Convert configuration
 	configOpts := opts.(*config.Options)
@@ -68,19 +69,24 @@ func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) err
 	return nil
 }
 
-// Run runs the application
+// Run runs the application.
 func (a *GatewayApp) Run(ctx context.Context) error {
 	// Start service
 	return a.server.Run(ctx)
 }
 
-// Shutdown gracefully shuts down the application
+// Shutdown gracefully shuts down the application.
 func (a *GatewayApp) Shutdown(ctx context.Context) error {
 	if a.server != nil {
-		a.server.Cleanup()
+		if err := a.server.Cleanup(); err != nil {
+			a.logger.Errorw("Failed to cleanup server", "error", err)
+		}
 	}
 	if a.logger != nil {
-		a.logger.Flush()
+		if err := a.logger.Flush(); err != nil {
+			// Can't log the error since logger is being flushed
+			fmt.Fprintf(os.Stderr, "Failed to flush logger: %v\n", err)
+		}
 	}
 	return nil
 }

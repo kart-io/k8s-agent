@@ -6,7 +6,7 @@ import (
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 )
 
-// Options defines options for reasoning service
+// Options defines options for reasoning service.
 type Options struct {
 	Server      *commonoptions.ServerOptions      `json:"server" mapstructure:"server"`
 	Logging     *commonoptions.LoggingOptions     `json:"logging" mapstructure:"logging"`
@@ -18,7 +18,7 @@ type Options struct {
 	Performance *commonoptions.PerformanceOptions `json:"performance" mapstructure:"performance"`
 }
 
-// NewOptions creates a new Options instance with default values
+// NewOptions creates a new Options instance with default values.
 func NewOptions() *Options {
 	return &Options{
 		Server:      commonoptions.NewServerOptions(),
@@ -32,7 +32,7 @@ func NewOptions() *Options {
 	}
 }
 
-// Validate validates all the required options
+// Validate validates all the required options.
 func (o *Options) Validate() []error {
 	var errs []error
 
@@ -71,7 +71,7 @@ func (o *Options) Validate() []error {
 	return errs
 }
 
-// Complete fills in any fields not set that are required to have valid data
+// Complete fills in any fields not set that are required to have valid data.
 func (o *Options) Complete() error {
 	// Complete all sub-options
 	if err := o.Server.Complete(); err != nil {
@@ -117,12 +117,12 @@ func (o *Options) Complete() error {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions
+// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *Options) GetHealthPort() int {
 	return 8093 // Reasoning 健康检查端口
 }
 
-// AddFlags adds flags to the specified FlagSet
+// AddFlags adds flags to the specified FlagSet.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
 	o.Logging.AddFlags(fs)
@@ -134,7 +134,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Performance.AddFlags(fs)
 }
 
-// Config returns a Config struct based on Options
+// Config returns a Config struct based on Options.
 func (o *Options) Config() *Config {
 	return &Config{
 		Server:      *o.Server,

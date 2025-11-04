@@ -9,12 +9,12 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// RoleHandler handles role management HTTP requests
+// RoleHandler handles role management HTTP requests.
 type RoleHandler struct {
 	roleService *service.RoleService
 }
 
-// NewRoleHandler creates a new role handler
+// NewRoleHandler creates a new role handler.
 func NewRoleHandler(roleService *service.RoleService) *RoleHandler {
 	return &RoleHandler{
 		roleService: roleService,
@@ -22,7 +22,7 @@ func NewRoleHandler(roleService *service.RoleService) *RoleHandler {
 }
 
 // List retrieves all roles
-// GET /api/v1/roles
+// GET /api/v1/roles.
 func (h *RoleHandler) List(c *gin.Context) {
 	roles, err := h.roleService.List()
 	if err != nil {
@@ -40,7 +40,7 @@ func (h *RoleHandler) List(c *gin.Context) {
 }
 
 // GetByID retrieves a role by ID
-// GET /api/v1/roles/:id
+// GET /api/v1/roles/:id.
 func (h *RoleHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -66,7 +66,7 @@ func (h *RoleHandler) GetByID(c *gin.Context) {
 }
 
 // Create creates a new role
-// POST /api/v1/roles
+// POST /api/v1/roles.
 func (h *RoleHandler) Create(c *gin.Context) {
 	var req types.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -92,7 +92,7 @@ func (h *RoleHandler) Create(c *gin.Context) {
 }
 
 // Update updates a role
-// PUT /api/v1/roles/:id
+// PUT /api/v1/roles/:id.
 func (h *RoleHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -129,7 +129,7 @@ func (h *RoleHandler) Update(c *gin.Context) {
 }
 
 // Delete deletes a role
-// DELETE /api/v1/roles/:id
+// DELETE /api/v1/roles/:id.
 func (h *RoleHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -156,7 +156,7 @@ func (h *RoleHandler) Delete(c *gin.Context) {
 }
 
 // AssignPermissions assigns permissions to a role
-// POST /api/v1/roles/:id/permissions
+// POST /api/v1/roles/:id/permissions.
 func (h *RoleHandler) AssignPermissions(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -195,7 +195,7 @@ func (h *RoleHandler) AssignPermissions(c *gin.Context) {
 }
 
 // GetPermissions retrieves permissions for a role
-// GET /api/v1/roles/:id/permissions
+// GET /api/v1/roles/:id/permissions.
 func (h *RoleHandler) GetPermissions(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {

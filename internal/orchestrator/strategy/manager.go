@@ -10,14 +10,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Manager manages diagnostic strategies
+// Manager manages diagnostic strategies.
 type Manager struct {
 	store  *storage.PostgresStore
 	engine *workflow.Engine
 	logger core.Logger
 }
 
-// NewManager creates a new strategy manager
+// NewManager creates a new strategy manager.
 func NewManager(
 	store *storage.PostgresStore,
 	engine *workflow.Engine,
@@ -30,7 +30,7 @@ func NewManager(
 	}
 }
 
-// MatchStrategy finds matching strategy for an event
+// MatchStrategy finds matching strategy for an event.
 func (m *Manager) MatchStrategy(ctx context.Context, event types.InternalEvent) (*types.Strategy, error) {
 	m.logger.Info("🔍 Starting strategy matching",
 		"event_type", event.Type,
@@ -88,7 +88,7 @@ func (m *Manager) MatchStrategy(ctx context.Context, event types.InternalEvent) 
 	return bestMatch, nil
 }
 
-// ExecuteStrategy executes a matched strategy
+// ExecuteStrategy executes a matched strategy.
 func (m *Manager) ExecuteStrategy(ctx context.Context, strategy *types.Strategy, event types.InternalEvent) (*types.WorkflowExecution, error) {
 	m.logger.Info("🚀 Starting strategy execution",
 		"strategy_id", strategy.ID,
@@ -116,7 +116,7 @@ func (m *Manager) ExecuteStrategy(ctx context.Context, strategy *types.Strategy,
 	return execution, nil
 }
 
-// calculateMatchScore calculates match score between event and strategy
+// calculateMatchScore calculates match score between event and strategy.
 func (m *Manager) calculateMatchScore(event types.InternalEvent, strategy *types.Strategy) int {
 	score := 0
 
@@ -130,7 +130,7 @@ func (m *Manager) calculateMatchScore(event types.InternalEvent, strategy *types
 	return score
 }
 
-// symptomMatches checks if symptom matches event
+// symptomMatches checks if symptom matches event.
 func (m *Manager) symptomMatches(event types.InternalEvent, symptom types.Symptom) bool {
 	payload, ok := event.Payload["event"].(map[string]interface{})
 	if !ok {

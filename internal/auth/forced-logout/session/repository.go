@@ -6,7 +6,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// Repository defines the interface for session storage operations
+// Repository defines the interface for session storage operations.
 type Repository interface {
 	// StoreSession stores a new session in Redis
 	StoreSession(ctx context.Context, session *types.SessionInfo) error

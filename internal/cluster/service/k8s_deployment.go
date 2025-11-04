@@ -13,13 +13,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sDeploymentService Deployment 管理服务
+// K8sDeploymentService Deployment 管理服务.
 type K8sDeploymentService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sDeploymentService 创建新的 Deployment 服务
+// NewK8sDeploymentService 创建新的 Deployment 服务.
 func NewK8sDeploymentService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sDeploymentService {
 	return &K8sDeploymentService{
 		storage:        storage,
@@ -27,7 +27,7 @@ func NewK8sDeploymentService(storage *storage.MySQLStorage, clusterService *K8sC
 	}
 }
 
-// DeploymentInfo Deployment 信息
+// DeploymentInfo Deployment 信息.
 type DeploymentInfo struct {
 	Name              string            `json:"name"`
 	Namespace         string            `json:"namespace"`
@@ -41,7 +41,7 @@ type DeploymentInfo struct {
 	CreatedAt         string            `json:"createdAt"`
 }
 
-// ListDeployments 获取 Deployment 列表
+// ListDeployments 获取 Deployment 列表.
 func (s *K8sDeploymentService) ListDeployments(ctx context.Context, clusterID, namespace string, offset, limit int) ([]DeploymentInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -74,7 +74,7 @@ func (s *K8sDeploymentService) ListDeployments(ctx context.Context, clusterID, n
 	return result, total, nil
 }
 
-// GetDeployment 获取 Deployment 详情
+// GetDeployment 获取 Deployment 详情.
 func (s *K8sDeploymentService) GetDeployment(ctx context.Context, clusterID, namespace, deploymentName string) (*DeploymentInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *K8sDeploymentService) GetDeployment(ctx context.Context, clusterID, nam
 	return &deploymentInfo, nil
 }
 
-// ScaleDeployment 扩缩容 Deployment
+// ScaleDeployment 扩缩容 Deployment.
 func (s *K8sDeploymentService) ScaleDeployment(ctx context.Context, clusterID, namespace, deploymentName string, replicas int32) (*DeploymentInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -123,7 +123,7 @@ func (s *K8sDeploymentService) ScaleDeployment(ctx context.Context, clusterID, n
 	return &deploymentInfo, nil
 }
 
-// RestartDeployment 重启 Deployment
+// RestartDeployment 重启 Deployment.
 func (s *K8sDeploymentService) RestartDeployment(ctx context.Context, clusterID, namespace, deploymentName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -137,10 +137,10 @@ func (s *K8sDeploymentService) RestartDeployment(ctx context.Context, clusterID,
 	}
 
 	// 添加重启注解（通过修改 Pod 模板的注解来触发重启）
-	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	if deployment.Spec.Template.Annotations == nil {
+		deployment.Spec.Template.Annotations = make(map[string]string)
 	}
-	deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+	deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 
 	// 更新 Deployment
 	_, err = client.Clientset().AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
@@ -157,7 +157,7 @@ func (s *K8sDeploymentService) RestartDeployment(ctx context.Context, clusterID,
 	return nil
 }
 
-// convertDeploymentInfo 转换 Deployment 信息
+// convertDeploymentInfo 转换 Deployment 信息.
 func (s *K8sDeploymentService) convertDeploymentInfo(deployment *appsv1.Deployment) DeploymentInfo {
 	var replicas int32
 	if deployment.Spec.Replicas != nil {

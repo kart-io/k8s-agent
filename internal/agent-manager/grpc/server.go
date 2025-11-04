@@ -17,7 +17,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Server represents the gRPC server
+// Server represents the gRPC server.
 type Server struct {
 	grpcServer *grpc.Server
 	listener   net.Listener
@@ -32,7 +32,7 @@ type Server struct {
 	port int
 }
 
-// ServerOptions holds gRPC server configuration
+// ServerOptions holds gRPC server configuration.
 type ServerOptions struct {
 	Host string
 	Port int
@@ -51,7 +51,7 @@ type ServerOptions struct {
 	Store      *storage.PostgresStore
 }
 
-// NewServer creates a new gRPC server
+// NewServer creates a new gRPC server.
 func NewServer(opts *ServerOptions, logger core.Logger) (*Server, error) {
 	// Set defaults
 	if opts.MaxRecvMsgSize == 0 {
@@ -90,7 +90,8 @@ func NewServer(opts *ServerOptions, logger core.Logger) (*Server, error) {
 
 	// Create listener
 	addr := fmt.Sprintf("%s:%d", opts.Host, opts.Port)
-	listener, err := net.Listen("tcp", addr)
+	lc := net.ListenConfig{}
+	listener, err := lc.Listen(context.Background(), "tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create listener: %w", err)
 	}
@@ -110,7 +111,7 @@ func NewServer(opts *ServerOptions, logger core.Logger) (*Server, error) {
 	}, nil
 }
 
-// Start starts the gRPC server
+// Start starts the gRPC server.
 func (s *Server) Start(ctx context.Context) error {
 	s.logger.Infow("Starting gRPC server",
 		"address", s.listener.Addr().String(),
@@ -134,7 +135,7 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 }
 
-// Stop stops the gRPC server gracefully
+// Stop stops the gRPC server gracefully.
 func (s *Server) Stop() error {
 	s.logger.Infow("Stopping gRPC server")
 
@@ -157,7 +158,7 @@ func (s *Server) Stop() error {
 	return nil
 }
 
-// Address returns the server address
+// Address returns the server address.
 func (s *Server) Address() string {
 	if s.listener != nil {
 		return s.listener.Addr().String()

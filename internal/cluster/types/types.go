@@ -2,7 +2,7 @@ package types
 
 import "time"
 
-// Cluster K8s 集群信息
+// Cluster K8s 集群信息.
 type Cluster struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -17,7 +17,7 @@ type Cluster struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// ClusterHealth 集群健康状态
+// ClusterHealth 集群健康状态.
 type ClusterHealth struct {
 	ClusterID   string    `json:"cluster_id"`
 	Status      string    `json:"status"`
@@ -30,7 +30,7 @@ type ClusterHealth struct {
 	CheckedAt   time.Time `json:"checked_at"`
 }
 
-// Node K8s 节点信息
+// Node K8s 节点信息.
 type Node struct {
 	Name       string            `json:"name"`
 	Status     string            `json:"status"`
@@ -46,7 +46,7 @@ type Node struct {
 	CreatedAt  time.Time         `json:"created_at"`
 }
 
-// NodeCondition 节点状态条件
+// NodeCondition 节点状态条件.
 type NodeCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
@@ -55,7 +55,7 @@ type NodeCondition struct {
 	LastTransitionTime time.Time `json:"last_transition_time"`
 }
 
-// Pod Pod 信息
+// Pod Pod 信息.
 type Pod struct {
 	Name       string            `json:"name"`
 	Namespace  string            `json:"namespace"`
@@ -68,7 +68,7 @@ type Pod struct {
 	CreatedAt  time.Time         `json:"created_at"`
 }
 
-// Container 容器信息
+// Container 容器信息.
 type Container struct {
 	Name         string `json:"name"`
 	Image        string `json:"image"`
@@ -77,7 +77,7 @@ type Container struct {
 	State        string `json:"state"`
 }
 
-// Deployment Deployment 信息
+// Deployment Deployment 信息.
 type Deployment struct {
 	Name              string            `json:"name"`
 	Namespace         string            `json:"namespace"`
@@ -90,7 +90,7 @@ type Deployment struct {
 	CreatedAt         time.Time         `json:"created_at"`
 }
 
-// DeploymentCreate 创建 Deployment 请求
+// DeploymentCreate 创建 Deployment 请求.
 type DeploymentCreate struct {
 	Name      string               `json:"name" binding:"required"`
 	Namespace string               `json:"namespace" binding:"required"`
@@ -102,32 +102,32 @@ type DeploymentCreate struct {
 	Resources ResourceRequirements `json:"resources"`
 }
 
-// EnvVar 环境变量
+// EnvVar 环境变量.
 type EnvVar struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
-// ContainerPort 容器端口
+// ContainerPort 容器端口.
 type ContainerPort struct {
 	Name          string `json:"name"`
 	ContainerPort int32  `json:"container_port"`
 	Protocol      string `json:"protocol"`
 }
 
-// ResourceRequirements 资源需求
+// ResourceRequirements 资源需求.
 type ResourceRequirements struct {
 	Limits   ResourceList `json:"limits"`
 	Requests ResourceList `json:"requests"`
 }
 
-// ResourceList 资源列表
+// ResourceList 资源列表.
 type ResourceList struct {
 	CPU    string `json:"cpu"`
 	Memory string `json:"memory"`
 }
 
-// ClusterStats 集群统计信息
+// ClusterStats 集群统计信息.
 type ClusterStats struct {
 	ClusterID        string  `json:"cluster_id"`
 	TotalNodes       int     `json:"total_nodes"`
@@ -145,7 +145,7 @@ type ClusterStats struct {
 	MemoryUsage      float64 `json:"memory_usage"`
 }
 
-// K8sEvent K8s 事件
+// K8sEvent K8s 事件.
 type K8sEvent struct {
 	Type      string    `json:"type"`
 	Reason    string    `json:"reason"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -12,19 +13,19 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// PostgresRepository implements Repository using PostgreSQL via GORM
+// PostgresRepository implements Repository using PostgreSQL via GORM.
 type PostgresRepository struct {
 	db *gorm.DB
 }
 
-// NewPostgresRepository creates a new PostgreSQL-based audit repository
+// NewPostgresRepository creates a new PostgreSQL-based audit repository.
 func NewPostgresRepository(db *gorm.DB) *PostgresRepository {
 	return &PostgresRepository{
 		db: db,
 	}
 }
 
-// CreateEvent inserts a new audit event with hash chain validation
+// CreateEvent inserts a new audit event with hash chain validation.
 func (r *PostgresRepository) CreateEvent(ctx context.Context, event *types.ForcedLogoutEvent) error {
 	// Use a transaction to ensure atomicity
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -36,11 +37,11 @@ func (r *PostgresRepository) CreateEvent(ctx context.Context, event *types.Force
 	})
 }
 
-// GetEvent retrieves a single audit event by event_id
+// GetEvent retrieves a single audit event by event_id.
 func (r *PostgresRepository) GetEvent(ctx context.Context, eventID string) (*types.ForcedLogoutEvent, error) {
 	var event types.ForcedLogoutEvent
 	if err := r.db.WithContext(ctx).Where("event_id = ?", eventID).First(&event).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("audit event not found: %s", eventID)
 		}
 		return nil, fmt.Errorf("get audit event: %w", err)
@@ -48,7 +49,7 @@ func (r *PostgresRepository) GetEvent(ctx context.Context, eventID string) (*typ
 	return &event, nil
 }
 
-// ListEvents retrieves filtered audit events with pagination
+// ListEvents retrieves filtered audit events with pagination.
 func (r *PostgresRepository) ListEvents(ctx context.Context, filter AuditFilter) (*AuditEventListResponse, error) {
 	// Build query with filters
 	query := r.db.WithContext(ctx).Model(&types.ForcedLogoutEvent{})
@@ -109,7 +110,7 @@ func (r *PostgresRepository) ListEvents(ctx context.Context, filter AuditFilter)
 	}, nil
 }
 
-// ExportEvents returns audit events in specified format (JSON/CSV)
+// ExportEvents returns audit events in specified format (JSON/CSV).
 func (r *PostgresRepository) ExportEvents(ctx context.Context, filter AuditFilter, format ExportFormat) ([]byte, error) {
 	// Remove pagination limits for export (but cap at reasonable max)
 	filter.Limit = 10000
@@ -131,7 +132,7 @@ func (r *PostgresRepository) ExportEvents(ctx context.Context, filter AuditFilte
 	}
 }
 
-// exportJSON converts events to JSON format
+// exportJSON converts events to JSON format.
 func (r *PostgresRepository) exportJSON(events []types.ForcedLogoutEvent) ([]byte, error) {
 	data, err := json.MarshalIndent(events, "", "  ")
 	if err != nil {
@@ -140,7 +141,7 @@ func (r *PostgresRepository) exportJSON(events []types.ForcedLogoutEvent) ([]byt
 	return data, nil
 }
 
-// exportCSV converts events to CSV format
+// exportCSV converts events to CSV format.
 func (r *PostgresRepository) exportCSV(events []types.ForcedLogoutEvent) ([]byte, error) {
 	var buf strings.Builder
 	writer := csv.NewWriter(&buf)
@@ -185,14 +186,14 @@ func (r *PostgresRepository) exportCSV(events []types.ForcedLogoutEvent) ([]byte
 	return []byte(buf.String()), nil
 }
 
-// GetLastHash retrieves the hash of the most recent audit event
+// GetLastHash retrieves the hash of the most recent audit event.
 func (r *PostgresRepository) GetLastHash(ctx context.Context) (string, error) {
 	var event types.ForcedLogoutEvent
 	if err := r.db.WithContext(ctx).
 		Select("current_hash").
 		Order("timestamp DESC, id DESC").
 		First(&event).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// No events exist, return genesis marker
 			return "genesis", nil
 		}
@@ -201,7 +202,7 @@ func (r *PostgresRepository) GetLastHash(ctx context.Context) (string, error) {
 	return event.CurrentHash, nil
 }
 
-// ValidateHashChain verifies the integrity of the entire hash chain
+// ValidateHashChain verifies the integrity of the entire hash chain.
 func (r *PostgresRepository) ValidateHashChain(ctx context.Context) error {
 	// Retrieve all events ordered by timestamp
 	var events []types.ForcedLogoutEvent
@@ -237,7 +238,7 @@ func (r *PostgresRepository) ValidateHashChain(ctx context.Context) error {
 	return nil
 }
 
-// ptrToString safely converts a string pointer to a string
+// ptrToString safely converts a string pointer to a string.
 func ptrToString(ptr *string) string {
 	if ptr == nil {
 		return ""

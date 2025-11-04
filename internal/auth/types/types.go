@@ -2,7 +2,7 @@ package types
 
 import "time"
 
-// User represents a system user
+// User represents a system user.
 type User struct {
 	ID        string    `json:"id" gorm:"primaryKey"`
 	Username  string    `json:"username" gorm:"uniqueIndex;not null"`
@@ -17,7 +17,7 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// Role represents a user role
+// Role represents a user role.
 type Role struct {
 	ID          string    `json:"id" gorm:"primaryKey"`
 	Name        string    `json:"name" gorm:"uniqueIndex;not null"`
@@ -29,7 +29,7 @@ type Role struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// Permission represents a system permission
+// Permission represents a system permission.
 type Permission struct {
 	ID          string    `json:"id" gorm:"primaryKey"`
 	ParentID    string    `json:"parent_id" gorm:"index"`
@@ -47,19 +47,19 @@ type Permission struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// UserRole represents the many-to-many relationship between users and roles
+// UserRole represents the many-to-many relationship between users and roles.
 type UserRole struct {
 	UserID string `json:"user_id" gorm:"primaryKey"`
 	RoleID string `json:"role_id" gorm:"primaryKey"`
 }
 
-// RolePermission represents the many-to-many relationship between roles and permissions
+// RolePermission represents the many-to-many relationship between roles and permissions.
 type RolePermission struct {
 	RoleID       string `json:"role_id" gorm:"primaryKey"`
 	PermissionID string `json:"permission_id" gorm:"primaryKey"`
 }
 
-// APIKey represents an API key for programmatic access
+// APIKey represents an API key for programmatic access.
 type APIKey struct {
 	ID          string     `json:"id" gorm:"primaryKey"`
 	Name        string     `json:"name" gorm:"not null"`
@@ -74,13 +74,13 @@ type APIKey struct {
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
-// LoginRequest represents a login request
+// LoginRequest represents a login request.
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
-// LoginResponse represents a login response
+// LoginResponse represents a login response.
 type LoginResponse struct {
 	Token     string    `json:"token"`
 	JTI       string    `json:"jti"` // JWT ID for session tracking
@@ -88,7 +88,7 @@ type LoginResponse struct {
 	User      *UserInfo `json:"user"`
 }
 
-// UserInfo represents user information (without sensitive data)
+// UserInfo represents user information (without sensitive data).
 type UserInfo struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
@@ -98,7 +98,7 @@ type UserInfo struct {
 	Roles    []Role `json:"roles"`
 }
 
-// MenuTree represents a menu tree structure
+// MenuTree represents a menu tree structure.
 type MenuTree struct {
 	ID        string      `json:"id"`
 	ParentID  string      `json:"parent_id"`
@@ -110,14 +110,14 @@ type MenuTree struct {
 	Children  []*MenuTree `json:"children,omitempty"`
 }
 
-// PermissionCheck represents a permission check request
+// PermissionCheck represents a permission check request.
 type PermissionCheck struct {
 	UserID string `json:"user_id"`
 	Path   string `json:"path"`
 	Method string `json:"method"`
 }
 
-// UserCreateRequest represents user creation request
+// UserCreateRequest represents user creation request.
 type UserCreateRequest struct {
 	Username string   `json:"username" binding:"required,min=3,max=50"`
 	Password string   `json:"password" binding:"required,min=8"`
@@ -128,7 +128,7 @@ type UserCreateRequest struct {
 	RoleIDs  []string `json:"role_ids"`
 }
 
-// UserUpdateRequest represents user update request
+// UserUpdateRequest represents user update request.
 type UserUpdateRequest struct {
 	Email    string   `json:"email" binding:"omitempty,email"`
 	RealName string   `json:"real_name"`
@@ -138,7 +138,7 @@ type UserUpdateRequest struct {
 	RoleIDs  []string `json:"role_ids"`
 }
 
-// RoleRequest represents role create/update request
+// RoleRequest represents role create/update request.
 type RoleRequest struct {
 	Name        string `json:"name" binding:"required,min=2,max=50"`
 	Code        string `json:"code" binding:"required"`
@@ -147,7 +147,7 @@ type RoleRequest struct {
 	Sort        int    `json:"sort"`
 }
 
-// PermissionRequest represents permission create/update request
+// PermissionRequest represents permission create/update request.
 type PermissionRequest struct {
 	ParentID    string `json:"parent_id"`
 	Name        string `json:"name" binding:"required,min=2,max=100"`
@@ -162,20 +162,20 @@ type PermissionRequest struct {
 	Description string `json:"description"`
 }
 
-// APIKeyCreateRequest represents API key creation request
+// APIKeyCreateRequest represents API key creation request.
 type APIKeyCreateRequest struct {
 	Name        string    `json:"name" binding:"required,min=3,max=100"`
 	Description string    `json:"description"`
 	ExpiresAt   time.Time `json:"expires_at"`
 }
 
-// APIKeyWithSecret represents API key with secret (returned only once)
+// APIKeyWithSecret represents API key with secret (returned only once).
 type APIKeyWithSecret struct {
 	APIKey
 	SecretPlain string `json:"secret"` // Plain secret, shown only once
 }
 
-// PaginationParams represents pagination parameters
+// PaginationParams represents pagination parameters.
 type PaginationParams struct {
 	Page     int    `json:"page" form:"page"`
 	PageSize int    `json:"page_size" form:"page_size"`
@@ -183,7 +183,7 @@ type PaginationParams struct {
 	Order    string `json:"order" form:"order"` // asc or desc
 }
 
-// PaginatedResponse represents paginated response
+// PaginatedResponse represents paginated response.
 type PaginatedResponse struct {
 	Items      interface{} `json:"items"`
 	Total      int64       `json:"total"`
@@ -192,7 +192,7 @@ type PaginatedResponse struct {
 	TotalPages int         `json:"total_pages"`
 }
 
-// MenuItem represents a menu item with hierarchy
+// MenuItem represents a menu item with hierarchy.
 type MenuItem struct {
 	ID        string      `json:"id"`
 	ParentID  string      `json:"parent_id,omitempty"`
@@ -204,7 +204,7 @@ type MenuItem struct {
 	Children  []*MenuItem `json:"children,omitempty"`
 }
 
-// PermissionNode represents a permission in tree structure
+// PermissionNode represents a permission in tree structure.
 type PermissionNode struct {
 	ID       string            `json:"id"`
 	ParentID string            `json:"parent_id,omitempty"`

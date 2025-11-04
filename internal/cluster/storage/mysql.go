@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -15,7 +16,7 @@ type MySQLStorage struct {
 	mysqlClient *commondb.MySQLClient
 }
 
-// NewMySQLStorage creates a new MySQL storage using common/db
+// NewMySQLStorage creates a new MySQL storage using common/db.
 func NewMySQLStorage(opts *options.DatabaseOptions, logger core.Logger) (*MySQLStorage, error) {
 	// 直接使用 db 包创建 MySQL 客户端
 	mysqlClient, err := commondb.NewMySQL(logger,
@@ -68,7 +69,7 @@ func (s *MySQLStorage) Close() error {
 	return nil
 }
 
-// InitSchema initializes database schema
+// InitSchema initializes database schema.
 func (s *MySQLStorage) InitSchema() error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS clusters (
@@ -88,7 +89,7 @@ func (s *MySQLStorage) InitSchema() error {
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 	`
 
-	_, err := s.db.Exec(schema)
+	_, err := s.db.ExecContext(context.Background(), schema)
 	if err != nil {
 		return fmt.Errorf("failed to initialize schema: %w", err)
 	}
@@ -100,7 +101,7 @@ func (s *MySQLStorage) InitSchema() error {
 }
 
 // NewMySQLStorageWithDB creates a MySQLStorage instance with an existing DB connection
-// This is useful for testing with mocked databases
+// This is useful for testing with mocked databases.
 func NewMySQLStorageWithDB(db *sql.DB, logger core.Logger) *MySQLStorage {
 	return &MySQLStorage{
 		db:  db,

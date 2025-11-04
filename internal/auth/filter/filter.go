@@ -7,20 +7,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Filter represents a query filter
+// Filter represents a query filter.
 type Filter struct {
 	Field    string
 	Operator string
 	Value    interface{}
 }
 
-// QueryBuilder helps build SQL WHERE clauses with filters
+// QueryBuilder helps build SQL WHERE clauses with filters.
 type QueryBuilder struct {
 	filters []Filter
 	args    []interface{}
 }
 
-// NewQueryBuilder creates a new query builder
+// NewQueryBuilder creates a new query builder.
 func NewQueryBuilder() *QueryBuilder {
 	return &QueryBuilder{
 		filters: make([]Filter, 0),
@@ -28,7 +28,7 @@ func NewQueryBuilder() *QueryBuilder {
 	}
 }
 
-// AddFilter adds a filter to the builder
+// AddFilter adds a filter to the builder.
 func (qb *QueryBuilder) AddFilter(field, operator string, value interface{}) *QueryBuilder {
 	if value == nil || value == "" {
 		return qb
@@ -41,12 +41,12 @@ func (qb *QueryBuilder) AddFilter(field, operator string, value interface{}) *Qu
 	return qb
 }
 
-// AddEqualFilter adds an equality filter
+// AddEqualFilter adds an equality filter.
 func (qb *QueryBuilder) AddEqualFilter(field string, value interface{}) *QueryBuilder {
 	return qb.AddFilter(field, "=", value)
 }
 
-// AddLikeFilter adds a LIKE filter (case-insensitive)
+// AddLikeFilter adds a LIKE filter (case-insensitive).
 func (qb *QueryBuilder) AddLikeFilter(field string, value string) *QueryBuilder {
 	if value == "" {
 		return qb
@@ -54,7 +54,7 @@ func (qb *QueryBuilder) AddLikeFilter(field string, value string) *QueryBuilder 
 	return qb.AddFilter(field, "ILIKE", "%"+value+"%")
 }
 
-// AddInFilter adds an IN filter
+// AddInFilter adds an IN filter.
 func (qb *QueryBuilder) AddInFilter(field string, values []string) *QueryBuilder {
 	if len(values) == 0 {
 		return qb
@@ -62,7 +62,7 @@ func (qb *QueryBuilder) AddInFilter(field string, values []string) *QueryBuilder
 	return qb.AddFilter(field, "IN", values)
 }
 
-// AddRangeFilter adds range filters (>=, <=)
+// AddRangeFilter adds range filters (>=, <=).
 func (qb *QueryBuilder) AddRangeFilter(field string, min, max interface{}) *QueryBuilder {
 	if min != nil && min != "" {
 		qb.AddFilter(field, ">=", min)
@@ -73,7 +73,7 @@ func (qb *QueryBuilder) AddRangeFilter(field string, min, max interface{}) *Quer
 	return qb
 }
 
-// Build builds the WHERE clause and returns it with arguments
+// Build builds the WHERE clause and returns it with arguments.
 func (qb *QueryBuilder) Build() (string, []interface{}) {
 	if len(qb.filters) == 0 {
 		return "", nil
@@ -106,7 +106,7 @@ func (qb *QueryBuilder) Build() (string, []interface{}) {
 	return strings.Join(conditions, " AND "), qb.args
 }
 
-// UserFilters extracts user filter parameters from request
+// UserFilters extracts user filter parameters from request.
 type UserFilters struct {
 	Username string
 	Email    string
@@ -114,7 +114,7 @@ type UserFilters struct {
 	Status   *int
 }
 
-// ExtractUserFilters extracts user filters from Gin context
+// ExtractUserFilters extracts user filters from Gin context.
 func ExtractUserFilters(c *gin.Context) UserFilters {
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {
@@ -136,7 +136,7 @@ func ExtractUserFilters(c *gin.Context) UserFilters {
 	}
 }
 
-// ApplyUserFilters applies user filters to query builder
+// ApplyUserFilters applies user filters to query builder.
 func ApplyUserFilters(qb *QueryBuilder, filters UserFilters) *QueryBuilder {
 	qb.AddLikeFilter("username", filters.Username)
 	qb.AddLikeFilter("email", filters.Email)
@@ -147,14 +147,14 @@ func ApplyUserFilters(qb *QueryBuilder, filters UserFilters) *QueryBuilder {
 	return qb
 }
 
-// RoleFilters extracts role filter parameters from request
+// RoleFilters extracts role filter parameters from request.
 type RoleFilters struct {
 	Name   string
 	Code   string
 	Status *int
 }
 
-// ExtractRoleFilters extracts role filters from Gin context
+// ExtractRoleFilters extracts role filters from Gin context.
 func ExtractRoleFilters(c *gin.Context) RoleFilters {
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {
@@ -175,7 +175,7 @@ func ExtractRoleFilters(c *gin.Context) RoleFilters {
 	}
 }
 
-// ApplyRoleFilters applies role filters to query builder
+// ApplyRoleFilters applies role filters to query builder.
 func ApplyRoleFilters(qb *QueryBuilder, filters RoleFilters) *QueryBuilder {
 	qb.AddLikeFilter("name", filters.Name)
 	qb.AddLikeFilter("code", filters.Code)
@@ -185,7 +185,7 @@ func ApplyRoleFilters(qb *QueryBuilder, filters RoleFilters) *QueryBuilder {
 	return qb
 }
 
-// PermissionFilters extracts permission filter parameters from request
+// PermissionFilters extracts permission filter parameters from request.
 type PermissionFilters struct {
 	Name   string
 	Code   string
@@ -193,7 +193,7 @@ type PermissionFilters struct {
 	Status *int
 }
 
-// ExtractPermissionFilters extracts permission filters from Gin context
+// ExtractPermissionFilters extracts permission filters from Gin context.
 func ExtractPermissionFilters(c *gin.Context) PermissionFilters {
 	var status *int
 	if statusStr := c.Query("status"); statusStr != "" {
@@ -215,7 +215,7 @@ func ExtractPermissionFilters(c *gin.Context) PermissionFilters {
 	}
 }
 
-// ApplyPermissionFilters applies permission filters to query builder
+// ApplyPermissionFilters applies permission filters to query builder.
 func ApplyPermissionFilters(qb *QueryBuilder, filters PermissionFilters) *QueryBuilder {
 	qb.AddLikeFilter("name", filters.Name)
 	qb.AddLikeFilter("code", filters.Code)

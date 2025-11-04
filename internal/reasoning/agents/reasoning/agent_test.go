@@ -2,6 +2,7 @@ package reasoning
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -309,7 +310,7 @@ func TestAnalysisError(t *testing.T) {
 	}
 
 	unwrapped := analysisErr.Unwrap()
-	if unwrapped != originalErr {
+	if !errors.Is(unwrapped, originalErr) {
 		t.Error("Unwrap() should return original error")
 	}
 }

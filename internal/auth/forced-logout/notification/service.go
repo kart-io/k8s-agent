@@ -12,14 +12,21 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// Service orchestrates notification delivery and tracking
+const (
+	// emailChannel is the email notification channel identifier
+	emailChannel = "email"
+	// emailDeliveryFailedMsg is the default error message for email delivery failures
+	emailDeliveryFailedMsg = "Email delivery failed"
+)
+
+// Service orchestrates notification delivery and tracking.
 type Service struct {
 	repo           Repository
 	emailClient    email.Client
 	templateEngine *TemplateEngine
 }
 
-// NewService creates a new notification service
+// NewService creates a new notification service.
 func NewService(repo Repository, emailClient email.Client, templateEngine *TemplateEngine) *Service {
 	return &Service{
 		repo:           repo,
@@ -28,7 +35,7 @@ func NewService(repo Repository, emailClient email.Client, templateEngine *Templ
 	}
 }
 
-// NotifyUserParams contains parameters for sending a notification
+// NotifyUserParams contains parameters for sending a notification.
 type NotifyUserParams struct {
 	EventID      string
 	UserID       string
@@ -42,7 +49,7 @@ type NotifyUserParams struct {
 	LoginURL     string
 }
 
-// NotifyUser creates a notification record and sends an email using NotifyHub
+// NotifyUser creates a notification record and sends an email using NotifyHub.
 func (s *Service) NotifyUser(ctx context.Context, params NotifyUserParams) error {
 	// Validate parameters
 	if err := s.validateParams(params); err != nil {
@@ -73,7 +80,7 @@ func (s *Service) NotifyUser(ctx context.Context, params NotifyUserParams) error
 		EventID:        params.EventID,
 		UserID:         params.UserID,
 		EmailAddress:   params.EmailAddress,
-		Channel:        "email",
+		Channel:        emailChannel,
 		TemplateName:   "forced-logout",
 		Subject:        &renderedEmail.Subject,
 		Body:           &renderedEmail.TextBody,
@@ -93,7 +100,7 @@ func (s *Service) NotifyUser(ctx context.Context, params NotifyUserParams) error
 	return nil
 }
 
-// sendEmailAsync sends email in background
+// sendEmailAsync sends email in background.
 func (s *Service) sendEmailAsync(ctx context.Context, notificationID, emailAddress string, renderedEmail *RenderedEmail) {
 	go func() {
 		// Use background context with timeout
@@ -113,9 +120,9 @@ func (s *Service) sendEmailAsync(ctx context.Context, notificationID, emailAddre
 			Format: "html",
 			Targets: []email.Target{
 				{
-					Type:     "email",
+					Type:     emailChannel,
 					Value:    emailAddress,
-					Platform: "email",
+					Platform: emailChannel,
 				},
 			},
 			Metadata: map[string]interface{}{
@@ -137,7 +144,7 @@ func (s *Service) sendEmailAsync(ctx context.Context, notificationID, emailAddre
 			// Check if email delivery succeeded
 			success := false
 			for _, result := range receipt.Results {
-				if result.Platform == "email" && result.Success {
+				if result.Platform == emailChannel && result.Success {
 					success = true
 					break
 				}
@@ -149,7 +156,7 @@ func (s *Service) sendEmailAsync(ctx context.Context, notificationID, emailAddre
 					fmt.Printf("Failed to update notification status to sent for %s: %v\n", notificationID, updateErr)
 				}
 			} else {
-				errMsg := "Email delivery failed"
+				errMsg := emailDeliveryFailedMsg
 				if len(receipt.Results) > 0 && receipt.Results[0].Error != "" {
 					errMsg = receipt.Results[0].Error
 				}
@@ -161,7 +168,7 @@ func (s *Service) sendEmailAsync(ctx context.Context, notificationID, emailAddre
 	}()
 }
 
-// NotifyUserSync sends notification synchronously (for testing or critical notifications)
+// NotifyUserSync sends notification synchronously (for testing or critical notifications).
 func (s *Service) NotifyUserSync(ctx context.Context, params NotifyUserParams) error {
 	// Validate parameters
 	if err := s.validateParams(params); err != nil {
@@ -192,7 +199,7 @@ func (s *Service) NotifyUserSync(ctx context.Context, params NotifyUserParams) e
 		EventID:        params.EventID,
 		UserID:         params.UserID,
 		EmailAddress:   params.EmailAddress,
-		Channel:        "email",
+		Channel:        emailChannel,
 		TemplateName:   "forced-logout",
 		Subject:        &renderedEmail.Subject,
 		Body:           &renderedEmail.TextBody,
@@ -244,7 +251,7 @@ func (s *Service) NotifyUserSync(ctx context.Context, params NotifyUserParams) e
 	// Check if email delivery succeeded
 	success := false
 	for _, result := range receipt.Results {
-		if result.Platform == "email" && result.Success {
+		if result.Platform == emailChannel && result.Success {
 			success = true
 			break
 		}
@@ -269,7 +276,7 @@ func (s *Service) NotifyUserSync(ctx context.Context, params NotifyUserParams) e
 	return nil
 }
 
-// NotifyMultipleUsers sends notifications to multiple users concurrently
+// NotifyMultipleUsers sends notifications to multiple users concurrently.
 func (s *Service) NotifyMultipleUsers(ctx context.Context, paramsSlice []NotifyUserParams) []error {
 	var wg sync.WaitGroup
 	errors := make([]error, len(paramsSlice))
@@ -298,7 +305,7 @@ func (s *Service) NotifyMultipleUsers(ctx context.Context, paramsSlice []NotifyU
 }
 
 // RetryFailedNotifications processes pending/failed notifications
-// This should be called by a background worker periodically
+// This should be called by a background worker periodically.
 func (s *Service) RetryFailedNotifications(ctx context.Context, maxAttempts int, batchSize int) (int, error) {
 	// Get pending notifications
 	notifications, err := s.repo.GetPendingNotifications(ctx, maxAttempts, batchSize)
@@ -343,9 +350,9 @@ func (s *Service) RetryFailedNotifications(ctx context.Context, maxAttempts int,
 			Format: "html",
 			Targets: []email.Target{
 				{
-					Type:     "email",
+					Type:     emailChannel,
 					Value:    notification.EmailAddress,
-					Platform: "email",
+					Platform: emailChannel,
 				},
 			},
 			Metadata: map[string]interface{}{
@@ -368,7 +375,7 @@ func (s *Service) RetryFailedNotifications(ctx context.Context, maxAttempts int,
 			// Check if email delivery succeeded
 			success := false
 			for _, result := range receipt.Results {
-				if result.Platform == "email" && result.Success {
+				if result.Platform == emailChannel && result.Success {
 					success = true
 					break
 				}
@@ -381,7 +388,7 @@ func (s *Service) RetryFailedNotifications(ctx context.Context, maxAttempts int,
 				}
 				successCount++
 			} else {
-				errMsg := "Email delivery failed"
+				errMsg := emailDeliveryFailedMsg
 				if len(receipt.Results) > 0 && receipt.Results[0].Error != "" {
 					errMsg = receipt.Results[0].Error
 				}
@@ -395,12 +402,12 @@ func (s *Service) RetryFailedNotifications(ctx context.Context, maxAttempts int,
 	return successCount, nil
 }
 
-// GetNotificationStatus retrieves the delivery status of a notification
+// GetNotificationStatus retrieves the delivery status of a notification.
 func (s *Service) GetNotificationStatus(ctx context.Context, notificationID string) (*types.ForcedLogoutNotification, error) {
 	return s.repo.GetNotification(ctx, notificationID)
 }
 
-// validateParams validates notification parameters
+// validateParams validates notification parameters.
 func (s *Service) validateParams(params NotifyUserParams) error {
 	if params.EventID == "" {
 		return fmt.Errorf("event_id is required")

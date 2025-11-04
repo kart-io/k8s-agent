@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -12,17 +13,17 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// UserService handles user management business logic
+// UserService handles user management business logic.
 type UserService struct {
 	db *storage.PostgresDB
 }
 
-// NewUserService creates a new user service
+// NewUserService creates a new user service.
 func NewUserService(db *storage.PostgresDB) *UserService {
 	return &UserService{db: db}
 }
 
-// List retrieves users with pagination and filtering
+// List retrieves users with pagination and filtering.
 func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*types.PaginatedResponse, error) {
 	// Set defaults
 	if params.Page <= 0 {
@@ -93,12 +94,12 @@ func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*t
 	}, nil
 }
 
-// GetByID retrieves a user by ID
+// GetByID retrieves a user by ID.
 func (s *UserService) GetByID(id string) (*types.User, error) {
 	var user model.User
 	err := s.db.DB.Where("id = ?", id).First(&user).Error
 
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("user not found")
 	}
 	if err != nil {
@@ -118,7 +119,7 @@ func (s *UserService) GetByID(id string) (*types.User, error) {
 	}, nil
 }
 
-// Create creates a new user
+// Create creates a new user.
 func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) {
 	// Hash password
 	hashedPassword, err := crypto.HashPassword(req.Password)
@@ -184,7 +185,7 @@ func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) 
 	return s.GetByID(userID)
 }
 
-// Update updates user information
+// Update updates user information.
 func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
 	// Build update data map for non-empty fields
 	updateData := make(map[string]interface{})
@@ -240,7 +241,7 @@ func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
 	return err
 }
 
-// Delete soft deletes a user (sets status to 0)
+// Delete soft deletes a user (sets status to 0).
 func (s *UserService) Delete(id string) error {
 	result := s.db.DB.Model(&model.User{}).Where("id = ?", id).Update("status", 0)
 	if result.Error != nil {
@@ -253,7 +254,7 @@ func (s *UserService) Delete(id string) error {
 	return nil
 }
 
-// AssignRoles assigns roles to a user
+// AssignRoles assigns roles to a user.
 func (s *UserService) AssignRoles(userID string, roleIDs []string) error {
 	var user model.User
 	user.ID = userID

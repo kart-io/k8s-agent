@@ -6,12 +6,12 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// DatabaseInitializer wraps the generic database initializer with auth-specific configuration
+// DatabaseInitializer wraps the generic database initializer with auth-specific configuration.
 type DatabaseInitializer struct {
 	*pkginitializers.DatabaseInitializer
 }
 
-// NewDatabaseInitializer creates a database initializer for auth service
+// NewDatabaseInitializer creates a database initializer for auth service.
 func NewDatabaseInitializer(cfg *config.Config, logger core.Logger) *DatabaseInitializer {
 	// Create the base initializer
 	dbInit := pkginitializers.NewDatabaseInitializer(cfg.Database, logger)

@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sPVCService PersistentVolumeClaim 管理服务
+// K8sPVCService PersistentVolumeClaim 管理服务.
 type K8sPVCService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sPVCService 创建新的 PVC 服务
+// NewK8sPVCService 创建新的 PVC 服务.
 func NewK8sPVCService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sPVCService {
 	return &K8sPVCService{
 		storage:        storage,
@@ -25,7 +25,7 @@ func NewK8sPVCService(storage *storage.MySQLStorage, clusterService *K8sClusterS
 	}
 }
 
-// PVCInfo PersistentVolumeClaim 信息
+// PVCInfo PersistentVolumeClaim 信息.
 type PVCInfo struct {
 	Name             string            `json:"name"`
 	Namespace        string            `json:"namespace"`
@@ -38,7 +38,7 @@ type PVCInfo struct {
 	CreatedAt        string            `json:"createdAt"`
 }
 
-// ListPVCs 获取 PVC 列表
+// ListPVCs 获取 PVC 列表.
 func (s *K8sPVCService) ListPVCs(ctx context.Context, clusterID, namespace string, offset, limit int) ([]PVCInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -66,14 +66,14 @@ func (s *K8sPVCService) ListPVCs(ctx context.Context, clusterID, namespace strin
 
 	// 转换为 PVCInfo
 	result := make([]PVCInfo, 0, len(pagedPVCs))
-	for _, pvc := range pagedPVCs {
-		result = append(result, convertToPVCInfo(&pvc))
+	for i := range pagedPVCs {
+		result = append(result, convertToPVCInfo(&pagedPVCs[i]))
 	}
 
 	return result, total, nil
 }
 
-// GetPVC 获取单个 PVC 详情
+// GetPVC 获取单个 PVC 详情.
 func (s *K8sPVCService) GetPVC(ctx context.Context, clusterID, namespace, name string) (*corev1.PersistentVolumeClaim, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *K8sPVCService) GetPVC(ctx context.Context, clusterID, namespace, name s
 	return pvc, nil
 }
 
-// DeletePVC 删除 PVC
+// DeletePVC 删除 PVC.
 func (s *K8sPVCService) DeletePVC(ctx context.Context, clusterID, namespace, name string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *K8sPVCService) DeletePVC(ctx context.Context, clusterID, namespace, nam
 	return nil
 }
 
-// convertToPVCInfo 转换 PVC 为 PVCInfo
+// convertToPVCInfo 转换 PVC 为 PVCInfo.
 func convertToPVCInfo(pvc *corev1.PersistentVolumeClaim) PVCInfo {
 	accessModes := make([]string, 0, len(pvc.Spec.AccessModes))
 	for _, mode := range pvc.Spec.AccessModes {

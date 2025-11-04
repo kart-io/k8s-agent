@@ -458,7 +458,7 @@ func TestNewRootCauseChain(t *testing.T) {
 	}
 }
 
-// 辅助函数
+// 辅助函数.
 func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }

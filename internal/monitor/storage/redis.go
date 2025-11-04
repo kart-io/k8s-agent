@@ -53,22 +53,22 @@ func (r *RedisStorage) Client() *redis.Client {
 	return r.client
 }
 
-// SetMetricsSummary 缓存监控概览
+// SetMetricsSummary 缓存监控概览.
 func (r *RedisStorage) SetMetricsSummary(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	return r.client.Set(ctx, key, value, expiration).Err()
 }
 
-// GetMetricsSummary 获取监控概览
+// GetMetricsSummary 获取监控概览.
 func (r *RedisStorage) GetMetricsSummary(ctx context.Context, key string) (string, error) {
 	return r.client.Get(ctx, key).Result()
 }
 
-// IncrementCounter 增加计数器
+// IncrementCounter 增加计数器.
 func (r *RedisStorage) IncrementCounter(ctx context.Context, key string) error {
 	return r.client.Incr(ctx, key).Err()
 }
 
-// SetExpire 设置过期时间
+// SetExpire 设置过期时间.
 func (r *RedisStorage) SetExpire(ctx context.Context, key string, expiration time.Duration) error {
 	return r.client.Expire(ctx, key, expiration).Err()
 }

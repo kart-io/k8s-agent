@@ -3,6 +3,7 @@ package idempotent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -43,7 +44,7 @@ func (r *RedisStore) Get(ctx context.Context, key string) (*Record, error) {
 
 	data, err := r.client.Get(ctx, redisKey).Bytes()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return nil, fmt.Errorf("record not found")
 		}
 		return nil, fmt.Errorf("redis get failed: %w", err)

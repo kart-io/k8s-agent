@@ -13,11 +13,15 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// TestNewK8sClusterService 测试服务创建
+// TestNewK8sClusterService 测试服务创建.
 func TestNewK8sClusterService(t *testing.T) {
 	db, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Logf("Failed to close db: %v", err)
+		}
+	}()
 
 	storage := storage.NewMySQLStorageWithDB(db, nil)
 	service := NewK8sClusterService(storage)
@@ -27,11 +31,15 @@ func TestNewK8sClusterService(t *testing.T) {
 	assert.NotNil(t, service.clients)
 }
 
-// TestListClusters 测试获取集群列表
+// TestListClusters 测试获取集群列表.
 func TestListClusters(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Logf("Failed to close db: %v", err)
+		}
+	}()
 
 	// 创建 storage
 	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
@@ -64,7 +72,7 @@ func TestListClusters(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-// TestGetCluster 测试获取集群详情
+// TestGetCluster 测试获取集群详情.
 func TestGetCluster(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -87,7 +95,11 @@ func TestGetCluster(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock, err := sqlmock.New()
 			require.NoError(t, err)
-			defer db.Close()
+			defer func() {
+				if err := db.Close(); err != nil {
+					t.Logf("Failed to close db: %v", err)
+				}
+			}()
 
 			storageInstance := storage.NewMySQLStorageWithDB(db, nil)
 			service := NewK8sClusterService(storageInstance)
@@ -117,7 +129,7 @@ func TestGetCluster(t *testing.T) {
 	}
 }
 
-// TestCreateCluster 测试创建集群
+// TestCreateCluster 测试创建集群.
 func TestCreateCluster(t *testing.T) {
 	t.Skip("Skipping create cluster test - requires valid kubeconfig")
 
@@ -129,11 +141,15 @@ func TestCreateCluster(t *testing.T) {
 	// 4. Mock database insert
 }
 
-// TestDeleteCluster 测试删除集群
+// TestDeleteCluster 测试删除集群.
 func TestDeleteCluster(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Logf("Failed to close db: %v", err)
+		}
+	}()
 
 	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
 	service := NewK8sClusterService(storageInstance)
@@ -152,7 +168,7 @@ func TestDeleteCluster(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-// TestValidateClusterName 测试集群名称验证
+// TestValidateClusterName 测试集群名称验证.
 func TestValidateClusterName(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -181,13 +197,15 @@ func TestValidateClusterName(t *testing.T) {
 	}
 }
 
-// Benchmark 测试
+// Benchmark 测试.
 func BenchmarkListClusters(b *testing.B) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
 	service := NewK8sClusterService(storageInstance)

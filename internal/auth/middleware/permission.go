@@ -9,7 +9,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 )
 
-// RequirePermission checks if user has specific permission
+// RequirePermission checks if user has specific permission.
 func RequirePermission(db *storage.PostgresDB, permissionCode string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("user_id")
@@ -49,7 +49,7 @@ func RequirePermission(db *storage.PostgresDB, permissionCode string) gin.Handle
 	}
 }
 
-// RequireRole checks if user has specific role
+// RequireRole checks if user has specific role.
 func RequireRole(db *storage.PostgresDB, roleCode string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("user_id")
@@ -89,7 +89,7 @@ func RequireRole(db *storage.PostgresDB, roleCode string) gin.HandlerFunc {
 	}
 }
 
-// checkUserPermission verifies if user has a specific permission
+// checkUserPermission verifies if user has a specific permission.
 func checkUserPermission(db *storage.PostgresDB, userID, permissionCode string) (bool, error) {
 	var count int64
 	err := db.DB.Model(&model.Permission{}).
@@ -104,7 +104,7 @@ func checkUserPermission(db *storage.PostgresDB, userID, permissionCode string) 
 	return count > 0, nil
 }
 
-// checkUserRole verifies if user has a specific role
+// checkUserRole verifies if user has a specific role.
 func checkUserRole(db *storage.PostgresDB, userID, roleCode string) (bool, error) {
 	var count int64
 	err := db.DB.Model(&model.Role{}).

@@ -12,7 +12,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Subscriber subscribes to internal events from agent-manager
+// Subscriber subscribes to internal events from agent-manager.
 type Subscriber struct {
 	conn            *nats.Conn
 	strategyManager *strategy.Manager
@@ -20,7 +20,7 @@ type Subscriber struct {
 	subscriptions   []*nats.Subscription
 }
 
-// NewSubscriber creates a new subscriber
+// NewSubscriber creates a new subscriber.
 func NewSubscriber(
 	conn *nats.Conn,
 	strategyManager *strategy.Manager,
@@ -33,7 +33,7 @@ func NewSubscriber(
 	}
 }
 
-// Start starts subscribing to events
+// Start starts subscribing to events.
 func (s *Subscriber) Start(ctx context.Context) error {
 	s.logger.Info("========== Starting event subscriber ==========")
 
@@ -57,7 +57,7 @@ func (s *Subscriber) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the subscriber
+// Stop stops the subscriber.
 func (s *Subscriber) Stop() error {
 	s.logger.Info("Stopping event subscriber")
 

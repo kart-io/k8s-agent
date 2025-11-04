@@ -11,19 +11,19 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RateLimiter provides rate limiting functionality using Redis
+// RateLimiter provides rate limiting functionality using Redis.
 type RateLimiter struct {
 	redisClient *redis.Client
 }
 
-// NewRateLimiter creates a new rate limiter
+// NewRateLimiter creates a new rate limiter.
 func NewRateLimiter(redisClient *redis.Client) *RateLimiter {
 	return &RateLimiter{
 		redisClient: redisClient,
 	}
 }
 
-// RateLimitConfig holds rate limit configuration
+// RateLimitConfig holds rate limit configuration.
 type RateLimitConfig struct {
 	RequestsPerMinute int           // Number of requests allowed per minute
 	BurstSize         int           // Burst allowance
@@ -32,7 +32,7 @@ type RateLimitConfig struct {
 	RetryAfter        time.Duration // How long to wait before retry
 }
 
-// DefaultForcedLogoutRateLimit returns default rate limit config for forced logout APIs
+// DefaultForcedLogoutRateLimit returns default rate limit config for forced logout APIs.
 func DefaultForcedLogoutRateLimit() RateLimitConfig {
 	return RateLimitConfig{
 		RequestsPerMinute: 100,
@@ -43,7 +43,7 @@ func DefaultForcedLogoutRateLimit() RateLimitConfig {
 	}
 }
 
-// RateLimit middleware enforces rate limiting per user
+// RateLimit middleware enforces rate limiting per user.
 func (rl *RateLimiter) RateLimit(config RateLimitConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract user ID from context (set by JWT middleware)
@@ -108,7 +108,7 @@ func (rl *RateLimiter) RateLimit(config RateLimitConfig) gin.HandlerFunc {
 	}
 }
 
-// checkRateLimit checks if request is within rate limit using sliding window algorithm
+// checkRateLimit checks if request is within rate limit using sliding window algorithm.
 func (rl *RateLimiter) checkRateLimit(ctx context.Context, key string, config RateLimitConfig) (allowed bool, remaining int, resetTime time.Time, err error) {
 	now := time.Now()
 	windowStart := now.Add(-1 * time.Minute)
@@ -169,7 +169,7 @@ func (rl *RateLimiter) checkRateLimit(ctx context.Context, key string, config Ra
 	return true, remaining, resetTime, nil
 }
 
-// hasBypassRole checks if user has any bypass role
+// hasBypassRole checks if user has any bypass role.
 func (rl *RateLimiter) hasBypassRole(userRoles, bypassRoles []string) bool {
 	bypassMap := make(map[string]bool)
 	for _, role := range bypassRoles {
@@ -184,13 +184,13 @@ func (rl *RateLimiter) hasBypassRole(userRoles, bypassRoles []string) bool {
 	return false
 }
 
-// ResetRateLimit manually resets rate limit for a user (admin function)
+// ResetRateLimit manually resets rate limit for a user (admin function).
 func (rl *RateLimiter) ResetRateLimit(ctx context.Context, userID, keyPrefix string) error {
 	key := fmt.Sprintf("%s%s", keyPrefix, userID)
 	return rl.redisClient.Del(ctx, key).Err()
 }
 
-// GetRateLimitStatus returns current rate limit status for a user
+// GetRateLimitStatus returns current rate limit status for a user.
 func (rl *RateLimiter) GetRateLimitStatus(ctx context.Context, userID, keyPrefix string, limit int) (used int, remaining int, resetTime time.Time, err error) {
 	key := fmt.Sprintf("%s%s", keyPrefix, userID)
 	now := time.Now()

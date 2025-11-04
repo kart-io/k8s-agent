@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sResourceQuotaService ResourceQuota 管理服务
+// K8sResourceQuotaService ResourceQuota 管理服务.
 type K8sResourceQuotaService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sResourceQuotaService 创建新的 ResourceQuota 服务
+// NewK8sResourceQuotaService 创建新的 ResourceQuota 服务.
 func NewK8sResourceQuotaService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sResourceQuotaService {
 	return &K8sResourceQuotaService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sResourceQuotaService(storage *storage.MySQLStorage, clusterService *K
 	}
 }
 
-// ResourceQuotaInfo ResourceQuota 信息
+// ResourceQuotaInfo ResourceQuota 信息.
 type ResourceQuotaInfo struct {
 	Name        string            `json:"name"`
 	Namespace   string            `json:"namespace"`
@@ -38,7 +38,7 @@ type ResourceQuotaInfo struct {
 	CreatedAt   string            `json:"createdAt"`
 }
 
-// ListResourceQuotas 获取 ResourceQuota 列表
+// ListResourceQuotas 获取 ResourceQuota 列表.
 func (s *K8sResourceQuotaService) ListResourceQuotas(ctx context.Context, clusterID, namespace string, offset, limit int) ([]ResourceQuotaInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -71,7 +71,7 @@ func (s *K8sResourceQuotaService) ListResourceQuotas(ctx context.Context, cluste
 	return result, total, nil
 }
 
-// GetResourceQuota 获取 ResourceQuota 详情
+// GetResourceQuota 获取 ResourceQuota 详情.
 func (s *K8sResourceQuotaService) GetResourceQuota(ctx context.Context, clusterID, namespace, resourceQuotaName string) (*corev1.ResourceQuota, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *K8sResourceQuotaService) GetResourceQuota(ctx context.Context, clusterI
 	return resourceQuota, nil
 }
 
-// CreateResourceQuota 创建 ResourceQuota
+// CreateResourceQuota 创建 ResourceQuota.
 func (s *K8sResourceQuotaService) CreateResourceQuota(ctx context.Context, clusterID, namespace string, resourceQuota *corev1.ResourceQuota) (*corev1.ResourceQuota, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *K8sResourceQuotaService) CreateResourceQuota(ctx context.Context, clust
 	return createdResourceQuota, nil
 }
 
-// UpdateResourceQuota 更新 ResourceQuota
+// UpdateResourceQuota 更新 ResourceQuota.
 func (s *K8sResourceQuotaService) UpdateResourceQuota(ctx context.Context, clusterID, namespace string, resourceQuota *corev1.ResourceQuota) (*corev1.ResourceQuota, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *K8sResourceQuotaService) UpdateResourceQuota(ctx context.Context, clust
 	return updatedResourceQuota, nil
 }
 
-// DeleteResourceQuota 删除 ResourceQuota
+// DeleteResourceQuota 删除 ResourceQuota.
 func (s *K8sResourceQuotaService) DeleteResourceQuota(ctx context.Context, clusterID, namespace, resourceQuotaName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -149,7 +149,7 @@ func (s *K8sResourceQuotaService) DeleteResourceQuota(ctx context.Context, clust
 	return nil
 }
 
-// convertResourceQuotaInfo 转换 ResourceQuota 信息
+// convertResourceQuotaInfo 转换 ResourceQuota 信息.
 func (s *K8sResourceQuotaService) convertResourceQuotaInfo(rq *corev1.ResourceQuota) ResourceQuotaInfo {
 	// 确保 Labels 和 Annotations 不为 nil
 	labels := rq.Labels

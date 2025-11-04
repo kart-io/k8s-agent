@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,14 +18,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// AgentServiceServer implements the AgentService gRPC service
+// AgentServiceServer implements the AgentService gRPC service.
 type AgentServiceServer struct {
 	agentv1.UnimplementedAgentServiceServer
 	registry *agent.Registry
 	logger   core.Logger
 }
 
-// NewAgentServiceServer creates a new AgentServiceServer instance
+// NewAgentServiceServer creates a new AgentServiceServer instance.
 func NewAgentServiceServer(registry *agent.Registry, logger core.Logger) *AgentServiceServer {
 	return &AgentServiceServer{
 		registry: registry,
@@ -32,7 +33,7 @@ func NewAgentServiceServer(registry *agent.Registry, logger core.Logger) *AgentS
 	}
 }
 
-// RegisterAgent registers a new agent
+// RegisterAgent registers a new agent.
 func (s *AgentServiceServer) RegisterAgent(ctx context.Context, req *agentv1.RegisterAgentRequest) (*agentv1.RegisterAgentResponse, error) {
 	s.logger.Infow("Registering agent",
 		"name", req.Name,
@@ -91,7 +92,7 @@ func (s *AgentServiceServer) RegisterAgent(ctx context.Context, req *agentv1.Reg
 	}, nil
 }
 
-// Heartbeat processes agent heartbeat
+// Heartbeat processes agent heartbeat.
 func (s *AgentServiceServer) Heartbeat(ctx context.Context, req *agentv1.HeartbeatRequest) (*agentv1.HeartbeatResponse, error) {
 	if req.AgentId == "" {
 		return nil, status.Error(codes.InvalidArgument, "agent_id is required")
@@ -117,7 +118,7 @@ func (s *AgentServiceServer) Heartbeat(ctx context.Context, req *agentv1.Heartbe
 	}, nil
 }
 
-// GetAgent retrieves agent information
+// GetAgent retrieves agent information.
 func (s *AgentServiceServer) GetAgent(ctx context.Context, req *agentv1.GetAgentRequest) (*agentv1.GetAgentResponse, error) {
 	if req.AgentId == "" {
 		return nil, status.Error(codes.InvalidArgument, "agent_id is required")
@@ -141,7 +142,7 @@ func (s *AgentServiceServer) GetAgent(ctx context.Context, req *agentv1.GetAgent
 	}, nil
 }
 
-// ListAgents lists all agents with optional filters
+// ListAgents lists all agents with optional filters.
 func (s *AgentServiceServer) ListAgents(ctx context.Context, req *agentv1.ListAgentsRequest) (*agentv1.ListAgentsResponse, error) {
 	// Build status filter
 	var statusFilter *types.AgentStatus
@@ -200,17 +201,42 @@ func (s *AgentServiceServer) ListAgents(ctx context.Context, req *agentv1.ListAg
 		pbAgents = append(pbAgents, convertAgentToProto(a))
 	}
 
-	// Build pagination metadata
-	totalPages := int32((total + int64(pageSize) - 1) / int64(pageSize))
-	if totalPages == 0 {
+	// Build pagination metadata with safe conversion
+	var totalPages int32
+	if total > 0 {
+		pages := (total + int64(pageSize) - 1) / int64(pageSize)
+		if pages > math.MaxInt32 {
+			totalPages = math.MaxInt32
+		} else {
+			// #nosec G115 -- overflow checked above
+			totalPages = int32(pages)
+		}
+	} else {
 		totalPages = 1
 	}
-	hasNext := int32(page) < totalPages
+
+	var pageInt32 int32
+	if int64(page) > math.MaxInt32 {
+		pageInt32 = math.MaxInt32
+	} else {
+		// #nosec G115 -- overflow checked above
+		pageInt32 = int32(page)
+	}
+
+	hasNext := pageInt32 < totalPages
 	hasPrev := page > 1
 
+	var pageSizeInt32 int32
+	if int64(pageSize) > math.MaxInt32 {
+		pageSizeInt32 = math.MaxInt32
+	} else {
+		// #nosec G115 -- overflow checked above
+		pageSizeInt32 = int32(pageSize)
+	}
+
 	pagination := &paginationv1.PaginationMetadata{
-		Page:       int32(page),
-		PageSize:   int32(pageSize),
+		Page:       pageInt32,
+		PageSize:   pageSizeInt32,
 		Total:      total,
 		TotalPages: totalPages,
 		HasNext:    hasNext,
@@ -223,7 +249,7 @@ func (s *AgentServiceServer) ListAgents(ctx context.Context, req *agentv1.ListAg
 	}, nil
 }
 
-// UnregisterAgent unregisters an agent
+// UnregisterAgent unregisters an agent.
 func (s *AgentServiceServer) UnregisterAgent(ctx context.Context, req *agentv1.UnregisterAgentRequest) (*agentv1.UnregisterAgentResponse, error) {
 	if req.AgentId == "" {
 		return nil, status.Error(codes.InvalidArgument, "agent_id is required")
@@ -249,7 +275,7 @@ func (s *AgentServiceServer) UnregisterAgent(ctx context.Context, req *agentv1.U
 
 // Helper functions
 
-// convertAgentToProto converts types.Agent to protobuf Agent
+// convertAgentToProto converts types.Agent to protobuf Agent.
 func convertAgentToProto(a *types.Agent) *agentv1.Agent {
 	if a == nil {
 		return nil
@@ -276,7 +302,7 @@ func convertAgentToProto(a *types.Agent) *agentv1.Agent {
 	}
 }
 
-// convertStatusToProto converts types.AgentStatus to protobuf Status
+// convertStatusToProto converts types.AgentStatus to protobuf Status.
 func convertStatusToProto(status types.AgentStatus) agentv1.Agent_Status {
 	switch status {
 	case types.AgentStatusOnline:
@@ -292,7 +318,7 @@ func convertStatusToProto(status types.AgentStatus) agentv1.Agent_Status {
 	}
 }
 
-// convertProtoStatus converts protobuf Status to types.AgentStatus
+// convertProtoStatus converts protobuf Status to types.AgentStatus.
 func convertProtoStatus(status agentv1.Agent_Status) types.AgentStatus {
 	switch status {
 	case agentv1.Agent_ONLINE:
@@ -308,7 +334,7 @@ func convertProtoStatus(status agentv1.Agent_Status) types.AgentStatus {
 	}
 }
 
-// convertMetadata converts map[string]string to map[string]interface{}
+// convertMetadata converts map[string]string to map[string]interface{}.
 func convertMetadata(metadata map[string]string) map[string]interface{} {
 	result := make(map[string]interface{})
 	for k, v := range metadata {
@@ -318,7 +344,7 @@ func convertMetadata(metadata map[string]string) map[string]interface{} {
 }
 
 // generateAgentToken generates a simple token for the agent
-// In production, this should use proper JWT with signing
+// In production, this should use proper JWT with signing.
 func generateAgentToken(agentID string) string {
 	// Simplified token generation - should use JWT in production
 	return fmt.Sprintf("agent-token-%s-%d", agentID, time.Now().Unix())

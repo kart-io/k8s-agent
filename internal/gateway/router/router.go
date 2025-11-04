@@ -11,7 +11,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Setup 设置路由
+// Setup 设置路由.
 func Setup(logger core.Logger) *gin.Engine {
 	// 设置 Gin 模式
 	mode := viper.GetString("server.mode")
@@ -161,7 +161,7 @@ func Setup(logger core.Logger) *gin.Engine {
 	return router
 }
 
-// loadCustomRoutes 加载自定义路由配置
+// loadCustomRoutes 加载自定义路由配置.
 func loadCustomRoutes(router *gin.Engine, proxyHandler *proxy.Proxy) {
 	var routes []types.RouteConfig
 	if err := viper.UnmarshalKey("routes", &routes); err != nil {

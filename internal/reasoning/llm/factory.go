@@ -2,7 +2,7 @@ package llm
 
 import "fmt"
 
-// NewClient creates a new LLM client based on the config
+// NewClient creates a new LLM client based on the config.
 func NewClient(config *Config) (Client, error) {
 	switch config.Provider {
 	case ProviderOpenAI:
@@ -24,7 +24,7 @@ func NewClient(config *Config) (Client, error) {
 	}
 }
 
-// NewMultiClient creates multiple LLM clients for fallback
+// NewMultiClient creates multiple LLM clients for fallback.
 func NewMultiClient(configs []*Config) ([]Client, error) {
 	var clients []Client
 	for _, config := range configs {

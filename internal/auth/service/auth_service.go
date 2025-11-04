@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,14 +16,14 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// AuthService handles authentication business logic
+// AuthService handles authentication business logic.
 type AuthService struct {
 	db    *storage.PostgresDB
 	redis *storage.RedisClient
 	cfg   *config.Config
 }
 
-// NewAuthService creates a new auth service
+// NewAuthService creates a new auth service.
 func NewAuthService(db *storage.PostgresDB, redis *storage.RedisClient, cfg *config.Config) *AuthService {
 	return &AuthService{
 		db:    db,
@@ -31,7 +32,7 @@ func NewAuthService(db *storage.PostgresDB, redis *storage.RedisClient, cfg *con
 	}
 }
 
-// Login authenticates a user and returns a JWT token
+// Login authenticates a user and returns a JWT token.
 func (s *AuthService) Login(username, password string) (*types.LoginResponse, error) {
 	// Find user by username using GORM with Preload for roles
 	var user model.User
@@ -39,7 +40,7 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 		Where("username = ? AND status = ?", username, 1).
 		First(&user).Error
 
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("invalid username or password")
 	}
 	if err != nil {
@@ -87,7 +88,7 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 	}, nil
 }
 
-// Logout blacklists a JWT token
+// Logout blacklists a JWT token.
 func (s *AuthService) Logout(token string) error {
 	// Calculate TTL based on token expiration
 	claims, err := jwt.ValidateToken(token, s.cfg.JWT.Secret)
@@ -110,14 +111,14 @@ func (s *AuthService) Logout(token string) error {
 	return nil
 }
 
-// GetCurrentUser retrieves user information by user ID
+// GetCurrentUser retrieves user information by user ID.
 func (s *AuthService) GetCurrentUser(userID string) (*types.UserInfo, error) {
 	var user model.User
 	err := s.db.DB.Preload("Roles").
 		Where("id = ? AND status = ?", userID, 1).
 		First(&user).Error
 
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("user not found")
 	}
 	if err != nil {
@@ -147,7 +148,7 @@ func (s *AuthService) GetCurrentUser(userID string) (*types.UserInfo, error) {
 	}, nil
 }
 
-// GetUserMenus builds hierarchical menu tree from user permissions
+// GetUserMenus builds hierarchical menu tree from user permissions.
 func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 	// Get all menu permissions for the user using GORM Joins
 	var permissions []model.Permission
@@ -182,7 +183,7 @@ func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 	return buildMenuTree(menus), nil
 }
 
-// buildMenuTree builds hierarchical menu structure
+// buildMenuTree builds hierarchical menu structure.
 func buildMenuTree(menus []*types.MenuItem) []*types.MenuItem {
 	menuMap := make(map[string]*types.MenuItem)
 	var roots []*types.MenuItem

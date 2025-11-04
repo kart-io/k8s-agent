@@ -8,7 +8,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// RequestLogger logs HTTP request details
+// RequestLogger logs HTTP request details.
 func RequestLogger(log core.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer

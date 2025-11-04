@@ -11,12 +11,12 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/audit"
 )
 
-// AuditHandler handles audit log queries and exports
+// AuditHandler handles audit log queries and exports.
 type AuditHandler struct {
 	auditService *audit.Service
 }
 
-// NewAuditHandler creates a new audit handler
+// NewAuditHandler creates a new audit handler.
 func NewAuditHandler(auditService *audit.Service) *AuditHandler {
 	return &AuditHandler{
 		auditService: auditService,
@@ -24,7 +24,7 @@ func NewAuditHandler(auditService *audit.Service) *AuditHandler {
 }
 
 // ListAuditEvents handles GET /api/v1/audit/forced-logout
-// Queries forced logout audit events with filtering and pagination
+// Queries forced logout audit events with filtering and pagination.
 func (h *AuditHandler) ListAuditEvents(c *gin.Context) {
 	// Parse filter parameters from query
 	filter := audit.AuditFilter{}
@@ -148,7 +148,7 @@ func (h *AuditHandler) ListAuditEvents(c *gin.Context) {
 }
 
 // ExportAuditEvents handles GET /api/v1/audit/forced-logout/export
-// Exports audit events in JSON or CSV format
+// Exports audit events in JSON or CSV format.
 func (h *AuditHandler) ExportAuditEvents(c *gin.Context) {
 	// Parse export format
 	format := c.Query("format")
@@ -254,7 +254,7 @@ func (h *AuditHandler) ExportAuditEvents(c *gin.Context) {
 	}
 }
 
-// parseIntQuery parses an integer query parameter with default value
+// parseIntQuery parses an integer query parameter with default value.
 func (h *AuditHandler) parseIntQuery(c *gin.Context, key string, defaultValue int) (int, error) {
 	valueStr := c.Query(key)
 	if valueStr == "" {

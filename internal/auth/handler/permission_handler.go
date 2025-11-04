@@ -9,12 +9,12 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// PermissionHandler handles permission management HTTP requests
+// PermissionHandler handles permission management HTTP requests.
 type PermissionHandler struct {
 	permissionService *service.PermissionService
 }
 
-// NewPermissionHandler creates a new permission handler
+// NewPermissionHandler creates a new permission handler.
 func NewPermissionHandler(permissionService *service.PermissionService) *PermissionHandler {
 	return &PermissionHandler{
 		permissionService: permissionService,
@@ -22,7 +22,7 @@ func NewPermissionHandler(permissionService *service.PermissionService) *Permiss
 }
 
 // List retrieves all permissions with optional filtering
-// GET /api/v1/permissions
+// GET /api/v1/permissions.
 func (h *PermissionHandler) List(c *gin.Context) {
 	typeFilter := c.Query("type")
 	statusFilter := c.Query("status")
@@ -43,7 +43,7 @@ func (h *PermissionHandler) List(c *gin.Context) {
 }
 
 // GetTree retrieves permission tree
-// GET /api/v1/permissions/tree
+// GET /api/v1/permissions/tree.
 func (h *PermissionHandler) GetTree(c *gin.Context) {
 	tree, err := h.permissionService.GetTree()
 	if err != nil {
@@ -61,7 +61,7 @@ func (h *PermissionHandler) GetTree(c *gin.Context) {
 }
 
 // GetByID retrieves a permission by ID
-// GET /api/v1/permissions/:id
+// GET /api/v1/permissions/:id.
 func (h *PermissionHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -87,7 +87,7 @@ func (h *PermissionHandler) GetByID(c *gin.Context) {
 }
 
 // Create creates a new permission
-// POST /api/v1/permissions
+// POST /api/v1/permissions.
 func (h *PermissionHandler) Create(c *gin.Context) {
 	var req types.PermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -113,7 +113,7 @@ func (h *PermissionHandler) Create(c *gin.Context) {
 }
 
 // Update updates a permission
-// PUT /api/v1/permissions/:id
+// PUT /api/v1/permissions/:id.
 func (h *PermissionHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -150,7 +150,7 @@ func (h *PermissionHandler) Update(c *gin.Context) {
 }
 
 // Delete deletes a permission
-// DELETE /api/v1/permissions/:id
+// DELETE /api/v1/permissions/:id.
 func (h *PermissionHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {

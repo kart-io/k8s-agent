@@ -17,12 +17,12 @@ var (
 	rdb      *redis.Client
 )
 
-// InitRateLimiter 初始化限流器
+// InitRateLimiter 初始化限流器.
 func InitRateLimiter(redisClient *redis.Client) {
 	rdb = redisClient
 }
 
-// RateLimit 限流中间件
+// RateLimit 限流中间件.
 func RateLimit() gin.HandlerFunc {
 	enabled := viper.GetBool("rate_limit.enabled")
 	if !enabled {
@@ -75,7 +75,7 @@ func RateLimit() gin.HandlerFunc {
 	}
 }
 
-// getLimiter 获取或创建限流器
+// getLimiter 获取或创建限流器.
 func getLimiter(clientID string, rps, burst int) *rate.Limiter {
 	if limiter, exists := limiters[clientID]; exists {
 		return limiter
@@ -86,7 +86,7 @@ func getLimiter(clientID string, rps, burst int) *rate.Limiter {
 	return limiter
 }
 
-// checkRedisRateLimit 使用 Redis 检查限流
+// checkRedisRateLimit 使用 Redis 检查限流.
 func checkRedisRateLimit(clientID string, rps int) (bool, error) {
 	ctx := context.Background()
 	key := fmt.Sprintf("rate_limit:%s", clientID)

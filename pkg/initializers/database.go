@@ -19,7 +19,7 @@ import (
 // - 连接池配置
 // - 可选的自动迁移
 // - 健康检查
-// - 优雅关闭
+// - 优雅关闭.
 type DatabaseInitializer struct {
 	opts   *options.DatabaseOptions
 	logger core.Logger
@@ -72,14 +72,14 @@ func (d *DatabaseInitializer) WithAutoMigrate(models ...interface{}) *DatabaseIn
 	return d
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (d *DatabaseInitializer) Name() string {
 	return "database"
 }
 
 // Priority 返回初始化优先级
 //
-// 数据库初始化器应该在配置和日志之后，业务逻辑之前初始化
+// 数据库初始化器应该在配置和日志之后，业务逻辑之前初始化.
 func (d *DatabaseInitializer) Priority() int {
 	return bootstrap.PriorityDatabase
 }

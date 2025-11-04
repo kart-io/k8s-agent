@@ -17,7 +17,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Agent represents the main collect agent that coordinates all components
+// Agent represents the main collect agent that coordinates all components.
 type Agent struct {
 	config     *types.AgentConfig
 	clusterID  string
@@ -51,7 +51,7 @@ type Agent struct {
 	startTime time.Time
 }
 
-// getKubeConfig returns Kubernetes config, trying in-cluster first, then falling back to local kubeconfig
+// getKubeConfig returns Kubernetes config, trying in-cluster first, then falling back to local kubeconfig.
 func getKubeConfig() (*rest.Config, error) {
 	// Try in-cluster config first
 	config, err := rest.InClusterConfig()
@@ -77,7 +77,7 @@ func getKubeConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-// New creates a new Agent instance
+// New creates a new Agent instance.
 func New(config *types.AgentConfig, logger core.Logger) (*Agent, error) {
 	// Create Kubernetes clientset
 	kubeConfig, err := getKubeConfig()
@@ -132,15 +132,13 @@ func New(config *types.AgentConfig, logger core.Logger) (*Agent, error) {
 	}
 
 	// Initialize components
-	if err := agent.initializeComponents(); err != nil {
-		return nil, fmt.Errorf("failed to initialize components: %w", err)
-	}
+	agent.initializeComponents()
 
 	return agent, nil
 }
 
-// initializeComponents initializes all agent components
-func (a *Agent) initializeComponents() error {
+// initializeComponents initializes all agent components.
+func (a *Agent) initializeComponents() {
 	// Initialize event watcher
 	if a.config.EnableEvents {
 		a.eventWatcher = NewEventWatcher(a.clientset, a.clusterID, a.eventChan, a.logger)
@@ -166,11 +164,9 @@ func (a *Agent) initializeComponents() error {
 		a.handleCommand,
 		a.logger,
 	)
-
-	return nil
 }
 
-// Start starts the agent and all its components
+// Start starts the agent and all its components.
 func (a *Agent) Start(ctx context.Context) error {
 	a.mu.Lock()
 	if a.running {
@@ -218,7 +214,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	return a.Stop()
 }
 
-// Stop stops the agent and all its components
+// Stop stops the agent and all its components.
 func (a *Agent) Stop() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -242,7 +238,9 @@ func (a *Agent) Stop() error {
 	}
 
 	if a.communicationManager != nil {
-		a.communicationManager.Stop()
+		if err := a.communicationManager.Stop(); err != nil {
+			a.logger.Warnw("Failed to stop communication manager", "error", err)
+		}
 	}
 
 	// Wait for all goroutines to finish
@@ -260,7 +258,7 @@ func (a *Agent) Stop() error {
 	return nil
 }
 
-// handleCommand handles incoming commands from the communication manager
+// handleCommand handles incoming commands from the communication manager.
 func (a *Agent) handleCommand(cmd *types.Command) {
 	select {
 	case a.commandChan <- cmd:
@@ -270,7 +268,7 @@ func (a *Agent) handleCommand(cmd *types.Command) {
 	}
 }
 
-// processCommands processes commands from the command channel
+// processCommands processes commands from the command channel.
 func (a *Agent) processCommands(ctx context.Context) {
 	defer a.wg.Done()
 
@@ -304,7 +302,7 @@ func (a *Agent) processCommands(ctx context.Context) {
 	}
 }
 
-// GetStatus returns the current status of the agent
+// GetStatus returns the current status of the agent.
 func (a *Agent) GetStatus() AgentStatus {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -322,7 +320,7 @@ func (a *Agent) GetStatus() AgentStatus {
 	}
 }
 
-// AgentStatus represents the current status of the agent
+// AgentStatus represents the current status of the agent.
 type AgentStatus struct {
 	ClusterID        string        `json:"cluster_id"`
 	Running          bool          `json:"running"`
@@ -335,13 +333,13 @@ type AgentStatus struct {
 	Connected        bool          `json:"connected"`
 }
 
-// IsHealthy returns true if the agent is healthy
+// IsHealthy returns true if the agent is healthy.
 func (a *Agent) IsHealthy() bool {
 	status := a.GetStatus()
 	return status.Running && status.Connected
 }
 
-// IsReady returns true if the agent is ready to serve
+// IsReady returns true if the agent is ready to serve.
 func (a *Agent) IsReady() bool {
 	return a.IsHealthy()
 }

@@ -13,13 +13,13 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// HealthHandler 健康检查处理器
+// HealthHandler 健康检查处理器.
 type HealthHandler struct {
 	proxy  *proxy.Proxy
 	logger core.Logger
 }
 
-// NewHealthHandler 创建健康检查处理器
+// NewHealthHandler 创建健康检查处理器.
 func NewHealthHandler(proxy *proxy.Proxy, logger core.Logger) *HealthHandler {
 	return &HealthHandler{
 		proxy:  proxy,
@@ -27,7 +27,7 @@ func NewHealthHandler(proxy *proxy.Proxy, logger core.Logger) *HealthHandler {
 	}
 }
 
-// GatewayHealth 网关健康检查
+// GatewayHealth 网关健康检查.
 func (h *HealthHandler) GatewayHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":    "healthy",
@@ -36,7 +36,7 @@ func (h *HealthHandler) GatewayHealth(c *gin.Context) {
 	})
 }
 
-// ServicesHealth 所有服务健康检查
+// ServicesHealth 所有服务健康检查.
 func (h *HealthHandler) ServicesHealth(c *gin.Context) {
 	var services map[string]types.ServiceConfig
 	if err := viper.UnmarshalKey("services", &services); err != nil {
@@ -90,7 +90,7 @@ func (h *HealthHandler) ServicesHealth(c *gin.Context) {
 	})
 }
 
-// ServiceHealth 单个服务健康检查
+// ServiceHealth 单个服务健康检查.
 func (h *HealthHandler) ServiceHealth(c *gin.Context) {
 	serviceName := c.Param("service")
 

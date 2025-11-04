@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,17 +16,17 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// APIKeyService handles API key management business logic
+// APIKeyService handles API key management business logic.
 type APIKeyService struct {
 	db *storage.PostgresDB
 }
 
-// NewAPIKeyService creates a new API key service
+// NewAPIKeyService creates a new API key service.
 func NewAPIKeyService(db *storage.PostgresDB) *APIKeyService {
 	return &APIKeyService{db: db}
 }
 
-// List retrieves API keys for a user (secrets are masked)
+// List retrieves API keys for a user (secrets are masked).
 func (s *APIKeyService) List(userID string) ([]types.APIKey, error) {
 	var modelKeys []model.APIKey
 	err := s.db.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&modelKeys).Error
@@ -54,7 +55,7 @@ func (s *APIKeyService) List(userID string) ([]types.APIKey, error) {
 	return keys, nil
 }
 
-// Create creates a new API key and returns it with the plain secret (shown only once)
+// Create creates a new API key and returns it with the plain secret (shown only once).
 func (s *APIKeyService) Create(userID string, req *types.APIKeyCreateRequest) (*types.APIKeyWithSecret, error) {
 	// Generate API key and secret
 	keyID := uuid.New().String()
@@ -122,7 +123,7 @@ func (s *APIKeyService) Create(userID string, req *types.APIKeyCreateRequest) (*
 	}, nil
 }
 
-// Delete deletes an API key
+// Delete deletes an API key.
 func (s *APIKeyService) Delete(id, userID string) error {
 	result := s.db.DB.Delete(&model.APIKey{}, "id = ? AND user_id = ?", id, userID)
 	if result.Error != nil {
@@ -135,12 +136,12 @@ func (s *APIKeyService) Delete(id, userID string) error {
 	return nil
 }
 
-// Validate validates an API key and secret
+// Validate validates an API key and secret.
 func (s *APIKeyService) Validate(key, secret string) (*types.APIKey, error) {
 	var modelKey model.APIKey
 	err := s.db.DB.Where("key = ? AND status = ?", key, 1).First(&modelKey).Error
 
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("invalid API key")
 	}
 	if err != nil {
@@ -182,7 +183,7 @@ func (s *APIKeyService) Validate(key, secret string) (*types.APIKey, error) {
 	return apiKey, nil
 }
 
-// CleanupExpired removes expired API keys (background task)
+// CleanupExpired removes expired API keys (background task).
 func (s *APIKeyService) CleanupExpired() (int, error) {
 	result := s.db.DB.Where("expires_at < ?", time.Now()).Delete(&model.APIKey{})
 	if result.Error != nil {
@@ -192,7 +193,7 @@ func (s *APIKeyService) CleanupExpired() (int, error) {
 	return int(result.RowsAffected), nil
 }
 
-// generateKey generates a random key with the given prefix
+// generateKey generates a random key with the given prefix.
 func generateKey(prefix string) (string, error) {
 	bytes := make([]byte, 16) // 32 hex characters
 	if _, err := rand.Read(bytes); err != nil {

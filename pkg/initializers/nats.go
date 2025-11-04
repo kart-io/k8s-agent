@@ -17,7 +17,7 @@ import (
 // - NATS 连接初始化
 // - 自动重连配置
 // - 健康检查
-// - 优雅关闭
+// - 优雅关闭.
 type NATSInitializer struct {
 	opts   *options.NATSOptions
 	logger core.Logger
@@ -42,14 +42,14 @@ func NewNATSInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (n *NATSInitializer) Name() string {
 	return "nats"
 }
 
 // Priority 返回初始化优先级
 //
-// NATS 初始化器应该在数据库和缓存之后，业务逻辑之前初始化
+// NATS 初始化器应该在数据库和缓存之后，业务逻辑之前初始化.
 func (n *NATSInitializer) Priority() int {
 	return bootstrap.PriorityMQ
 }

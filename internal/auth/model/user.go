@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// User represents a system user in the database
+// User represents a system user in the database.
 type User struct {
 	ID        string    `gorm:"column:id;primaryKey;type:varchar(36)" db:"id"`
 	Username  string    `gorm:"column:username;uniqueIndex;not null;type:varchar(50)" db:"username"`
@@ -22,7 +22,7 @@ type User struct {
 	APIKeys []APIKey `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
 }
 
-// TableName returns the table name for User
+// TableName returns the table name for User.
 func (User) TableName() string {
 	return "users"
 }

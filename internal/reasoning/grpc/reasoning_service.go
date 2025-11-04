@@ -16,7 +16,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// ReasoningServiceServer implements the ReasoningService gRPC service
+// ReasoningServiceServer implements the ReasoningService gRPC service.
 type ReasoningServiceServer struct {
 	reasoningv1.UnimplementedReasoningServiceServer
 
@@ -24,7 +24,7 @@ type ReasoningServiceServer struct {
 	logger   core.Logger
 }
 
-// NewReasoningServiceServer creates a new ReasoningServiceServer
+// NewReasoningServiceServer creates a new ReasoningServiceServer.
 func NewReasoningServiceServer(
 	analyzer *analyzer.RootCauseAnalyzer,
 	logger core.Logger,
@@ -35,7 +35,7 @@ func NewReasoningServiceServer(
 	}
 }
 
-// RootCauseAnalysis performs root cause analysis
+// RootCauseAnalysis performs root cause analysis.
 func (s *ReasoningServiceServer) RootCauseAnalysis(
 	ctx context.Context,
 	req *reasoningv1.RootCauseAnalysisRequest,
@@ -82,7 +82,7 @@ func (s *ReasoningServiceServer) RootCauseAnalysis(
 	return response, nil
 }
 
-// SaveCase saves a historical case for learning
+// SaveCase saves a historical case for learning.
 func (s *ReasoningServiceServer) SaveCase(
 	ctx context.Context,
 	req *reasoningv1.SaveCaseRequest,
@@ -324,7 +324,7 @@ func convertRecommendationType(risk string) reasoningv1.Recommendation_Type {
 	}
 }
 
-// Helper functions for getting result fields safely
+// Helper functions for getting result fields safely.
 func getResultRootCause(result *types.AnalysisResult) string {
 	if result.Result != nil && result.Result.RootCause != nil {
 		return string(result.Result.RootCause.Type)
@@ -339,7 +339,7 @@ func getResultConfidence(result *types.AnalysisResult) float64 {
 	return 0
 }
 
-// Helper functions for extracting values from maps
+// Helper functions for extracting values from maps.
 func getFloat64(m map[string]interface{}, key string) float64 {
 	if val, ok := m[key]; ok {
 		switch v := val.(type) {

@@ -14,7 +14,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// MetricsCollector collects cluster metrics and sends them to the metrics channel
+// MetricsCollector collects cluster metrics and sends them to the metrics channel.
 type MetricsCollector struct {
 	clientset        kubernetes.Interface
 	metricsClientset *metricsv1beta1.Clientset
@@ -26,7 +26,7 @@ type MetricsCollector struct {
 	logger           core.Logger
 }
 
-// NewMetricsCollector creates a new metrics collector
+// NewMetricsCollector creates a new metrics collector.
 func NewMetricsCollector(clientset kubernetes.Interface, clusterID string, metricsChan chan<- *types.Metrics, logger core.Logger) *MetricsCollector {
 	// Try to create metrics clientset, but don't fail if metrics server is not available
 	var metricsClientset *metricsv1beta1.Clientset
@@ -43,7 +43,7 @@ func NewMetricsCollector(clientset kubernetes.Interface, clusterID string, metri
 	}
 }
 
-// Start begins collecting metrics at the specified interval
+// Start begins collecting metrics at the specified interval.
 func (mc *MetricsCollector) Start(ctx context.Context, interval time.Duration) {
 	mc.mu.Lock()
 	if mc.running {
@@ -76,7 +76,7 @@ func (mc *MetricsCollector) Start(ctx context.Context, interval time.Duration) {
 	}
 }
 
-// Stop stops the metrics collector
+// Stop stops the metrics collector.
 func (mc *MetricsCollector) Stop() {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
@@ -91,7 +91,7 @@ func (mc *MetricsCollector) Stop() {
 	mc.logger.Infow("Metrics collector stopped")
 }
 
-// collectAndSendMetrics collects various cluster metrics and sends them
+// collectAndSendMetrics collects various cluster metrics and sends them.
 func (mc *MetricsCollector) collectAndSendMetrics() {
 	metrics := &types.Metrics{
 		ClusterID: mc.clusterID,
@@ -120,7 +120,7 @@ func (mc *MetricsCollector) collectAndSendMetrics() {
 	}
 }
 
-// collectClusterMetrics collects cluster-level metrics
+// collectClusterMetrics collects cluster-level metrics.
 func (mc *MetricsCollector) collectClusterMetrics(metrics *types.Metrics) {
 	ctx := context.Background()
 
@@ -147,7 +147,7 @@ func (mc *MetricsCollector) collectClusterMetrics(metrics *types.Metrics) {
 	metrics.Data["nodes"] = nodeStats
 }
 
-// collectNodeMetrics collects metrics for each node
+// collectNodeMetrics collects metrics for each node.
 func (mc *MetricsCollector) collectNodeMetrics(metrics *types.Metrics) {
 	ctx := context.Background()
 
@@ -158,14 +158,15 @@ func (mc *MetricsCollector) collectNodeMetrics(metrics *types.Metrics) {
 	}
 
 	nodeMetrics := make(map[string]interface{})
-	for _, node := range nodes.Items {
-		nodeMetrics[node.Name] = mc.getNodeMetrics(&node)
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+		nodeMetrics[node.Name] = mc.getNodeMetrics(node)
 	}
 
 	metrics.Data["node_details"] = nodeMetrics
 }
 
-// collectPodMetrics collects pod-level metrics
+// collectPodMetrics collects pod-level metrics.
 func (mc *MetricsCollector) collectPodMetrics(metrics *types.Metrics) {
 	ctx := context.Background()
 
@@ -179,7 +180,7 @@ func (mc *MetricsCollector) collectPodMetrics(metrics *types.Metrics) {
 	metrics.Data["pods"] = podStats
 }
 
-// collectNamespaceMetrics collects namespace-level metrics
+// collectNamespaceMetrics collects namespace-level metrics.
 func (mc *MetricsCollector) collectNamespaceMetrics(metrics *types.Metrics) {
 	ctx := context.Background()
 
@@ -190,14 +191,15 @@ func (mc *MetricsCollector) collectNamespaceMetrics(metrics *types.Metrics) {
 	}
 
 	nsStats := make(map[string]interface{})
-	for _, ns := range namespaces.Items {
-		nsStats[ns.Name] = mc.getNamespaceMetrics(&ns)
+	for i := range namespaces.Items {
+		ns := &namespaces.Items[i]
+		nsStats[ns.Name] = mc.getNamespaceMetrics(ns)
 	}
 
 	metrics.Data["namespaces"] = nsStats
 }
 
-// analyzeNodes analyzes the list of nodes and returns statistics
+// analyzeNodes analyzes the list of nodes and returns statistics.
 func (mc *MetricsCollector) analyzeNodes(nodes []corev1.Node) map[string]interface{} {
 	total := len(nodes)
 	ready := 0
@@ -256,7 +258,7 @@ func (mc *MetricsCollector) analyzeNodes(nodes []corev1.Node) map[string]interfa
 	}
 }
 
-// getNodeMetrics gets detailed metrics for a specific node
+// getNodeMetrics gets detailed metrics for a specific node.
 func (mc *MetricsCollector) getNodeMetrics(node *corev1.Node) map[string]interface{} {
 	nodeMetrics := map[string]interface{}{
 		"name":        node.Name,
@@ -310,7 +312,7 @@ func (mc *MetricsCollector) getNodeMetrics(node *corev1.Node) map[string]interfa
 	return nodeMetrics
 }
 
-// analyzePods analyzes the list of pods and returns statistics
+// analyzePods analyzes the list of pods and returns statistics.
 func (mc *MetricsCollector) analyzePods(pods []corev1.Pod) map[string]interface{} {
 	total := len(pods)
 	phaseCount := make(map[string]int)
@@ -339,7 +341,7 @@ func (mc *MetricsCollector) analyzePods(pods []corev1.Pod) map[string]interface{
 	}
 }
 
-// getNamespaceMetrics gets detailed metrics for a specific namespace
+// getNamespaceMetrics gets detailed metrics for a specific namespace.
 func (mc *MetricsCollector) getNamespaceMetrics(namespace *corev1.Namespace) map[string]interface{} {
 	ctx := context.Background()
 

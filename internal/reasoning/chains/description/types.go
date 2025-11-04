@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-// Chain 定义故障描述 Chain 的接口
+// Chain 定义故障描述 Chain 的接口.
 type Chain interface {
 	// Generate 生成故障描述
 	Generate(ctx context.Context, input *DescriptionInput) (*DescriptionOutput, error)
 }
 
-// DescriptionInput 故障描述生成输入
+// DescriptionInput 故障描述生成输入.
 type DescriptionInput struct {
 	// 故障基本信息
 	FailureType  string    `json:"failure_type"`  // 故障类型
@@ -41,7 +41,7 @@ type DescriptionInput struct {
 	IncludeTimeline bool   `json:"include_timeline"` // 是否包含时间线
 }
 
-// DescriptionOutput 故障描述输出
+// DescriptionOutput 故障描述输出.
 type DescriptionOutput struct {
 	// 描述内容
 	Title       string `json:"title"`       // 标题
@@ -69,7 +69,7 @@ type DescriptionOutput struct {
 	Latency     time.Duration `json:"latency"`      // 延迟
 }
 
-// PodEvent Pod 事件
+// PodEvent Pod 事件.
 type PodEvent struct {
 	Type      string    `json:"type"`      // 事件类型
 	Reason    string    `json:"reason"`    // 原因
@@ -78,7 +78,7 @@ type PodEvent struct {
 	Source    string    `json:"source"`    // 来源
 }
 
-// RootCauseInfo 根因信息 (来自根因分析 Chain)
+// RootCauseInfo 根因信息 (来自根因分析 Chain).
 type RootCauseInfo struct {
 	RootCause  string  `json:"root_cause"` // 根本原因
 	Confidence float64 `json:"confidence"` // 置信度
@@ -86,7 +86,7 @@ type RootCauseInfo struct {
 	Reasoning  string  `json:"reasoning"`  // 推理过程
 }
 
-// TimelineEvent 时间线事件
+// TimelineEvent 时间线事件.
 type TimelineEvent struct {
 	Timestamp time.Time `json:"timestamp"` // 时间戳
 	Event     string    `json:"event"`     // 事件描述
@@ -94,7 +94,7 @@ type TimelineEvent struct {
 	Component string    `json:"component"` // 相关组件
 }
 
-// ChainConfig 故障描述 Chain 配置
+// ChainConfig 故障描述 Chain 配置.
 type ChainConfig struct {
 	// LLM 配置
 	Temperature float64 `json:"temperature"` // 温度参数
@@ -112,20 +112,20 @@ type ChainConfig struct {
 	Timeout time.Duration `json:"timeout"` // 超时时间
 }
 
-// SupportedLanguages 支持的语言
+// SupportedLanguages 支持的语言.
 var SupportedLanguages = map[string]string{
 	"zh": "Chinese (Simplified)",
 	"en": "English",
 }
 
-// SupportedDetailLevels 支持的详细程度
+// SupportedDetailLevels 支持的详细程度.
 var SupportedDetailLevels = []string{
 	"brief",    // 简要描述
 	"normal",   // 正常描述
 	"detailed", // 详细描述
 }
 
-// SupportedSeverities 支持的严重程度
+// SupportedSeverities 支持的严重程度.
 var SupportedSeverities = []string{
 	"critical", // 紧急
 	"high",     // 高

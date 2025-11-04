@@ -8,7 +8,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Logger 日志中间件
+// Logger 日志中间件.
 func Logger(logger core.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
@@ -38,7 +38,7 @@ func Logger(logger core.Logger) gin.HandlerFunc {
 	}
 }
 
-// CORS 跨域中间件
+// CORS 跨域中间件.
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")

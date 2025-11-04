@@ -8,7 +8,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// WorkflowInitializer 工作流引擎初始化器
+// WorkflowInitializer 工作流引擎初始化器.
 type WorkflowInitializer struct {
 	opts      *options.ServerOptions
 	logger    core.Logger
@@ -17,7 +17,7 @@ type WorkflowInitializer struct {
 	engine    *workflow.Engine
 }
 
-// NewWorkflowInitializer 创建工作流引擎初始化器
+// NewWorkflowInitializer 创建工作流引擎初始化器.
 func NewWorkflowInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -32,17 +32,17 @@ func NewWorkflowInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (w *WorkflowInitializer) Name() string {
 	return "workflow-engine"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (w *WorkflowInitializer) Priority() int {
 	return 550 // 在 Database (300) 和 Redis (400) 之后
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (w *WorkflowInitializer) Initialize(ctx context.Context) error {
 	w.logger.Infow("Initializing workflow engine",
 		"agent_manager_url", w.opts.AI.AgentManagerURL,
@@ -68,19 +68,19 @@ func (w *WorkflowInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭工作流引擎
+// Close 关闭工作流引擎.
 func (w *WorkflowInitializer) Close(ctx context.Context) error {
 	// Workflow engine doesn't need explicit cleanup
 	return nil
 }
 
-// HealthCheck 检查工作流引擎健康状态
+// HealthCheck 检查工作流引擎健康状态.
 func (w *WorkflowInitializer) HealthCheck(ctx context.Context) error {
 	// Workflow engine health is checked via database and redis
 	return nil
 }
 
-// Engine 获取工作流引擎实例
+// Engine 获取工作流引擎实例.
 func (w *WorkflowInitializer) Engine() *workflow.Engine {
 	return w.engine
 }

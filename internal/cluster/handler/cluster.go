@@ -22,7 +22,7 @@ func NewClusterHandler(service *service.ClusterService, logger core.Logger) *Clu
 	}
 }
 
-// AddCluster handles POST /api/v1/clusters
+// AddCluster handles POST /api/v1/clusters.
 func (h *ClusterHandler) AddCluster(c *gin.Context) {
 	var cluster types.Cluster
 	if err := c.ShouldBindJSON(&cluster); err != nil {
@@ -40,7 +40,7 @@ func (h *ClusterHandler) AddCluster(c *gin.Context) {
 	c.JSON(http.StatusCreated, cluster)
 }
 
-// GetClusterHealth handles GET /api/v1/clusters/:id/health
+// GetClusterHealth handles GET /api/v1/clusters/:id/health.
 func (h *ClusterHandler) GetClusterHealth(c *gin.Context) {
 	clusterID := c.Param("id")
 
@@ -57,7 +57,7 @@ func (h *ClusterHandler) GetClusterHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, health)
 }
 
-// GetPods handles GET /api/v1/clusters/:cluster_id/namespaces/:namespace/pods
+// GetPods handles GET /api/v1/clusters/:cluster_id/namespaces/:namespace/pods.
 func (h *ClusterHandler) GetPods(c *gin.Context) {
 	clusterID := c.Param("cluster_id")
 	namespace := c.Param("namespace")
@@ -83,7 +83,7 @@ func (h *ClusterHandler) GetPods(c *gin.Context) {
 	})
 }
 
-// HealthCheck handles GET /health
+// HealthCheck handles GET /health.
 func (h *ClusterHandler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "ok",

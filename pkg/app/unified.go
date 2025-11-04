@@ -19,7 +19,7 @@ import (
 	"github.com/kart-io/version"
 )
 
-// Application defines the unified application interface
+// Application defines the unified application interface.
 type Application interface {
 	// Name returns the application name
 	Name() string
@@ -34,7 +34,7 @@ type Application interface {
 	Shutdown(ctx context.Context) error
 }
 
-// Options defines application configuration options
+// Options defines application configuration options.
 type Options interface {
 	// Complete completes the configuration with defaults
 	Complete() error
@@ -44,7 +44,7 @@ type Options interface {
 	AddFlags(fs *pflag.FlagSet)
 }
 
-// Config defines the application configuration
+// Config defines the application configuration.
 type Config struct {
 	// Use is the command use string
 	Use string
@@ -56,7 +56,7 @@ type Config struct {
 	EnvPrefix string
 }
 
-// Run runs an application with the given configuration
+// Run runs an application with the given configuration.
 func Run(app Application, opts Options, cfg Config) {
 	cmd := &cobra.Command{
 		Use:   cfg.Use,
@@ -72,7 +72,7 @@ func Run(app Application, opts Options, cfg Config) {
 			}
 
 			// Validate configuration
-			if errs := opts.Validate(); errs != nil && len(errs) > 0 {
+			if errs := opts.Validate(); len(errs) > 0 {
 				return fmt.Errorf("config validation failed: %v", errs)
 			}
 
@@ -130,7 +130,7 @@ func Run(app Application, opts Options, cfg Config) {
 	}
 }
 
-// RunWithBootstrap runs an application with bootstrap support
+// RunWithBootstrap runs an application with bootstrap support.
 func RunWithBootstrap(app Application, opts Options, cfg Config, registrar func(*bootstrap.Bootstrap) error) {
 	// Wrap the application with bootstrap
 	wrappedApp := &bootstrapApp{
@@ -141,7 +141,7 @@ func RunWithBootstrap(app Application, opts Options, cfg Config, registrar func(
 	Run(wrappedApp, opts, cfg)
 }
 
-// bootstrapApp wraps an application with bootstrap support
+// bootstrapApp wraps an application with bootstrap support.
 type bootstrapApp struct {
 	app       Application
 	bootstrap *bootstrap.Bootstrap
@@ -190,7 +190,7 @@ func (b *bootstrapApp) Shutdown(ctx context.Context) error {
 	return b.app.Shutdown(ctx)
 }
 
-// initLogger initializes a basic logger
+// initLogger initializes a basic logger.
 func initLogger(appName string) core.Logger {
 	// This is a simplified version
 	// In real implementation, use configuration to setup logger

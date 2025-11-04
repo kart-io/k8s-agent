@@ -14,7 +14,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// CommunicationManager handles all NATS communication for the agent
+// CommunicationManager handles all NATS communication for the agent.
 type CommunicationManager struct {
 	config     *types.AgentConfig
 	clusterID  string
@@ -34,7 +34,7 @@ type CommunicationManager struct {
 	commandHandler func(*types.Command)
 }
 
-// NewCommunicationManager creates a new communication manager
+// NewCommunicationManager creates a new communication manager.
 func NewCommunicationManager(
 	config *types.AgentConfig,
 	clusterID string,
@@ -60,7 +60,7 @@ func NewCommunicationManager(
 	}
 }
 
-// Start initializes the NATS connection and starts message handling
+// Start initializes the NATS connection and starts message handling.
 func (cm *CommunicationManager) Start(ctx context.Context) error {
 	if err := cm.connect(); err != nil {
 		return fmt.Errorf("failed to connect to NATS: %w", err)
@@ -89,7 +89,7 @@ func (cm *CommunicationManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the communication manager and closes connections
+// Stop stops the communication manager and closes connections.
 func (cm *CommunicationManager) Stop() error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
@@ -112,7 +112,7 @@ func (cm *CommunicationManager) Stop() error {
 	return nil
 }
 
-// connect establishes connection to NATS server
+// connect establishes connection to NATS server.
 func (cm *CommunicationManager) connect() error {
 	cm.logger.Infow("Connecting to NATS", "endpoint", cm.config.CentralEndpoint)
 
@@ -154,7 +154,7 @@ func (cm *CommunicationManager) connect() error {
 	return nil
 }
 
-// register sends agent registration information to central
+// register sends agent registration information to central.
 func (cm *CommunicationManager) register() error {
 	now := time.Now()
 
@@ -199,7 +199,7 @@ func (cm *CommunicationManager) register() error {
 	return nil
 }
 
-// subscribeToCommands subscribes to command messages from central
+// subscribeToCommands subscribes to command messages from central.
 func (cm *CommunicationManager) subscribeToCommands() error {
 	subject := fmt.Sprintf("aetherius.agent.%s.command", cm.clusterID)
 
@@ -229,7 +229,7 @@ func (cm *CommunicationManager) subscribeToCommands() error {
 	return nil
 }
 
-// handleEvents handles event publishing
+// handleEvents handles event publishing.
 func (cm *CommunicationManager) handleEvents(ctx context.Context) {
 	defer cm.wg.Done()
 
@@ -255,7 +255,7 @@ func (cm *CommunicationManager) handleEvents(ctx context.Context) {
 	}
 }
 
-// handleMetrics handles metrics publishing
+// handleMetrics handles metrics publishing.
 func (cm *CommunicationManager) handleMetrics(ctx context.Context) {
 	defer cm.wg.Done()
 
@@ -279,7 +279,7 @@ func (cm *CommunicationManager) handleMetrics(ctx context.Context) {
 	}
 }
 
-// handleResults handles command result publishing
+// handleResults handles command result publishing.
 func (cm *CommunicationManager) handleResults(ctx context.Context) {
 	defer cm.wg.Done()
 
@@ -305,7 +305,7 @@ func (cm *CommunicationManager) handleResults(ctx context.Context) {
 	}
 }
 
-// handleHeartbeat sends periodic heartbeat messages
+// handleHeartbeat sends periodic heartbeat messages.
 func (cm *CommunicationManager) handleHeartbeat(ctx context.Context) {
 	defer cm.wg.Done()
 
@@ -329,7 +329,7 @@ func (cm *CommunicationManager) handleHeartbeat(ctx context.Context) {
 	}
 }
 
-// publishEvent publishes an event to NATS
+// publishEvent publishes an event to NATS.
 func (cm *CommunicationManager) publishEvent(subject string, event *types.Event) error {
 	event.ClusterID = cm.clusterID
 	event.ReportedAt = time.Now()
@@ -350,7 +350,7 @@ func (cm *CommunicationManager) publishEvent(subject string, event *types.Event)
 	return nil
 }
 
-// publishMetrics publishes metrics to NATS
+// publishMetrics publishes metrics to NATS.
 func (cm *CommunicationManager) publishMetrics(subject string, metrics *types.Metrics) error {
 	metrics.ClusterID = cm.clusterID
 	metrics.Timestamp = time.Now()
@@ -368,7 +368,7 @@ func (cm *CommunicationManager) publishMetrics(subject string, metrics *types.Me
 	return nil
 }
 
-// publishResult publishes a command result to NATS
+// publishResult publishes a command result to NATS.
 func (cm *CommunicationManager) publishResult(subject string, result *types.CommandResult) error {
 	result.ClusterID = cm.clusterID
 
@@ -389,7 +389,7 @@ func (cm *CommunicationManager) publishResult(subject string, result *types.Comm
 	return nil
 }
 
-// sendHeartbeat sends a heartbeat message
+// sendHeartbeat sends a heartbeat message.
 func (cm *CommunicationManager) sendHeartbeat(subject string) {
 	// Create heartbeat matching agent-manager's expected format
 	heartbeat := map[string]interface{}{
@@ -421,14 +421,14 @@ func (cm *CommunicationManager) sendHeartbeat(subject string) {
 		"cluster_id", cm.clusterID)
 }
 
-// IsConnected returns true if connected to NATS
+// IsConnected returns true if connected to NATS.
 func (cm *CommunicationManager) IsConnected() bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 	return cm.connected && cm.natsConn != nil && cm.natsConn.IsConnected()
 }
 
-// getLocalIP gets the local non-loopback IP address
+// getLocalIP gets the local non-loopback IP address.
 func getLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {

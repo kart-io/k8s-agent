@@ -14,7 +14,7 @@ func TestNewAgentError(t *testing.T) {
 		t.Errorf("Expected Op to be 'test_operation', got '%s'", agentErr.Op)
 	}
 
-	if agentErr.Err != originalErr {
+	if !errors.Is(agentErr.Err, originalErr) {
 		t.Errorf("Expected Err to be original error")
 	}
 
@@ -29,8 +29,8 @@ func TestNewAgentError(t *testing.T) {
 
 func TestAgentErrorWithContext(t *testing.T) {
 	agentErr := NewAgentError("test_operation", errors.New("test"), true)
-	agentErr.WithContext("cluster_id", "test-cluster")
-	agentErr.WithContext("attempt", 1)
+	agentErr = agentErr.WithContext("cluster_id", "test-cluster")
+	agentErr = agentErr.WithContext("attempt", 1)
 
 	if len(agentErr.Context) != 2 {
 		t.Errorf("Expected Context to have 2 entries, got %d", len(agentErr.Context))
@@ -50,7 +50,7 @@ func TestAgentErrorError(t *testing.T) {
 	}
 
 	// With context
-	agentErr.WithContext("endpoint", "nats://localhost:4222")
+	agentErr = agentErr.WithContext("endpoint", "nats://localhost:4222")
 	errorStr = agentErr.Error()
 
 	if errorStr == "" {
@@ -278,7 +278,7 @@ func TestErrorStatsLastError(t *testing.T) {
 	err2 := errors.New("second error")
 	stats.RecordError(err2)
 
-	if stats.LastError != err2 {
+	if !errors.Is(stats.LastError, err2) {
 		t.Errorf("Expected LastError to be the second error")
 	}
 

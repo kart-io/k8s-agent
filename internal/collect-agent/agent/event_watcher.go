@@ -18,7 +18,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// EventWatcher watches Kubernetes events and sends them to the event channel
+// EventWatcher watches Kubernetes events and sends them to the event channel.
 type EventWatcher struct {
 	clientset   kubernetes.Interface
 	clusterID   string
@@ -31,7 +31,7 @@ type EventWatcher struct {
 	logger      core.Logger
 }
 
-// NewEventWatcher creates a new event watcher
+// NewEventWatcher creates a new event watcher.
 func NewEventWatcher(clientset kubernetes.Interface, clusterID string, eventChan chan<- *types.Event, logger core.Logger) *EventWatcher {
 	return &EventWatcher{
 		clientset: clientset,
@@ -42,7 +42,7 @@ func NewEventWatcher(clientset kubernetes.Interface, clusterID string, eventChan
 	}
 }
 
-// Start begins watching for Kubernetes events
+// Start begins watching for Kubernetes events.
 func (ew *EventWatcher) Start(ctx context.Context) error {
 	ew.mu.Lock()
 	if ew.running {
@@ -61,19 +61,21 @@ func (ew *EventWatcher) Start(ctx context.Context) error {
 		fields.Everything(),
 	)
 
-	_, controller := cache.NewInformer(
-		watchlist,
-		&corev1.Event{},
-		time.Second*10,
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				ew.handleEvent(obj, "ADDED")
-			},
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				ew.handleEvent(newObj, "MODIFIED")
-			},
-			DeleteFunc: func(obj interface{}) {
-				ew.handleEvent(obj, "DELETED")
+	_, controller := cache.NewInformerWithOptions(
+		cache.InformerOptions{
+			ListerWatcher: watchlist,
+			ObjectType:    &corev1.Event{},
+			ResyncPeriod:  time.Second * 10,
+			Handler: cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					ew.handleEvent(obj, "ADDED")
+				},
+				UpdateFunc: func(oldObj, newObj interface{}) {
+					ew.handleEvent(newObj, "MODIFIED")
+				},
+				DeleteFunc: func(obj interface{}) {
+					ew.handleEvent(obj, "DELETED")
+				},
 			},
 		},
 	)
@@ -88,7 +90,7 @@ func (ew *EventWatcher) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the event watcher
+// Stop stops the event watcher.
 func (ew *EventWatcher) Stop() {
 	ew.mu.Lock()
 	defer ew.mu.Unlock()
@@ -104,7 +106,7 @@ func (ew *EventWatcher) Stop() {
 	ew.logger.Info("Event watcher stopped")
 }
 
-// handleEvent processes a Kubernetes event and converts it to our Event type
+// handleEvent processes a Kubernetes event and converts it to our Event type.
 func (ew *EventWatcher) handleEvent(obj interface{}, eventType string) {
 	event, ok := obj.(*corev1.Event)
 	if !ok {
@@ -138,7 +140,7 @@ func (ew *EventWatcher) handleEvent(obj interface{}, eventType string) {
 	}
 }
 
-// shouldProcessEvent determines if an event should be processed based on its importance
+// shouldProcessEvent determines if an event should be processed based on its importance.
 func (ew *EventWatcher) shouldProcessEvent(event *corev1.Event) bool {
 	// Focus on critical events that indicate problems
 	criticalReasons := map[string]bool{
@@ -202,7 +204,7 @@ func (ew *EventWatcher) shouldProcessEvent(event *corev1.Event) bool {
 	return false
 }
 
-// convertEvent converts a Kubernetes event to our Event type
+// convertEvent converts a Kubernetes event to our Event type.
 func (ew *EventWatcher) convertEvent(k8sEvent *corev1.Event, eventType string) *types.Event {
 	severity := ew.determineSeverity(k8sEvent)
 
@@ -241,7 +243,7 @@ func (ew *EventWatcher) convertEvent(k8sEvent *corev1.Event, eventType string) *
 	}
 }
 
-// determineSeverity determines the severity level based on the event
+// determineSeverity determines the severity level based on the event.
 func (ew *EventWatcher) determineSeverity(event *corev1.Event) string {
 	// Critical events that indicate immediate attention needed
 	criticalPatterns := []string{
@@ -313,7 +315,7 @@ func (ew *EventWatcher) determineSeverity(event *corev1.Event) string {
 	return "low"
 }
 
-// isDuplicateEvent checks if this event has already been processed recently
+// isDuplicateEvent checks if this event has already been processed recently.
 func (ew *EventWatcher) isDuplicateEvent(event *types.Event) bool {
 	// Simple duplicate check - in production, you might want a more sophisticated approach
 	// using a time-based cache or hash of event content

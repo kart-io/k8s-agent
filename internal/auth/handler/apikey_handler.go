@@ -9,12 +9,12 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// APIKeyHandler handles API key management HTTP requests
+// APIKeyHandler handles API key management HTTP requests.
 type APIKeyHandler struct {
 	apikeyService *service.APIKeyService
 }
 
-// NewAPIKeyHandler creates a new API key handler
+// NewAPIKeyHandler creates a new API key handler.
 func NewAPIKeyHandler(apikeyService *service.APIKeyService) *APIKeyHandler {
 	return &APIKeyHandler{
 		apikeyService: apikeyService,
@@ -22,7 +22,7 @@ func NewAPIKeyHandler(apikeyService *service.APIKeyService) *APIKeyHandler {
 }
 
 // List retrieves user's API keys (secrets are masked)
-// GET /api/v1/api-keys
+// GET /api/v1/api-keys.
 func (h *APIKeyHandler) List(c *gin.Context) {
 	userID := c.GetString("user_id")
 	if userID == "" {
@@ -50,7 +50,7 @@ func (h *APIKeyHandler) List(c *gin.Context) {
 }
 
 // Create creates a new API key
-// POST /api/v1/api-keys
+// POST /api/v1/api-keys.
 func (h *APIKeyHandler) Create(c *gin.Context) {
 	userID := c.GetString("user_id")
 	if userID == "" {
@@ -95,7 +95,7 @@ func (h *APIKeyHandler) Create(c *gin.Context) {
 }
 
 // Delete deletes an API key
-// DELETE /api/v1/api-keys/:id
+// DELETE /api/v1/api-keys/:id.
 func (h *APIKeyHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {

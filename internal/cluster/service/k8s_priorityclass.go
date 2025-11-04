@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sPriorityClassService PriorityClass 管理服务
+// K8sPriorityClassService PriorityClass 管理服务.
 type K8sPriorityClassService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sPriorityClassService 创建新的 PriorityClass 服务
+// NewK8sPriorityClassService 创建新的 PriorityClass 服务.
 func NewK8sPriorityClassService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sPriorityClassService {
 	return &K8sPriorityClassService{
 		storage:        storage,
@@ -25,7 +25,7 @@ func NewK8sPriorityClassService(storage *storage.MySQLStorage, clusterService *K
 	}
 }
 
-// PriorityClassInfo PriorityClass 信息
+// PriorityClassInfo PriorityClass 信息.
 type PriorityClassInfo struct {
 	Name             string            `json:"name"`
 	Value            int32             `json:"value"`
@@ -36,7 +36,7 @@ type PriorityClassInfo struct {
 	CreatedAt        string            `json:"createdAt"`
 }
 
-// ListPriorityClasses 获取 PriorityClass 列表
+// ListPriorityClasses 获取 PriorityClass 列表.
 func (s *K8sPriorityClassService) ListPriorityClasses(ctx context.Context, clusterID string, offset, limit int) ([]PriorityClassInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -64,14 +64,14 @@ func (s *K8sPriorityClassService) ListPriorityClasses(ctx context.Context, clust
 
 	// 转换为 PriorityClassInfo
 	result := make([]PriorityClassInfo, 0, len(pagedPriorityClasses))
-	for _, pc := range pagedPriorityClasses {
-		result = append(result, convertToPriorityClassInfo(&pc))
+	for i := range pagedPriorityClasses {
+		result = append(result, convertToPriorityClassInfo(&pagedPriorityClasses[i]))
 	}
 
 	return result, total, nil
 }
 
-// GetPriorityClass 获取单个 PriorityClass 详情
+// GetPriorityClass 获取单个 PriorityClass 详情.
 func (s *K8sPriorityClassService) GetPriorityClass(ctx context.Context, clusterID, name string) (*schedulingv1.PriorityClass, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *K8sPriorityClassService) GetPriorityClass(ctx context.Context, clusterI
 	return pc, nil
 }
 
-// DeletePriorityClass 删除 PriorityClass
+// DeletePriorityClass 删除 PriorityClass.
 func (s *K8sPriorityClassService) DeletePriorityClass(ctx context.Context, clusterID, name string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -101,7 +101,7 @@ func (s *K8sPriorityClassService) DeletePriorityClass(ctx context.Context, clust
 	return nil
 }
 
-// convertToPriorityClassInfo 转换 PriorityClass 为 PriorityClassInfo
+// convertToPriorityClassInfo 转换 PriorityClass 为 PriorityClassInfo.
 func convertToPriorityClassInfo(pc *schedulingv1.PriorityClass) PriorityClassInfo {
 	// 确保 Labels 不为 nil
 	labels := pc.Labels

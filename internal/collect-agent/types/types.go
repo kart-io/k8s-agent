@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// AgentInfo contains information about the agent registration
+// AgentInfo contains information about the agent registration.
 type AgentInfo struct {
 	ClusterID    string    `json:"cluster_id"`
 	ClusterName  string    `json:"cluster_name"`
@@ -13,7 +13,7 @@ type AgentInfo struct {
 	Capabilities []string  `json:"capabilities"`
 }
 
-// Event represents a Kubernetes event that needs to be reported
+// Event represents a Kubernetes event that needs to be reported.
 type Event struct {
 	ID         string                 `json:"id"`
 	ClusterID  string                 `json:"cluster_id"`
@@ -29,14 +29,14 @@ type Event struct {
 	RawData    map[string]interface{} `json:"raw_data"`
 }
 
-// Metrics represents collected metrics from the cluster
+// Metrics represents collected metrics from the cluster.
 type Metrics struct {
 	ClusterID string                 `json:"cluster_id"`
 	Timestamp time.Time              `json:"timestamp"`
 	Data      map[string]interface{} `json:"data"`
 }
 
-// Command represents a command to be executed by the agent
+// Command represents a command to be executed by the agent.
 type Command struct {
 	ID        string            `json:"id"`
 	Type      string            `json:"type"`
@@ -48,7 +48,7 @@ type Command struct {
 	CreatedAt time.Time         `json:"created_at"`
 }
 
-// CommandResult represents the result of a command execution
+// CommandResult represents the result of a command execution.
 type CommandResult struct {
 	CommandID string        `json:"command_id"`
 	ClusterID string        `json:"cluster_id"`
@@ -59,7 +59,7 @@ type CommandResult struct {
 	Timestamp time.Time     `json:"timestamp"`
 }
 
-// Heartbeat represents agent health status
+// Heartbeat represents agent health status.
 type Heartbeat struct {
 	ClusterID string           `json:"cluster_id"`
 	Timestamp time.Time        `json:"timestamp"`
@@ -67,7 +67,7 @@ type Heartbeat struct {
 	Metrics   HeartbeatMetrics `json:"metrics"`
 }
 
-// HeartbeatMetrics contains internal metrics for heartbeat
+// HeartbeatMetrics contains internal metrics for heartbeat.
 type HeartbeatMetrics struct {
 	EventQueueSize   int `json:"event_queue_size"`
 	MetricsQueueSize int `json:"metrics_queue_size"`
@@ -75,7 +75,7 @@ type HeartbeatMetrics struct {
 	UptimeSeconds    int `json:"uptime_seconds"`
 }
 
-// AgentConfig represents the agent configuration
+// AgentConfig represents the agent configuration.
 type AgentConfig struct {
 	ClusterID         string        `yaml:"cluster_id"`
 	ClusterName       string        `yaml:"cluster_name"`
@@ -91,7 +91,7 @@ type AgentConfig struct {
 	HealthPort        int           `yaml:"health_port"`
 }
 
-// DefaultConfig returns a default configuration
+// DefaultConfig returns a default configuration.
 func DefaultConfig() *AgentConfig {
 	return &AgentConfig{
 		CentralEndpoint:   "nats://localhost:4222",

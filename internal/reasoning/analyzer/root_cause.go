@@ -12,14 +12,14 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/types"
 )
 
-// RootCauseAnalyzer analyzes root causes using rules and LLM
+// RootCauseAnalyzer analyzes root causes using rules and LLM.
 type RootCauseAnalyzer struct {
 	config     *config.Config
 	llmClients []llm.Client
 	patterns   map[types.RootCauseType][]*regexp.Regexp
 }
 
-// NewRootCauseAnalyzer creates a new root cause analyzer
+// NewRootCauseAnalyzer creates a new root cause analyzer.
 func NewRootCauseAnalyzer(cfg *config.Config, llmClients []llm.Client) *RootCauseAnalyzer {
 	analyzer := &RootCauseAnalyzer{
 		config:     cfg,
@@ -30,7 +30,7 @@ func NewRootCauseAnalyzer(cfg *config.Config, llmClients []llm.Client) *RootCaus
 	return analyzer
 }
 
-// loadPatterns loads regex patterns for log analysis
+// loadPatterns loads regex patterns for log analysis.
 func (a *RootCauseAnalyzer) loadPatterns() {
 	patternDefs := map[types.RootCauseType][]string{
 		types.OOMKiller: {
@@ -91,7 +91,7 @@ func (a *RootCauseAnalyzer) loadPatterns() {
 	}
 }
 
-// Analyze analyzes the context and determines the root cause
+// Analyze analyzes the context and determines the root cause.
 func (a *RootCauseAnalyzer) Analyze(ctx context.Context, req *types.AnalysisRequest) (*types.AnalysisResult, error) {
 	result := &types.AnalysisResult{
 		RequestID: req.RequestID,
@@ -181,7 +181,7 @@ type analysisResult struct {
 	LLMAnalysis   string
 }
 
-// analyzeEvent analyzes Kubernetes event
+// analyzeEvent analyzes Kubernetes event.
 func (a *RootCauseAnalyzer) analyzeEvent(event map[string]interface{}) *analysisResult {
 	reason, _ := event["reason"].(string)
 	if reason == "" {
@@ -222,7 +222,7 @@ func (a *RootCauseAnalyzer) analyzeEvent(event map[string]interface{}) *analysis
 	}
 }
 
-// analyzeLogs analyzes logs using pattern matching
+// analyzeLogs analyzes logs using pattern matching.
 func (a *RootCauseAnalyzer) analyzeLogs(logs string) *analysisResult {
 	if logs == "" {
 		return nil
@@ -269,7 +269,7 @@ func (a *RootCauseAnalyzer) analyzeLogs(logs string) *analysisResult {
 	return bestMatch
 }
 
-// analyzeMetrics analyzes metrics to detect issues
+// analyzeMetrics analyzes metrics to detect issues.
 func (a *RootCauseAnalyzer) analyzeMetrics(metrics *types.MetricsData) *analysisResult {
 	var evidence []string
 	var rootCause types.RootCauseType
@@ -339,7 +339,7 @@ func (a *RootCauseAnalyzer) analyzeMetrics(metrics *types.MetricsData) *analysis
 	}
 }
 
-// analyzeLLM uses LLM to analyze the context
+// analyzeLLM uses LLM to analyze the context.
 func (a *RootCauseAnalyzer) analyzeLLM(ctx context.Context, req *types.AnalysisRequest) (*analysisResult, error) {
 	// Try LLM clients in priority order
 	var lastErr error
@@ -424,7 +424,7 @@ func (a *RootCauseAnalyzer) analyzeLLM(ctx context.Context, req *types.AnalysisR
 	return nil, fmt.Errorf("no LLM clients available")
 }
 
-// getDescription returns a description for a root cause type
+// getDescription returns a description for a root cause type.
 func (a *RootCauseAnalyzer) getDescription(rc types.RootCauseType) string {
 	descriptions := map[types.RootCauseType]string{
 		// Pod & Container Level

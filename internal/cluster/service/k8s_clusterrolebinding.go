@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sClusterRoleBindingService ClusterRoleBinding 管理服务
+// K8sClusterRoleBindingService ClusterRoleBinding 管理服务.
 type K8sClusterRoleBindingService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sClusterRoleBindingService 创建新的 ClusterRoleBinding 服务
+// NewK8sClusterRoleBindingService 创建新的 ClusterRoleBinding 服务.
 func NewK8sClusterRoleBindingService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sClusterRoleBindingService {
 	return &K8sClusterRoleBindingService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sClusterRoleBindingService(storage *storage.MySQLStorage, clusterServi
 	}
 }
 
-// ClusterRoleBindingInfo ClusterRoleBinding 信息
+// ClusterRoleBindingInfo ClusterRoleBinding 信息.
 type ClusterRoleBindingInfo struct {
 	Name        string            `json:"name"`
 	RoleRef     RoleRefInfo       `json:"roleRef"`
@@ -36,14 +36,14 @@ type ClusterRoleBindingInfo struct {
 	CreatedAt   string            `json:"createdAt"`
 }
 
-// RoleRefInfo RoleRef 信息
+// RoleRefInfo RoleRef 信息.
 type RoleRefInfo struct {
 	APIGroup string `json:"apiGroup"`
 	Kind     string `json:"kind"`
 	Name     string `json:"name"`
 }
 
-// SubjectInfo Subject 信息
+// SubjectInfo Subject 信息.
 type SubjectInfo struct {
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
@@ -51,7 +51,7 @@ type SubjectInfo struct {
 	APIGroup  string `json:"apiGroup,omitempty"`
 }
 
-// ListClusterRoleBindings 获取 ClusterRoleBinding 列表
+// ListClusterRoleBindings 获取 ClusterRoleBinding 列表.
 func (s *K8sClusterRoleBindingService) ListClusterRoleBindings(ctx context.Context, clusterID string, offset, limit int) ([]ClusterRoleBindingInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -84,7 +84,7 @@ func (s *K8sClusterRoleBindingService) ListClusterRoleBindings(ctx context.Conte
 	return result, total, nil
 }
 
-// GetClusterRoleBinding 获取 ClusterRoleBinding 详情
+// GetClusterRoleBinding 获取 ClusterRoleBinding 详情.
 func (s *K8sClusterRoleBindingService) GetClusterRoleBinding(ctx context.Context, clusterID, clusterRoleBindingName string) (*rbacv1.ClusterRoleBinding, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -99,7 +99,7 @@ func (s *K8sClusterRoleBindingService) GetClusterRoleBinding(ctx context.Context
 	return clusterRoleBinding, nil
 }
 
-// CreateClusterRoleBinding 创建 ClusterRoleBinding
+// CreateClusterRoleBinding 创建 ClusterRoleBinding.
 func (s *K8sClusterRoleBindingService) CreateClusterRoleBinding(ctx context.Context, clusterID string, clusterRoleBinding *rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -119,7 +119,7 @@ func (s *K8sClusterRoleBindingService) CreateClusterRoleBinding(ctx context.Cont
 	return createdClusterRoleBinding, nil
 }
 
-// UpdateClusterRoleBinding 更新 ClusterRoleBinding
+// UpdateClusterRoleBinding 更新 ClusterRoleBinding.
 func (s *K8sClusterRoleBindingService) UpdateClusterRoleBinding(ctx context.Context, clusterID string, clusterRoleBinding *rbacv1.ClusterRoleBinding) (*rbacv1.ClusterRoleBinding, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *K8sClusterRoleBindingService) UpdateClusterRoleBinding(ctx context.Cont
 	return updatedClusterRoleBinding, nil
 }
 
-// DeleteClusterRoleBinding 删除 ClusterRoleBinding
+// DeleteClusterRoleBinding 删除 ClusterRoleBinding.
 func (s *K8sClusterRoleBindingService) DeleteClusterRoleBinding(ctx context.Context, clusterID, clusterRoleBindingName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -159,7 +159,7 @@ func (s *K8sClusterRoleBindingService) DeleteClusterRoleBinding(ctx context.Cont
 	return nil
 }
 
-// convertClusterRoleBindingInfo 转换 ClusterRoleBinding 信息
+// convertClusterRoleBindingInfo 转换 ClusterRoleBinding 信息.
 func (s *K8sClusterRoleBindingService) convertClusterRoleBindingInfo(crb *rbacv1.ClusterRoleBinding) ClusterRoleBindingInfo {
 	// 确保 Labels 和 Annotations 不为 nil
 	labels := crb.Labels

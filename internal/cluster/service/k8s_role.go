@@ -10,13 +10,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sRoleService provides Role-related operations
+// K8sRoleService provides Role-related operations.
 type K8sRoleService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sRoleService creates a new K8sRoleService instance
+// NewK8sRoleService creates a new K8sRoleService instance.
 func NewK8sRoleService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sRoleService {
 	return &K8sRoleService{
 		storage:        storage,
@@ -24,7 +24,7 @@ func NewK8sRoleService(storage *storage.MySQLStorage, clusterService *K8sCluster
 	}
 }
 
-// RoleInfo represents a simplified Role object
+// RoleInfo represents a simplified Role object.
 type RoleInfo struct {
 	Name      string            `json:"name"`
 	Namespace string            `json:"namespace"`
@@ -33,7 +33,7 @@ type RoleInfo struct {
 	CreatedAt string            `json:"createdAt"`
 }
 
-// ListRoles lists all Roles in the specified namespace
+// ListRoles lists all Roles in the specified namespace.
 func (s *K8sRoleService) ListRoles(ctx context.Context, clusterID, namespace string, offset, limit int) ([]RoleInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *K8sRoleService) ListRoles(ctx context.Context, clusterID, namespace str
 	return roles, total, nil
 }
 
-// GetRole retrieves a specific Role
+// GetRole retrieves a specific Role.
 func (s *K8sRoleService) GetRole(ctx context.Context, clusterID, namespace, name string) (*RoleInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -105,7 +105,7 @@ func (s *K8sRoleService) GetRole(ctx context.Context, clusterID, namespace, name
 	return roleInfo, nil
 }
 
-// DeleteRole deletes a Role
+// DeleteRole deletes a Role.
 func (s *K8sRoleService) DeleteRole(ctx context.Context, clusterID, namespace, name string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {

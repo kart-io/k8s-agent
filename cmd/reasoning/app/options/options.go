@@ -14,7 +14,7 @@ import (
 )
 
 // ServerOptions defines options for reasoning service
-// This implements the pkg/app.Options interface
+// This implements the pkg/app.Options interface.
 type ServerOptions struct {
 	Server      *commonoptions.ServerOptions      `json:"server" mapstructure:"server"`
 	GRPC        *commonoptions.GRPCOptions        `json:"grpc" mapstructure:"grpc"`
@@ -27,7 +27,7 @@ type ServerOptions struct {
 	Performance *commonoptions.PerformanceOptions `json:"performance" mapstructure:"performance"`
 }
 
-// NewServerOptions creates a new ServerOptions instance with default values
+// NewServerOptions creates a new ServerOptions instance with default values.
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
 		Server:      commonoptions.NewServerOptions(),
@@ -42,31 +42,31 @@ func NewServerOptions() *ServerOptions {
 	}
 }
 
-// Validate validates all the required options
+// Validate validates all the required options.
 func (o *ServerOptions) Validate() []error {
 	// 使用通用工具函数统一验证所有子选项
 	return commonoptions.ValidateAll(o)
 }
 
-// Complete fills in any fields not set that are required to have valid data
+// Complete fills in any fields not set that are required to have valid data.
 func (o *ServerOptions) Complete() error {
 	// 使用通用工具函数统一完成所有子选项
 	return commonoptions.CompleteAll(o)
 }
 
 // AddFlags adds flags to the flag set
-// Note: --config/-c flag is automatically added by pkg/app framework
+// Note: --config/-c flag is automatically added by pkg/app framework.
 func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	// 使用通用工具函数统一添加所有子选项的 flags
 	commonoptions.AddFlagsAll(o, fs)
 }
 
-// GetServiceName returns the service name
+// GetServiceName returns the service name.
 func (o *ServerOptions) GetServiceName() string {
 	return "Reasoning"
 }
 
-// GetLogFields returns log fields for initialization logging
+// GetLogFields returns log fields for initialization logging.
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,
@@ -77,20 +77,20 @@ func (o *ServerOptions) GetLogFields() []interface{} {
 }
 
 // InitLogger initializes the logger based on logging options
-// This method is required by the Bootstrap pattern
+// This method is required by the Bootstrap pattern.
 func (o *ServerOptions) InitLogger() (core.Logger, error) {
 	return loggerutil.InitFromOptions(o.Logging)
 }
 
 // GetHealthPort returns the health check port
 // This method is required by the Bootstrap pattern
-// 简化版本：直接返回固定端口，不使用HealthOptions
+// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *ServerOptions) GetHealthPort() int {
 	return o.Server.Port // Reasoning 健康检查端口
 }
 
 // Config converts ServerOptions to internal reasoning config
-// This method is required by the Bootstrap pattern
+// This method is required by the Bootstrap pattern.
 func (o *ServerOptions) Config() *reasoningconfig.Config {
 	return &reasoningconfig.Config{
 		Server:      *o.Server,

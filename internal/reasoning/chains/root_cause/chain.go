@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/llm/proxy"
 )
 
-// RootCauseChain 根因分析 Chain 实现
+// RootCauseChain 根因分析 Chain 实现.
 type RootCauseChain struct {
 	llmProxy *proxy.ProxyAdapter
 	config   *ChainConfig
 }
 
-// NewRootCauseChain 创建新的根因分析 Chain
+// NewRootCauseChain 创建新的根因分析 Chain.
 func NewRootCauseChain(llmProxy *proxy.ProxyAdapter, config *ChainConfig) (*RootCauseChain, error) {
 	if llmProxy == nil {
 		return nil, fmt.Errorf("llmProxy is nil")
@@ -38,7 +38,7 @@ func NewRootCauseChain(llmProxy *proxy.ProxyAdapter, config *ChainConfig) (*Root
 	}, nil
 }
 
-// Analyze 执行根因分析
+// Analyze 执行根因分析.
 func (c *RootCauseChain) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisOutput, error) {
 	if input == nil {
 		return nil, fmt.Errorf("input is nil")
@@ -110,7 +110,7 @@ func (c *RootCauseChain) Analyze(ctx context.Context, input *AnalysisInput) (*An
 	return output, nil
 }
 
-// buildPrompt 构建分析 Prompt
+// buildPrompt 构建分析 Prompt.
 func (c *RootCauseChain) buildPrompt(input *AnalysisInput) (string, error) {
 	var sb strings.Builder
 
@@ -209,7 +209,7 @@ func (c *RootCauseChain) buildPrompt(input *AnalysisInput) (string, error) {
 	return sb.String(), nil
 }
 
-// parseResponse 解析 LLM 响应
+// parseResponse 解析 LLM 响应.
 func (c *RootCauseChain) parseResponse(content string) (*AnalysisOutput, error) {
 	// 提取 JSON 内容 (可能被 markdown 代码块包围)
 	jsonContent := extractJSON(content)
@@ -236,7 +236,7 @@ func (c *RootCauseChain) parseResponse(content string) (*AnalysisOutput, error) 
 	return &output, nil
 }
 
-// parseTextResponse 从文本响应中提取信息 (fallback)
+// parseTextResponse 从文本响应中提取信息 (fallback).
 func (c *RootCauseChain) parseTextResponse(content string) (*AnalysisOutput, error) {
 	// 简单的文本解析作为 fallback
 	output := &AnalysisOutput{
@@ -258,7 +258,7 @@ func (c *RootCauseChain) parseTextResponse(content string) (*AnalysisOutput, err
 	return output, nil
 }
 
-// extractJSON 从文本中提取 JSON 内容
+// extractJSON 从文本中提取 JSON 内容.
 func extractJSON(content string) string {
 	// 移除 markdown 代码块标记
 	content = strings.TrimSpace(content)
@@ -287,7 +287,7 @@ func extractJSON(content string) string {
 	return strings.TrimSpace(content)
 }
 
-// getJSONSchema 获取 JSON 响应模板
+// getJSONSchema 获取 JSON 响应模板.
 func getJSONSchema() string {
 	return `{
   "root_cause": "string",
@@ -315,7 +315,7 @@ func getJSONSchema() string {
 }`
 }
 
-// validateConfig 验证配置
+// validateConfig 验证配置.
 func validateConfig(config *ChainConfig) error {
 	if config.Temperature < 0 || config.Temperature > 2 {
 		return fmt.Errorf("temperature must be between 0 and 2")
@@ -332,7 +332,7 @@ func validateConfig(config *ChainConfig) error {
 	return nil
 }
 
-// DefaultChainConfig 返回默认配置
+// DefaultChainConfig 返回默认配置.
 func DefaultChainConfig() *ChainConfig {
 	return &ChainConfig{
 		Temperature:     0.7,
@@ -345,7 +345,7 @@ func DefaultChainConfig() *ChainConfig {
 	}
 }
 
-// defaultSystemPrompt 默认系统提示
+// defaultSystemPrompt 默认系统提示.
 func defaultSystemPrompt() string {
 	return `You are an expert Kubernetes troubleshooting assistant specialized in root cause analysis.
 

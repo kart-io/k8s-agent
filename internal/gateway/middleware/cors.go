@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// CORS 跨域中间件
+// CORS 跨域中间件.
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 获取配置
@@ -43,7 +43,7 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
-// isAllowedOrigin 检查源是否被允许
+// isAllowedOrigin 检查源是否被允许.
 func isAllowedOrigin(origin string, allowOrigins []string) bool {
 	for _, allowed := range allowOrigins {
 		if allowed == "*" || allowed == origin {

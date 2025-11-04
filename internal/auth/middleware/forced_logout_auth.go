@@ -8,12 +8,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// ForcedLogoutAuthMiddleware provides authorization middleware for forced logout operations
+// ForcedLogoutAuthMiddleware provides authorization middleware for forced logout operations.
 type ForcedLogoutAuthMiddleware struct {
 	db *gorm.DB
 }
 
-// NewForcedLogoutAuthMiddleware creates a new authorization middleware
+// NewForcedLogoutAuthMiddleware creates a new authorization middleware.
 func NewForcedLogoutAuthMiddleware(db *gorm.DB) *ForcedLogoutAuthMiddleware {
 	return &ForcedLogoutAuthMiddleware{
 		db: db,
@@ -21,7 +21,7 @@ func NewForcedLogoutAuthMiddleware(db *gorm.DB) *ForcedLogoutAuthMiddleware {
 }
 
 // RequireSessionAdmin middleware checks if the user has session-admin role or higher
-// This middleware should be applied after JWT authentication middleware
+// This middleware should be applied after JWT authentication middleware.
 func (m *ForcedLogoutAuthMiddleware) RequireSessionAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract user ID from context (set by JWT middleware)
@@ -78,7 +78,7 @@ func (m *ForcedLogoutAuthMiddleware) RequireSessionAdmin() gin.HandlerFunc {
 	}
 }
 
-// getUserRoles retrieves all role codes for a user
+// getUserRoles retrieves all role codes for a user.
 func (m *ForcedLogoutAuthMiddleware) getUserRoles(userID string) ([]string, error) {
 	var roles []struct {
 		Code string
@@ -104,7 +104,7 @@ func (m *ForcedLogoutAuthMiddleware) getUserRoles(userID string) ([]string, erro
 }
 
 // hasRequiredRole checks if user has session-admin or superadmin role
-// Per Q1 clarification: superadmin can also perform forced logout operations
+// Per Q1 clarification: superadmin can also perform forced logout operations.
 func (m *ForcedLogoutAuthMiddleware) hasRequiredRole(roles []string) bool {
 	for _, role := range roles {
 		roleCode := strings.ToLower(role)
@@ -116,7 +116,7 @@ func (m *ForcedLogoutAuthMiddleware) hasRequiredRole(roles []string) bool {
 }
 
 // ExtractActorInfo extracts actor information from context
-// This is a helper function for handlers to get actor details for audit logging
+// This is a helper function for handlers to get actor details for audit logging.
 func ExtractActorInfo(c *gin.Context) (actorID, actorUsername, actorIPAddress string) {
 	if id, exists := c.Get("actor_id"); exists {
 		actorID = id.(string)

@@ -10,13 +10,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// Service provides business logic for audit event management
+// Service provides business logic for audit event management.
 type Service struct {
 	repo      Repository
 	hashChain *HashChain
 }
 
-// NewService creates a new audit service
+// NewService creates a new audit service.
 func NewService(repo Repository) *Service {
 	return &Service{
 		repo:      repo,
@@ -24,7 +24,7 @@ func NewService(repo Repository) *Service {
 	}
 }
 
-// RecordEventParams contains parameters for recording an audit event
+// RecordEventParams contains parameters for recording an audit event.
 type RecordEventParams struct {
 	ActorType       string                // admin, system
 	ActorID         *string               // Optional: admin user ID
@@ -41,7 +41,7 @@ type RecordEventParams struct {
 	CorrelationID   *string               // Optional: correlation ID for tracking
 }
 
-// RecordEvent creates a new audit event with hash chain integrity
+// RecordEvent creates a new audit event with hash chain integrity.
 func (s *Service) RecordEvent(ctx context.Context, params RecordEventParams) (string, error) {
 	// Validate required fields
 	if err := s.validateParams(params); err != nil {
@@ -89,27 +89,27 @@ func (s *Service) RecordEvent(ctx context.Context, params RecordEventParams) (st
 	return eventID, nil
 }
 
-// GetAuditTrail retrieves filtered audit events
+// GetAuditTrail retrieves filtered audit events.
 func (s *Service) GetAuditTrail(ctx context.Context, filter AuditFilter) (*AuditEventListResponse, error) {
 	return s.repo.ListEvents(ctx, filter)
 }
 
-// ExportAuditLogs formats audit data for export
+// ExportAuditLogs formats audit data for export.
 func (s *Service) ExportAuditLogs(ctx context.Context, filter AuditFilter, format ExportFormat) ([]byte, error) {
 	return s.repo.ExportEvents(ctx, filter, format)
 }
 
-// ValidateIntegrity checks the integrity of the entire audit hash chain
+// ValidateIntegrity checks the integrity of the entire audit hash chain.
 func (s *Service) ValidateIntegrity(ctx context.Context) error {
 	return s.repo.ValidateHashChain(ctx)
 }
 
-// GetEvent retrieves a single audit event by ID
+// GetEvent retrieves a single audit event by ID.
 func (s *Service) GetEvent(ctx context.Context, eventID string) (*types.ForcedLogoutEvent, error) {
 	return s.repo.GetEvent(ctx, eventID)
 }
 
-// DetectTampering checks if any event in the chain has been tampered with
+// DetectTampering checks if any event in the chain has been tampered with.
 func (s *Service) DetectTampering(ctx context.Context) (*TamperDetection, error) {
 	// Retrieve all events
 	filter := AuditFilter{
@@ -135,7 +135,7 @@ func (s *Service) DetectTampering(ctx context.Context) (*TamperDetection, error)
 
 // RecordEventAsync creates an audit event asynchronously (for performance)
 // This is useful when audit logging shouldn't block the main operation
-// Note: Errors are logged but not returned
+// Note: Errors are logged but not returned.
 func (s *Service) RecordEventAsync(ctx context.Context, params RecordEventParams, errHandler func(error)) {
 	go func() {
 		// Use a background context with timeout to prevent long-running goroutines
@@ -150,7 +150,7 @@ func (s *Service) RecordEventAsync(ctx context.Context, params RecordEventParams
 	}()
 }
 
-// validateParams validates the required fields in RecordEventParams
+// validateParams validates the required fields in RecordEventParams.
 func (s *Service) validateParams(params RecordEventParams) error {
 	if params.ActorType == "" {
 		return fmt.Errorf("actor_type is required")

@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-// Provider represents an LLM provider type
+// Provider represents an LLM provider type.
 type Provider string
 
 const (
@@ -17,13 +17,13 @@ const (
 	ProviderCustom      Provider = "custom"
 )
 
-// Message represents a chat message
+// Message represents a chat message.
 type Message struct {
 	Role    string `json:"role"` // "system", "user", "assistant"
 	Content string `json:"content"`
 }
 
-// CompletionRequest represents a request for LLM completion
+// CompletionRequest represents a request for LLM completion.
 type CompletionRequest struct {
 	Messages    []Message `json:"messages"`
 	Temperature float64   `json:"temperature,omitempty"`
@@ -31,7 +31,7 @@ type CompletionRequest struct {
 	Model       string    `json:"model,omitempty"`
 }
 
-// CompletionResponse represents the LLM completion response
+// CompletionResponse represents the LLM completion response.
 type CompletionResponse struct {
 	Content      string `json:"content"`
 	Model        string `json:"model"`
@@ -39,7 +39,7 @@ type CompletionResponse struct {
 	FinishReason string `json:"finish_reason,omitempty"`
 }
 
-// Client interface for LLM providers
+// Client interface for LLM providers.
 type Client interface {
 	// Complete generates a completion for the given request
 	Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error)
@@ -57,7 +57,7 @@ type Client interface {
 	IsAvailable() bool
 }
 
-// Config represents the configuration for LLM client
+// Config represents the configuration for LLM client.
 type Config struct {
 	Provider    Provider
 	APIKey      string

@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sNodeService Node 管理服务
+// K8sNodeService Node 管理服务.
 type K8sNodeService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sNodeService 创建新的 Node 服务
+// NewK8sNodeService 创建新的 Node 服务.
 func NewK8sNodeService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sNodeService {
 	return &K8sNodeService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sNodeService(storage *storage.MySQLStorage, clusterService *K8sCluster
 	}
 }
 
-// NodeInfo Node 信息
+// NodeInfo Node 信息.
 type NodeInfo struct {
 	Name             string            `json:"name"`
 	Status           string            `json:"status"`
@@ -46,7 +46,7 @@ type NodeInfo struct {
 	CreatedAt        string            `json:"createdAt"`
 }
 
-// NodeCondition Node 条件
+// NodeCondition Node 条件.
 type NodeCondition struct {
 	Type    string `json:"type"`
 	Status  string `json:"status"`
@@ -54,14 +54,14 @@ type NodeCondition struct {
 	Message string `json:"message"`
 }
 
-// NodeTaint Node 污点
+// NodeTaint Node 污点.
 type NodeTaint struct {
 	Key    string `json:"key"`
 	Value  string `json:"value"`
 	Effect string `json:"effect"`
 }
 
-// ListNodes 获取 Node 列表
+// ListNodes 获取 Node 列表.
 func (s *K8sNodeService) ListNodes(ctx context.Context, clusterID string, offset, limit int) ([]NodeInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -94,7 +94,7 @@ func (s *K8sNodeService) ListNodes(ctx context.Context, clusterID string, offset
 	return result, total, nil
 }
 
-// GetNode 获取 Node 详情
+// GetNode 获取 Node 详情.
 func (s *K8sNodeService) GetNode(ctx context.Context, clusterID, nodeName string) (*NodeInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -110,7 +110,7 @@ func (s *K8sNodeService) GetNode(ctx context.Context, clusterID, nodeName string
 	return &nodeInfo, nil
 }
 
-// CordonNode 标记 Node 为不可调度
+// CordonNode 标记 Node 为不可调度.
 func (s *K8sNodeService) CordonNode(ctx context.Context, clusterID, nodeName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -138,7 +138,7 @@ func (s *K8sNodeService) CordonNode(ctx context.Context, clusterID, nodeName str
 	return nil
 }
 
-// UncordonNode 标记 Node 为可调度
+// UncordonNode 标记 Node 为可调度.
 func (s *K8sNodeService) UncordonNode(ctx context.Context, clusterID, nodeName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -166,7 +166,7 @@ func (s *K8sNodeService) UncordonNode(ctx context.Context, clusterID, nodeName s
 	return nil
 }
 
-// DrainNode 驱逐 Node 上的 Pod
+// DrainNode 驱逐 Node 上的 Pod.
 func (s *K8sNodeService) DrainNode(ctx context.Context, clusterID, nodeName string, force bool) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -187,9 +187,10 @@ func (s *K8sNodeService) DrainNode(ctx context.Context, clusterID, nodeName stri
 	}
 
 	// 驱逐 pods
-	for _, pod := range pods.Items {
+	for i := range pods.Items {
+		pod := &pods.Items[i]
 		// 跳过 DaemonSet 管理的 Pod（除非 force=true）
-		if !force && s.isDaemonSetPod(&pod) {
+		if !force && s.isDaemonSetPod(pod) {
 			continue
 		}
 
@@ -215,14 +216,15 @@ func (s *K8sNodeService) DrainNode(ctx context.Context, clusterID, nodeName stri
 	return nil
 }
 
-// convertNodeInfo 转换 Node 信息
+// convertNodeInfo 转换 Node 信息.
 func (s *K8sNodeService) convertNodeInfo(node *corev1.Node) NodeInfo {
 	// 提取角色
 	roles := make([]string, 0)
 	for label := range node.Labels {
-		if label == "node-role.kubernetes.io/master" || label == "node-role.kubernetes.io/control-plane" {
+		switch label {
+		case "node-role.kubernetes.io/master", "node-role.kubernetes.io/control-plane":
 			roles = append(roles, "master")
-		} else if label == "node-role.kubernetes.io/worker" {
+		case "node-role.kubernetes.io/worker":
 			roles = append(roles, "worker")
 		}
 	}
@@ -233,9 +235,10 @@ func (s *K8sNodeService) convertNodeInfo(node *corev1.Node) NodeInfo {
 	// 提取 IP 地址
 	var internalIP, externalIP string
 	for _, addr := range node.Status.Addresses {
-		if addr.Type == corev1.NodeInternalIP {
+		switch addr.Type {
+		case corev1.NodeInternalIP:
 			internalIP = addr.Address
-		} else if addr.Type == corev1.NodeExternalIP {
+		case corev1.NodeExternalIP:
 			externalIP = addr.Address
 		}
 	}
@@ -245,7 +248,7 @@ func (s *K8sNodeService) convertNodeInfo(node *corev1.Node) NodeInfo {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == corev1.NodeReady {
 			if condition.Status == corev1.ConditionTrue {
-				status = "Ready"
+				status = ConditionTypeReady
 			} else {
 				status = "NotReady"
 			}
@@ -305,7 +308,7 @@ func (s *K8sNodeService) convertNodeInfo(node *corev1.Node) NodeInfo {
 	}
 }
 
-// isDaemonSetPod 判断是否为 DaemonSet 管理的 Pod
+// isDaemonSetPod 判断是否为 DaemonSet 管理的 Pod.
 func (s *K8sNodeService) isDaemonSetPod(pod *corev1.Pod) bool {
 	for _, owner := range pod.OwnerReferences {
 		if owner.Kind == "DaemonSet" {

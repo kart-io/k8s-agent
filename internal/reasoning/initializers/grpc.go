@@ -11,7 +11,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// GRPCServerInitializer initializes the gRPC server
+// GRPCServerInitializer initializes the gRPC server.
 type GRPCServerInitializer struct {
 	opts    *options.ServerOptions
 	logger  core.Logger
@@ -21,7 +21,7 @@ type GRPCServerInitializer struct {
 	reasoningService *service.ReasoningServiceServer
 }
 
-// NewGRPCServerInitializer creates a new gRPC server initializer
+// NewGRPCServerInitializer creates a new gRPC server initializer.
 func NewGRPCServerInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -34,17 +34,17 @@ func NewGRPCServerInitializer(
 	}
 }
 
-// Name returns the initializer name
+// Name returns the initializer name.
 func (i *GRPCServerInitializer) Name() string {
 	return "GRPCServer"
 }
 
-// Priority returns the initialization priority (should be after LLM clients)
+// Priority returns the initialization priority (should be after LLM clients).
 func (i *GRPCServerInitializer) Priority() int {
 	return 450 // After LLM (400), before HTTP (500)
 }
 
-// Initialize sets up and starts the gRPC server
+// Initialize sets up and starts the gRPC server.
 func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	// Check if gRPC is enabled
 	if !i.opts.GRPC.Enable {
@@ -98,7 +98,7 @@ func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown stops the gRPC server
+// Shutdown stops the gRPC server.
 func (i *GRPCServerInitializer) Shutdown(ctx context.Context) error {
 	if i.server == nil {
 		return nil
@@ -114,12 +114,12 @@ func (i *GRPCServerInitializer) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// GetServer returns the gRPC server instance
+// GetServer returns the gRPC server instance.
 func (i *GRPCServerInitializer) GetServer() *grpcserver.Server {
 	return i.server
 }
 
-// GetReasoningService returns the shared reasoning service instance
+// GetReasoningService returns the shared reasoning service instance.
 func (i *GRPCServerInitializer) GetReasoningService() *service.ReasoningServiceServer {
 	return i.reasoningService
 }

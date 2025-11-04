@@ -6,21 +6,21 @@ import (
 	"time"
 )
 
-// TestContext creates a context with timeout for tests
+// TestContext creates a context with timeout for tests.
 func TestContext(t *testing.T) context.Context {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	t.Cleanup(cancel)
 	return ctx
 }
 
-// TestContextWithTimeout creates a context with custom timeout
+// TestContextWithTimeout creates a context with custom timeout.
 func TestContextWithTimeout(t *testing.T, timeout time.Duration) context.Context {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)
 	return ctx
 }
 
-// AssertNoError fails the test if err is not nil
+// AssertNoError fails the test if err is not nil.
 func AssertNoError(t *testing.T, err error, msg string) {
 	t.Helper()
 	if err != nil {
@@ -28,7 +28,7 @@ func AssertNoError(t *testing.T, err error, msg string) {
 	}
 }
 
-// AssertError fails the test if err is nil
+// AssertError fails the test if err is nil.
 func AssertError(t *testing.T, err error, msg string) {
 	t.Helper()
 	if err == nil {
@@ -36,7 +36,7 @@ func AssertError(t *testing.T, err error, msg string) {
 	}
 }
 
-// AssertEqual fails the test if expected != actual
+// AssertEqual fails the test if expected != actual.
 func AssertEqual(t *testing.T, expected, actual interface{}, msg string) {
 	t.Helper()
 	if expected != actual {
@@ -44,7 +44,7 @@ func AssertEqual(t *testing.T, expected, actual interface{}, msg string) {
 	}
 }
 
-// AssertNotEqual fails the test if expected == actual
+// AssertNotEqual fails the test if expected == actual.
 func AssertNotEqual(t *testing.T, expected, actual interface{}, msg string) {
 	t.Helper()
 	if expected == actual {
@@ -52,7 +52,7 @@ func AssertNotEqual(t *testing.T, expected, actual interface{}, msg string) {
 	}
 }
 
-// AssertTrue fails the test if condition is false
+// AssertTrue fails the test if condition is false.
 func AssertTrue(t *testing.T, condition bool, msg string) {
 	t.Helper()
 	if !condition {
@@ -60,7 +60,7 @@ func AssertTrue(t *testing.T, condition bool, msg string) {
 	}
 }
 
-// AssertFalse fails the test if condition is true
+// AssertFalse fails the test if condition is true.
 func AssertFalse(t *testing.T, condition bool, msg string) {
 	t.Helper()
 	if condition {
@@ -68,7 +68,7 @@ func AssertFalse(t *testing.T, condition bool, msg string) {
 	}
 }
 
-// AssertNotNil fails the test if value is nil
+// AssertNotNil fails the test if value is nil.
 func AssertNotNil(t *testing.T, value interface{}, msg string) {
 	t.Helper()
 	if value == nil {
@@ -76,7 +76,7 @@ func AssertNotNil(t *testing.T, value interface{}, msg string) {
 	}
 }
 
-// AssertNil fails the test if value is not nil
+// AssertNil fails the test if value is not nil.
 func AssertNil(t *testing.T, value interface{}, msg string) {
 	t.Helper()
 	if value != nil {
@@ -84,7 +84,7 @@ func AssertNil(t *testing.T, value interface{}, msg string) {
 	}
 }
 
-// Eventually retries a condition until it succeeds or times out
+// Eventually retries a condition until it succeeds or times out.
 func Eventually(t *testing.T, condition func() bool, timeout time.Duration, msg string) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)

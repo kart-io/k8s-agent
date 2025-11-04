@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sServiceAccountService ServiceAccount 管理服务
+// K8sServiceAccountService ServiceAccount 管理服务.
 type K8sServiceAccountService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sServiceAccountService 创建新的 ServiceAccount 服务
+// NewK8sServiceAccountService 创建新的 ServiceAccount 服务.
 func NewK8sServiceAccountService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sServiceAccountService {
 	return &K8sServiceAccountService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sServiceAccountService(storage *storage.MySQLStorage, clusterService *
 	}
 }
 
-// ServiceAccountInfo ServiceAccount 信息
+// ServiceAccountInfo ServiceAccount 信息.
 type ServiceAccountInfo struct {
 	Name                    string            `json:"name"`
 	Namespace               string            `json:"namespace"`
@@ -38,7 +38,7 @@ type ServiceAccountInfo struct {
 	CreatedAt               string            `json:"createdAt"`
 }
 
-// ListServiceAccounts 获取 ServiceAccount 列表
+// ListServiceAccounts 获取 ServiceAccount 列表.
 func (s *K8sServiceAccountService) ListServiceAccounts(ctx context.Context, clusterID, namespace string, offset, limit int) ([]ServiceAccountInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -71,7 +71,7 @@ func (s *K8sServiceAccountService) ListServiceAccounts(ctx context.Context, clus
 	return result, total, nil
 }
 
-// GetServiceAccount 获取 ServiceAccount 详情
+// GetServiceAccount 获取 ServiceAccount 详情.
 func (s *K8sServiceAccountService) GetServiceAccount(ctx context.Context, clusterID, namespace, serviceAccountName string) (*corev1.ServiceAccount, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *K8sServiceAccountService) GetServiceAccount(ctx context.Context, cluste
 	return serviceAccount, nil
 }
 
-// CreateServiceAccount 创建 ServiceAccount
+// CreateServiceAccount 创建 ServiceAccount.
 func (s *K8sServiceAccountService) CreateServiceAccount(ctx context.Context, clusterID, namespace string, serviceAccount *corev1.ServiceAccount) (*corev1.ServiceAccount, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *K8sServiceAccountService) CreateServiceAccount(ctx context.Context, clu
 	return createdServiceAccount, nil
 }
 
-// UpdateServiceAccount 更新 ServiceAccount
+// UpdateServiceAccount 更新 ServiceAccount.
 func (s *K8sServiceAccountService) UpdateServiceAccount(ctx context.Context, clusterID, namespace string, serviceAccount *corev1.ServiceAccount) (*corev1.ServiceAccount, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *K8sServiceAccountService) UpdateServiceAccount(ctx context.Context, clu
 	return updatedServiceAccount, nil
 }
 
-// DeleteServiceAccount 删除 ServiceAccount
+// DeleteServiceAccount 删除 ServiceAccount.
 func (s *K8sServiceAccountService) DeleteServiceAccount(ctx context.Context, clusterID, namespace, serviceAccountName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -149,7 +149,7 @@ func (s *K8sServiceAccountService) DeleteServiceAccount(ctx context.Context, clu
 	return nil
 }
 
-// convertServiceAccountInfo 转换 ServiceAccount 信息
+// convertServiceAccountInfo 转换 ServiceAccount 信息.
 func (s *K8sServiceAccountService) convertServiceAccountInfo(sa *corev1.ServiceAccount) ServiceAccountInfo {
 	// 确保 Labels 和 Annotations 不为 nil
 	labels := sa.Labels

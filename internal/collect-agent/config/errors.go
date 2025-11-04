@@ -2,7 +2,7 @@ package config
 
 import "errors"
 
-// Configuration validation errors
+// Configuration validation errors.
 var (
 	ErrCentralEndpointRequired  = errors.New("central_endpoint is required")
 	ErrInvalidReconnectDelay    = errors.New("reconnect_delay must be at least 1 second")

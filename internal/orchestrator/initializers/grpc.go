@@ -15,7 +15,7 @@ import (
 )
 
 // GRPCServerInitializer initializes the gRPC server
-// 使用 common/initializers 的标准 gRPC 服务器初始化器
+// 使用 common/initializers 的标准 gRPC 服务器初始化器.
 type GRPCServerInitializer struct {
 	opts         *options.ServerOptions
 	logger       core.Logger
@@ -27,7 +27,7 @@ type GRPCServerInitializer struct {
 	workflowService *service.WorkflowServiceServer
 }
 
-// NewGRPCServerInitializer creates a new gRPC server initializer
+// NewGRPCServerInitializer creates a new gRPC server initializer.
 func NewGRPCServerInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -42,17 +42,17 @@ func NewGRPCServerInitializer(
 	}
 }
 
-// Name returns the initializer name
+// Name returns the initializer name.
 func (i *GRPCServerInitializer) Name() string {
 	return "GRPCServer"
 }
 
-// Priority returns the initialization priority (should be after workflow engine)
+// Priority returns the initialization priority (should be after workflow engine).
 func (i *GRPCServerInitializer) Priority() int {
 	return 700 // After workflow engine (550) and strategy (600)
 }
 
-// Initialize sets up the gRPC server
+// Initialize sets up the gRPC server.
 func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	// Check if gRPC is enabled
 	if !i.opts.GRPC.Enable {
@@ -99,12 +99,12 @@ func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	return i.standardInit.Initialize(ctx)
 }
 
-// GetWorkflowService returns the shared workflow service instance
+// GetWorkflowService returns the shared workflow service instance.
 func (i *GRPCServerInitializer) GetWorkflowService() *service.WorkflowServiceServer {
 	return i.workflowService
 }
 
-// Close stops the gRPC server
+// Close stops the gRPC server.
 func (i *GRPCServerInitializer) Close(ctx context.Context) error {
 	if i.standardInit == nil {
 		return nil
@@ -113,7 +113,7 @@ func (i *GRPCServerInitializer) Close(ctx context.Context) error {
 	return i.standardInit.Close(ctx)
 }
 
-// GetServer returns the server instance (implements ServerProvider)
+// GetServer returns the server instance (implements ServerProvider).
 func (i *GRPCServerInitializer) GetServer() commonserver.Server {
 	if i.standardInit == nil {
 		return nil

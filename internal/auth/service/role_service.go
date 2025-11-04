@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -11,17 +12,17 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// RoleService handles role management business logic
+// RoleService handles role management business logic.
 type RoleService struct {
 	db *storage.PostgresDB
 }
 
-// NewRoleService creates a new role service
+// NewRoleService creates a new role service.
 func NewRoleService(db *storage.PostgresDB) *RoleService {
 	return &RoleService{db: db}
 }
 
-// List retrieves all roles
+// List retrieves all roles.
 func (s *RoleService) List() ([]types.Role, error) {
 	var modelRoles []model.Role
 	err := s.db.DB.Where("status = ?", 1).Order("sort").Find(&modelRoles).Error
@@ -47,12 +48,12 @@ func (s *RoleService) List() ([]types.Role, error) {
 	return roles, nil
 }
 
-// GetByID retrieves a role by ID
+// GetByID retrieves a role by ID.
 func (s *RoleService) GetByID(id string) (*types.Role, error) {
 	var role model.Role
 	err := s.db.DB.Where("id = ?", id).First(&role).Error
 
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("role not found")
 	}
 	if err != nil {
@@ -71,7 +72,7 @@ func (s *RoleService) GetByID(id string) (*types.Role, error) {
 	}, nil
 }
 
-// Create creates a new role
+// Create creates a new role.
 func (s *RoleService) Create(req *types.RoleRequest) (*types.Role, error) {
 	// Check if code already exists
 	var count int64
@@ -104,11 +105,11 @@ func (s *RoleService) Create(req *types.RoleRequest) (*types.Role, error) {
 	return s.GetByID(roleID)
 }
 
-// Update updates a role
+// Update updates a role.
 func (s *RoleService) Update(id string, req *types.RoleRequest) error {
 	// Check if role is system role (cannot be modified)
 	var role model.Role
-	if err := s.db.DB.Where("id = ?", id).First(&role).Error; err == gorm.ErrRecordNotFound {
+	if err := s.db.DB.Where("id = ?", id).First(&role).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("role not found")
 	} else if err != nil {
 		return fmt.Errorf("failed to query role: %w", err)
@@ -145,11 +146,11 @@ func (s *RoleService) Update(id string, req *types.RoleRequest) error {
 	return nil
 }
 
-// Delete deletes a role (checks if in use)
+// Delete deletes a role (checks if in use).
 func (s *RoleService) Delete(id string) error {
 	// Check if role is system role
 	var role model.Role
-	if err := s.db.DB.Where("id = ?", id).First(&role).Error; err == gorm.ErrRecordNotFound {
+	if err := s.db.DB.Where("id = ?", id).First(&role).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("role not found")
 	} else if err != nil {
 		return fmt.Errorf("failed to query role: %w", err)
@@ -180,7 +181,7 @@ func (s *RoleService) Delete(id string) error {
 	return nil
 }
 
-// AssignPermissions assigns permissions to a role
+// AssignPermissions assigns permissions to a role.
 func (s *RoleService) AssignPermissions(roleID string, permissionIDs []string) error {
 	var role model.Role
 	role.ID = roleID
@@ -199,14 +200,14 @@ func (s *RoleService) AssignPermissions(roleID string, permissionIDs []string) e
 	return nil
 }
 
-// GetPermissions retrieves permissions for a role
+// GetPermissions retrieves permissions for a role.
 func (s *RoleService) GetPermissions(roleID string) ([]types.Permission, error) {
 	var role model.Role
 	err := s.db.DB.Preload("Permissions", "status = ?", 1).
 		Where("id = ?", roleID).
 		First(&role).Error
 
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("role not found")
 	}
 	if err != nil {

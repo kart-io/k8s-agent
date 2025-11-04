@@ -10,13 +10,13 @@ import (
 	"time"
 )
 
-// OpenAIClient implements the Client interface for OpenAI
+// OpenAIClient implements the Client interface for OpenAI.
 type OpenAIClient struct {
 	config     *Config
 	httpClient *http.Client
 }
 
-// NewOpenAIClient creates a new OpenAI client
+// NewOpenAIClient creates a new OpenAI client.
 func NewOpenAIClient(config *Config) (*OpenAIClient, error) {
 	if config.APIKey == "" {
 		return nil, fmt.Errorf("OpenAI API key is required")
@@ -75,7 +75,7 @@ type openAIResponse struct {
 	} `json:"usage"`
 }
 
-// Complete implements the Client interface
+// Complete implements the Client interface.
 func (c *OpenAIClient) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	model := c.config.Model
 	if req.Model != "" {
@@ -116,7 +116,9 @@ func (c *OpenAIClient) Complete(ctx context.Context, req *CompletionRequest) (*C
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -140,7 +142,7 @@ func (c *OpenAIClient) Complete(ctx context.Context, req *CompletionRequest) (*C
 	}, nil
 }
 
-// AnalyzeRootCause uses OpenAI to analyze root cause
+// AnalyzeRootCause uses OpenAI to analyze root cause.
 func (c *OpenAIClient) AnalyzeRootCause(ctx context.Context, event map[string]interface{}, logs string, metrics string) (string, error) {
 	eventJSON, _ := json.MarshalIndent(event, "", "  ")
 
@@ -172,7 +174,7 @@ Provide your root cause analysis.`, string(eventJSON), logs, metrics)
 	return resp.Content, nil
 }
 
-// GenerateRecommendations uses OpenAI to generate recommendations
+// GenerateRecommendations uses OpenAI to generate recommendations.
 func (c *OpenAIClient) GenerateRecommendations(ctx context.Context, rootCause string, contextInfo string) (string, error) {
 	systemPrompt := RecommendationsSystemPrompt
 
@@ -196,12 +198,12 @@ Provide recommended actions to fix this issue.`, rootCause, contextInfo)
 	return resp.Content, nil
 }
 
-// Provider returns the provider type
+// Provider returns the provider type.
 func (c *OpenAIClient) Provider() Provider {
 	return ProviderOpenAI
 }
 
-// IsAvailable checks if OpenAI is available
+// IsAvailable checks if OpenAI is available.
 func (c *OpenAIClient) IsAvailable() bool {
 	return c.config.APIKey != ""
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// SessionServiceInitializer Session 服务初始化器
+// SessionServiceInitializer Session 服务初始化器.
 type SessionServiceInitializer struct {
 	cfg       *config.Config
 	logger    core.Logger
@@ -21,7 +21,7 @@ type SessionServiceInitializer struct {
 	service   *session.Service
 }
 
-// NewSessionServiceInitializer 创建 Session 服务初始化器
+// NewSessionServiceInitializer 创建 Session 服务初始化器.
 func NewSessionServiceInitializer(
 	cfg *config.Config,
 	logger core.Logger,
@@ -36,17 +36,17 @@ func NewSessionServiceInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (s *SessionServiceInitializer) Name() string {
 	return "session-service"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (s *SessionServiceInitializer) Priority() int {
 	return bootstrap.PriorityMQ - 50 // 450
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (s *SessionServiceInitializer) Initialize(ctx context.Context) error {
 	s.logger.Infow("Initializing Session service")
 
@@ -58,18 +58,18 @@ func (s *SessionServiceInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭服务
+// Close 关闭服务.
 func (s *SessionServiceInitializer) Close(ctx context.Context) error {
 	s.logger.Infow("Closing Session service")
 	return nil
 }
 
-// Service 获取服务实例
+// Service 获取服务实例.
 func (s *SessionServiceInitializer) Service() *session.Service {
 	return s.service
 }
 
-// AuditServiceInitializer Audit 服务初始化器
+// AuditServiceInitializer Audit 服务初始化器.
 type AuditServiceInitializer struct {
 	cfg     *config.Config
 	logger  core.Logger
@@ -77,7 +77,7 @@ type AuditServiceInitializer struct {
 	service *audit.Service
 }
 
-// NewAuditServiceInitializer 创建 Audit 服务初始化器
+// NewAuditServiceInitializer 创建 Audit 服务初始化器.
 func NewAuditServiceInitializer(
 	cfg *config.Config,
 	logger core.Logger,
@@ -90,17 +90,17 @@ func NewAuditServiceInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (a *AuditServiceInitializer) Name() string {
 	return "audit-service"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (a *AuditServiceInitializer) Priority() int {
 	return bootstrap.PriorityMQ - 40 // 460
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (a *AuditServiceInitializer) Initialize(ctx context.Context) error {
 	a.logger.Infow("Initializing Audit service")
 
@@ -112,18 +112,18 @@ func (a *AuditServiceInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭服务
+// Close 关闭服务.
 func (a *AuditServiceInitializer) Close(ctx context.Context) error {
 	a.logger.Infow("Closing Audit service")
 	return nil
 }
 
-// Service 获取服务实例
+// Service 获取服务实例.
 func (a *AuditServiceInitializer) Service() *audit.Service {
 	return a.service
 }
 
-// NotificationServiceInitializer Notification 服务初始化器
+// NotificationServiceInitializer Notification 服务初始化器.
 type NotificationServiceInitializer struct {
 	cfg       *config.Config
 	logger    core.Logger
@@ -132,7 +132,7 @@ type NotificationServiceInitializer struct {
 	service   *notification.Service
 }
 
-// NewNotificationServiceInitializer 创建 Notification 服务初始化器
+// NewNotificationServiceInitializer 创建 Notification 服务初始化器.
 func NewNotificationServiceInitializer(
 	cfg *config.Config,
 	logger core.Logger,
@@ -147,17 +147,17 @@ func NewNotificationServiceInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (n *NotificationServiceInitializer) Name() string {
 	return "notification-service"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (n *NotificationServiceInitializer) Priority() int {
 	return bootstrap.PriorityMQ - 30 // 470
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (n *NotificationServiceInitializer) Initialize(ctx context.Context) error {
 	n.logger.Infow("Initializing Notification service")
 
@@ -181,18 +181,18 @@ func (n *NotificationServiceInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭服务
+// Close 关闭服务.
 func (n *NotificationServiceInitializer) Close(ctx context.Context) error {
 	n.logger.Infow("Closing Notification service")
 	return nil
 }
 
-// Service 获取服务实例
+// Service 获取服务实例.
 func (n *NotificationServiceInitializer) Service() *notification.Service {
 	return n.service
 }
 
-// ForcedLogoutServiceInitializer ForcedLogout 服务初始化器
+// ForcedLogoutServiceInitializer ForcedLogout 服务初始化器.
 type ForcedLogoutServiceInitializer struct {
 	cfg              *config.Config
 	logger           core.Logger
@@ -202,7 +202,7 @@ type ForcedLogoutServiceInitializer struct {
 	service          *forcedlogout.Service
 }
 
-// NewForcedLogoutServiceInitializer 创建 ForcedLogout 服务初始化器
+// NewForcedLogoutServiceInitializer 创建 ForcedLogout 服务初始化器.
 func NewForcedLogoutServiceInitializer(
 	cfg *config.Config,
 	logger core.Logger,
@@ -219,17 +219,17 @@ func NewForcedLogoutServiceInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (f *ForcedLogoutServiceInitializer) Name() string {
 	return "forced-logout-service"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (f *ForcedLogoutServiceInitializer) Priority() int {
 	return bootstrap.PriorityMQ - 10 // 490 (在notification之后)
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (f *ForcedLogoutServiceInitializer) Initialize(ctx context.Context) error {
 	f.logger.Infow("Initializing ForcedLogout service")
 
@@ -248,13 +248,13 @@ func (f *ForcedLogoutServiceInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭服务
+// Close 关闭服务.
 func (f *ForcedLogoutServiceInitializer) Close(ctx context.Context) error {
 	f.logger.Infow("Closing ForcedLogout service")
 	return nil
 }
 
-// Service 获取服务实例
+// Service 获取服务实例.
 func (f *ForcedLogoutServiceInitializer) Service() *forcedlogout.Service {
 	return f.service
 }

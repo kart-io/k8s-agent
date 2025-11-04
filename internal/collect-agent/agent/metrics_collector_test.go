@@ -285,7 +285,7 @@ func TestMetricsCollector_MetricsDataStructure(t *testing.T) {
 	collector.Stop()
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkMetricsCollector_CollectMetrics(b *testing.B) {
 	clientset := fake.NewSimpleClientset()
 	metricsChan := make(chan *types.Metrics, 1000)

@@ -11,13 +11,13 @@ import (
 )
 
 // SiliconFlowClient implements the Client interface for SiliconFlow
-// SiliconFlow provides OpenAI-compatible API for various models
+// SiliconFlow provides OpenAI-compatible API for various models.
 type SiliconFlowClient struct {
 	config     *Config
 	httpClient *http.Client
 }
 
-// NewSiliconFlowClient creates a new SiliconFlow client
+// NewSiliconFlowClient creates a new SiliconFlow client.
 func NewSiliconFlowClient(config *Config) (*SiliconFlowClient, error) {
 	if config.APIKey == "" {
 		return nil, fmt.Errorf("SiliconFlow API key is required")
@@ -76,7 +76,7 @@ type siliconFlowResponse struct {
 	} `json:"usage"`
 }
 
-// Complete implements the Client interface
+// Complete implements the Client interface.
 func (c *SiliconFlowClient) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	model := c.config.Model
 	if req.Model != "" {
@@ -125,7 +125,9 @@ func (c *SiliconFlowClient) Complete(ctx context.Context, req *CompletionRequest
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -149,7 +151,7 @@ func (c *SiliconFlowClient) Complete(ctx context.Context, req *CompletionRequest
 	}, nil
 }
 
-// AnalyzeRootCause uses SiliconFlow to analyze root cause
+// AnalyzeRootCause uses SiliconFlow to analyze root cause.
 func (c *SiliconFlowClient) AnalyzeRootCause(ctx context.Context, event map[string]interface{}, logs string, metrics string) (string, error) {
 	eventJSON, _ := json.MarshalIndent(event, "", "  ")
 
@@ -181,7 +183,7 @@ Provide your root cause analysis.`, string(eventJSON), logs, metrics)
 	return resp.Content, nil
 }
 
-// GenerateRecommendations uses SiliconFlow to generate recommendations
+// GenerateRecommendations uses SiliconFlow to generate recommendations.
 func (c *SiliconFlowClient) GenerateRecommendations(ctx context.Context, rootCause string, contextInfo string) (string, error) {
 	systemPrompt := RecommendationsSystemPrompt
 
@@ -205,12 +207,12 @@ Provide recommended actions to fix this issue.`, rootCause, contextInfo)
 	return resp.Content, nil
 }
 
-// Provider returns the provider type
+// Provider returns the provider type.
 func (c *SiliconFlowClient) Provider() Provider {
 	return ProviderSiliconFlow
 }
 
-// IsAvailable checks if SiliconFlow is available
+// IsAvailable checks if SiliconFlow is available.
 func (c *SiliconFlowClient) IsAvailable() bool {
 	return c.config.APIKey != ""
 }

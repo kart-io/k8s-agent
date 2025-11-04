@@ -7,19 +7,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
-// GeminiClient implements the Client interface for Google Gemini
+// GeminiClient implements the Client interface for Google Gemini.
 type GeminiClient struct {
 	config     *Config
 	httpClient *http.Client
 }
 
-// NewGeminiClient creates a new Gemini client
+// NewGeminiClient creates a new Gemini client.
 func NewGeminiClient(config *Config) (*GeminiClient, error) {
 	if config.APIKey == "" {
-		return nil, fmt.Errorf("Gemini API key is required")
+		return nil, fmt.Errorf("gemini API key is required")
 	}
 
 	if config.BaseURL == "" {
@@ -81,7 +82,7 @@ type geminiResponse struct {
 	} `json:"usageMetadata"`
 }
 
-// Complete implements the Client interface
+// Complete implements the Client interface.
 func (c *GeminiClient) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	model := c.config.Model
 	if req.Model != "" {
@@ -139,11 +140,16 @@ func (c *GeminiClient) Complete(ctx context.Context, req *CompletionRequest) (*C
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but don't fail the request
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Gemini API error (status %d): %s", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("gemini API error (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var apiResp geminiResponse
@@ -163,7 +169,7 @@ func (c *GeminiClient) Complete(ctx context.Context, req *CompletionRequest) (*C
 	}, nil
 }
 
-// AnalyzeRootCause uses Gemini to analyze root cause
+// AnalyzeRootCause uses Gemini to analyze root cause.
 func (c *GeminiClient) AnalyzeRootCause(ctx context.Context, event map[string]interface{}, logs string, metrics string) (string, error) {
 	eventJSON, _ := json.MarshalIndent(event, "", "  ")
 
@@ -194,7 +200,7 @@ Provide your root cause analysis.`, RootCauseAnalysisSystemPrompt, string(eventJ
 	return resp.Content, nil
 }
 
-// GenerateRecommendations uses Gemini to generate recommendations
+// GenerateRecommendations uses Gemini to generate recommendations.
 func (c *GeminiClient) GenerateRecommendations(ctx context.Context, rootCause string, contextInfo string) (string, error) {
 	userPrompt := fmt.Sprintf(`%s
 
@@ -217,12 +223,12 @@ Provide recommended actions to fix this issue.`, RecommendationsSystemPrompt, ro
 	return resp.Content, nil
 }
 
-// Provider returns the provider type
+// Provider returns the provider type.
 func (c *GeminiClient) Provider() Provider {
 	return ProviderGemini
 }
 
-// IsAvailable checks if Gemini is available
+// IsAvailable checks if Gemini is available.
 func (c *GeminiClient) IsAvailable() bool {
 	return c.config.APIKey != ""
 }

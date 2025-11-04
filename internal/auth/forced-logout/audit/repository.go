@@ -7,7 +7,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// AuditFilter represents filtering criteria for audit event queries
+// AuditFilter represents filtering criteria for audit event queries.
 type AuditFilter struct {
 	TargetUserID string
 	ActorID      string
@@ -19,14 +19,14 @@ type AuditFilter struct {
 	Offset       int
 }
 
-// AuditEventListResponse represents a paginated list of audit events
+// AuditEventListResponse represents a paginated list of audit events.
 type AuditEventListResponse struct {
 	Events     []types.ForcedLogoutEvent `json:"events"`
 	Total      int                       `json:"total"`
 	Pagination *Pagination               `json:"pagination"`
 }
 
-// Pagination represents pagination metadata
+// Pagination represents pagination metadata.
 type Pagination struct {
 	Limit   int  `json:"limit"`
 	Offset  int  `json:"offset"`
@@ -34,7 +34,7 @@ type Pagination struct {
 	HasMore bool `json:"has_more"`
 }
 
-// ExportFormat represents the format for exporting audit logs
+// ExportFormat represents the format for exporting audit logs.
 type ExportFormat string
 
 const (
@@ -42,7 +42,7 @@ const (
 	ExportFormatCSV  ExportFormat = "csv"
 )
 
-// Repository defines the interface for audit event storage operations
+// Repository defines the interface for audit event storage operations.
 type Repository interface {
 	// CreateEvent inserts a new audit event with hash chain validation
 	CreateEvent(ctx context.Context, event *types.ForcedLogoutEvent) error

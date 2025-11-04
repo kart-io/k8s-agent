@@ -13,14 +13,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// DatabaseInitializer initializes the database connection and schema
+// DatabaseInitializer initializes the database connection and schema.
 type DatabaseInitializer struct {
 	opts    *commonoptions.DatabaseOptions
 	logger  core.Logger
 	storage *storage.MySQLStorage
 }
 
-// NewDatabaseInitializer creates a new database initializer
+// NewDatabaseInitializer creates a new database initializer.
 func NewDatabaseInitializer(opts *commonoptions.DatabaseOptions, logger core.Logger) *DatabaseInitializer {
 	return &DatabaseInitializer{
 		opts:   opts,
@@ -28,7 +28,7 @@ func NewDatabaseInitializer(opts *commonoptions.DatabaseOptions, logger core.Log
 	}
 }
 
-// Initialize initializes the database connection
+// Initialize initializes the database connection.
 func (i *DatabaseInitializer) Initialize(ctx context.Context) error {
 	i.logger.Infow("Initializing database connection",
 		"host", i.opts.Host,
@@ -58,7 +58,7 @@ func (i *DatabaseInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown closes the database connection
+// Shutdown closes the database connection.
 func (i *DatabaseInitializer) Shutdown(ctx context.Context) error {
 	i.logger.Info("Closing database connection")
 	if i.storage != nil {
@@ -68,17 +68,17 @@ func (i *DatabaseInitializer) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Priority returns the initialization priority (higher = earlier)
+// Priority returns the initialization priority (higher = earlier).
 func (i *DatabaseInitializer) Priority() int {
 	return 300 // Database should be initialized early
 }
 
-// Name returns the name of this initializer
+// Name returns the name of this initializer.
 func (i *DatabaseInitializer) Name() string {
 	return "Database"
 }
 
-// GetStorage returns the initialized storage instance
+// GetStorage returns the initialized storage instance.
 func (i *DatabaseInitializer) GetStorage() *storage.MySQLStorage {
 	return i.storage
 }

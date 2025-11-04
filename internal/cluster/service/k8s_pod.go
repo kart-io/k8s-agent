@@ -14,13 +14,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sPodService Pod 管理服务
+// K8sPodService Pod 管理服务.
 type K8sPodService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sPodService 创建新的 Pod 服务
+// NewK8sPodService 创建新的 Pod 服务.
 func NewK8sPodService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sPodService {
 	return &K8sPodService{
 		storage:        storage,
@@ -28,7 +28,7 @@ func NewK8sPodService(storage *storage.MySQLStorage, clusterService *K8sClusterS
 	}
 }
 
-// PodInfo Pod 信息
+// PodInfo Pod 信息.
 type PodInfo struct {
 	Name       string            `json:"name"`
 	Namespace  string            `json:"namespace"`
@@ -41,7 +41,7 @@ type PodInfo struct {
 	CreatedAt  string            `json:"createdAt"`
 }
 
-// ContainerInfo 容器信息
+// ContainerInfo 容器信息.
 type ContainerInfo struct {
 	Name         string `json:"name"`
 	Image        string `json:"image"`
@@ -50,7 +50,7 @@ type ContainerInfo struct {
 	State        string `json:"state"`
 }
 
-// ListPods 获取 Pod 列表
+// ListPods 获取 Pod 列表.
 func (s *K8sPodService) ListPods(ctx context.Context, clusterID, namespace string, offset, limit int) ([]PodInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *K8sPodService) ListPods(ctx context.Context, clusterID, namespace strin
 	return result, total, nil
 }
 
-// GetPod 获取 Pod 详情
+// GetPod 获取 Pod 详情.
 func (s *K8sPodService) GetPod(ctx context.Context, clusterID, namespace, podName string) (*PodInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -99,7 +99,7 @@ func (s *K8sPodService) GetPod(ctx context.Context, clusterID, namespace, podNam
 	return &podInfo, nil
 }
 
-// DeletePod 删除 Pod
+// DeletePod 删除 Pod.
 func (s *K8sPodService) DeletePod(ctx context.Context, clusterID, namespace, podName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -120,7 +120,7 @@ func (s *K8sPodService) DeletePod(ctx context.Context, clusterID, namespace, pod
 	return nil
 }
 
-// GetPodLogs 获取 Pod 日志
+// GetPodLogs 获取 Pod 日志.
 func (s *K8sPodService) GetPodLogs(ctx context.Context, clusterID, namespace, podName, container, tailLines string, follow bool) (string, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -144,7 +144,11 @@ func (s *K8sPodService) GetPodLogs(ctx context.Context, clusterID, namespace, po
 	if err != nil {
 		return "", errors.NewK8sAPIError(fmt.Errorf("failed to get pod logs: %w", err))
 	}
-	defer stream.Close()
+	defer func() {
+		if err := stream.Close(); err != nil {
+			logger.Warnw("Failed to close stream", "error", err)
+		}
+	}()
 
 	buf, err := io.ReadAll(stream)
 	if err != nil {
@@ -154,11 +158,11 @@ func (s *K8sPodService) GetPodLogs(ctx context.Context, clusterID, namespace, po
 	return string(buf), nil
 }
 
-// convertPodInfo 转换 Pod 信息
+// convertPodInfo 转换 Pod 信息.
 func (s *K8sPodService) convertPodInfo(pod *corev1.Pod) PodInfo {
 	containers := make([]ContainerInfo, 0, len(pod.Status.ContainerStatuses))
 	for _, cs := range pod.Status.ContainerStatuses {
-		state := "unknown"
+		state := StatusUnknown
 		if cs.State.Running != nil {
 			state = "running"
 		} else if cs.State.Waiting != nil {

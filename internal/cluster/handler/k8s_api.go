@@ -14,7 +14,7 @@ import (
 )
 
 // K8sAPIHandler 处理所有 Kubernetes API 请求
-// 基于 /api/k8s 路径的完整 K8s 管理接口
+// 基于 /api/k8s 路径的完整 K8s 管理接口.
 type K8sAPIHandler struct {
 	clusterService            *service.K8sClusterService
 	namespaceService          *service.K8sNamespaceService
@@ -48,7 +48,7 @@ type K8sAPIHandler struct {
 	resourcequotaService      *service.K8sResourceQuotaService
 }
 
-// NewK8sAPIHandler 创建新的 K8s API 处理器
+// NewK8sAPIHandler 创建新的 K8s API 处理器.
 func NewK8sAPIHandler(
 	clusterService *service.K8sClusterService,
 	namespaceService *service.K8sNamespaceService,
@@ -120,7 +120,7 @@ func NewK8sAPIHandler(
 // ===========================
 
 // ListClusters GET /api/k8s/clusters
-// 获取集群列表（支持分页）
+// 获取集群列表（支持分页）.
 func (h *K8sAPIHandler) ListClusters(c *gin.Context) {
 	params := pagination.Parse(c)
 
@@ -145,7 +145,7 @@ func (h *K8sAPIHandler) ListClusters(c *gin.Context) {
 }
 
 // GetCluster GET /api/k8s/clusters/:id
-// 获取集群详情
+// 获取集群详情.
 func (h *K8sAPIHandler) GetCluster(c *gin.Context) {
 	var req types.GetClusterRequest
 
@@ -173,7 +173,7 @@ func (h *K8sAPIHandler) GetCluster(c *gin.Context) {
 }
 
 // GetClusterOptions GET /api/k8s/clusters/options
-// 获取集群选择器列表（用于下拉选择）
+// 获取集群选择器列表（用于下拉选择）.
 func (h *K8sAPIHandler) GetClusterOptions(c *gin.Context) {
 	logger.Infow("Getting cluster options")
 
@@ -188,7 +188,7 @@ func (h *K8sAPIHandler) GetClusterOptions(c *gin.Context) {
 }
 
 // CreateCluster POST /api/k8s/clusters
-// 创建新集群
+// 创建新集群.
 func (h *K8sAPIHandler) CreateCluster(c *gin.Context) {
 	var req types.CreateClusterRequest
 
@@ -229,7 +229,7 @@ func (h *K8sAPIHandler) CreateCluster(c *gin.Context) {
 }
 
 // UpdateCluster PUT /api/k8s/clusters/:id
-// 更新集群信息
+// 更新集群信息.
 func (h *K8sAPIHandler) UpdateCluster(c *gin.Context) {
 	var req types.UpdateClusterRequest
 
@@ -269,7 +269,7 @@ func (h *K8sAPIHandler) UpdateCluster(c *gin.Context) {
 }
 
 // DeleteCluster DELETE /api/k8s/clusters/:id
-// 删除集群
+// 删除集群.
 func (h *K8sAPIHandler) DeleteCluster(c *gin.Context) {
 	var req types.DeleteClusterRequest
 
@@ -298,7 +298,7 @@ func (h *K8sAPIHandler) DeleteCluster(c *gin.Context) {
 }
 
 // GetClusterHealth GET /api/k8s/clusters/:id/health
-// 获取集群健康状态
+// 获取集群健康状态.
 func (h *K8sAPIHandler) GetClusterHealthStatus(c *gin.Context) {
 	var req types.GetClusterHealthRequest
 
@@ -330,7 +330,7 @@ func (h *K8sAPIHandler) GetClusterHealthStatus(c *gin.Context) {
 // ===========================
 
 // ListNamespaces GET /api/k8s/clusters/:clusterId/namespaces
-// 获取命名空间列表
+// 获取命名空间列表.
 func (h *K8sAPIHandler) ListNamespaces(c *gin.Context) {
 	var req types.ListNamespacesRequest
 	params := pagination.Parse(c)
@@ -368,7 +368,7 @@ func (h *K8sAPIHandler) ListNamespaces(c *gin.Context) {
 }
 
 // GetNamespace GET /api/k8s/clusters/:clusterId/namespaces/:name
-// 获取命名空间详情
+// 获取命名空间详情.
 func (h *K8sAPIHandler) GetNamespace(c *gin.Context) {
 	var req types.GetNamespaceRequest
 
@@ -403,7 +403,7 @@ func (h *K8sAPIHandler) GetNamespace(c *gin.Context) {
 }
 
 // CreateNamespace POST /api/k8s/clusters/:clusterId/namespaces
-// 创建命名空间
+// 创建命名空间.
 func (h *K8sAPIHandler) CreateNamespace(c *gin.Context) {
 	var req types.CreateNamespaceRequest
 
@@ -449,7 +449,7 @@ func (h *K8sAPIHandler) CreateNamespace(c *gin.Context) {
 }
 
 // DeleteNamespace DELETE /api/k8s/clusters/:clusterId/namespaces/:name
-// 删除命名空间
+// 删除命名空间.
 func (h *K8sAPIHandler) DeleteNamespace(c *gin.Context) {
 	var req types.DeleteNamespaceRequest
 
@@ -490,7 +490,7 @@ func (h *K8sAPIHandler) DeleteNamespace(c *gin.Context) {
 
 // ListPods GET /api/k8s/pods
 // 获取 Pod 列表
-// 支持查询所有命名空间或指定命名空间的 Pods
+// 支持查询所有命名空间或指定命名空间的 Pods.
 func (h *K8sAPIHandler) ListPods(c *gin.Context) {
 	var req types.ListPodsRequest
 	params := pagination.Parse(c)
@@ -542,7 +542,7 @@ func (h *K8sAPIHandler) ListPods(c *gin.Context) {
 }
 
 // GetPod GET /api/k8s/clusters/:clusterId/namespaces/:namespace/pods/:name
-// 获取 Pod 详情
+// 获取 Pod 详情.
 func (h *K8sAPIHandler) GetPod(c *gin.Context) {
 	var req types.GetPodRequest
 
@@ -589,7 +589,7 @@ func (h *K8sAPIHandler) GetPod(c *gin.Context) {
 }
 
 // DeletePod DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/pods/:name
-// 删除 Pod
+// 删除 Pod.
 func (h *K8sAPIHandler) DeletePod(c *gin.Context) {
 	var req types.DeletePodRequest
 
@@ -637,7 +637,7 @@ func (h *K8sAPIHandler) DeletePod(c *gin.Context) {
 }
 
 // GetPodLogs GET /api/k8s/clusters/:clusterId/namespaces/:namespace/pods/:name/logs
-// 获取 Pod 日志
+// 获取 Pod 日志.
 func (h *K8sAPIHandler) GetPodLogs(c *gin.Context) {
 	var req types.GetPodLogsRequest
 
@@ -713,7 +713,7 @@ func (h *K8sAPIHandler) GetPodLogs(c *gin.Context) {
 
 // ListDeployments GET /api/k8s/deployments
 // 获取 Deployment 列表
-// 支持查询所有命名空间或指定命名空间的 Deployments
+// 支持查询所有命名空间或指定命名空间的 Deployments.
 func (h *K8sAPIHandler) ListDeployments(c *gin.Context) {
 	var req types.ListDeploymentsRequest
 	params := pagination.Parse(c)
@@ -764,7 +764,7 @@ func (h *K8sAPIHandler) ListDeployments(c *gin.Context) {
 }
 
 // GetDeployment GET /api/k8s/clusters/:clusterId/namespaces/:namespace/deployments/:name
-// 获取 Deployment 详情
+// 获取 Deployment 详情.
 func (h *K8sAPIHandler) GetDeployment(c *gin.Context) {
 	var req types.GetDeploymentRequest
 
@@ -816,7 +816,7 @@ func (h *K8sAPIHandler) GetDeployment(c *gin.Context) {
 }
 
 // ScaleDeployment PUT /api/k8s/clusters/:clusterId/namespaces/:namespace/deployments/:name/scale
-// 扩缩容 Deployment
+// 扩缩容 Deployment.
 func (h *K8sAPIHandler) ScaleDeployment(c *gin.Context) {
 	var req types.ScaleDeploymentRequest
 
@@ -881,7 +881,7 @@ func (h *K8sAPIHandler) ScaleDeployment(c *gin.Context) {
 }
 
 // RestartDeployment POST /api/k8s/clusters/:clusterId/namespaces/:namespace/deployments/:name/restart
-// 重启 Deployment
+// 重启 Deployment.
 func (h *K8sAPIHandler) RestartDeployment(c *gin.Context) {
 	var req types.RestartDeploymentRequest
 
@@ -938,7 +938,7 @@ func (h *K8sAPIHandler) RestartDeployment(c *gin.Context) {
 // ===========================
 
 // ListNodes GET /api/k8s/clusters/:clusterId/nodes
-// 获取 Node 列表
+// 获取 Node 列表.
 func (h *K8sAPIHandler) ListNodes(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	params := pagination.Parse(c)
@@ -970,7 +970,7 @@ func (h *K8sAPIHandler) ListNodes(c *gin.Context) {
 }
 
 // GetNode GET /api/k8s/clusters/:clusterId/nodes/:name
-// 获取 Node 详情
+// 获取 Node 详情.
 func (h *K8sAPIHandler) GetNode(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	nodeName := c.Query("name")
@@ -1000,7 +1000,7 @@ func (h *K8sAPIHandler) GetNode(c *gin.Context) {
 }
 
 // CordonNode POST /api/k8s/clusters/:clusterId/nodes/:name/cordon
-// 标记 Node 为不可调度
+// 标记 Node 为不可调度.
 func (h *K8sAPIHandler) CordonNode(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	nodeName := c.Query("name")
@@ -1031,7 +1031,7 @@ func (h *K8sAPIHandler) CordonNode(c *gin.Context) {
 }
 
 // UncordonNode POST /api/k8s/clusters/:clusterId/nodes/:name/uncordon
-// 标记 Node 为可调度
+// 标记 Node 为可调度.
 func (h *K8sAPIHandler) UncordonNode(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	nodeName := c.Query("name")
@@ -1062,7 +1062,7 @@ func (h *K8sAPIHandler) UncordonNode(c *gin.Context) {
 }
 
 // DrainNode POST /api/k8s/clusters/:clusterId/nodes/:name/drain
-// 驱逐 Node 上的 Pod
+// 驱逐 Node 上的 Pod.
 func (h *K8sAPIHandler) DrainNode(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	nodeName := c.Query("name")
@@ -1107,7 +1107,7 @@ func (h *K8sAPIHandler) DrainNode(c *gin.Context) {
 // ===========================
 
 // ListServices GET /api/k8s/clusters/:clusterId/namespaces/:namespace/services
-// 获取 Service 列表
+// 获取 Service 列表.
 func (h *K8sAPIHandler) ListServices(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1140,7 +1140,7 @@ func (h *K8sAPIHandler) ListServices(c *gin.Context) {
 }
 
 // GetService GET /api/k8s/clusters/:clusterId/namespaces/:namespace/services/:name
-// 获取 Service 详情
+// 获取 Service 详情.
 func (h *K8sAPIHandler) GetService(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1168,7 +1168,7 @@ func (h *K8sAPIHandler) GetService(c *gin.Context) {
 }
 
 // CreateService POST /api/k8s/clusters/:clusterId/namespaces/:namespace/services
-// 创建 Service
+// 创建 Service.
 func (h *K8sAPIHandler) CreateService(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1210,7 +1210,7 @@ func (h *K8sAPIHandler) CreateService(c *gin.Context) {
 }
 
 // UpdateService PUT /api/k8s/clusters/:clusterId/namespaces/:namespace/services/:name
-// 更新 Service
+// 更新 Service.
 func (h *K8sAPIHandler) UpdateService(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1245,7 +1245,7 @@ func (h *K8sAPIHandler) UpdateService(c *gin.Context) {
 }
 
 // DeleteService DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/services/:name
-// 删除 Service
+// 删除 Service.
 func (h *K8sAPIHandler) DeleteService(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1278,7 +1278,7 @@ func (h *K8sAPIHandler) DeleteService(c *gin.Context) {
 // ===========================
 
 // ListStatefulSets GET /api/k8s/clusters/:clusterId/namespaces/:namespace/statefulsets
-// 获取 StatefulSet 列表
+// 获取 StatefulSet 列表.
 func (h *K8sAPIHandler) ListStatefulSets(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1311,7 +1311,7 @@ func (h *K8sAPIHandler) ListStatefulSets(c *gin.Context) {
 }
 
 // GetStatefulSet GET /api/k8s/clusters/:clusterId/namespaces/:namespace/statefulsets/:name
-// 获取 StatefulSet 详情
+// 获取 StatefulSet 详情.
 func (h *K8sAPIHandler) GetStatefulSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1344,7 +1344,7 @@ func (h *K8sAPIHandler) GetStatefulSet(c *gin.Context) {
 }
 
 // ScaleStatefulSet PUT /api/k8s/clusters/:clusterId/namespaces/:namespace/statefulsets/:name/scale
-// 扩缩容 StatefulSet
+// 扩缩容 StatefulSet.
 func (h *K8sAPIHandler) ScaleStatefulSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1393,7 +1393,7 @@ func (h *K8sAPIHandler) ScaleStatefulSet(c *gin.Context) {
 }
 
 // RestartStatefulSet POST /api/k8s/clusters/:clusterId/namespaces/:namespace/statefulsets/:name/restart
-// 重启 StatefulSet
+// 重启 StatefulSet.
 func (h *K8sAPIHandler) RestartStatefulSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1427,7 +1427,7 @@ func (h *K8sAPIHandler) RestartStatefulSet(c *gin.Context) {
 }
 
 // DeleteStatefulSet DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/statefulsets/:name
-// 删除 StatefulSet
+// 删除 StatefulSet.
 func (h *K8sAPIHandler) DeleteStatefulSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1460,7 +1460,7 @@ func (h *K8sAPIHandler) DeleteStatefulSet(c *gin.Context) {
 // ===========================
 
 // ListDaemonSets GET /api/k8s/clusters/:clusterId/namespaces/:namespace/daemonsets
-// 获取 DaemonSet 列表
+// 获取 DaemonSet 列表.
 func (h *K8sAPIHandler) ListDaemonSets(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1493,7 +1493,7 @@ func (h *K8sAPIHandler) ListDaemonSets(c *gin.Context) {
 }
 
 // GetDaemonSet GET /api/k8s/clusters/:clusterId/namespaces/:namespace/daemonsets/:name
-// 获取 DaemonSet 详情
+// 获取 DaemonSet 详情.
 func (h *K8sAPIHandler) GetDaemonSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1526,7 +1526,7 @@ func (h *K8sAPIHandler) GetDaemonSet(c *gin.Context) {
 }
 
 // RestartDaemonSet POST /api/k8s/clusters/:clusterId/namespaces/:namespace/daemonsets/:name/restart
-// 重启 DaemonSet
+// 重启 DaemonSet.
 func (h *K8sAPIHandler) RestartDaemonSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1560,7 +1560,7 @@ func (h *K8sAPIHandler) RestartDaemonSet(c *gin.Context) {
 }
 
 // DeleteDaemonSet DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/daemonsets/:name
-// 删除 DaemonSet
+// 删除 DaemonSet.
 func (h *K8sAPIHandler) DeleteDaemonSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1593,7 +1593,7 @@ func (h *K8sAPIHandler) DeleteDaemonSet(c *gin.Context) {
 // ===========================
 
 // ListConfigMaps GET /api/k8s/clusters/:clusterId/namespaces/:namespace/configmaps
-// 获取 ConfigMap 列表
+// 获取 ConfigMap 列表.
 func (h *K8sAPIHandler) ListConfigMaps(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1626,7 +1626,7 @@ func (h *K8sAPIHandler) ListConfigMaps(c *gin.Context) {
 }
 
 // GetConfigMap GET /api/k8s/clusters/:clusterId/namespaces/:namespace/configmaps/:name
-// 获取 ConfigMap 详情
+// 获取 ConfigMap 详情.
 func (h *K8sAPIHandler) GetConfigMap(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1654,7 +1654,7 @@ func (h *K8sAPIHandler) GetConfigMap(c *gin.Context) {
 }
 
 // CreateConfigMap POST /api/k8s/clusters/:clusterId/namespaces/:namespace/configmaps
-// 创建 ConfigMap
+// 创建 ConfigMap.
 func (h *K8sAPIHandler) CreateConfigMap(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1696,7 +1696,7 @@ func (h *K8sAPIHandler) CreateConfigMap(c *gin.Context) {
 }
 
 // UpdateConfigMap PUT /api/k8s/clusters/:clusterId/namespaces/:namespace/configmaps/:name
-// 更新 ConfigMap
+// 更新 ConfigMap.
 func (h *K8sAPIHandler) UpdateConfigMap(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1731,7 +1731,7 @@ func (h *K8sAPIHandler) UpdateConfigMap(c *gin.Context) {
 }
 
 // DeleteConfigMap DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/configmaps/:name
-// 删除 ConfigMap
+// 删除 ConfigMap.
 func (h *K8sAPIHandler) DeleteConfigMap(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1764,7 +1764,7 @@ func (h *K8sAPIHandler) DeleteConfigMap(c *gin.Context) {
 // ===========================
 
 // ListSecrets GET /api/k8s/clusters/:clusterId/namespaces/:namespace/secrets
-// 获取 Secret 列表
+// 获取 Secret 列表.
 func (h *K8sAPIHandler) ListSecrets(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1797,7 +1797,7 @@ func (h *K8sAPIHandler) ListSecrets(c *gin.Context) {
 }
 
 // GetSecret GET /api/k8s/clusters/:clusterId/namespaces/:namespace/secrets/:name
-// 获取 Secret 详情
+// 获取 Secret 详情.
 func (h *K8sAPIHandler) GetSecret(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1829,7 +1829,7 @@ func (h *K8sAPIHandler) GetSecret(c *gin.Context) {
 }
 
 // CreateSecret POST /api/k8s/clusters/:clusterId/namespaces/:namespace/secrets
-// 创建 Secret
+// 创建 Secret.
 func (h *K8sAPIHandler) CreateSecret(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1871,7 +1871,7 @@ func (h *K8sAPIHandler) CreateSecret(c *gin.Context) {
 }
 
 // UpdateSecret PUT /api/k8s/clusters/:clusterId/namespaces/:namespace/secrets/:name
-// 更新 Secret
+// 更新 Secret.
 func (h *K8sAPIHandler) UpdateSecret(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1906,7 +1906,7 @@ func (h *K8sAPIHandler) UpdateSecret(c *gin.Context) {
 }
 
 // DeleteSecret DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/secrets/:name
-// 删除 Secret
+// 删除 Secret.
 func (h *K8sAPIHandler) DeleteSecret(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1939,7 +1939,7 @@ func (h *K8sAPIHandler) DeleteSecret(c *gin.Context) {
 // ===========================
 
 // ListEndpoints GET /api/k8s/clusters/:clusterId/namespaces/:namespace/endpoints
-// 获取 Endpoints 列表
+// 获取 Endpoints 列表.
 func (h *K8sAPIHandler) ListEndpoints(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -1972,7 +1972,7 @@ func (h *K8sAPIHandler) ListEndpoints(c *gin.Context) {
 }
 
 // GetEndpoint GET /api/k8s/clusters/:clusterId/namespaces/:namespace/endpoints/:name
-// 获取 Endpoint 详情
+// 获取 Endpoint 详情.
 func (h *K8sAPIHandler) GetEndpoint(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2005,7 +2005,7 @@ func (h *K8sAPIHandler) GetEndpoint(c *gin.Context) {
 }
 
 // DeleteEndpoint DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/endpoints/:name
-// 删除 Endpoint
+// 删除 Endpoint.
 func (h *K8sAPIHandler) DeleteEndpoint(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2038,7 +2038,7 @@ func (h *K8sAPIHandler) DeleteEndpoint(c *gin.Context) {
 // ===========================
 
 // ListPVCs GET /api/k8s/clusters/:clusterId/namespaces/:namespace/persistentvolumeclaims
-// 获取 PVC 列表
+// 获取 PVC 列表.
 func (h *K8sAPIHandler) ListPVCs(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2071,7 +2071,7 @@ func (h *K8sAPIHandler) ListPVCs(c *gin.Context) {
 }
 
 // GetPVC GET /api/k8s/clusters/:clusterId/namespaces/:namespace/persistentvolumeclaims/:name
-// 获取 PVC 详情
+// 获取 PVC 详情.
 func (h *K8sAPIHandler) GetPVC(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2099,7 +2099,7 @@ func (h *K8sAPIHandler) GetPVC(c *gin.Context) {
 }
 
 // DeletePVC DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/persistentvolumeclaims/:name
-// 删除 PVC
+// 删除 PVC.
 func (h *K8sAPIHandler) DeletePVC(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2132,7 +2132,7 @@ func (h *K8sAPIHandler) DeletePVC(c *gin.Context) {
 // ===========================
 
 // ListPVs GET /api/k8s/clusters/:clusterId/persistentvolumes
-// 获取 PV 列表
+// 获取 PV 列表.
 func (h *K8sAPIHandler) ListPVs(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	params := pagination.Parse(c)
@@ -2161,7 +2161,7 @@ func (h *K8sAPIHandler) ListPVs(c *gin.Context) {
 }
 
 // GetPV GET /api/k8s/clusters/:clusterId/persistentvolumes/:name
-// 获取 PV 详情
+// 获取 PV 详情.
 func (h *K8sAPIHandler) GetPV(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	pvName := c.Query("name")
@@ -2186,7 +2186,7 @@ func (h *K8sAPIHandler) GetPV(c *gin.Context) {
 }
 
 // DeletePV DELETE /api/k8s/clusters/:clusterId/persistentvolumes/:name
-// 删除 PV
+// 删除 PV.
 func (h *K8sAPIHandler) DeletePV(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	pvName := c.Query("name")
@@ -2216,7 +2216,7 @@ func (h *K8sAPIHandler) DeletePV(c *gin.Context) {
 // ===========================
 
 // ListEndpointSlices GET /api/k8s/clusters/:clusterId/namespaces/:namespace/endpointslices
-// 获取 EndpointSlice 列表
+// 获取 EndpointSlice 列表.
 func (h *K8sAPIHandler) ListEndpointSlices(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2249,7 +2249,7 @@ func (h *K8sAPIHandler) ListEndpointSlices(c *gin.Context) {
 }
 
 // GetEndpointSlice GET /api/k8s/clusters/:clusterId/namespaces/:namespace/endpointslices/:name
-// 获取 EndpointSlice 详情
+// 获取 EndpointSlice 详情.
 func (h *K8sAPIHandler) GetEndpointSlice(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2277,7 +2277,7 @@ func (h *K8sAPIHandler) GetEndpointSlice(c *gin.Context) {
 }
 
 // DeleteEndpointSlice DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/endpointslices/:name
-// 删除 EndpointSlice
+// 删除 EndpointSlice.
 func (h *K8sAPIHandler) DeleteEndpointSlice(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2310,7 +2310,7 @@ func (h *K8sAPIHandler) DeleteEndpointSlice(c *gin.Context) {
 // ===========================
 
 // ListHPAs GET /api/k8s/clusters/:clusterId/namespaces/:namespace/horizontalpodautoscalers
-// 获取 HPA 列表
+// 获取 HPA 列表.
 func (h *K8sAPIHandler) ListHPAs(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2343,7 +2343,7 @@ func (h *K8sAPIHandler) ListHPAs(c *gin.Context) {
 }
 
 // GetHPA GET /api/k8s/clusters/:clusterId/namespaces/:namespace/horizontalpodautoscalers/:name
-// 获取 HPA 详情
+// 获取 HPA 详情.
 func (h *K8sAPIHandler) GetHPA(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2371,7 +2371,7 @@ func (h *K8sAPIHandler) GetHPA(c *gin.Context) {
 }
 
 // DeleteHPA DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/horizontalpodautoscalers/:name
-// 删除 HPA
+// 删除 HPA.
 func (h *K8sAPIHandler) DeleteHPA(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2404,7 +2404,7 @@ func (h *K8sAPIHandler) DeleteHPA(c *gin.Context) {
 // ===========================
 
 // ListEvents GET /api/k8s/clusters/:clusterId/namespaces/:namespace/events
-// 获取 Event 列表
+// 获取 Event 列表.
 func (h *K8sAPIHandler) ListEvents(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2446,7 +2446,7 @@ func (h *K8sAPIHandler) ListEvents(c *gin.Context) {
 }
 
 // GetEvent GET /api/k8s/clusters/:clusterId/namespaces/:namespace/events/:name
-// 获取 Event 详情
+// 获取 Event 详情.
 func (h *K8sAPIHandler) GetEvent(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2478,7 +2478,7 @@ func (h *K8sAPIHandler) GetEvent(c *gin.Context) {
 // ===========================
 
 // ListRoleBindings GET /api/k8s/clusters/:clusterId/namespaces/:namespace/rolebindings
-// 获取 RoleBinding 列表
+// 获取 RoleBinding 列表.
 func (h *K8sAPIHandler) ListRoleBindings(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2511,7 +2511,7 @@ func (h *K8sAPIHandler) ListRoleBindings(c *gin.Context) {
 }
 
 // GetRoleBinding GET /api/k8s/clusters/:clusterId/namespaces/:namespace/rolebindings/:name
-// 获取 RoleBinding 详情
+// 获取 RoleBinding 详情.
 func (h *K8sAPIHandler) GetRoleBinding(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2539,7 +2539,7 @@ func (h *K8sAPIHandler) GetRoleBinding(c *gin.Context) {
 }
 
 // DeleteRoleBinding DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/rolebindings/:name
-// 删除 RoleBinding
+// 删除 RoleBinding.
 func (h *K8sAPIHandler) DeleteRoleBinding(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2572,7 +2572,7 @@ func (h *K8sAPIHandler) DeleteRoleBinding(c *gin.Context) {
 // ===========================
 
 // ListClusterRoles GET /api/k8s/clusters/:clusterId/clusterroles
-// 获取 ClusterRole 列表
+// 获取 ClusterRole 列表.
 func (h *K8sAPIHandler) ListClusterRoles(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	params := pagination.Parse(c)
@@ -2601,7 +2601,7 @@ func (h *K8sAPIHandler) ListClusterRoles(c *gin.Context) {
 }
 
 // GetClusterRole GET /api/k8s/clusters/:clusterId/clusterroles/:name
-// 获取 ClusterRole 详情
+// 获取 ClusterRole 详情.
 func (h *K8sAPIHandler) GetClusterRole(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	crName := c.Query("name")
@@ -2626,7 +2626,7 @@ func (h *K8sAPIHandler) GetClusterRole(c *gin.Context) {
 }
 
 // DeleteClusterRole DELETE /api/k8s/clusters/:clusterId/clusterroles/:name
-// 删除 ClusterRole
+// 删除 ClusterRole.
 func (h *K8sAPIHandler) DeleteClusterRole(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	crName := c.Query("name")
@@ -2656,7 +2656,7 @@ func (h *K8sAPIHandler) DeleteClusterRole(c *gin.Context) {
 // ===========================
 
 // ListPriorityClasses GET /api/k8s/clusters/:clusterId/priorityclasses
-// 获取 PriorityClass 列表
+// 获取 PriorityClass 列表.
 func (h *K8sAPIHandler) ListPriorityClasses(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	params := pagination.Parse(c)
@@ -2685,7 +2685,7 @@ func (h *K8sAPIHandler) ListPriorityClasses(c *gin.Context) {
 }
 
 // GetPriorityClass GET /api/k8s/clusters/:clusterId/priorityclasses/:name
-// 获取 PriorityClass 详情
+// 获取 PriorityClass 详情.
 func (h *K8sAPIHandler) GetPriorityClass(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	pcName := c.Query("name")
@@ -2710,7 +2710,7 @@ func (h *K8sAPIHandler) GetPriorityClass(c *gin.Context) {
 }
 
 // DeletePriorityClass DELETE /api/k8s/clusters/:clusterId/priorityclasses/:name
-// 删除 PriorityClass
+// 删除 PriorityClass.
 func (h *K8sAPIHandler) DeletePriorityClass(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	pcName := c.Query("name")
@@ -2740,7 +2740,7 @@ func (h *K8sAPIHandler) DeletePriorityClass(c *gin.Context) {
 // ===========================
 
 // ListRoles GET /api/k8s/clusters/:clusterId/namespaces/:namespace/roles
-// 获取 Role 列表
+// 获取 Role 列表.
 func (h *K8sAPIHandler) ListRoles(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2773,7 +2773,7 @@ func (h *K8sAPIHandler) ListRoles(c *gin.Context) {
 }
 
 // GetRole GET /api/k8s/clusters/:clusterId/namespaces/:namespace/roles/:name
-// 获取 Role 详情
+// 获取 Role 详情.
 func (h *K8sAPIHandler) GetRole(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2801,7 +2801,7 @@ func (h *K8sAPIHandler) GetRole(c *gin.Context) {
 }
 
 // DeleteRole DELETE /api/k8s/clusters/:clusterId/namespaces/:namespace/roles/:name
-// 删除 Role
+// 删除 Role.
 func (h *K8sAPIHandler) DeleteRole(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2834,7 +2834,7 @@ func (h *K8sAPIHandler) DeleteRole(c *gin.Context) {
 // ===========================
 
 // ListStorageClasses GET /api/k8s/clusters/:clusterId/storageclasses
-// 获取 StorageClass 列表
+// 获取 StorageClass 列表.
 func (h *K8sAPIHandler) ListStorageClasses(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	params := pagination.Parse(c)
@@ -2866,7 +2866,7 @@ func (h *K8sAPIHandler) ListStorageClasses(c *gin.Context) {
 }
 
 // GetStorageClass GET /api/k8s/clusters/:clusterId/storageclasses/:name
-// 获取 StorageClass 详情
+// 获取 StorageClass 详情.
 func (h *K8sAPIHandler) GetStorageClass(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	name := c.Query("name")
@@ -2901,7 +2901,7 @@ func (h *K8sAPIHandler) GetStorageClass(c *gin.Context) {
 }
 
 // DeleteStorageClass DELETE /api/k8s/clusters/:clusterId/storageclasses/:name
-// 删除 StorageClass
+// 删除 StorageClass.
 func (h *K8sAPIHandler) DeleteStorageClass(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	name := c.Query("name")
@@ -2941,7 +2941,7 @@ func (h *K8sAPIHandler) DeleteStorageClass(c *gin.Context) {
 // ===========================
 
 // ListJobs GET /api/k8s/jobs
-// 获取 Job 列表
+// 获取 Job 列表.
 func (h *K8sAPIHandler) ListJobs(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -2974,7 +2974,7 @@ func (h *K8sAPIHandler) ListJobs(c *gin.Context) {
 }
 
 // GetJob GET /api/k8s/job
-// 获取 Job 详情
+// 获取 Job 详情.
 func (h *K8sAPIHandler) GetJob(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3002,7 +3002,7 @@ func (h *K8sAPIHandler) GetJob(c *gin.Context) {
 }
 
 // CreateJob POST /api/k8s/jobs
-// 创建 Job
+// 创建 Job.
 func (h *K8sAPIHandler) CreateJob(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3035,7 +3035,7 @@ func (h *K8sAPIHandler) CreateJob(c *gin.Context) {
 }
 
 // DeleteJob DELETE /api/k8s/job
-// 删除 Job
+// 删除 Job.
 func (h *K8sAPIHandler) DeleteJob(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3068,7 +3068,7 @@ func (h *K8sAPIHandler) DeleteJob(c *gin.Context) {
 // ===========================
 
 // ListCronJobs GET /api/k8s/cronjobs
-// 获取 CronJob 列表
+// 获取 CronJob 列表.
 func (h *K8sAPIHandler) ListCronJobs(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3101,7 +3101,7 @@ func (h *K8sAPIHandler) ListCronJobs(c *gin.Context) {
 }
 
 // GetCronJob GET /api/k8s/cronjob
-// 获取 CronJob 详情
+// 获取 CronJob 详情.
 func (h *K8sAPIHandler) GetCronJob(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3129,7 +3129,7 @@ func (h *K8sAPIHandler) GetCronJob(c *gin.Context) {
 }
 
 // CreateCronJob POST /api/k8s/cronjobs
-// 创建 CronJob
+// 创建 CronJob.
 func (h *K8sAPIHandler) CreateCronJob(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3162,7 +3162,7 @@ func (h *K8sAPIHandler) CreateCronJob(c *gin.Context) {
 }
 
 // UpdateCronJob PUT /api/k8s/cronjob
-// 更新 CronJob
+// 更新 CronJob.
 func (h *K8sAPIHandler) UpdateCronJob(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3195,7 +3195,7 @@ func (h *K8sAPIHandler) UpdateCronJob(c *gin.Context) {
 }
 
 // DeleteCronJob DELETE /api/k8s/cronjob
-// 删除 CronJob
+// 删除 CronJob.
 func (h *K8sAPIHandler) DeleteCronJob(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3228,7 +3228,7 @@ func (h *K8sAPIHandler) DeleteCronJob(c *gin.Context) {
 // ===========================
 
 // ListIngresses GET /api/k8s/ingresses
-// 获取 Ingress 列表
+// 获取 Ingress 列表.
 func (h *K8sAPIHandler) ListIngresses(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3261,7 +3261,7 @@ func (h *K8sAPIHandler) ListIngresses(c *gin.Context) {
 }
 
 // GetIngress GET /api/k8s/ingress
-// 获取 Ingress 详情
+// 获取 Ingress 详情.
 func (h *K8sAPIHandler) GetIngress(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3289,7 +3289,7 @@ func (h *K8sAPIHandler) GetIngress(c *gin.Context) {
 }
 
 // CreateIngress POST /api/k8s/ingresses
-// 创建 Ingress
+// 创建 Ingress.
 func (h *K8sAPIHandler) CreateIngress(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3322,7 +3322,7 @@ func (h *K8sAPIHandler) CreateIngress(c *gin.Context) {
 }
 
 // UpdateIngress PUT /api/k8s/ingress
-// 更新 Ingress
+// 更新 Ingress.
 func (h *K8sAPIHandler) UpdateIngress(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3355,7 +3355,7 @@ func (h *K8sAPIHandler) UpdateIngress(c *gin.Context) {
 }
 
 // DeleteIngress DELETE /api/k8s/ingress
-// 删除 Ingress
+// 删除 Ingress.
 func (h *K8sAPIHandler) DeleteIngress(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3388,7 +3388,7 @@ func (h *K8sAPIHandler) DeleteIngress(c *gin.Context) {
 // ===========================
 
 // ListNetworkPolicies GET /api/k8s/networkpolicies
-// 获取 NetworkPolicy 列表
+// 获取 NetworkPolicy 列表.
 func (h *K8sAPIHandler) ListNetworkPolicies(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3421,7 +3421,7 @@ func (h *K8sAPIHandler) ListNetworkPolicies(c *gin.Context) {
 }
 
 // GetNetworkPolicy GET /api/k8s/networkpolicy
-// 获取 NetworkPolicy 详情
+// 获取 NetworkPolicy 详情.
 func (h *K8sAPIHandler) GetNetworkPolicy(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3449,7 +3449,7 @@ func (h *K8sAPIHandler) GetNetworkPolicy(c *gin.Context) {
 }
 
 // CreateNetworkPolicy POST /api/k8s/networkpolicies
-// 创建 NetworkPolicy
+// 创建 NetworkPolicy.
 func (h *K8sAPIHandler) CreateNetworkPolicy(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3482,7 +3482,7 @@ func (h *K8sAPIHandler) CreateNetworkPolicy(c *gin.Context) {
 }
 
 // UpdateNetworkPolicy PUT /api/k8s/networkpolicy
-// 更新 NetworkPolicy
+// 更新 NetworkPolicy.
 func (h *K8sAPIHandler) UpdateNetworkPolicy(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3515,7 +3515,7 @@ func (h *K8sAPIHandler) UpdateNetworkPolicy(c *gin.Context) {
 }
 
 // DeleteNetworkPolicy DELETE /api/k8s/networkpolicy
-// 删除 NetworkPolicy
+// 删除 NetworkPolicy.
 func (h *K8sAPIHandler) DeleteNetworkPolicy(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3548,7 +3548,7 @@ func (h *K8sAPIHandler) DeleteNetworkPolicy(c *gin.Context) {
 // ===========================
 
 // ListReplicaSets GET /api/k8s/replicasets
-// 获取 ReplicaSet 列表
+// 获取 ReplicaSet 列表.
 func (h *K8sAPIHandler) ListReplicaSets(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3581,7 +3581,7 @@ func (h *K8sAPIHandler) ListReplicaSets(c *gin.Context) {
 }
 
 // GetReplicaSet GET /api/k8s/replicaset
-// 获取 ReplicaSet 详情
+// 获取 ReplicaSet 详情.
 func (h *K8sAPIHandler) GetReplicaSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3609,7 +3609,7 @@ func (h *K8sAPIHandler) GetReplicaSet(c *gin.Context) {
 }
 
 // ScaleReplicaSet PUT /api/k8s/replicaset/scale
-// 扩缩容 ReplicaSet
+// 扩缩容 ReplicaSet.
 func (h *K8sAPIHandler) ScaleReplicaSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3658,7 +3658,7 @@ func (h *K8sAPIHandler) ScaleReplicaSet(c *gin.Context) {
 }
 
 // DeleteReplicaSet DELETE /api/k8s/replicaset
-// 删除 ReplicaSet
+// 删除 ReplicaSet.
 func (h *K8sAPIHandler) DeleteReplicaSet(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3691,7 +3691,7 @@ func (h *K8sAPIHandler) DeleteReplicaSet(c *gin.Context) {
 // ===========================
 
 // ListLimitRanges GET /api/k8s/limitranges
-// 获取 LimitRange 列表
+// 获取 LimitRange 列表.
 func (h *K8sAPIHandler) ListLimitRanges(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3719,7 +3719,7 @@ func (h *K8sAPIHandler) ListLimitRanges(c *gin.Context) {
 }
 
 // GetLimitRange GET /api/k8s/limitrange
-// 获取 LimitRange 详情
+// 获取 LimitRange 详情.
 func (h *K8sAPIHandler) GetLimitRange(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3747,7 +3747,7 @@ func (h *K8sAPIHandler) GetLimitRange(c *gin.Context) {
 }
 
 // DeleteLimitRange DELETE /api/k8s/limitrange
-// 删除 LimitRange
+// 删除 LimitRange.
 func (h *K8sAPIHandler) DeleteLimitRange(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3780,7 +3780,7 @@ func (h *K8sAPIHandler) DeleteLimitRange(c *gin.Context) {
 // ===========================
 
 // ListServiceAccounts GET /api/k8s/serviceaccounts
-// 获取 ServiceAccount 列表
+// 获取 ServiceAccount 列表.
 func (h *K8sAPIHandler) ListServiceAccounts(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3808,7 +3808,7 @@ func (h *K8sAPIHandler) ListServiceAccounts(c *gin.Context) {
 }
 
 // GetServiceAccount GET /api/k8s/serviceaccount
-// 获取 ServiceAccount 详情
+// 获取 ServiceAccount 详情.
 func (h *K8sAPIHandler) GetServiceAccount(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3836,7 +3836,7 @@ func (h *K8sAPIHandler) GetServiceAccount(c *gin.Context) {
 }
 
 // DeleteServiceAccount DELETE /api/k8s/serviceaccount
-// 删除 ServiceAccount
+// 删除 ServiceAccount.
 func (h *K8sAPIHandler) DeleteServiceAccount(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3869,7 +3869,7 @@ func (h *K8sAPIHandler) DeleteServiceAccount(c *gin.Context) {
 // ===========================
 
 // ListClusterRoleBindings GET /api/k8s/clusterrolebindings
-// 获取 ClusterRoleBinding 列表
+// 获取 ClusterRoleBinding 列表.
 func (h *K8sAPIHandler) ListClusterRoleBindings(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	params := pagination.Parse(c)
@@ -3894,7 +3894,7 @@ func (h *K8sAPIHandler) ListClusterRoleBindings(c *gin.Context) {
 }
 
 // GetClusterRoleBinding GET /api/k8s/clusterrolebinding
-// 获取 ClusterRoleBinding 详情
+// 获取 ClusterRoleBinding 详情.
 func (h *K8sAPIHandler) GetClusterRoleBinding(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	clusterrolebindingName := c.Query("name")
@@ -3919,7 +3919,7 @@ func (h *K8sAPIHandler) GetClusterRoleBinding(c *gin.Context) {
 }
 
 // DeleteClusterRoleBinding DELETE /api/k8s/clusterrolebinding
-// 删除 ClusterRoleBinding
+// 删除 ClusterRoleBinding.
 func (h *K8sAPIHandler) DeleteClusterRoleBinding(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	clusterrolebindingName := c.Query("name")
@@ -3949,7 +3949,7 @@ func (h *K8sAPIHandler) DeleteClusterRoleBinding(c *gin.Context) {
 // ===========================
 
 // ListResourceQuotas GET /api/k8s/resourcequotas
-// 获取 ResourceQuota 列表
+// 获取 ResourceQuota 列表.
 func (h *K8sAPIHandler) ListResourceQuotas(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -3977,7 +3977,7 @@ func (h *K8sAPIHandler) ListResourceQuotas(c *gin.Context) {
 }
 
 // GetResourceQuota GET /api/k8s/resourcequota
-// 获取 ResourceQuota 详情
+// 获取 ResourceQuota 详情.
 func (h *K8sAPIHandler) GetResourceQuota(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")
@@ -4005,7 +4005,7 @@ func (h *K8sAPIHandler) GetResourceQuota(c *gin.Context) {
 }
 
 // DeleteResourceQuota DELETE /api/k8s/resourcequota
-// 删除 ResourceQuota
+// 删除 ResourceQuota.
 func (h *K8sAPIHandler) DeleteResourceQuota(c *gin.Context) {
 	clusterID := c.Query("clusterId")
 	namespace := c.Query("namespace")

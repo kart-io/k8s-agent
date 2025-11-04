@@ -10,14 +10,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// EmailClientInitializer Email 客户端初始化器
+// EmailClientInitializer Email 客户端初始化器.
 type EmailClientInitializer struct {
 	cfg    *config.Config
 	logger core.Logger
 	client email.Client
 }
 
-// NewEmailClientInitializer 创建 Email 客户端初始化器
+// NewEmailClientInitializer 创建 Email 客户端初始化器.
 func NewEmailClientInitializer(
 	cfg *config.Config,
 	logger core.Logger,
@@ -28,17 +28,17 @@ func NewEmailClientInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (e *EmailClientInitializer) Name() string {
 	return "email-client"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (e *EmailClientInitializer) Priority() int {
 	return bootstrap.PriorityMQ - 50 // 450
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (e *EmailClientInitializer) Initialize(ctx context.Context) error {
 	e.logger.Infow("Initializing Email client",
 		"smtp_host", e.cfg.Email.SMTPHost,
@@ -76,13 +76,13 @@ func (e *EmailClientInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭客户端
+// Close 关闭客户端.
 func (e *EmailClientInitializer) Close(ctx context.Context) error {
 	e.logger.Infow("Closing Email client")
 	return nil
 }
 
-// Client 获取客户端实例
+// Client 获取客户端实例.
 func (e *EmailClientInitializer) Client() email.Client {
 	return e.client
 }

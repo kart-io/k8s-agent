@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-// K8sTool K8s 工具实现
+// K8sTool K8s 工具实现.
 type K8sTool struct {
 	config *ToolConfig
 	// 在实际实现中，这里会包含 client-go 的 clientset
 	// clientset kubernetes.Interface
 }
 
-// NewK8sTool 创建新的 K8s 工具
+// NewK8sTool 创建新的 K8s 工具.
 func NewK8sTool(config *ToolConfig) (*K8sTool, error) {
 	if config == nil {
 		config = DefaultToolConfig()
@@ -41,17 +41,17 @@ func NewK8sTool(config *ToolConfig) (*K8sTool, error) {
 	return tool, nil
 }
 
-// Name 返回工具名称
+// Name 返回工具名称.
 func (t *K8sTool) Name() string {
 	return "k8s_tool"
 }
 
-// Description 返回工具描述
+// Description 返回工具描述.
 func (t *K8sTool) Description() string {
 	return "Kubernetes cluster interaction tool for querying pods, deployments, services, logs, events, and metrics"
 }
 
-// Execute 执行工具操作
+// Execute 执行工具操作.
 func (t *K8sTool) Execute(ctx context.Context, input *ToolInput) (*ToolOutput, error) {
 	if input == nil {
 		return nil, fmt.Errorf("input is nil")
@@ -124,7 +124,7 @@ func (t *K8sTool) Execute(ctx context.Context, input *ToolInput) (*ToolOutput, e
 	}, nil
 }
 
-// getResource 获取单个资源
+// getResource 获取单个资源.
 func (t *K8sTool) getResource(ctx context.Context, input *ToolInput) (interface{}, error) {
 	// 这是一个模拟实现
 	// 在实际实现中，会调用 client-go:
@@ -149,13 +149,13 @@ func (t *K8sTool) getResource(ctx context.Context, input *ToolInput) (interface{
 	}
 }
 
-// describeResource 描述资源详情
+// describeResource 描述资源详情.
 func (t *K8sTool) describeResource(ctx context.Context, input *ToolInput) (interface{}, error) {
 	// describe 操作返回更详细的信息
 	return t.getResource(ctx, input)
 }
 
-// getLogs 获取 Pod 日志
+// getLogs 获取 Pod 日志.
 func (t *K8sTool) getLogs(ctx context.Context, input *ToolInput) (interface{}, error) {
 	if input.ResourceType != "pod" {
 		return nil, fmt.Errorf("logs only supported for pods")
@@ -184,7 +184,7 @@ func (t *K8sTool) getLogs(ctx context.Context, input *ToolInput) (interface{}, e
 	}, nil
 }
 
-// getEvents 获取资源事件
+// getEvents 获取资源事件.
 func (t *K8sTool) getEvents(ctx context.Context, input *ToolInput) (interface{}, error) {
 	// 模拟实现
 	// 在实际实现中:
@@ -196,7 +196,7 @@ func (t *K8sTool) getEvents(ctx context.Context, input *ToolInput) (interface{},
 	return t.getMockEvents(input.Namespace, input.ResourceName), nil
 }
 
-// listResources 列出资源
+// listResources 列出资源.
 func (t *K8sTool) listResources(ctx context.Context, input *ToolInput) (interface{}, error) {
 	// 模拟实现
 	// 在实际实现中:
@@ -216,7 +216,7 @@ func (t *K8sTool) listResources(ctx context.Context, input *ToolInput) (interfac
 	}
 }
 
-// getMetrics 获取资源指标
+// getMetrics 获取资源指标.
 func (t *K8sTool) getMetrics(ctx context.Context, input *ToolInput) (interface{}, error) {
 	// 模拟实现
 	// 在实际实现中，会使用 metrics-server API
@@ -224,13 +224,13 @@ func (t *K8sTool) getMetrics(ctx context.Context, input *ToolInput) (interface{}
 	return t.getMockMetrics(input.Namespace, input.ResourceName, input.ResourceType), nil
 }
 
-// getTop 获取资源使用情况 (类似 kubectl top)
+// getTop 获取资源使用情况 (类似 kubectl top).
 func (t *K8sTool) getTop(ctx context.Context, input *ToolInput) (interface{}, error) {
 	// 模拟实现
 	return t.getMetrics(ctx, input)
 }
 
-// createErrorOutput 创建错误输出
+// createErrorOutput 创建错误输出.
 func (t *K8sTool) createErrorOutput(action string, err error) *ToolOutput {
 	return &ToolOutput{
 		Success:   false,
@@ -242,7 +242,7 @@ func (t *K8sTool) createErrorOutput(action string, err error) *ToolOutput {
 	}
 }
 
-// parseLogsOptions 解析日志选项
+// parseLogsOptions 解析日志选项.
 func (t *K8sTool) parseLogsOptions(params map[string]string) *LogsOptions {
 	opts := &LogsOptions{
 		TailLines: t.config.MaxLogLines,
@@ -261,7 +261,7 @@ func (t *K8sTool) parseLogsOptions(params map[string]string) *LogsOptions {
 	return opts
 }
 
-// validateConfig 验证配置
+// validateConfig 验证配置.
 func validateConfig(config *ToolConfig) error {
 	if config.Timeout < 0 {
 		return fmt.Errorf("timeout cannot be negative")
@@ -274,7 +274,7 @@ func validateConfig(config *ToolConfig) error {
 	return nil
 }
 
-// validateInput 验证输入
+// validateInput 验证输入.
 func validateInput(input *ToolInput) error {
 	if input.Action == "" {
 		return fmt.Errorf("action is required")
@@ -322,7 +322,7 @@ func validateInput(input *ToolInput) error {
 	return nil
 }
 
-// DefaultToolConfig 返回默认配置
+// DefaultToolConfig 返回默认配置.
 func DefaultToolConfig() *ToolConfig {
 	return &ToolConfig{
 		KubeconfigPath:   "", // 使用默认路径

@@ -3,7 +3,7 @@ package config
 import commoncore "github.com/kart-io/k8s-agent/common/core"
 
 // Config is an alias for Options for backward compatibility
-// Deprecated: Use Options instead
+// Deprecated: Use Options instead.
 type Config = Options
 
 // Load loads configuration from file and environment variables

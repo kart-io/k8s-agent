@@ -10,7 +10,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/memory"
 )
 
-// Orchestrator 协调所有分析组件的主控制器
+// Orchestrator 协调所有分析组件的主控制器.
 type Orchestrator struct {
 	// Agents
 	reasoningAgent *reasoning.ReasoningAgent
@@ -29,7 +29,7 @@ type Orchestrator struct {
 	config *OrchestratorConfig
 }
 
-// OrchestratorConfig Orchestrator 配置
+// OrchestratorConfig Orchestrator 配置.
 type OrchestratorConfig struct {
 	// 功能开关
 	EnableMemory      bool `json:"enable_memory"`      // 是否启用 Memory 系统
@@ -52,7 +52,7 @@ type OrchestratorConfig struct {
 	ToolAgentTimeout   time.Duration `json:"tool_agent_timeout"`  // Tool Agent 超时
 }
 
-// AnalysisRequest Orchestrator 分析请求
+// AnalysisRequest Orchestrator 分析请求.
 type AnalysisRequest struct {
 	// 基本信息
 	SessionID    string    `json:"session_id"`    // 会话 ID
@@ -75,7 +75,7 @@ type AnalysisRequest struct {
 	ResourceStatus map[string]string     `json:"resource_status"`
 }
 
-// AnalysisResponse Orchestrator 分析响应
+// AnalysisResponse Orchestrator 分析响应.
 type AnalysisResponse struct {
 	// 分析结果
 	RootCause   *root_cause.AnalysisOutput     `json:"root_cause"`  // 根因分析
@@ -95,7 +95,7 @@ type AnalysisResponse struct {
 	PartialError string `json:"partial_error,omitempty"` // 部分失败信息
 }
 
-// ExecutionStep 执行步骤
+// ExecutionStep 执行步骤.
 type ExecutionStep struct {
 	Step        int           `json:"step"`            // 步骤编号
 	Name        string        `json:"name"`            // 步骤名称
@@ -105,7 +105,7 @@ type ExecutionStep struct {
 	Error       string        `json:"error,omitempty"` // 错误信息
 }
 
-// DefaultOrchestratorConfig 返回默认配置
+// DefaultOrchestratorConfig 返回默认配置.
 func DefaultOrchestratorConfig() *OrchestratorConfig {
 	return &OrchestratorConfig{
 		EnableMemory:       true,

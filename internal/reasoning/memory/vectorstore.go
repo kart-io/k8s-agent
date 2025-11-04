@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// InMemoryVectorStore 内存向量存储实现
+// InMemoryVectorStore 内存向量存储实现.
 type InMemoryVectorStore struct {
 	// vectors 存储向量数据
 	vectors map[string]*vectorEntry
@@ -20,14 +20,14 @@ type InMemoryVectorStore struct {
 	mu sync.RWMutex
 }
 
-// vectorEntry 向量条目
+// vectorEntry 向量条目.
 type vectorEntry struct {
 	ID        string
 	Embedding []float64
 	Metadata  map[string]interface{}
 }
 
-// NewInMemoryVectorStore 创建新的内存向量存储
+// NewInMemoryVectorStore 创建新的内存向量存储.
 func NewInMemoryVectorStore(config *VectorStoreConfig) (*InMemoryVectorStore, error) {
 	if config == nil {
 		config = &VectorStoreConfig{
@@ -49,13 +49,13 @@ func NewInMemoryVectorStore(config *VectorStoreConfig) (*InMemoryVectorStore, er
 	return vs, nil
 }
 
-// Add 添加向量
+// Add 添加向量.
 func (vs *InMemoryVectorStore) Add(ctx context.Context, id string, embedding []float64, metadata map[string]interface{}) error {
 	if id == "" {
 		return fmt.Errorf("id is required")
 	}
 
-	if embedding == nil || len(embedding) == 0 {
+	if len(embedding) == 0 {
 		return fmt.Errorf("embedding is required")
 	}
 
@@ -85,9 +85,9 @@ func (vs *InMemoryVectorStore) Add(ctx context.Context, id string, embedding []f
 	return nil
 }
 
-// Search 搜索相似向量
+// Search 搜索相似向量.
 func (vs *InMemoryVectorStore) Search(ctx context.Context, embedding []float64, limit int) ([]*SearchResult, error) {
-	if embedding == nil || len(embedding) == 0 {
+	if len(embedding) == 0 {
 		return nil, fmt.Errorf("embedding is required")
 	}
 
@@ -139,7 +139,7 @@ func (vs *InMemoryVectorStore) Search(ctx context.Context, embedding []float64, 
 	return results, nil
 }
 
-// Delete 删除向量
+// Delete 删除向量.
 func (vs *InMemoryVectorStore) Delete(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("id is required")
@@ -157,7 +157,7 @@ func (vs *InMemoryVectorStore) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// Clear 清空存储
+// Clear 清空存储.
 func (vs *InMemoryVectorStore) Clear(ctx context.Context) error {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()
@@ -167,7 +167,7 @@ func (vs *InMemoryVectorStore) Clear(ctx context.Context) error {
 	return nil
 }
 
-// cosineSimilarity 计算余弦相似度
+// cosineSimilarity 计算余弦相似度.
 func cosineSimilarity(a, b []float64) float64 {
 	if len(a) != len(b) {
 		return 0.0

@@ -8,7 +8,7 @@ import (
 // Mock 数据生成方法
 // 这些方法在实际实现中会被替换为真实的 K8s API 调用
 
-// getMockPodInfo 获取模拟的 Pod 信息
+// getMockPodInfo 获取模拟的 Pod 信息.
 func (t *K8sTool) getMockPodInfo(namespace, name string) *PodInfo {
 	return &PodInfo{
 		Name:      name,
@@ -58,7 +58,7 @@ func (t *K8sTool) getMockPodInfo(namespace, name string) *PodInfo {
 	}
 }
 
-// getMockDeploymentInfo 获取模拟的 Deployment 信息
+// getMockDeploymentInfo 获取模拟的 Deployment 信息.
 func (t *K8sTool) getMockDeploymentInfo(namespace, name string) *DeploymentInfo {
 	return &DeploymentInfo{
 		Name:              name,
@@ -88,7 +88,7 @@ func (t *K8sTool) getMockDeploymentInfo(namespace, name string) *DeploymentInfo 
 	}
 }
 
-// getMockServiceInfo 获取模拟的 Service 信息
+// getMockServiceInfo 获取模拟的 Service 信息.
 func (t *K8sTool) getMockServiceInfo(namespace, name string) *ServiceInfo {
 	return &ServiceInfo{
 		Name:       name,
@@ -114,7 +114,7 @@ func (t *K8sTool) getMockServiceInfo(namespace, name string) *ServiceInfo {
 	}
 }
 
-// getMockNodeInfo 获取模拟的 Node 信息
+// getMockNodeInfo 获取模拟的 Node 信息.
 func (t *K8sTool) getMockNodeInfo(name string) *NodeInfo {
 	return &NodeInfo{
 		Name:             name,
@@ -154,7 +154,7 @@ func (t *K8sTool) getMockNodeInfo(name string) *NodeInfo {
 	}
 }
 
-// getMockLogs 获取模拟的日志
+// getMockLogs 获取模拟的日志.
 func (t *K8sTool) getMockLogs(podName string, opts *LogsOptions) string {
 	timestamp := ""
 	if opts.Timestamps {
@@ -186,7 +186,7 @@ func (t *K8sTool) getMockLogs(podName string, opts *LogsOptions) string {
 	return logs
 }
 
-// getMockEvents 获取模拟的事件
+// getMockEvents 获取模拟的事件.
 func (t *K8sTool) getMockEvents(namespace, resourceName string) []EventInfo {
 	return []EventInfo{
 		{
@@ -232,7 +232,7 @@ func (t *K8sTool) getMockEvents(namespace, resourceName string) []EventInfo {
 	}
 }
 
-// getMockPodList 获取模拟的 Pod 列表
+// getMockPodList 获取模拟的 Pod 列表.
 func (t *K8sTool) getMockPodList(namespace string) []PodInfo {
 	return []PodInfo{
 		*t.getMockPodInfo(namespace, "test-pod-1"),
@@ -241,7 +241,7 @@ func (t *K8sTool) getMockPodList(namespace string) []PodInfo {
 	}
 }
 
-// getMockDeploymentList 获取模拟的 Deployment 列表
+// getMockDeploymentList 获取模拟的 Deployment 列表.
 func (t *K8sTool) getMockDeploymentList(namespace string) []DeploymentInfo {
 	return []DeploymentInfo{
 		*t.getMockDeploymentInfo(namespace, "test-deployment-1"),
@@ -249,7 +249,7 @@ func (t *K8sTool) getMockDeploymentList(namespace string) []DeploymentInfo {
 	}
 }
 
-// getMockMetrics 获取模拟的指标
+// getMockMetrics 获取模拟的指标.
 func (t *K8sTool) getMockMetrics(namespace, resourceName, resourceType string) *MetricsInfo {
 	return &MetricsInfo{
 		ResourceType: resourceType,

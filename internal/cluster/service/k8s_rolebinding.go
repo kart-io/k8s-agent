@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sRoleBindingService RoleBinding 管理服务
+// K8sRoleBindingService RoleBinding 管理服务.
 type K8sRoleBindingService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sRoleBindingService 创建新的 RoleBinding 服务
+// NewK8sRoleBindingService 创建新的 RoleBinding 服务.
 func NewK8sRoleBindingService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sRoleBindingService {
 	return &K8sRoleBindingService{
 		storage:        storage,
@@ -25,7 +25,7 @@ func NewK8sRoleBindingService(storage *storage.MySQLStorage, clusterService *K8s
 	}
 }
 
-// RoleBindingInfo RoleBinding 信息
+// RoleBindingInfo RoleBinding 信息.
 type RoleBindingInfo struct {
 	Name         string            `json:"name"`
 	Namespace    string            `json:"namespace"`
@@ -35,7 +35,7 @@ type RoleBindingInfo struct {
 	CreatedAt    string            `json:"createdAt"`
 }
 
-// ListRoleBindings 获取 RoleBinding 列表
+// ListRoleBindings 获取 RoleBinding 列表.
 func (s *K8sRoleBindingService) ListRoleBindings(ctx context.Context, clusterID, namespace string, offset, limit int) ([]RoleBindingInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -63,14 +63,14 @@ func (s *K8sRoleBindingService) ListRoleBindings(ctx context.Context, clusterID,
 
 	// 转换为 RoleBindingInfo
 	result := make([]RoleBindingInfo, 0, len(pagedRoleBindings))
-	for _, rb := range pagedRoleBindings {
-		result = append(result, convertToRoleBindingInfo(&rb))
+	for i := range pagedRoleBindings {
+		result = append(result, convertToRoleBindingInfo(&pagedRoleBindings[i]))
 	}
 
 	return result, total, nil
 }
 
-// GetRoleBinding 获取单个 RoleBinding 详情
+// GetRoleBinding 获取单个 RoleBinding 详情.
 func (s *K8sRoleBindingService) GetRoleBinding(ctx context.Context, clusterID, namespace, name string) (*rbacv1.RoleBinding, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *K8sRoleBindingService) GetRoleBinding(ctx context.Context, clusterID, n
 	return rb, nil
 }
 
-// DeleteRoleBinding 删除 RoleBinding
+// DeleteRoleBinding 删除 RoleBinding.
 func (s *K8sRoleBindingService) DeleteRoleBinding(ctx context.Context, clusterID, namespace, name string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -100,7 +100,7 @@ func (s *K8sRoleBindingService) DeleteRoleBinding(ctx context.Context, clusterID
 	return nil
 }
 
-// convertToRoleBindingInfo 转换 RoleBinding 为 RoleBindingInfo
+// convertToRoleBindingInfo 转换 RoleBinding 为 RoleBindingInfo.
 func convertToRoleBindingInfo(rb *rbacv1.RoleBinding) RoleBindingInfo {
 	roleRef := fmt.Sprintf("%s/%s", rb.RoleRef.Kind, rb.RoleRef.Name)
 

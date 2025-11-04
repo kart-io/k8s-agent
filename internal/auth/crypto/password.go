@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	// DefaultCost is the default bcrypt cost
+	// DefaultCost is the default bcrypt cost.
 	DefaultCost = 10
 )
 
-// HashPassword hashes a password using bcrypt
+// HashPassword hashes a password using bcrypt.
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), DefaultCost)
 	if err != nil {
@@ -20,7 +20,7 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-// CheckPassword compares a hashed password with its plain text equivalent
+// CheckPassword compares a hashed password with its plain text equivalent.
 func CheckPassword(hashedPassword, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err != nil {

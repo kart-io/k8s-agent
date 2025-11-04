@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sIngressService Ingress 管理服务
+// K8sIngressService Ingress 管理服务.
 type K8sIngressService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sIngressService 创建新的 Ingress 服务
+// NewK8sIngressService 创建新的 Ingress 服务.
 func NewK8sIngressService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sIngressService {
 	return &K8sIngressService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sIngressService(storage *storage.MySQLStorage, clusterService *K8sClus
 	}
 }
 
-// IngressInfo Ingress 信息
+// IngressInfo Ingress 信息.
 type IngressInfo struct {
 	Name             string            `json:"name"`
 	Namespace        string            `json:"namespace"`
@@ -39,13 +39,13 @@ type IngressInfo struct {
 	CreatedAt        string            `json:"createdAt"`
 }
 
-// IngressRule Ingress 规则
+// IngressRule Ingress 规则.
 type IngressRule struct {
 	Host  string        `json:"host"`
 	Paths []IngressPath `json:"paths"`
 }
 
-// IngressPath Ingress 路径
+// IngressPath Ingress 路径.
 type IngressPath struct {
 	Path        string `json:"path"`
 	PathType    string `json:"pathType"`
@@ -53,13 +53,13 @@ type IngressPath struct {
 	ServicePort int32  `json:"servicePort"`
 }
 
-// IngressTLS Ingress TLS 配置
+// IngressTLS Ingress TLS 配置.
 type IngressTLS struct {
 	Hosts      []string `json:"hosts"`
 	SecretName string   `json:"secretName"`
 }
 
-// ListIngresses 获取 Ingress 列表
+// ListIngresses 获取 Ingress 列表.
 func (s *K8sIngressService) ListIngresses(ctx context.Context, clusterID, namespace string, offset, limit int) ([]IngressInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -92,7 +92,7 @@ func (s *K8sIngressService) ListIngresses(ctx context.Context, clusterID, namesp
 	return result, total, nil
 }
 
-// GetIngress 获取 Ingress 详情
+// GetIngress 获取 Ingress 详情.
 func (s *K8sIngressService) GetIngress(ctx context.Context, clusterID, namespace, ingressName string) (*IngressInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -108,7 +108,7 @@ func (s *K8sIngressService) GetIngress(ctx context.Context, clusterID, namespace
 	return &ingressInfo, nil
 }
 
-// CreateIngress 创建 Ingress
+// CreateIngress 创建 Ingress.
 func (s *K8sIngressService) CreateIngress(ctx context.Context, clusterID, namespace string, ingress *networkingv1.Ingress) (*IngressInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -130,7 +130,7 @@ func (s *K8sIngressService) CreateIngress(ctx context.Context, clusterID, namesp
 	return &ingressInfo, nil
 }
 
-// UpdateIngress 更新 Ingress
+// UpdateIngress 更新 Ingress.
 func (s *K8sIngressService) UpdateIngress(ctx context.Context, clusterID, namespace string, ingress *networkingv1.Ingress) (*IngressInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -152,7 +152,7 @@ func (s *K8sIngressService) UpdateIngress(ctx context.Context, clusterID, namesp
 	return &ingressInfo, nil
 }
 
-// DeleteIngress 删除 Ingress
+// DeleteIngress 删除 Ingress.
 func (s *K8sIngressService) DeleteIngress(ctx context.Context, clusterID, namespace, ingressName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -173,7 +173,7 @@ func (s *K8sIngressService) DeleteIngress(ctx context.Context, clusterID, namesp
 	return nil
 }
 
-// convertIngressInfo 转换 Ingress 信息
+// convertIngressInfo 转换 Ingress 信息.
 func (s *K8sIngressService) convertIngressInfo(ingress *networkingv1.Ingress) IngressInfo {
 	// 确保 Labels 和 Annotations 不为 nil
 	labels := ingress.Labels

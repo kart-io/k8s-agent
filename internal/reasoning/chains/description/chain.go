@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/llm/proxy"
 )
 
-// DescriptionChain 故障描述 Chain 实现
+// DescriptionChain 故障描述 Chain 实现.
 type DescriptionChain struct {
 	llmProxy *proxy.ProxyAdapter
 	config   *ChainConfig
 }
 
-// NewDescriptionChain 创建新的故障描述 Chain
+// NewDescriptionChain 创建新的故障描述 Chain.
 func NewDescriptionChain(llmProxy *proxy.ProxyAdapter, config *ChainConfig) (*DescriptionChain, error) {
 	if llmProxy == nil {
 		return nil, fmt.Errorf("llmProxy is nil")
@@ -39,7 +39,7 @@ func NewDescriptionChain(llmProxy *proxy.ProxyAdapter, config *ChainConfig) (*De
 	}, nil
 }
 
-// Generate 生成故障描述
+// Generate 生成故障描述.
 func (c *DescriptionChain) Generate(ctx context.Context, input *DescriptionInput) (*DescriptionOutput, error) {
 	if input == nil {
 		return nil, fmt.Errorf("input is nil")
@@ -120,7 +120,7 @@ func (c *DescriptionChain) Generate(ctx context.Context, input *DescriptionInput
 	return output, nil
 }
 
-// buildPrompt 构建描述生成 Prompt
+// buildPrompt 构建描述生成 Prompt.
 func (c *DescriptionChain) buildPrompt(input *DescriptionInput) (string, error) {
 	var sb strings.Builder
 
@@ -301,7 +301,7 @@ func (c *DescriptionChain) buildPrompt(input *DescriptionInput) (string, error) 
 	return sb.String(), nil
 }
 
-// parseResponse 解析 LLM 响应
+// parseResponse 解析 LLM 响应.
 func (c *DescriptionChain) parseResponse(content string) (*DescriptionOutput, error) {
 	// 提取 JSON 内容
 	jsonContent := extractJSON(content)
@@ -334,7 +334,7 @@ func (c *DescriptionChain) parseResponse(content string) (*DescriptionOutput, er
 	return &output, nil
 }
 
-// getSystemPrompt 获取系统提示 (支持多语言)
+// getSystemPrompt 获取系统提示 (支持多语言).
 func (c *DescriptionChain) getSystemPrompt(language string) string {
 	if language == "zh" {
 		return `你是一名专业的 Kubernetes 故障分析专家,擅长生成清晰、准确的故障描述。
@@ -363,7 +363,7 @@ Your task is to generate professional failure descriptions based on provided inf
 Always respond in valid JSON format. Ensure descriptions are accurate, professional, and easy to understand.`
 }
 
-// getJSONSchema 获取 JSON 响应模板
+// getJSONSchema 获取 JSON 响应模板.
 func (c *DescriptionChain) getJSONSchema(language string, includeTimeline bool) string {
 	if language == "zh" {
 		schema := `{
@@ -427,7 +427,7 @@ func (c *DescriptionChain) getJSONSchema(language string, includeTimeline bool) 
 	return schema
 }
 
-// extractJSON 从文本中提取 JSON 内容
+// extractJSON 从文本中提取 JSON 内容.
 func extractJSON(content string) string {
 	content = strings.TrimSpace(content)
 
@@ -455,7 +455,7 @@ func extractJSON(content string) string {
 	return strings.TrimSpace(content)
 }
 
-// validateConfig 验证配置
+// validateConfig 验证配置.
 func validateConfig(config *ChainConfig) error {
 	if config.Temperature < 0 || config.Temperature > 2 {
 		return fmt.Errorf("temperature must be between 0 and 2")
@@ -487,7 +487,7 @@ func validateConfig(config *ChainConfig) error {
 	return nil
 }
 
-// validateInput 验证输入
+// validateInput 验证输入.
 func validateInput(input *DescriptionInput) error {
 	if input.Language != "" {
 		if _, ok := SupportedLanguages[input.Language]; !ok {
@@ -511,7 +511,7 @@ func validateInput(input *DescriptionInput) error {
 	return nil
 }
 
-// isValidSeverity 验证严重程度
+// isValidSeverity 验证严重程度.
 func isValidSeverity(severity string) bool {
 	for _, s := range SupportedSeverities {
 		if severity == s {
@@ -521,7 +521,7 @@ func isValidSeverity(severity string) bool {
 	return false
 }
 
-// DefaultChainConfig 返回默认配置
+// DefaultChainConfig 返回默认配置.
 func DefaultChainConfig() *ChainConfig {
 	return &ChainConfig{
 		Temperature:        0.5, // 较低温度以确保一致性

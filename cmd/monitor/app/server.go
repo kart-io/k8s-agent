@@ -19,7 +19,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// MonitorService represents the monitor service using common/server
+// MonitorService represents the monitor service using common/server.
 type MonitorService struct {
 	opts           *config.Options
 	log            core.Logger
@@ -29,7 +29,7 @@ type MonitorService struct {
 	server         commonserver.Server
 }
 
-// NewServer creates a new monitor service (使用 common/server)
+// NewServer creates a new monitor service (使用 common/server).
 func NewServer(opts *config.Options, log core.Logger) (*MonitorService, error) {
 	srv := &MonitorService{
 		opts: opts,
@@ -43,7 +43,7 @@ func NewServer(opts *config.Options, log core.Logger) (*MonitorService, error) {
 	return srv, nil
 }
 
-// initialize initializes all server components
+// initialize initializes all server components.
 func (s *MonitorService) initialize() error {
 	var err error
 
@@ -71,7 +71,9 @@ func (s *MonitorService) initialize() error {
 		PoolSize: s.opts.Redis.PoolSize,
 	}, s.log)
 	if err != nil {
-		s.pgStorage.Close()
+		if closeErr := s.pgStorage.Close(); closeErr != nil {
+			s.log.Errorw("Failed to close PostgreSQL storage", "error", closeErr)
+		}
 		return fmt.Errorf("failed to initialize Redis storage: %w", err)
 	}
 
@@ -111,7 +113,7 @@ func (s *MonitorService) initialize() error {
 	return nil
 }
 
-// setupRoutes sets up all API routes
+// setupRoutes sets up all API routes.
 func (s *MonitorService) setupRoutes(engine *gin.Engine, metricsHandler *handler.MetricsHandler) {
 	// 健康检查
 	engine.GET("/health", func(c *gin.Context) {
@@ -146,7 +148,7 @@ func (s *MonitorService) setupRoutes(engine *gin.Engine, metricsHandler *handler
 	s.log.Infow("Monitor API routes configured")
 }
 
-// Run starts the monitor service using common/server.Serve()
+// Run starts the monitor service using common/server.Serve().
 func (s *MonitorService) Run(ctx context.Context) error {
 	s.log.Infow("Starting Monitor Service",
 		"port", s.opts.Server.Port,
@@ -158,21 +160,29 @@ func (s *MonitorService) Run(ctx context.Context) error {
 	return commonserver.Serve(ctx, s.server, s.log)
 }
 
-// GetServer returns the server instance (实现 ServerProvider 接口)
+// GetServer returns the server instance (实现 ServerProvider 接口).
 func (s *MonitorService) GetServer() commonserver.Server {
 	return s.server
 }
 
-// Cleanup cleans up resources
+// Cleanup cleans up resources.
 func (s *MonitorService) Cleanup() error {
+	var lastErr error
+
 	if s.redisStorage != nil {
-		s.redisStorage.Close()
+		if err := s.redisStorage.Close(); err != nil {
+			s.log.Errorw("Failed to close Redis storage", "error", err)
+			lastErr = err
+		}
 	}
 
 	if s.pgStorage != nil {
-		s.pgStorage.Close()
+		if err := s.pgStorage.Close(); err != nil {
+			s.log.Errorw("Failed to close PostgreSQL storage", "error", err)
+			lastErr = err
+		}
 	}
 
 	s.log.Info("Monitor service resources cleaned up")
-	return nil
+	return lastErr
 }

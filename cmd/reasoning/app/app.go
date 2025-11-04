@@ -18,7 +18,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Execute runs the reasoning service command
+// Execute runs the reasoning service command.
 func Execute() {
 	// Create configuration options
 	opts := options.NewServerOptions()
@@ -40,7 +40,7 @@ func Execute() {
 	)
 }
 
-// ReasoningApp implements commonapp.Application interface
+// ReasoningApp implements commonapp.Application interface.
 type ReasoningApp struct {
 	config *reasoningconfig.Config
 	logger core.Logger
@@ -51,12 +51,12 @@ type ReasoningApp struct {
 	healthInit        *pkginitializers.HealthCheckInitializer
 }
 
-// Name returns the application name
+// Name returns the application name.
 func (a *ReasoningApp) Name() string {
 	return "Reasoning Service"
 }
 
-// Initialize initializes the application
+// Initialize initializes the application.
 func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// Convert configuration
 	serverOpts := opts.(*options.ServerOptions)
@@ -73,7 +73,7 @@ func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) e
 	return nil
 }
 
-// Run runs the application
+// Run runs the application.
 func (a *ReasoningApp) Run(ctx context.Context) error {
 	// The bootstrap framework handles running all servers
 	// This method can be used for additional application logic if needed
@@ -81,19 +81,21 @@ func (a *ReasoningApp) Run(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown gracefully shuts down the application
+// Shutdown gracefully shuts down the application.
 func (a *ReasoningApp) Shutdown(ctx context.Context) error {
 	// Bootstrap framework handles component shutdown
 	// This method can be used for additional cleanup if needed
 	return nil
 }
 
-// registerComponents registers all component initializers with bootstrap
+// registerComponents registers all component initializers with bootstrap.
 func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	// Get server options from bootstrap context
 	// For now, we'll need to recreate the options since bootstrap doesn't provide them directly
 	opts := options.NewServerOptions()
-	opts.Complete()
+	if err := opts.Complete(); err != nil {
+		return fmt.Errorf("failed to complete options: %w", err)
+	}
 
 	// 1. LLM Clients (priority 400)
 	a.llmInit = initializers.NewLLMInitializer(opts.LLM, a.logger)

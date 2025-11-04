@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sCronJobService CronJob 管理服务
+// K8sCronJobService CronJob 管理服务.
 type K8sCronJobService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sCronJobService 创建新的 CronJob 服务
+// NewK8sCronJobService 创建新的 CronJob 服务.
 func NewK8sCronJobService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sCronJobService {
 	return &K8sCronJobService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sCronJobService(storage *storage.MySQLStorage, clusterService *K8sClus
 	}
 }
 
-// CronJobInfo CronJob 信息
+// CronJobInfo CronJob 信息.
 type CronJobInfo struct {
 	Name                       string            `json:"name"`
 	Namespace                  string            `json:"namespace"`
@@ -42,7 +42,7 @@ type CronJobInfo struct {
 	CreatedAt                  string            `json:"createdAt"`
 }
 
-// ListCronJobs 获取 CronJob 列表
+// ListCronJobs 获取 CronJob 列表.
 func (s *K8sCronJobService) ListCronJobs(ctx context.Context, clusterID, namespace string, offset, limit int) ([]CronJobInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -75,7 +75,7 @@ func (s *K8sCronJobService) ListCronJobs(ctx context.Context, clusterID, namespa
 	return result, total, nil
 }
 
-// GetCronJob 获取 CronJob 详情
+// GetCronJob 获取 CronJob 详情.
 func (s *K8sCronJobService) GetCronJob(ctx context.Context, clusterID, namespace, cronjobName string) (*CronJobInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -91,7 +91,7 @@ func (s *K8sCronJobService) GetCronJob(ctx context.Context, clusterID, namespace
 	return &cronjobInfo, nil
 }
 
-// CreateCronJob 创建 CronJob
+// CreateCronJob 创建 CronJob.
 func (s *K8sCronJobService) CreateCronJob(ctx context.Context, clusterID, namespace string, cronjob *batchv1.CronJob) (*CronJobInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *K8sCronJobService) CreateCronJob(ctx context.Context, clusterID, namesp
 	return &cronjobInfo, nil
 }
 
-// UpdateCronJob 更新 CronJob
+// UpdateCronJob 更新 CronJob.
 func (s *K8sCronJobService) UpdateCronJob(ctx context.Context, clusterID, namespace string, cronjob *batchv1.CronJob) (*CronJobInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -135,7 +135,7 @@ func (s *K8sCronJobService) UpdateCronJob(ctx context.Context, clusterID, namesp
 	return &cronjobInfo, nil
 }
 
-// DeleteCronJob 删除 CronJob
+// DeleteCronJob 删除 CronJob.
 func (s *K8sCronJobService) DeleteCronJob(ctx context.Context, clusterID, namespace, cronjobName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *K8sCronJobService) DeleteCronJob(ctx context.Context, clusterID, namesp
 	return nil
 }
 
-// convertCronJobInfo 转换 CronJob 信息
+// convertCronJobInfo 转换 CronJob 信息.
 func (s *K8sCronJobService) convertCronJobInfo(cronjob *batchv1.CronJob) CronJobInfo {
 	cronjobInfo := CronJobInfo{
 		Name:                       cronjob.Name,

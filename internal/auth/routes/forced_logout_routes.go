@@ -7,7 +7,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/middleware"
 )
 
-// ForcedLogoutRoutes registers all forced logout related routes
+// ForcedLogoutRoutes registers all forced logout related routes.
 type ForcedLogoutRoutes struct {
 	sessionHandler      *handler.SessionHandler
 	forcedLogoutHandler *handler.ForcedLogoutHandler
@@ -17,7 +17,7 @@ type ForcedLogoutRoutes struct {
 	rateLimiter         *middleware.RateLimiter
 }
 
-// NewForcedLogoutRoutes creates a new forced logout routes instance
+// NewForcedLogoutRoutes creates a new forced logout routes instance.
 func NewForcedLogoutRoutes(
 	sessionHandler *handler.SessionHandler,
 	forcedLogoutHandler *handler.ForcedLogoutHandler,
@@ -36,7 +36,7 @@ func NewForcedLogoutRoutes(
 	}
 }
 
-// RegisterRoutes registers all forced logout routes under /api/v1
+// RegisterRoutes registers all forced logout routes under /api/v1.
 func (r *ForcedLogoutRoutes) RegisterRoutes(router *gin.Engine) {
 	// Create API v1 group
 	v1 := router.Group("/api/v1")
@@ -86,7 +86,7 @@ func (r *ForcedLogoutRoutes) RegisterRoutes(router *gin.Engine) {
 	}
 }
 
-// PrintRegisteredRoutes logs all registered forced logout routes
+// PrintRegisteredRoutes logs all registered forced logout routes.
 func (r *ForcedLogoutRoutes) PrintRegisteredRoutes() []string {
 	routes := []string{
 		"GET    /api/v1/sessions/users/:userId          - List user active sessions",

@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	// defaultDBTimeout 数据库操作默认超时时间
+	// defaultDBTimeout 数据库操作默认超时时间.
 	defaultDBTimeout = 5 * time.Second
 )
 
-// withTimeout 为context添加默认超时（如果尚未设置deadline）
+// withTimeout 为context添加默认超时（如果尚未设置deadline）.
 func withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 	if _, ok := ctx.Deadline(); ok {
 		// context已经有deadline，直接返回
@@ -29,7 +29,7 @@ func withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 }
 
 // PostgresStore implements MySQL storage
-// Note: Kept the name for backward compatibility, but now using MySQL
+// Note: Kept the name for backward compatibility, but now using MySQL.
 type PostgresStore struct {
 	db          *gorm.DB
 	logger      core.Logger
@@ -37,7 +37,7 @@ type PostgresStore struct {
 }
 
 // NewPostgresStore creates a new MySQL store using common/db
-// Note: Kept the name for backward compatibility, but now using MySQL
+// Note: Kept the name for backward compatibility, but now using MySQL.
 func NewPostgresStore(opts *options.DatabaseOptions, log core.Logger) (*PostgresStore, error) {
 	// 直接使用 db 包创建 MySQL 客户端
 	mysqlClient, err := commondb.NewMySQL(log,
@@ -81,7 +81,7 @@ func (s *PostgresStore) migrate() error {
 	)
 }
 
-// Workflow operations
+// Workflow operations.
 func (s *PostgresStore) SaveWorkflow(ctx context.Context, workflow *types.Workflow) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -110,7 +110,7 @@ func (s *PostgresStore) ListWorkflows(ctx context.Context) ([]*types.Workflow, e
 	return workflows, nil
 }
 
-// WorkflowExecution operations
+// WorkflowExecution operations.
 func (s *PostgresStore) SaveWorkflowExecution(ctx context.Context, execution *types.WorkflowExecution) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -137,7 +137,7 @@ func (s *PostgresStore) UpdateWorkflowExecutionStatus(ctx context.Context, id st
 		Update("status", status).Error
 }
 
-// Strategy operations
+// Strategy operations.
 func (s *PostgresStore) SaveStrategy(ctx context.Context, strategy *types.Strategy) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()

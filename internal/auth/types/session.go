@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// SessionInfo represents an active user session
+// SessionInfo represents an active user session.
 type SessionInfo struct {
 	JTI            string    `json:"jti"`
 	UserID         string    `json:"user_id"`
@@ -20,7 +20,7 @@ type SessionInfo struct {
 	ExpiresAt      time.Time `json:"expires_at"`
 }
 
-// RevokedSession represents a blacklisted session
+// RevokedSession represents a blacklisted session.
 type RevokedSession struct {
 	JTI       string    `json:"jti"`
 	UserID    string    `json:"user_id"`
@@ -30,7 +30,7 @@ type RevokedSession struct {
 	EventID   string    `json:"event_id"` // Links to audit event
 }
 
-// SessionListResponse represents the response for listing user sessions
+// SessionListResponse represents the response for listing user sessions.
 type SessionListResponse struct {
 	UserID     string        `json:"user_id"`
 	Username   string        `json:"username"`
@@ -39,7 +39,7 @@ type SessionListResponse struct {
 	Pagination *Pagination   `json:"pagination,omitempty"`
 }
 
-// Pagination holds pagination metadata
+// Pagination holds pagination metadata.
 type Pagination struct {
 	Limit   int  `json:"limit"`
 	Offset  int  `json:"offset"`
@@ -47,14 +47,14 @@ type Pagination struct {
 	HasMore bool `json:"has_more"`
 }
 
-// ForceLogoutRequest represents a forced logout request
+// ForceLogoutRequest represents a forced logout request.
 type ForceLogoutRequest struct {
 	Reason        string `json:"reason,omitempty"`                                                       // Optional reason
 	TriggeredBy   string `json:"triggered_by" binding:"omitempty,oneof=manual policy security_incident"` // manual, policy, security_incident
 	CorrelationID string `json:"correlation_id,omitempty"`                                               // Optional correlation ID
 }
 
-// ForceLogoutResponse represents the response after forced logout
+// ForceLogoutResponse represents the response after forced logout.
 type ForceLogoutResponse struct {
 	EventID        string    `json:"event_id"`
 	Success        bool      `json:"success"`
@@ -65,14 +65,14 @@ type ForceLogoutResponse struct {
 	Message        string    `json:"message"`
 }
 
-// BulkForceLogoutRequest represents a bulk logout request
+// BulkForceLogoutRequest represents a bulk logout request.
 type BulkForceLogoutRequest struct {
 	SessionJTIs []string `json:"session_jtis" binding:"required,min=1,max=100"`
 	Reason      string   `json:"reason,omitempty"`
 	TriggeredBy string   `json:"triggered_by" binding:"omitempty,oneof=manual policy security_incident"`
 }
 
-// BulkForceLogoutResponse represents bulk logout results
+// BulkForceLogoutResponse represents bulk logout results.
 type BulkForceLogoutResponse struct {
 	EventID        string                `json:"event_id"`
 	TotalRequested int                   `json:"total_requested"`
@@ -81,21 +81,21 @@ type BulkForceLogoutResponse struct {
 	Results        []SessionLogoutResult `json:"results"`
 }
 
-// SessionLogoutResult represents per-session logout result
+// SessionLogoutResult represents per-session logout result.
 type SessionLogoutResult struct {
 	JTI     string `json:"jti"`
 	Success bool   `json:"success"`
 	Error   string `json:"error,omitempty"`
 }
 
-// AuditEventListResponse represents audit event list response
+// AuditEventListResponse represents audit event list response.
 type AuditEventListResponse struct {
 	Total      int           `json:"total"`
 	Events     []interface{} `json:"events"` // Will be ForcedLogoutEvent
 	Pagination *Pagination   `json:"pagination,omitempty"`
 }
 
-// ErrorResponse represents API error response
+// ErrorResponse represents API error response.
 type ErrorResponse struct {
 	Error   string                 `json:"error"`
 	Message string                 `json:"message"`

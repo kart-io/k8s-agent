@@ -7,12 +7,12 @@ import (
 	"github.com/kart-io/k8s-agent/pkg/types"
 )
 
-// Load loads configuration from file and environment variables
+// Load loads configuration from file and environment variables.
 func Load() (*types.Config, error) {
 	return LoadFromPath("")
 }
 
-// LoadFromPath loads configuration from a specific file path
+// LoadFromPath loads configuration from a specific file path.
 func LoadFromPath(configPath string) (*types.Config, error) {
 	config := &types.Config{}
 
@@ -39,18 +39,18 @@ func LoadFromPath(configPath string) (*types.Config, error) {
 	return config, nil
 }
 
-// configWrapper 包装 types.Config 以实现 Options 接口
+// configWrapper 包装 types.Config 以实现 Options 接口.
 type configWrapper struct {
 	*types.Config
 }
 
-// Complete 实现 Options 接口
+// Complete 实现 Options 接口.
 func (w *configWrapper) Complete() error {
 	// agent-manager 的 Config 不需要特殊的 Complete 逻辑
 	return nil
 }
 
-// Validate 实现 Options 接口
+// Validate 实现 Options 接口.
 func (w *configWrapper) Validate() []error {
 	if err := validate(w.Config); err != nil {
 		return []error{err}
@@ -58,7 +58,7 @@ func (w *configWrapper) Validate() []error {
 	return nil
 }
 
-// validate validates configuration
+// validate validates configuration.
 func validate(cfg *types.Config) error {
 	if cfg.Server.Port == 0 {
 		return fmt.Errorf("server.port is required")

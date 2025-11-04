@@ -12,7 +12,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Registry manages agent lifecycle and state
+// Registry manages agent lifecycle and state.
 type Registry struct {
 	store  *storage.PostgresStore
 	cache  *storage.RedisStore
@@ -33,7 +33,7 @@ type Registry struct {
 	heartbeatCount    int64
 }
 
-// NewRegistry creates a new agent registry
+// NewRegistry creates a new agent registry.
 func NewRegistry(
 	store *storage.PostgresStore,
 	cache *storage.RedisStore,
@@ -50,7 +50,7 @@ func NewRegistry(
 	}
 }
 
-// Start starts the registry background tasks
+// Start starts the registry background tasks.
 func (r *Registry) Start(ctx context.Context) error {
 	r.logger.Info("Starting agent registry")
 
@@ -70,7 +70,7 @@ func (r *Registry) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the registry
+// Stop stops the registry.
 func (r *Registry) Stop() error {
 	r.logger.Info("Stopping agent registry")
 
@@ -88,7 +88,7 @@ func (r *Registry) Stop() error {
 	return nil
 }
 
-// RegisterAgent registers a new agent or updates existing one
+// RegisterAgent registers a new agent or updates existing one.
 func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -156,7 +156,7 @@ func (r *Registry) RegisterAgent(ctx context.Context, agent *types.Agent) error 
 	return nil
 }
 
-// UnregisterAgent unregisters an agent
+// UnregisterAgent unregisters an agent.
 func (r *Registry) UnregisterAgent(ctx context.Context, agentID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -167,7 +167,9 @@ func (r *Registry) UnregisterAgent(ctx context.Context, agentID string) error {
 	}
 
 	// Remove from cache
-	r.cache.DeleteCachedAgent(ctx, agentID)
+	if err := r.cache.DeleteCachedAgent(ctx, agentID); err != nil {
+		r.logger.Warnw("Failed to delete agent from cache", "agent_id", agentID, "error", err)
+	}
 
 	// Remove from memory
 	delete(r.agents, agentID)
@@ -177,7 +179,7 @@ func (r *Registry) UnregisterAgent(ctx context.Context, agentID string) error {
 	return nil
 }
 
-// UpdateHeartbeat updates agent heartbeat timestamp
+// UpdateHeartbeat updates agent heartbeat timestamp.
 func (r *Registry) UpdateHeartbeat(ctx context.Context, agentID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -197,14 +199,16 @@ func (r *Registry) UpdateHeartbeat(ctx context.Context, agentID string) error {
 	}
 
 	// Extend TTL in Redis
-	r.cache.SetAgentOnline(ctx, agentID, constants.AgentOnlineTTL)
+	if err := r.cache.SetAgentOnline(ctx, agentID, constants.AgentOnlineTTL); err != nil {
+		r.logger.Warnw("Failed to set agent online in cache", "agent_id", agentID, "error", err)
+	}
 
 	r.heartbeatCount++
 
 	return nil
 }
 
-// GetAgent retrieves agent by ID
+// GetAgent retrieves agent by ID.
 func (r *Registry) GetAgent(ctx context.Context, agentID string) (*types.Agent, error) {
 	r.mu.RLock()
 	// Check memory cache first
@@ -242,7 +246,7 @@ func (r *Registry) GetAgent(ctx context.Context, agentID string) (*types.Agent, 
 	return r.copyAgent(agent), nil
 }
 
-// copyAgent creates a deep copy of an agent to prevent race conditions
+// copyAgent creates a deep copy of an agent to prevent race conditions.
 func (r *Registry) copyAgent(agent *types.Agent) *types.Agent {
 	if agent == nil {
 		return nil
@@ -276,7 +280,7 @@ func (r *Registry) copyAgent(agent *types.Agent) *types.Agent {
 	return &copy
 }
 
-// GetAgentByClusterID retrieves agent by cluster ID
+// GetAgentByClusterID retrieves agent by cluster ID.
 func (r *Registry) GetAgentByClusterID(ctx context.Context, clusterID string) (*types.Agent, error) {
 	r.mu.RLock()
 	// Search in memory cache
@@ -297,7 +301,7 @@ func (r *Registry) GetAgentByClusterID(ctx context.Context, clusterID string) (*
 	return r.copyAgent(agent), nil
 }
 
-// ListAgents lists all agents with optional status filter
+// ListAgents lists all agents with optional status filter.
 func (r *Registry) ListAgents(ctx context.Context, status *types.AgentStatus) ([]*types.Agent, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -315,13 +319,13 @@ func (r *Registry) ListAgents(ctx context.Context, status *types.AgentStatus) ([
 	return r.store.ListAgents(ctx, status)
 }
 
-// GetOnlineAgents returns list of online agents
+// GetOnlineAgents returns list of online agents.
 func (r *Registry) GetOnlineAgents(ctx context.Context) ([]*types.Agent, error) {
 	status := types.AgentStatusOnline
 	return r.ListAgents(ctx, &status)
 }
 
-// GetAgentCount returns count of agents by status
+// GetAgentCount returns count of agents by status.
 func (r *Registry) GetAgentCount(ctx context.Context, status *types.AgentStatus) (int, error) {
 	agents, err := r.ListAgents(ctx, status)
 	if err != nil {
@@ -330,7 +334,7 @@ func (r *Registry) GetAgentCount(ctx context.Context, status *types.AgentStatus)
 	return len(agents), nil
 }
 
-// loadAgents loads agents from database into memory
+// loadAgents loads agents from database into memory.
 func (r *Registry) loadAgents(ctx context.Context) error {
 	agents, err := r.store.ListAgents(ctx, nil)
 	if err != nil {
@@ -349,7 +353,7 @@ func (r *Registry) loadAgents(ctx context.Context) error {
 	return nil
 }
 
-// heartbeatMonitor monitors agent heartbeats
+// heartbeatMonitor monitors agent heartbeats.
 func (r *Registry) heartbeatMonitor() {
 	defer r.wg.Done()
 	defer func() {
@@ -371,7 +375,7 @@ func (r *Registry) heartbeatMonitor() {
 	}
 }
 
-// checkHeartbeats checks for stale heartbeats
+// checkHeartbeats checks for stale heartbeats.
 func (r *Registry) checkHeartbeats() {
 	// Use lifecycle context with timeout
 	ctx, cancel := context.WithTimeout(r.ctx, constants.DatabaseOperationTimeout)
@@ -406,7 +410,7 @@ func (r *Registry) checkHeartbeats() {
 	}
 }
 
-// cleanupStaleAgents removes old offline agents
+// cleanupStaleAgents removes old offline agents.
 func (r *Registry) cleanupStaleAgents() {
 	defer r.wg.Done()
 	defer func() {
@@ -428,7 +432,7 @@ func (r *Registry) cleanupStaleAgents() {
 	}
 }
 
-// performCleanup removes agents that have been offline for too long
+// performCleanup removes agents that have been offline for too long.
 func (r *Registry) performCleanup() {
 	// Use lifecycle context with timeout
 	ctx, cancel := context.WithTimeout(r.ctx, constants.DatabaseOperationTimeout)
@@ -456,7 +460,9 @@ func (r *Registry) performCleanup() {
 				}
 
 				// Delete from cache
-				r.cache.DeleteCachedAgent(ctx, agentID)
+				if err := r.cache.DeleteCachedAgent(ctx, agentID); err != nil {
+					r.logger.Warnw("Failed to delete agent from cache", "agent_id", agentID, "error", err)
+				}
 
 				// Remove from memory
 				delete(r.agents, agentID)
@@ -465,7 +471,7 @@ func (r *Registry) performCleanup() {
 	}
 }
 
-// ensureCluster creates or updates a cluster record for the agent
+// ensureCluster creates or updates a cluster record for the agent.
 func (r *Registry) ensureCluster(ctx context.Context, agent *types.Agent) error {
 	// Check if cluster already exists
 	cluster, err := r.store.GetCluster(ctx, agent.ClusterID)
@@ -497,7 +503,7 @@ func (r *Registry) ensureCluster(ctx context.Context, agent *types.Agent) error 
 	return r.store.SaveCluster(ctx, newCluster)
 }
 
-// UpdateClusterInfo updates cluster K8s version and API server
+// UpdateClusterInfo updates cluster K8s version and API server.
 func (r *Registry) UpdateClusterInfo(ctx context.Context, clusterID, k8sVersion, apiServer string) error {
 	cluster, err := r.store.GetCluster(ctx, clusterID)
 	if err != nil {
@@ -520,7 +526,7 @@ func (r *Registry) UpdateClusterInfo(ctx context.Context, clusterID, k8sVersion,
 	return r.store.SaveCluster(ctx, cluster)
 }
 
-// UpdateClusterMetrics updates cluster node and pod counts
+// UpdateClusterMetrics updates cluster node and pod counts.
 func (r *Registry) UpdateClusterMetrics(ctx context.Context, clusterID string, nodeCount, podCount int) error {
 	cluster, err := r.store.GetCluster(ctx, clusterID)
 	if err != nil {
@@ -539,7 +545,7 @@ func (r *Registry) UpdateClusterMetrics(ctx context.Context, clusterID string, n
 	return r.store.SaveCluster(ctx, cluster)
 }
 
-// GetStatistics returns registry statistics
+// GetStatistics returns registry statistics.
 func (r *Registry) GetStatistics() map[string]interface{} {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

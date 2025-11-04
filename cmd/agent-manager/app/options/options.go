@@ -55,7 +55,7 @@ func NewServerOptions() *ServerOptions {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions
+// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *ServerOptions) GetHealthPort() int {
 	return o.Server.Port // Agent Manager 健康检查端口
 }
@@ -93,12 +93,12 @@ func (o *ServerOptions) Config() (*agentmanager.Config, error) {
 	}, nil
 }
 
-// GetServiceName returns the service name
+// GetServiceName returns the service name.
 func (o *ServerOptions) GetServiceName() string {
 	return "Agent Manager"
 }
 
-// GetLogFields returns log fields for initialization logging
+// GetLogFields returns log fields for initialization logging.
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,

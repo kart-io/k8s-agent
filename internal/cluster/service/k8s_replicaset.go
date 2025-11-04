@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sReplicaSetService ReplicaSet 管理服务
+// K8sReplicaSetService ReplicaSet 管理服务.
 type K8sReplicaSetService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sReplicaSetService 创建新的 ReplicaSet 服务
+// NewK8sReplicaSetService 创建新的 ReplicaSet 服务.
 func NewK8sReplicaSetService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sReplicaSetService {
 	return &K8sReplicaSetService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sReplicaSetService(storage *storage.MySQLStorage, clusterService *K8sC
 	}
 }
 
-// ReplicaSetInfo ReplicaSet 信息
+// ReplicaSetInfo ReplicaSet 信息.
 type ReplicaSetInfo struct {
 	Name              string            `json:"name"`
 	Namespace         string            `json:"namespace"`
@@ -39,7 +39,7 @@ type ReplicaSetInfo struct {
 	CreatedAt         string            `json:"createdAt"`
 }
 
-// OwnerReference 所有者引用
+// OwnerReference 所有者引用.
 type OwnerReference struct {
 	Kind       string `json:"kind"`
 	Name       string `json:"name"`
@@ -47,7 +47,7 @@ type OwnerReference struct {
 	Controller bool   `json:"controller"`
 }
 
-// ListReplicaSets 获取 ReplicaSet 列表
+// ListReplicaSets 获取 ReplicaSet 列表.
 func (s *K8sReplicaSetService) ListReplicaSets(ctx context.Context, clusterID, namespace string, offset, limit int) ([]ReplicaSetInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *K8sReplicaSetService) ListReplicaSets(ctx context.Context, clusterID, n
 	return result, total, nil
 }
 
-// GetReplicaSet 获取 ReplicaSet 详情
+// GetReplicaSet 获取 ReplicaSet 详情.
 func (s *K8sReplicaSetService) GetReplicaSet(ctx context.Context, clusterID, namespace, replicaSetName string) (*ReplicaSetInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *K8sReplicaSetService) GetReplicaSet(ctx context.Context, clusterID, nam
 	return &replicaSetInfo, nil
 }
 
-// ScaleReplicaSet 扩缩容 ReplicaSet
+// ScaleReplicaSet 扩缩容 ReplicaSet.
 func (s *K8sReplicaSetService) ScaleReplicaSet(ctx context.Context, clusterID, namespace, replicaSetName string, replicas int32) (*ReplicaSetInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -129,7 +129,7 @@ func (s *K8sReplicaSetService) ScaleReplicaSet(ctx context.Context, clusterID, n
 	return &replicaSetInfo, nil
 }
 
-// DeleteReplicaSet 删除 ReplicaSet
+// DeleteReplicaSet 删除 ReplicaSet.
 func (s *K8sReplicaSetService) DeleteReplicaSet(ctx context.Context, clusterID, namespace, replicaSetName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -150,7 +150,7 @@ func (s *K8sReplicaSetService) DeleteReplicaSet(ctx context.Context, clusterID, 
 	return nil
 }
 
-// convertReplicaSetInfo 转换 ReplicaSet 信息
+// convertReplicaSetInfo 转换 ReplicaSet 信息.
 func (s *K8sReplicaSetService) convertReplicaSetInfo(rs *appsv1.ReplicaSet) ReplicaSetInfo {
 	// 确保 Labels 和 Selector 不为 nil
 	labels := rs.Labels

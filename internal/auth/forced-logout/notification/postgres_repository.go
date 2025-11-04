@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,19 +11,19 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// PostgresRepository implements Repository using PostgreSQL via GORM
+// PostgresRepository implements Repository using PostgreSQL via GORM.
 type PostgresRepository struct {
 	db *gorm.DB
 }
 
-// NewPostgresRepository creates a new PostgreSQL-based notification repository
+// NewPostgresRepository creates a new PostgreSQL-based notification repository.
 func NewPostgresRepository(db *gorm.DB) *PostgresRepository {
 	return &PostgresRepository{
 		db: db,
 	}
 }
 
-// CreateNotification inserts a new notification record
+// CreateNotification inserts a new notification record.
 func (r *PostgresRepository) CreateNotification(ctx context.Context, notification *types.ForcedLogoutNotification) error {
 	if err := r.db.WithContext(ctx).Create(notification).Error; err != nil {
 		return fmt.Errorf("create notification: %w", err)
@@ -30,7 +31,7 @@ func (r *PostgresRepository) CreateNotification(ctx context.Context, notificatio
 	return nil
 }
 
-// UpdateStatus updates the delivery status of a notification
+// UpdateStatus updates the delivery status of a notification.
 func (r *PostgresRepository) UpdateStatus(ctx context.Context, notificationID string, status string, sentAt *time.Time, errorMsg *string) error {
 	updates := map[string]interface{}{
 		"status":     status,
@@ -59,7 +60,7 @@ func (r *PostgresRepository) UpdateStatus(ctx context.Context, notificationID st
 	return nil
 }
 
-// GetPendingNotifications retrieves notifications that need to be sent/retried
+// GetPendingNotifications retrieves notifications that need to be sent/retried.
 func (r *PostgresRepository) GetPendingNotifications(ctx context.Context, maxAttempts int, limit int) ([]types.ForcedLogoutNotification, error) {
 	var notifications []types.ForcedLogoutNotification
 
@@ -77,7 +78,7 @@ func (r *PostgresRepository) GetPendingNotifications(ctx context.Context, maxAtt
 	return notifications, nil
 }
 
-// IncrementAttempts increments the attempt counter and updates last_attempt_at
+// IncrementAttempts increments the attempt counter and updates last_attempt_at.
 func (r *PostgresRepository) IncrementAttempts(ctx context.Context, notificationID string) error {
 	now := time.Now()
 
@@ -95,14 +96,14 @@ func (r *PostgresRepository) IncrementAttempts(ctx context.Context, notification
 	return nil
 }
 
-// GetNotification retrieves a single notification by ID
+// GetNotification retrieves a single notification by ID.
 func (r *PostgresRepository) GetNotification(ctx context.Context, notificationID string) (*types.ForcedLogoutNotification, error) {
 	var notification types.ForcedLogoutNotification
 
 	if err := r.db.WithContext(ctx).
 		Where("notification_id = ?", notificationID).
 		First(&notification).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("notification not found: %s", notificationID)
 		}
 		return nil, fmt.Errorf("get notification: %w", err)
@@ -111,7 +112,7 @@ func (r *PostgresRepository) GetNotification(ctx context.Context, notificationID
 	return &notification, nil
 }
 
-// GetNotificationsByEventID retrieves all notifications for a specific event
+// GetNotificationsByEventID retrieves all notifications for a specific event.
 func (r *PostgresRepository) GetNotificationsByEventID(ctx context.Context, eventID string) ([]types.ForcedLogoutNotification, error) {
 	var notifications []types.ForcedLogoutNotification
 

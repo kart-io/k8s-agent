@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sPVService PersistentVolume 管理服务
+// K8sPVService PersistentVolume 管理服务.
 type K8sPVService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sPVService 创建新的 PV 服务
+// NewK8sPVService 创建新的 PV 服务.
 func NewK8sPVService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sPVService {
 	return &K8sPVService{
 		storage:        storage,
@@ -25,7 +25,7 @@ func NewK8sPVService(storage *storage.MySQLStorage, clusterService *K8sClusterSe
 	}
 }
 
-// PVInfo PersistentVolume 信息
+// PVInfo PersistentVolume 信息.
 type PVInfo struct {
 	Name             string            `json:"name"`
 	Status           string            `json:"status"`
@@ -38,7 +38,7 @@ type PVInfo struct {
 	CreatedAt        string            `json:"createdAt"`
 }
 
-// ListPVs 获取 PV 列表
+// ListPVs 获取 PV 列表.
 func (s *K8sPVService) ListPVs(ctx context.Context, clusterID string, offset, limit int) ([]PVInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -66,14 +66,14 @@ func (s *K8sPVService) ListPVs(ctx context.Context, clusterID string, offset, li
 
 	// 转换为 PVInfo
 	result := make([]PVInfo, 0, len(pagedPVs))
-	for _, pv := range pagedPVs {
-		result = append(result, convertToPVInfo(&pv))
+	for i := range pagedPVs {
+		result = append(result, convertToPVInfo(&pagedPVs[i]))
 	}
 
 	return result, total, nil
 }
 
-// GetPV 获取单个 PV 详情
+// GetPV 获取单个 PV 详情.
 func (s *K8sPVService) GetPV(ctx context.Context, clusterID, name string) (*corev1.PersistentVolume, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *K8sPVService) GetPV(ctx context.Context, clusterID, name string) (*core
 	return pv, nil
 }
 
-// DeletePV 删除 PV
+// DeletePV 删除 PV.
 func (s *K8sPVService) DeletePV(ctx context.Context, clusterID, name string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *K8sPVService) DeletePV(ctx context.Context, clusterID, name string) err
 	return nil
 }
 
-// convertToPVInfo 转换 PV 为 PVInfo
+// convertToPVInfo 转换 PV 为 PVInfo.
 func convertToPVInfo(pv *corev1.PersistentVolume) PVInfo {
 	accessModes := make([]string, 0, len(pv.Spec.AccessModes))
 	for _, mode := range pv.Spec.AccessModes {

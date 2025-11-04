@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -17,7 +18,7 @@ type PostgresStorage struct {
 	mysqlClient *commondb.MySQLClient
 }
 
-// NewPostgresStorage creates a new storage using common/db
+// NewPostgresStorage creates a new storage using common/db.
 func NewPostgresStorage(opts *options.DatabaseOptions, logger core.Logger) (*PostgresStorage, error) {
 	// 直接使用 db 包创建 MySQL 客户端
 	mysqlClient, err := commondb.NewMySQL(logger,
@@ -138,7 +139,7 @@ func (s *PostgresStorage) initSchema() error {
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 	`
 
-	_, err := s.db.Exec(schema)
+	_, err := s.db.ExecContext(context.Background(), schema)
 	return err
 }
 

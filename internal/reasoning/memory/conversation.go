@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// InMemoryConversationMemory 内存对话记忆实现
+// InMemoryConversationMemory 内存对话记忆实现.
 type InMemoryConversationMemory struct {
 	// sessions 存储每个会话的对话列表
 	sessions map[string][]*Conversation
@@ -22,7 +22,7 @@ type InMemoryConversationMemory struct {
 	lastAccess map[string]time.Time
 }
 
-// NewInMemoryConversationMemory 创建新的内存对话记忆
+// NewInMemoryConversationMemory 创建新的内存对话记忆.
 func NewInMemoryConversationMemory(config *ConversationMemoryConfig) (*InMemoryConversationMemory, error) {
 	if config == nil {
 		config = &ConversationMemoryConfig{
@@ -51,7 +51,7 @@ func NewInMemoryConversationMemory(config *ConversationMemoryConfig) (*InMemoryC
 	return cm, nil
 }
 
-// Add 添加对话
+// Add 添加对话.
 func (cm *InMemoryConversationMemory) Add(ctx context.Context, conv *Conversation) error {
 	if conv == nil {
 		return fmt.Errorf("conversation is nil")
@@ -100,7 +100,7 @@ func (cm *InMemoryConversationMemory) Add(ctx context.Context, conv *Conversatio
 	return nil
 }
 
-// Get 获取对话历史
+// Get 获取对话历史.
 func (cm *InMemoryConversationMemory) Get(ctx context.Context, sessionID string, limit int) ([]*Conversation, error) {
 	if sessionID == "" {
 		return nil, fmt.Errorf("session_id is required")
@@ -130,7 +130,7 @@ func (cm *InMemoryConversationMemory) Get(ctx context.Context, sessionID string,
 	return result, nil
 }
 
-// Clear 清空会话
+// Clear 清空会话.
 func (cm *InMemoryConversationMemory) Clear(ctx context.Context, sessionID string) error {
 	if sessionID == "" {
 		return fmt.Errorf("session_id is required")
@@ -145,7 +145,7 @@ func (cm *InMemoryConversationMemory) Clear(ctx context.Context, sessionID strin
 	return nil
 }
 
-// Count 获取会话对话数量
+// Count 获取会话对话数量.
 func (cm *InMemoryConversationMemory) Count(ctx context.Context, sessionID string) (int, error) {
 	if sessionID == "" {
 		return 0, fmt.Errorf("session_id is required")
@@ -158,7 +158,7 @@ func (cm *InMemoryConversationMemory) Count(ctx context.Context, sessionID strin
 	return len(conversations), nil
 }
 
-// cleanupExpired 定期清理过期会话
+// cleanupExpired 定期清理过期会话.
 func (cm *InMemoryConversationMemory) cleanupExpired() {
 	ticker := time.NewTicker(cm.config.TTL / 2)
 	defer ticker.Stop()
@@ -178,7 +178,7 @@ func (cm *InMemoryConversationMemory) cleanupExpired() {
 	}
 }
 
-// generateConversationID 生成对话 ID
+// generateConversationID 生成对话 ID.
 func generateConversationID() string {
 	return fmt.Sprintf("conv_%d", time.Now().UnixNano())
 }

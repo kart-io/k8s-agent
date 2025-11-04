@@ -7,14 +7,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Claims represents JWT custom claims
+// Claims represents JWT custom claims.
 type Claims struct {
 	UserID   string `json:"user_id"`
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
-// GenerateToken generates a JWT token for a user
+// GenerateToken generates a JWT token for a user.
 func GenerateToken(userID, username, secret string, expiresHours int) (string, time.Time, error) {
 	expiresAt := time.Now().Add(time.Duration(expiresHours) * time.Hour)
 
@@ -37,7 +37,7 @@ func GenerateToken(userID, username, secret string, expiresHours int) (string, t
 	return tokenString, expiresAt, nil
 }
 
-// ValidateToken validates a JWT token and returns claims
+// ValidateToken validates a JWT token and returns claims.
 func ValidateToken(tokenString, secret string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		// Verify signing method

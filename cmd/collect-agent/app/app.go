@@ -10,7 +10,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Execute runs the collect-agent command
+// Execute runs the collect-agent command.
 func Execute() {
 	// Create configuration options
 	opts := config.NewOptions()
@@ -31,19 +31,19 @@ func Execute() {
 	)
 }
 
-// CollectAgentApp implements commonapp.Application interface
+// CollectAgentApp implements commonapp.Application interface.
 type CollectAgentApp struct {
 	config *config.Options
 	logger core.Logger
 	server *CollectAgentService
 }
 
-// Name returns the application name
+// Name returns the application name.
 func (a *CollectAgentApp) Name() string {
 	return "Collect Agent"
 }
 
-// Initialize initializes the application
+// Initialize initializes the application.
 func (a *CollectAgentApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// Convert configuration
 	configOpts := opts.(*config.Options)
@@ -72,16 +72,16 @@ func (a *CollectAgentApp) Initialize(ctx context.Context, opts commonapp.Options
 	return nil
 }
 
-// Run runs the application
+// Run runs the application.
 func (a *CollectAgentApp) Run(ctx context.Context) error {
 	// Start server
 	return a.server.Run(ctx)
 }
 
-// Shutdown gracefully shuts down the application
+// Shutdown gracefully shuts down the application.
 func (a *CollectAgentApp) Shutdown(ctx context.Context) error {
 	if a.logger != nil {
-		a.logger.Flush()
+		_ = a.logger.Flush() // Best effort flush, ignore errors during shutdown
 	}
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// Repository defines the interface for notification storage operations
+// Repository defines the interface for notification storage operations.
 type Repository interface {
 	// CreateNotification inserts a new notification record
 	CreateNotification(ctx context.Context, notification *types.ForcedLogoutNotification) error

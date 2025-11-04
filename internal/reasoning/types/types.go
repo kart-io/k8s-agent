@@ -2,11 +2,11 @@ package types
 
 import "time"
 
-// RootCauseType represents the type of root cause
+// RootCauseType represents the type of root cause.
 type RootCauseType string
 
 const (
-	// Pod & Container Level
+	// Pod & Container Level.
 	OOMKiller             RootCauseType = "OOMKiller"             // #25 ContainerOOMKilled
 	CPUThrottling         RootCauseType = "CPUThrottling"         // #26 ContainerCPUThrottlingHigh
 	ReadinessProbeFailure RootCauseType = "ReadinessProbeFailure" // #22 KubePodNotReady
@@ -15,7 +15,7 @@ const (
 	ConfigError           RootCauseType = "ConfigError"           // #21 CrashLoopBackOff (config issues)
 	PodStuckPending       RootCauseType = "PodStuckPending"       // #23 KubePodStuckInPending
 
-	// Node Level
+	// Node Level.
 	NodeNotReady        RootCauseType = "NodeNotReady"        // #1 KubeNodeNotReady
 	KubeletDown         RootCauseType = "KubeletDown"         // #2 KubeletDown
 	NodeHighCPU         RootCauseType = "NodeHighCPU"         // #3 NodeHighCpuUsage
@@ -27,7 +27,7 @@ const (
 	NetworkUnavailable  RootCauseType = "NetworkUnavailable"  // #9 NodeNetworkUnavailable
 	CertificateExpiring RootCauseType = "CertificateExpiring" // #10-11 Certificate expiration
 
-	// Control Plane Level
+	// Control Plane Level.
 	APIServerDown         RootCauseType = "APIServerDown"         // #12 KubeAPIDown
 	APIServerHighLatency  RootCauseType = "APIServerHighLatency"  // #13 KubeAPILatencyHigh
 	APIServerHighError    RootCauseType = "APIServerHighError"    // #14 KubeAPIErrorRateHigh
@@ -38,7 +38,7 @@ const (
 	EtcdLeaderFlapping    RootCauseType = "EtcdLeaderFlapping"    // #19 EtcdLeaderChanges
 	CoreDNSDown           RootCauseType = "CoreDNSDown"           // #20 CoreDNSDown
 
-	// Workload Level
+	// Workload Level.
 	DeploymentReplicasMismatch  RootCauseType = "DeploymentReplicasMismatch"  // #27 KubeDeploymentReplicasMismatch
 	DeploymentStuck             RootCauseType = "DeploymentStuck"             // #28 KubeDeploymentStuck
 	StatefulSetReplicasMismatch RootCauseType = "StatefulSetReplicasMismatch" // #29 KubeStatefulSetReplicasMismatch
@@ -49,7 +49,7 @@ const (
 	HPAMaxedOut                 RootCauseType = "HPAMaxedOut"                 // #34 KubeHpaMaxedOut
 	PDBAtRisk                   RootCauseType = "PDBAtRisk"                   // #35 PodDisruptionBudgetAtRisk
 
-	// Storage & Network Level
+	// Storage & Network Level.
 	PVFillingUp           RootCauseType = "PVFillingUp"           // #36 KubePersistentVolumeFillingUp
 	PVCPending            RootCauseType = "PVCPending"            // #37 PersistentVolumeClaimPending
 	PVFailed              RootCauseType = "PVFailed"              // #38 PersistentVolumeFailed
@@ -59,7 +59,7 @@ const (
 	NetworkPolicyDenials  RootCauseType = "NetworkPolicyDenials"  // #41 HighNetworkPolicyDenials
 	NetworkError          RootCauseType = "NetworkError"          // General network issues
 
-	// Quotas & Monitoring
+	// Quotas & Monitoring.
 	ResourceQuotaExceeded RootCauseType = "ResourceQuotaExceeded" // #42 ResourceQuotaExceeded
 	ResourceLimit         RootCauseType = "ResourceLimit"         // General resource limits
 	PrometheusTargetDown  RootCauseType = "PrometheusTargetDown"  // #43 PrometheusTargetSyncFailure
@@ -69,7 +69,7 @@ const (
 	Unknown RootCauseType = "Unknown"
 )
 
-// AnalysisRequest represents the request for root cause analysis
+// AnalysisRequest represents the request for root cause analysis.
 type AnalysisRequest struct {
 	RequestID    string          `json:"request_id"`
 	AnalysisType string          `json:"analysis_type"` // "root_cause", "predict", etc.
@@ -77,7 +77,7 @@ type AnalysisRequest struct {
 	Options      AnalysisOptions `json:"options,omitempty"`
 }
 
-// AnalysisContext contains the data for analysis
+// AnalysisContext contains the data for analysis.
 type AnalysisContext struct {
 	Event        map[string]interface{} `json:"event,omitempty"`
 	Logs         string                 `json:"logs,omitempty"`
@@ -87,7 +87,7 @@ type AnalysisContext struct {
 	ResourceName string                 `json:"resource_name,omitempty"`
 }
 
-// MetricsData contains resource metrics
+// MetricsData contains resource metrics.
 type MetricsData struct {
 	Memory  *MemoryMetrics   `json:"memory,omitempty"`
 	CPU     *CPUMetrics      `json:"cpu,omitempty"`
@@ -96,35 +96,35 @@ type MetricsData struct {
 	History []MetricSnapshot `json:"history,omitempty"`
 }
 
-// MemoryMetrics represents memory usage metrics
+// MemoryMetrics represents memory usage metrics.
 type MemoryMetrics struct {
 	UsagePercent float64 `json:"usage_percent"`
 	UsageBytes   int64   `json:"usage_bytes,omitempty"`
 	LimitBytes   int64   `json:"limit_bytes,omitempty"`
 }
 
-// CPUMetrics represents CPU usage metrics
+// CPUMetrics represents CPU usage metrics.
 type CPUMetrics struct {
 	UsagePercent      float64 `json:"usage_percent"`
 	ThrottlingPercent float64 `json:"throttling_percent,omitempty"`
 	LimitCores        float64 `json:"limit_cores,omitempty"`
 }
 
-// DiskMetrics represents disk usage metrics
+// DiskMetrics represents disk usage metrics.
 type DiskMetrics struct {
 	UsagePercent float64 `json:"usage_percent"`
 	UsageBytes   int64   `json:"usage_bytes,omitempty"`
 	TotalBytes   int64   `json:"total_bytes,omitempty"`
 }
 
-// NetworkMetrics represents network metrics
+// NetworkMetrics represents network metrics.
 type NetworkMetrics struct {
 	ErrorRate  float64 `json:"error_rate,omitempty"`
 	Latency    float64 `json:"latency,omitempty"`
 	PacketLoss float64 `json:"packet_loss,omitempty"`
 }
 
-// MetricSnapshot represents a point-in-time metric snapshot
+// MetricSnapshot represents a point-in-time metric snapshot.
 type MetricSnapshot struct {
 	Timestamp    time.Time       `json:"timestamp"`
 	Memory       *MemoryMetrics  `json:"memory,omitempty"`
@@ -134,7 +134,7 @@ type MetricSnapshot struct {
 	RestartCount int             `json:"restart_count,omitempty"`
 }
 
-// AnalysisOptions contains options for the analysis
+// AnalysisOptions contains options for the analysis.
 type AnalysisOptions struct {
 	MinConfidence       float64 `json:"min_confidence,omitempty"`
 	IncludeSimilarCases bool    `json:"include_similar_cases,omitempty"`
@@ -143,7 +143,7 @@ type AnalysisOptions struct {
 	LLMProvider         string  `json:"llm_provider,omitempty"` // "openai", "gemini", "deepseek"
 }
 
-// RootCause represents the identified root cause
+// RootCause represents the identified root cause.
 type RootCause struct {
 	Type        RootCauseType `json:"type"`
 	Description string        `json:"description"`
@@ -151,7 +151,7 @@ type RootCause struct {
 	Evidence    []string      `json:"evidence"`
 }
 
-// Recommendation represents a recommended action
+// Recommendation represents a recommended action.
 type Recommendation struct {
 	Action            string   `json:"action"`
 	Description       string   `json:"description"`
@@ -165,7 +165,7 @@ type Recommendation struct {
 	EstimatedDuration string   `json:"estimated_duration,omitempty"`
 }
 
-// AnalysisResult represents the result of the analysis
+// AnalysisResult represents the result of the analysis.
 type AnalysisResult struct {
 	RequestID      string          `json:"request_id"`
 	Status         string          `json:"status"` // "completed", "failed", "in_progress"
@@ -174,7 +174,7 @@ type AnalysisResult struct {
 	ProcessingTime float64         `json:"processing_time"`
 }
 
-// DetailedResult contains the detailed analysis result
+// DetailedResult contains the detailed analysis result.
 type DetailedResult struct {
 	RootCause       *RootCause       `json:"root_cause"`
 	Recommendations []Recommendation `json:"recommendations"`
@@ -184,7 +184,7 @@ type DetailedResult struct {
 	LLMAnalysis     string           `json:"llm_analysis,omitempty"`
 }
 
-// CaseStudy represents a historical case
+// CaseStudy represents a historical case.
 type CaseStudy struct {
 	ID          string        `json:"id"`
 	Title       string        `json:"title"`
@@ -198,7 +198,7 @@ type CaseStudy struct {
 	CreatedAt   time.Time     `json:"created_at,omitempty"`
 }
 
-// PredictionRequest represents a failure prediction request
+// PredictionRequest represents a failure prediction request.
 type PredictionRequest struct {
 	ClusterID    string      `json:"cluster_id"`
 	ResourceType string      `json:"resource_type"` // "pod", "node", etc.
@@ -207,7 +207,7 @@ type PredictionRequest struct {
 	TimeWindow   string      `json:"time_window,omitempty"` // "1h", "24h", "7d"
 }
 
-// PredictionResult represents the prediction result
+// PredictionResult represents the prediction result.
 type PredictionResult struct {
 	FailureProbability   float64         `json:"failure_probability"`
 	PredictedFailureTime *time.Time      `json:"predicted_failure_time,omitempty"`
@@ -216,7 +216,7 @@ type PredictionResult struct {
 	ContributingFactors  []string        `json:"contributing_factors"`
 }
 
-// FeedbackRequest represents user feedback
+// FeedbackRequest represents user feedback.
 type FeedbackRequest struct {
 	FeedbackID      string        `json:"feedback_id"`
 	RequestID       string        `json:"request_id"`
@@ -229,7 +229,7 @@ type FeedbackRequest struct {
 	SubmittedAt     time.Time     `json:"submitted_at,omitempty"`
 }
 
-// HealthResponse represents the health check response
+// HealthResponse represents the health check response.
 type HealthResponse struct {
 	Status     string          `json:"status"`
 	Service    string          `json:"service"`

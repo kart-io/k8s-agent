@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sHPAService HorizontalPodAutoscaler 管理服务
+// K8sHPAService HorizontalPodAutoscaler 管理服务.
 type K8sHPAService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sHPAService 创建新的 HPA 服务
+// NewK8sHPAService 创建新的 HPA 服务.
 func NewK8sHPAService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sHPAService {
 	return &K8sHPAService{
 		storage:        storage,
@@ -25,7 +25,7 @@ func NewK8sHPAService(storage *storage.MySQLStorage, clusterService *K8sClusterS
 	}
 }
 
-// HPAInfo HPA 信息
+// HPAInfo HPA 信息.
 type HPAInfo struct {
 	Name            string            `json:"name"`
 	Namespace       string            `json:"namespace"`
@@ -38,7 +38,7 @@ type HPAInfo struct {
 	CreatedAt       string            `json:"createdAt"`
 }
 
-// ListHPAs 获取 HPA 列表
+// ListHPAs 获取 HPA 列表.
 func (s *K8sHPAService) ListHPAs(ctx context.Context, clusterID, namespace string, offset, limit int) ([]HPAInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -66,14 +66,14 @@ func (s *K8sHPAService) ListHPAs(ctx context.Context, clusterID, namespace strin
 
 	// 转换为 HPAInfo
 	result := make([]HPAInfo, 0, len(pagedHPAs))
-	for _, hpa := range pagedHPAs {
-		result = append(result, convertToHPAInfo(&hpa))
+	for i := range pagedHPAs {
+		result = append(result, convertToHPAInfo(&pagedHPAs[i]))
 	}
 
 	return result, total, nil
 }
 
-// GetHPA 获取单个 HPA 详情
+// GetHPA 获取单个 HPA 详情.
 func (s *K8sHPAService) GetHPA(ctx context.Context, clusterID, namespace, name string) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *K8sHPAService) GetHPA(ctx context.Context, clusterID, namespace, name s
 	return hpa, nil
 }
 
-// DeleteHPA 删除 HPA
+// DeleteHPA 删除 HPA.
 func (s *K8sHPAService) DeleteHPA(ctx context.Context, clusterID, namespace, name string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *K8sHPAService) DeleteHPA(ctx context.Context, clusterID, namespace, nam
 	return nil
 }
 
-// convertToHPAInfo 转换 HPA 为 HPAInfo
+// convertToHPAInfo 转换 HPA 为 HPAInfo.
 func convertToHPAInfo(hpa *autoscalingv2.HorizontalPodAutoscaler) HPAInfo {
 	minReplicas := int32(1)
 	if hpa.Spec.MinReplicas != nil {

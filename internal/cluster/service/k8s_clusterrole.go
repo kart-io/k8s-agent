@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sClusterRoleService ClusterRole 管理服务
+// K8sClusterRoleService ClusterRole 管理服务.
 type K8sClusterRoleService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sClusterRoleService 创建新的 ClusterRole 服务
+// NewK8sClusterRoleService 创建新的 ClusterRole 服务.
 func NewK8sClusterRoleService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sClusterRoleService {
 	return &K8sClusterRoleService{
 		storage:        storage,
@@ -25,7 +25,7 @@ func NewK8sClusterRoleService(storage *storage.MySQLStorage, clusterService *K8s
 	}
 }
 
-// ClusterRoleInfo ClusterRole 信息
+// ClusterRoleInfo ClusterRole 信息.
 type ClusterRoleInfo struct {
 	Name      string            `json:"name"`
 	RuleCount int               `json:"ruleCount"`
@@ -33,7 +33,7 @@ type ClusterRoleInfo struct {
 	CreatedAt string            `json:"createdAt"`
 }
 
-// ListClusterRoles 获取 ClusterRole 列表
+// ListClusterRoles 获取 ClusterRole 列表.
 func (s *K8sClusterRoleService) ListClusterRoles(ctx context.Context, clusterID string, offset, limit int) ([]ClusterRoleInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -61,14 +61,14 @@ func (s *K8sClusterRoleService) ListClusterRoles(ctx context.Context, clusterID 
 
 	// 转换为 ClusterRoleInfo
 	result := make([]ClusterRoleInfo, 0, len(pagedClusterRoles))
-	for _, cr := range pagedClusterRoles {
-		result = append(result, convertToClusterRoleInfo(&cr))
+	for i := range pagedClusterRoles {
+		result = append(result, convertToClusterRoleInfo(&pagedClusterRoles[i]))
 	}
 
 	return result, total, nil
 }
 
-// GetClusterRole 获取单个 ClusterRole 详情
+// GetClusterRole 获取单个 ClusterRole 详情.
 func (s *K8sClusterRoleService) GetClusterRole(ctx context.Context, clusterID, name string) (*rbacv1.ClusterRole, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *K8sClusterRoleService) GetClusterRole(ctx context.Context, clusterID, n
 	return cr, nil
 }
 
-// DeleteClusterRole 删除 ClusterRole
+// DeleteClusterRole 删除 ClusterRole.
 func (s *K8sClusterRoleService) DeleteClusterRole(ctx context.Context, clusterID, name string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *K8sClusterRoleService) DeleteClusterRole(ctx context.Context, clusterID
 	return nil
 }
 
-// convertToClusterRoleInfo 转换 ClusterRole 为 ClusterRoleInfo
+// convertToClusterRoleInfo 转换 ClusterRole 为 ClusterRoleInfo.
 func convertToClusterRoleInfo(cr *rbacv1.ClusterRole) ClusterRoleInfo {
 	return ClusterRoleInfo{
 		Name:      cr.Name,

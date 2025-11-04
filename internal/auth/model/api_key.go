@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// APIKey represents an API key in the database
+// APIKey represents an API key in the database.
 type APIKey struct {
 	ID          string     `gorm:"column:id;primaryKey;type:varchar(36)" db:"id"`
 	Name        string     `gorm:"column:name;not null;type:varchar(100)" db:"name"`
@@ -22,7 +22,7 @@ type APIKey struct {
 	User *User `gorm:"foreignKey:UserID;constraint:OnDelete:SET NULL"`
 }
 
-// TableName returns the table name for APIKey
+// TableName returns the table name for APIKey.
 func (APIKey) TableName() string {
 	return "api_keys"
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// HTTPServerInitializer initializes the HTTP server with gRPC-Gateway
+// HTTPServerInitializer initializes the HTTP server with gRPC-Gateway.
 type HTTPServerInitializer struct {
 	opts     *options.ServerOptions
 	logger   core.Logger
@@ -23,7 +23,7 @@ type HTTPServerInitializer struct {
 	mux    *runtime.ServeMux
 }
 
-// NewHTTPServerInitializer creates a new HTTP server initializer
+// NewHTTPServerInitializer creates a new HTTP server initializer.
 func NewHTTPServerInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -36,17 +36,17 @@ func NewHTTPServerInitializer(
 	}
 }
 
-// Name returns the initializer name
+// Name returns the initializer name.
 func (i *HTTPServerInitializer) Name() string {
 	return "HTTPServer"
 }
 
-// Priority returns the initialization priority
+// Priority returns the initialization priority.
 func (i *HTTPServerInitializer) Priority() int {
 	return 500 // After gRPC server (450)
 }
 
-// Initialize sets up and starts the HTTP server with gRPC-Gateway
+// Initialize sets up and starts the HTTP server with gRPC-Gateway.
 func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	i.logger.Infow("Initializing HTTP server with gRPC-Gateway",
 		"host", i.opts.Server.Host,
@@ -105,7 +105,7 @@ func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown stops the HTTP server
+// Shutdown stops the HTTP server.
 func (i *HTTPServerInitializer) Shutdown(ctx context.Context) error {
 	if i.server == nil {
 		return nil

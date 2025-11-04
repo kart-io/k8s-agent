@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -23,7 +24,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/reasoning/types"
 )
 
-// Server represents the HTTP API server
+// Server represents the HTTP API server.
 type Server struct {
 	config       *config.Config
 	analyzer     *analyzer.RootCauseAnalyzer
@@ -32,7 +33,7 @@ type Server struct {
 	orchestrator *orchestrator.Orchestrator // 新增 Orchestrator
 }
 
-// NewServer creates a new API server with all required components including Orchestrator
+// NewServer creates a new API server with all required components including Orchestrator.
 func NewServer(cfg *config.Config, llmClients []llm.Client) *Server {
 	// Initialize LLM Proxy
 	llmProxy, err := proxy.NewProxyAdapter(&cfg.LLM)
@@ -127,7 +128,7 @@ func NewServer(cfg *config.Config, llmClients []llm.Client) *Server {
 	}
 }
 
-// NewServerWithOrchestrator creates a new API server with Orchestrator
+// NewServerWithOrchestrator creates a new API server with Orchestrator.
 func NewServerWithOrchestrator(cfg *config.Config, llmClients []llm.Client, orch *orchestrator.Orchestrator) *Server {
 	return &Server{
 		config:       cfg,
@@ -138,7 +139,7 @@ func NewServerWithOrchestrator(cfg *config.Config, llmClients []llm.Client, orch
 	}
 }
 
-// Start starts the HTTP server
+// Start starts the HTTP server.
 func (s *Server) Start() error {
 	mux := http.NewServeMux()
 
@@ -206,7 +207,11 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(health)
+	if err := json.NewEncoder(w).Encode(health); err != nil {
+		// Log error to stderr since we don't have a logger field
+		fmt.Fprintf(os.Stderr, "Failed to encode health response: %v\n", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleRootCauseAnalysis(w http.ResponseWriter, r *http.Request) {
@@ -245,23 +250,31 @@ func (s *Server) handleRootCauseAnalysis(w http.ResponseWriter, r *http.Request)
 
 	// Generate recommendations
 	if result.Result != nil && result.Result.RootCause != nil {
-		s.recommender.GenerateRecommendations(ctx, result, &req.Context)
+		if err := s.recommender.GenerateRecommendations(ctx, result, &req.Context); err != nil {
+			// Log error to stderr since we don't have a logger field
+			fmt.Fprintf(os.Stderr, "Failed to generate recommendations for request %s: %v\n", req.RequestID, err)
+			// Continue without recommendations
+		}
 	}
 
 	result.ProcessingTime = time.Since(start).Seconds()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		// Log error to stderr since we don't have a logger field
+		fmt.Fprintf(os.Stderr, "Failed to encode analysis result: %v\n", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
-// K8sEventRequest represents a simplified request for K8s event analysis
+// K8sEventRequest represents a simplified request for K8s event analysis.
 type K8sEventRequest struct {
 	ClusterID string                 `json:"cluster_id,omitempty"`
 	Event     map[string]interface{} `json:"event"`
 	UseLLM    bool                   `json:"use_llm,omitempty"`
 }
 
-// convertK8sEventToOrchestratorRequest 将 K8s Event 请求转换为 Orchestrator 请求
+// convertK8sEventToOrchestratorRequest 将 K8s Event 请求转换为 Orchestrator 请求.
 func (s *Server) convertK8sEventToOrchestratorRequest(req *K8sEventRequest) *orchestrator.AnalysisRequest {
 	orchReq := &orchestrator.AnalysisRequest{
 		ClusterID:   req.ClusterID,
@@ -338,7 +351,7 @@ func (s *Server) convertK8sEventToOrchestratorRequest(req *K8sEventRequest) *orc
 	return orchReq
 }
 
-// convertOrchestratorToK8sEventResponse 将 Orchestrator 响应转换为 K8s Event 响应
+// convertOrchestratorToK8sEventResponse 将 Orchestrator 响应转换为 K8s Event 响应.
 func (s *Server) convertOrchestratorToK8sEventResponse(orchResp *orchestrator.AnalysisResponse) K8sEventAnalysisResponse {
 	response := K8sEventAnalysisResponse{
 		Confidence:      0.0,
@@ -364,7 +377,7 @@ func (s *Server) convertOrchestratorToK8sEventResponse(orchResp *orchestrator.An
 	return response
 }
 
-// formatOrchestratorAnalysis 将 Orchestrator 响应格式化为 HTML（兼容旧格式）
+// formatOrchestratorAnalysis 将 Orchestrator 响应格式化为 HTML（兼容旧格式）.
 func (s *Server) formatOrchestratorAnalysis(orchResp *orchestrator.AnalysisResponse) string {
 	var html string
 
@@ -509,7 +522,7 @@ func (s *Server) formatOrchestratorAnalysis(orchResp *orchestrator.AnalysisRespo
 	return html
 }
 
-// APIResponse 统一的 API 响应格式（与 common/response 保持一致）
+// APIResponse 统一的 API 响应格式（与 common/response 保持一致）.
 type APIResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
@@ -517,7 +530,7 @@ type APIResponse struct {
 	Error   string      `json:"error,omitempty"`
 }
 
-// K8sEventAnalysisResponse represents the response for K8s event analysis
+// K8sEventAnalysisResponse represents the response for K8s event analysis.
 type K8sEventAnalysisResponse struct {
 	Analysis        string   `json:"analysis"`
 	RootCause       string   `json:"rootCause"` // 使用驼峰命名与前端一致
@@ -578,10 +591,13 @@ func (s *Server) handleK8sEventAnalysis(w http.ResponseWriter, r *http.Request) 
 	// 创建 JSON encoder 并禁用 HTML 转义
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	encoder.Encode(apiResp)
+	if err := encoder.Encode(apiResp); err != nil {
+		// Error already sent to client, just log
+		fmt.Fprintf(os.Stderr, "Failed to encode response: %v\n", err)
+	}
 }
 
-// handleOrchestratorAnalysis handles analysis requests using the new Orchestrator
+// handleOrchestratorAnalysis handles analysis requests using the new Orchestrator.
 func (s *Server) handleOrchestratorAnalysis(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -624,5 +640,8 @@ func (s *Server) handleOrchestratorAnalysis(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(false)
-	encoder.Encode(result)
+	if err := encoder.Encode(result); err != nil {
+		// Error already sent to client, just log
+		fmt.Fprintf(os.Stderr, "Failed to encode orchestrator result: %v\n", err)
+	}
 }

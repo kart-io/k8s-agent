@@ -2,7 +2,7 @@ package types
 
 import "time"
 
-// ServiceConfig 服务配置
+// ServiceConfig 服务配置.
 type ServiceConfig struct {
 	Name        string        `mapstructure:"name"`
 	URL         string        `mapstructure:"url"`
@@ -11,7 +11,7 @@ type ServiceConfig struct {
 	HealthCheck string        `mapstructure:"health_check"`
 }
 
-// RouteConfig 路由配置
+// RouteConfig 路由配置.
 type RouteConfig struct {
 	Path         string `mapstructure:"path"`
 	Service      string `mapstructure:"service"`
@@ -19,13 +19,13 @@ type RouteConfig struct {
 	AuthRequired bool   `mapstructure:"auth_required"`
 }
 
-// GatewayConfig 网关配置
+// GatewayConfig 网关配置.
 type GatewayConfig struct {
 	Services map[string]ServiceConfig `mapstructure:"services"`
 	Routes   []RouteConfig            `mapstructure:"routes"`
 }
 
-// ProxyRequest 代理请求
+// ProxyRequest 代理请求.
 type ProxyRequest struct {
 	Method  string
 	Path    string
@@ -34,14 +34,14 @@ type ProxyRequest struct {
 	Query   map[string][]string
 }
 
-// ProxyResponse 代理响应
+// ProxyResponse 代理响应.
 type ProxyResponse struct {
 	StatusCode int
 	Headers    map[string]string
 	Body       []byte
 }
 
-// HealthStatus 健康状态
+// HealthStatus 健康状态.
 type HealthStatus struct {
 	Service   string    `json:"service"`
 	Status    string    `json:"status"`
@@ -49,7 +49,7 @@ type HealthStatus struct {
 	Message   string    `json:"message,omitempty"`
 }
 
-// MetricsData 监控数据
+// MetricsData 监控数据.
 type MetricsData struct {
 	TotalRequests   int64            `json:"total_requests"`
 	SuccessRequests int64            `json:"success_requests"`

@@ -11,13 +11,13 @@ import (
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
-// K8sEndpointSliceService EndpointSlice 管理服务
+// K8sEndpointSliceService EndpointSlice 管理服务.
 type K8sEndpointSliceService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sEndpointSliceService 创建新的 EndpointSlice 服务
+// NewK8sEndpointSliceService 创建新的 EndpointSlice 服务.
 func NewK8sEndpointSliceService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sEndpointSliceService {
 	return &K8sEndpointSliceService{
 		storage:        storage,
@@ -25,7 +25,7 @@ func NewK8sEndpointSliceService(storage *storage.MySQLStorage, clusterService *K
 	}
 }
 
-// EndpointSliceInfo EndpointSlice 信息
+// EndpointSliceInfo EndpointSlice 信息.
 type EndpointSliceInfo struct {
 	Name          string            `json:"name"`
 	Namespace     string            `json:"namespace"`
@@ -36,7 +36,7 @@ type EndpointSliceInfo struct {
 	CreatedAt     string            `json:"createdAt"`
 }
 
-// ListEndpointSlices 获取 EndpointSlice 列表
+// ListEndpointSlices 获取 EndpointSlice 列表.
 func (s *K8sEndpointSliceService) ListEndpointSlices(ctx context.Context, clusterID, namespace string, offset, limit int) ([]EndpointSliceInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -64,14 +64,14 @@ func (s *K8sEndpointSliceService) ListEndpointSlices(ctx context.Context, cluste
 
 	// 转换为 EndpointSliceInfo
 	result := make([]EndpointSliceInfo, 0, len(pagedSlices))
-	for _, slice := range pagedSlices {
-		result = append(result, convertToEndpointSliceInfo(&slice))
+	for i := range pagedSlices {
+		result = append(result, convertToEndpointSliceInfo(&pagedSlices[i]))
 	}
 
 	return result, total, nil
 }
 
-// GetEndpointSlice 获取单个 EndpointSlice 详情
+// GetEndpointSlice 获取单个 EndpointSlice 详情.
 func (s *K8sEndpointSliceService) GetEndpointSlice(ctx context.Context, clusterID, namespace, name string) (*discoveryv1.EndpointSlice, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *K8sEndpointSliceService) GetEndpointSlice(ctx context.Context, clusterI
 	return slice, nil
 }
 
-// DeleteEndpointSlice 删除 EndpointSlice
+// DeleteEndpointSlice 删除 EndpointSlice.
 func (s *K8sEndpointSliceService) DeleteEndpointSlice(ctx context.Context, clusterID, namespace, name string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -101,7 +101,7 @@ func (s *K8sEndpointSliceService) DeleteEndpointSlice(ctx context.Context, clust
 	return nil
 }
 
-// convertToEndpointSliceInfo 转换 EndpointSlice 为 EndpointSliceInfo
+// convertToEndpointSliceInfo 转换 EndpointSlice 为 EndpointSliceInfo.
 func convertToEndpointSliceInfo(slice *discoveryv1.EndpointSlice) EndpointSliceInfo {
 	return EndpointSliceInfo{
 		Name:          slice.Name,

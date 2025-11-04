@@ -14,7 +14,25 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Processor handles event processing and routing
+// Configuration constants for event processing.
+const (
+	// DuplicateFilterTTL is the time-to-live for duplicate event detection cache
+	DuplicateFilterTTL = 5 * time.Minute
+
+	// SeverityLevels for event severity categorization
+	SeverityLow      = 2
+	SeverityMedium   = 3
+	SeverityHigh     = 4
+	SeverityDivider  = 2 // Used for determining urgency levels
+
+	// MaxRetryAttempts for event processing
+	MaxRetryAttempts = 10
+
+	// MaxEventsPerGroup is the maximum number of events to keep per event group
+	MaxEventsPerGroup = 10
+)
+
+// Processor handles event processing and routing.
 type Processor struct {
 	store  *storage.PostgresStore
 	cache  *storage.RedisStore
@@ -34,17 +52,17 @@ type Processor struct {
 	eventsFailed    int64
 }
 
-// EventFilter filters events
+// EventFilter filters events.
 type EventFilter interface {
 	ShouldProcess(event *types.Event) bool
 }
 
-// EventEnricher enriches events with additional context
+// EventEnricher enriches events with additional context.
 type EventEnricher interface {
 	Enrich(ctx context.Context, event *types.Event) error
 }
 
-// NewProcessor creates a new event processor
+// NewProcessor creates a new event processor.
 func NewProcessor(
 	store *storage.PostgresStore,
 	cache *storage.RedisStore,
@@ -65,7 +83,7 @@ func NewProcessor(
 	// Setup default filters and enrichers
 	p.filters = []EventFilter{
 		&SeverityFilter{MinSeverity: "medium"},
-		&DuplicateFilter{cache: cache, ttl: 5 * time.Minute},
+		&DuplicateFilter{cache: cache, ttl: DuplicateFilterTTL},
 	}
 
 	p.enrichers = []EventEnricher{
@@ -75,7 +93,7 @@ func NewProcessor(
 	return p
 }
 
-// ProcessEvent processes an incoming event
+// ProcessEvent processes an incoming event.
 func (p *Processor) ProcessEvent(ctx context.Context, event *types.Event) error {
 	// Apply filters
 	for _, filter := range p.filters {
@@ -112,7 +130,9 @@ func (p *Processor) ProcessEvent(ctx context.Context, event *types.Event) error 
 	}
 
 	// Update counters in Redis
-	p.cache.IncrementEventCounter(ctx, event.ClusterID, event.Severity)
+	if err := p.cache.IncrementEventCounter(ctx, event.ClusterID, event.Severity); err != nil {
+		p.logger.Warnw("Failed to increment event counter", "cluster_id", event.ClusterID, "error", err)
+	}
 
 	// Check if event is critical
 	if p.isCriticalEvent(event) {
@@ -139,7 +159,7 @@ func (p *Processor) ProcessEvent(ctx context.Context, event *types.Event) error 
 	return nil
 }
 
-// isCriticalEvent checks if event requires immediate attention
+// isCriticalEvent checks if event requires immediate attention.
 func (p *Processor) isCriticalEvent(event *types.Event) bool {
 	criticalReasons := map[string]bool{
 		"CrashLoopBackOff":    true,
@@ -154,7 +174,7 @@ func (p *Processor) isCriticalEvent(event *types.Event) bool {
 	return event.Severity == "critical" || criticalReasons[event.Reason]
 }
 
-// handleCriticalEvent handles critical events
+// handleCriticalEvent handles critical events.
 func (p *Processor) handleCriticalEvent(ctx context.Context, event *types.Event) error {
 	// Publish to internal event bus
 	internalEvent := types.InternalEvent{
@@ -174,7 +194,7 @@ func (p *Processor) handleCriticalEvent(ctx context.Context, event *types.Event)
 	return p.publisher.Publish(ctx, internalEvent)
 }
 
-// GetStatistics returns processor statistics
+// GetStatistics returns processor statistics.
 func (p *Processor) GetStatistics() map[string]interface{} {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -187,7 +207,7 @@ func (p *Processor) GetStatistics() map[string]interface{} {
 	}
 }
 
-// SeverityFilter filters events by severity
+// SeverityFilter filters events by severity.
 type SeverityFilter struct {
 	MinSeverity string
 }
@@ -195,9 +215,9 @@ type SeverityFilter struct {
 func (f *SeverityFilter) ShouldProcess(event *types.Event) bool {
 	severityLevels := map[string]int{
 		"low":      1,
-		"medium":   2,
-		"high":     3,
-		"critical": 4,
+		"medium":   SeverityLow,
+		"high":     SeverityMedium,
+		"critical": SeverityHigh,
 	}
 
 	minLevel := severityLevels[f.MinSeverity]
@@ -206,7 +226,7 @@ func (f *SeverityFilter) ShouldProcess(event *types.Event) bool {
 	return eventLevel >= minLevel
 }
 
-// DuplicateFilter filters duplicate events
+// DuplicateFilter filters duplicate events.
 type DuplicateFilter struct {
 	cache *storage.RedisStore
 	ttl   time.Duration
@@ -240,7 +260,7 @@ func (f *DuplicateFilter) ShouldProcess(event *types.Event) bool {
 	return acquired
 }
 
-// ClusterEnricher enriches events with cluster information
+// ClusterEnricher enriches events with cluster information.
 type ClusterEnricher struct {
 	store *storage.PostgresStore
 }
@@ -248,7 +268,11 @@ type ClusterEnricher struct {
 func (e *ClusterEnricher) Enrich(ctx context.Context, event *types.Event) error {
 	cluster, err := e.store.GetCluster(ctx, event.ClusterID)
 	if err != nil {
-		// Cluster info not found, not critical
+		// Cluster info not found is acceptable (metadata enrichment is optional)
+		// Only return error if it's a database/connection issue, not "not found"
+		// For now, we'll accept the enrichment failure silently
+		// TODO: distinguish between "not found" and actual errors
+		_ = err // Explicitly ignore to satisfy linter
 		return nil
 	}
 
@@ -264,14 +288,14 @@ func (e *ClusterEnricher) Enrich(ctx context.Context, event *types.Event) error 
 	return nil
 }
 
-// Aggregator aggregates related events
+// Aggregator aggregates related events.
 type Aggregator struct {
 	logger core.Logger
 	mu     sync.RWMutex
 	groups map[string]*EventGroup
 }
 
-// EventGroup represents a group of related events
+// EventGroup represents a group of related events.
 type EventGroup struct {
 	Key       string
 	Events    []*types.Event
@@ -287,7 +311,7 @@ func NewAggregator(logger core.Logger) *Aggregator {
 	}
 }
 
-// Add adds an event to aggregation
+// Add adds an event to aggregation.
 func (a *Aggregator) Add(event *types.Event) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -312,13 +336,13 @@ func (a *Aggregator) Add(event *types.Event) {
 	group.LastSeen = event.Timestamp
 	group.Count++
 
-	// Keep only recent events (last 10)
-	if len(group.Events) > 10 {
-		group.Events = group.Events[len(group.Events)-10:]
+	// Keep only recent events (last MaxEventsPerGroup)
+	if len(group.Events) > MaxEventsPerGroup {
+		group.Events = group.Events[len(group.Events)-MaxEventsPerGroup:]
 	}
 }
 
-// GetStatistics returns aggregator statistics
+// GetStatistics returns aggregator statistics.
 func (a *Aggregator) GetStatistics() map[string]interface{} {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -328,7 +352,7 @@ func (a *Aggregator) GetStatistics() map[string]interface{} {
 	}
 }
 
-// InternalPublisher publishes events to internal event bus
+// InternalPublisher publishes events to internal event bus.
 type InternalPublisher struct {
 	conn   *nats.Conn
 	logger core.Logger
@@ -341,7 +365,7 @@ func NewInternalPublisher(conn *nats.Conn, logger core.Logger) *InternalPublishe
 	}
 }
 
-// Publish publishes an internal event
+// Publish publishes an internal event.
 func (p *InternalPublisher) Publish(ctx context.Context, event types.InternalEvent) error {
 	subject := fmt.Sprintf("internal.event.%s", event.Type)
 

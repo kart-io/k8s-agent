@@ -24,7 +24,7 @@ const (
 	httpPort = 8080
 )
 
-// AgentServer 实现 Agent Service
+// AgentServer 实现 Agent Service.
 type AgentServer struct {
 	agentv1.UnimplementedAgentServiceServer
 	agents map[string]*agentv1.Agent
@@ -36,7 +36,7 @@ func NewAgentServer() *AgentServer {
 	}
 }
 
-// 实现所有 RPC 方法（简化版）
+// 实现所有 RPC 方法（简化版）.
 func (s *AgentServer) RegisterAgent(ctx context.Context, req *agentv1.RegisterAgentRequest) (*agentv1.RegisterAgentResponse, error) {
 	agentID := fmt.Sprintf("agent-%d", time.Now().Unix())
 	agent := &agentv1.Agent{
@@ -79,9 +79,10 @@ func (s *AgentServer) UnregisterAgent(ctx context.Context, req *agentv1.Unregist
 	return &agentv1.UnregisterAgentResponse{Success: true}, nil
 }
 
-// startGRPCServer 启动 gRPC 服务器
+// startGRPCServer 启动 gRPC 服务器.
 func startGRPCServer() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
+	lc := net.ListenConfig{}
+	lis, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf(":%d", grpcPort))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -96,7 +97,7 @@ func startGRPCServer() {
 	}
 }
 
-// startHTTPGateway 启动 HTTP Gateway
+// startHTTPGateway 启动 HTTP Gateway.
 func startHTTPGateway() {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -124,13 +125,15 @@ func startHTTPGateway() {
 	// 添加健康检查端点
 	httpMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status":"ok","service":"agent-gateway"}`)
+		if _, err := fmt.Fprintf(w, `{"status":"ok","service":"agent-gateway"}`); err != nil {
+			log.Printf("Failed to write health response: %v", err)
+		}
 	})
 
 	// 添加 API 文档端点
 	httpMux.HandleFunc("/docs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, `
+		if _, err := fmt.Fprintf(w, `
 <!DOCTYPE html>
 <html>
 <head>
@@ -181,7 +184,9 @@ func startHTTPGateway() {
     </ul>
 </body>
 </html>
-`, httpPort, httpPort, httpPort, httpPort, grpcPort, httpPort)
+`, httpPort, httpPort, httpPort, httpPort, grpcPort, httpPort); err != nil {
+			log.Printf("Failed to write docs response: %v", err)
+		}
 	})
 
 	// 提供 Swagger 文档
@@ -189,8 +194,13 @@ func startHTTPGateway() {
 
 	// 启动 HTTP 服务器
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", httpPort),
-		Handler: corsMiddleware(httpMux),
+		Addr:              fmt.Sprintf(":%d", httpPort),
+		Handler:           corsMiddleware(httpMux),
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MB
 	}
 
 	log.Printf("HTTP Gateway listening on :%d", httpPort)
@@ -203,7 +213,7 @@ func startHTTPGateway() {
 	}
 }
 
-// corsMiddleware 添加 CORS 支持
+// corsMiddleware 添加 CORS 支持.
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

@@ -8,13 +8,13 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
-	// "github.com/kart-io/k8s-agent/common/middleware" // TODO: Re-enable when needed
+	// "github.com/kart-io/k8s-agent/common/middleware" // TODO: Re-enable when needed.
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/api"
 	agentgrpc "github.com/kart-io/k8s-agent/internal/agent-manager/grpc"
 	agentv1 "github.com/kart-io/k8s-agent/pkg/api/agent/v1"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
-	// "github.com/kart-io/k8s-agent/pkg/idempotent" // TODO: Re-enable when idempotent middleware is implemented
+	// "github.com/kart-io/k8s-agent/pkg/idempotent" // TODO: Re-enable when idempotent middleware is implemented.
 	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/k8s-agent/pkg/types"
 	"github.com/kart-io/logger/core"

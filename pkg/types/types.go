@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Agent represents a registered agent
+// Agent represents a registered agent.
 type Agent struct {
 	ID             string                 `json:"id" gorm:"primaryKey"`
 	ClusterID      string                 `json:"cluster_id" gorm:"index;not null"`
@@ -19,7 +19,7 @@ type Agent struct {
 	ConnectionInfo *ConnectionInfo        `json:"connection_info" gorm:"serializer:json"`
 }
 
-// AgentStatus represents the status of an agent
+// AgentStatus represents the status of an agent.
 type AgentStatus string
 
 const (
@@ -29,7 +29,7 @@ const (
 	AgentStatusError       AgentStatus = "error"
 )
 
-// ConnectionInfo contains agent connection details
+// ConnectionInfo contains agent connection details.
 type ConnectionInfo struct {
 	Endpoint       string    `json:"endpoint"`
 	ConnectedAt    time.Time `json:"connected_at"`
@@ -39,7 +39,7 @@ type ConnectionInfo struct {
 	LocalIP        string    `json:"local_ip,omitempty"`
 }
 
-// Event represents a Kubernetes event
+// Event represents a Kubernetes event.
 type Event struct {
 	ID            string                 `json:"id" gorm:"primaryKey"`
 	ClusterID     string                 `json:"cluster_id" gorm:"index;not null"`
@@ -59,7 +59,7 @@ type Event struct {
 	CorrelationID string                 `json:"correlation_id,omitempty" gorm:"index"` // 关联ID，由 POST /api/v1/operations 接口生成，格式: op-{纳秒时间戳}-{集群ID}，用于分组同一操作触发的所有事件
 }
 
-// Metrics represents cluster metrics
+// Metrics represents cluster metrics.
 type Metrics struct {
 	ID               string                   `json:"id" gorm:"primaryKey"`
 	ClusterID        string                   `json:"cluster_id" gorm:"index;not null"`
@@ -70,7 +70,7 @@ type Metrics struct {
 	NamespaceMetrics []map[string]interface{} `json:"namespace_metrics" gorm:"serializer:json"`
 }
 
-// Command represents a command to be executed
+// Command represents a command to be executed.
 type Command struct {
 	ID            string                 `json:"id" gorm:"primaryKey"`
 	ClusterID     string                 `json:"cluster_id" gorm:"index;not null"`
@@ -88,7 +88,7 @@ type Command struct {
 	Metadata      map[string]interface{} `json:"metadata" gorm:"serializer:json"`
 }
 
-// CommandStatus represents the status of a command
+// CommandStatus represents the status of a command.
 type CommandStatus string
 
 const (
@@ -100,7 +100,7 @@ const (
 	CommandStatusTimeout   CommandStatus = "timeout"
 )
 
-// CommandResult represents the result of a command execution
+// CommandResult represents the result of a command execution.
 type CommandResult struct {
 	ID            string        `json:"id" gorm:"primaryKey"`
 	CommandID     string        `json:"command_id" gorm:"index;not null"`
@@ -113,7 +113,7 @@ type CommandResult struct {
 	Timestamp     time.Time     `json:"timestamp" gorm:"index"`
 }
 
-// Cluster represents a managed Kubernetes cluster
+// Cluster represents a managed Kubernetes cluster.
 type Cluster struct {
 	ID          string                 `json:"id" gorm:"primaryKey"`
 	Name        string                 `json:"name" gorm:"index;not null"`
@@ -133,7 +133,7 @@ type Cluster struct {
 	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
-// ClusterStatus represents the status of a cluster
+// ClusterStatus represents the status of a cluster.
 type ClusterStatus string
 
 const (
@@ -143,7 +143,7 @@ const (
 	ClusterStatusError       ClusterStatus = "error"
 )
 
-// ClusterHealth represents the health of a cluster
+// ClusterHealth represents the health of a cluster.
 type ClusterHealth string
 
 const (
@@ -153,7 +153,7 @@ const (
 	ClusterHealthUnknown   ClusterHealth = "unknown"
 )
 
-// AlertRule represents an alert rule configuration
+// AlertRule represents an alert rule configuration.
 type AlertRule struct {
 	ID          string                 `json:"id" gorm:"primaryKey"`
 	Name        string                 `json:"name" gorm:"index;not null"`
@@ -167,7 +167,7 @@ type AlertRule struct {
 	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
-// Alert represents a triggered alert
+// Alert represents a triggered alert.
 type Alert struct {
 	ID          string                 `json:"id" gorm:"primaryKey"`
 	RuleID      string                 `json:"rule_id" gorm:"index"`
@@ -182,7 +182,7 @@ type Alert struct {
 	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
-// AlertStatus represents the status of an alert
+// AlertStatus represents the status of an alert.
 type AlertStatus string
 
 const (
@@ -191,7 +191,7 @@ const (
 	AlertStatusSilenced AlertStatus = "silenced"
 )
 
-// InternalEvent represents an event published to the internal event bus
+// InternalEvent represents an event published to the internal event bus.
 type InternalEvent struct {
 	Type      string                 `json:"type"`
 	ClusterID string                 `json:"cluster_id"`
@@ -200,7 +200,7 @@ type InternalEvent struct {
 	Timestamp time.Time              `json:"timestamp"`
 }
 
-// InternalEventType represents different types of internal events
+// InternalEventType represents different types of internal events.
 type InternalEventType string
 
 const (
@@ -211,7 +211,7 @@ const (
 	InternalEventTypeMetricsAlert  InternalEventType = "metrics_alert"
 )
 
-// HealthStatus represents the health status of the agent-manager
+// HealthStatus represents the health status of the agent-manager.
 type HealthStatus struct {
 	Status           string                 `json:"status"`
 	Version          string                 `json:"version"`
@@ -225,7 +225,7 @@ type HealthStatus struct {
 	Timestamp        time.Time              `json:"timestamp"`
 }
 
-// Config represents the agent-manager configuration
+// Config represents the agent-manager configuration.
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
 	NATS     NATSConfig     `yaml:"nats"`
@@ -235,7 +235,7 @@ type Config struct {
 	Metrics  MetricsConfig  `yaml:"metrics"`
 }
 
-// ServerConfig represents server configuration
+// ServerConfig represents server configuration.
 type ServerConfig struct {
 	Host         string        `yaml:"host"`
 	Port         int           `yaml:"port"`
@@ -244,7 +244,7 @@ type ServerConfig struct {
 	GracefulStop time.Duration `yaml:"graceful_stop"`
 }
 
-// NATSConfig represents NATS configuration
+// NATSConfig represents NATS configuration.
 type NATSConfig struct {
 	URL             string        `yaml:"url"`
 	ClusterID       string        `yaml:"cluster_id"`
@@ -255,7 +255,7 @@ type NATSConfig struct {
 	EnableJetStream bool          `yaml:"enable_jetstream"`
 }
 
-// DatabaseConfig represents database configuration
+// DatabaseConfig represents database configuration.
 type DatabaseConfig struct {
 	Host            string        `yaml:"host"`
 	Port            int           `yaml:"port"`
@@ -268,7 +268,7 @@ type DatabaseConfig struct {
 	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime"`
 }
 
-// RedisConfig represents Redis configuration
+// RedisConfig represents Redis configuration.
 type RedisConfig struct {
 	Addr         string        `yaml:"addr"`
 	Password     string        `yaml:"password"`
@@ -280,14 +280,14 @@ type RedisConfig struct {
 	WriteTimeout time.Duration `yaml:"write_timeout"`
 }
 
-// LoggingConfig represents logging configuration
+// LoggingConfig represents logging configuration.
 type LoggingConfig struct {
 	Level      string `yaml:"level"`
 	Format     string `yaml:"format"` // json, console
 	OutputPath string `yaml:"output_path"`
 }
 
-// MetricsConfig represents metrics configuration
+// MetricsConfig represents metrics configuration.
 type MetricsConfig struct {
 	Enabled bool   `yaml:"enabled"`
 	Path    string `yaml:"path"`

@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sSecretService Secret 管理服务
+// K8sSecretService Secret 管理服务.
 type K8sSecretService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sSecretService 创建新的 Secret 服务
+// NewK8sSecretService 创建新的 Secret 服务.
 func NewK8sSecretService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sSecretService {
 	return &K8sSecretService{
 		storage:        storage,
@@ -26,7 +26,7 @@ func NewK8sSecretService(storage *storage.MySQLStorage, clusterService *K8sClust
 	}
 }
 
-// SecretInfo Secret 信息
+// SecretInfo Secret 信息.
 type SecretInfo struct {
 	Name        string            `json:"name"`
 	Namespace   string            `json:"namespace"`
@@ -38,7 +38,7 @@ type SecretInfo struct {
 	CreatedAt   string            `json:"createdAt"`
 }
 
-// CreateSecretRequest 创建 Secret 请求
+// CreateSecretRequest 创建 Secret 请求.
 type CreateSecretRequest struct {
 	Name        string            `json:"name" binding:"required"`
 	Namespace   string            `json:"namespace" binding:"required"`
@@ -49,7 +49,7 @@ type CreateSecretRequest struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-// ListSecrets 获取 Secret 列表
+// ListSecrets 获取 Secret 列表.
 func (s *K8sSecretService) ListSecrets(ctx context.Context, clusterID, namespace string, offset, limit int) ([]SecretInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *K8sSecretService) ListSecrets(ctx context.Context, clusterID, namespace
 	return result, total, nil
 }
 
-// GetSecret 获取 Secret 详情
+// GetSecret 获取 Secret 详情.
 func (s *K8sSecretService) GetSecret(ctx context.Context, clusterID, namespace, secretName string, includeData bool) (*SecretInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *K8sSecretService) GetSecret(ctx context.Context, clusterID, namespace, 
 	return &secretInfo, nil
 }
 
-// CreateSecret 创建 Secret
+// CreateSecret 创建 Secret.
 func (s *K8sSecretService) CreateSecret(ctx context.Context, clusterID string, req *CreateSecretRequest) (*SecretInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *K8sSecretService) CreateSecret(ctx context.Context, clusterID string, r
 	return &secretInfo, nil
 }
 
-// UpdateSecret 更新 Secret
+// UpdateSecret 更新 Secret.
 func (s *K8sSecretService) UpdateSecret(ctx context.Context, clusterID, namespace, secretName string, req *CreateSecretRequest) (*SecretInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -177,7 +177,7 @@ func (s *K8sSecretService) UpdateSecret(ctx context.Context, clusterID, namespac
 	return &secretInfo, nil
 }
 
-// DeleteSecret 删除 Secret
+// DeleteSecret 删除 Secret.
 func (s *K8sSecretService) DeleteSecret(ctx context.Context, clusterID, namespace, secretName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -198,7 +198,7 @@ func (s *K8sSecretService) DeleteSecret(ctx context.Context, clusterID, namespac
 	return nil
 }
 
-// convertSecretInfo 转换 Secret 信息
+// convertSecretInfo 转换 Secret 信息.
 func (s *K8sSecretService) convertSecretInfo(secret *corev1.Secret, includeData bool) SecretInfo {
 	info := SecretInfo{
 		Name:        secret.Name,

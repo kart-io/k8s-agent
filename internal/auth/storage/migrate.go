@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 )
 
-// AutoMigrate creates all tables with proper indexes
+// AutoMigrate creates all tables with proper indexes.
 func AutoMigrate(db *sql.DB) error {
 	// Create users table
 	if err := createUsersTable(db); err != nil {
@@ -44,8 +45,8 @@ func AutoMigrate(db *sql.DB) error {
 	return nil
 }
 
-// Seed inserts default data
-func Seed(db *sql.DB) error {
+// Seed inserts default data.
+func Seed(ctx context.Context, db *sql.DB) error {
 	// Create default admin user
 	adminID := uuid.New().String()
 	hashedPassword, err := crypto.HashPassword("admin123")
@@ -53,7 +54,7 @@ func Seed(db *sql.DB) error {
 		return fmt.Errorf("failed to hash admin password: %w", err)
 	}
 
-	_, err = db.Exec(`
+	_, err = db.ExecContext(ctx, `
 		INSERT INTO users (id, username, password, email, real_name, status, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
 		ON CONFLICT (username) DO NOTHING
@@ -77,7 +78,7 @@ func Seed(db *sql.DB) error {
 	}
 
 	for _, role := range roles {
-		_, err := db.Exec(`
+		_, err := db.ExecContext(ctx, `
 			INSERT INTO roles (id, name, code, description, status, sort, created_at, updated_at)
 			VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
 			ON CONFLICT (code) DO NOTHING
@@ -88,7 +89,7 @@ func Seed(db *sql.DB) error {
 	}
 
 	// Assign super_admin role to admin user
-	_, err = db.Exec(`
+	_, err = db.ExecContext(ctx, `
 		INSERT INTO user_roles (user_id, role_id)
 		SELECT $1, id FROM roles WHERE code = $2
 		ON CONFLICT DO NOTHING
@@ -121,7 +122,7 @@ func createUsersTable(db *sql.DB) error {
 	);
 	CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
 	`
-	_, err := db.Exec(query)
+	_, err := db.ExecContext(context.Background(), query)
 	return err
 }
 
@@ -139,7 +140,7 @@ func createRolesTable(db *sql.DB) error {
 	);
 	CREATE INDEX IF NOT EXISTS idx_roles_sort ON roles(sort);
 	`
-	_, err := db.Exec(query)
+	_, err := db.ExecContext(context.Background(), query)
 	return err
 }
 
@@ -166,7 +167,7 @@ func createPermissionsTable(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_permissions_type ON permissions(type);
 	CREATE INDEX IF NOT EXISTS idx_permissions_status_sort ON permissions(status, sort);
 	`
-	_, err := db.Exec(query)
+	_, err := db.ExecContext(context.Background(), query)
 	return err
 }
 
@@ -181,7 +182,7 @@ func createUserRolesTable(db *sql.DB) error {
 	);
 	CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id);
 	`
-	_, err := db.Exec(query)
+	_, err := db.ExecContext(context.Background(), query)
 	return err
 }
 
@@ -196,7 +197,7 @@ func createRolePermissionsTable(db *sql.DB) error {
 	);
 	CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON role_permissions(permission_id);
 	`
-	_, err := db.Exec(query)
+	_, err := db.ExecContext(context.Background(), query)
 	return err
 }
 
@@ -219,14 +220,15 @@ func createAPIKeysTable(db *sql.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
 	CREATE INDEX IF NOT EXISTS idx_api_keys_expires_status ON api_keys(expires_at, status);
 	`
-	_, err := db.Exec(query)
+	_, err := db.ExecContext(context.Background(), query)
 	return err
 }
 
 func seedPermissions(db *sql.DB, superAdminRoleID string) error {
+	ctx := context.Background()
 	// System management menu (root)
 	systemID := uuid.New().String()
-	_, err := db.Exec(`
+	_, err := db.ExecContext(ctx, `
 		INSERT INTO permissions (id, parent_id, name, code, type, path, component, icon, sort, status, created_at, updated_at)
 		VALUES ($1, NULL, 'System Management', 'system:menu', 'menu', '/system', 'SystemLayout', 'setting', 1, 1, NOW(), NOW())
 		ON CONFLICT (code) DO NOTHING
@@ -237,7 +239,7 @@ func seedPermissions(db *sql.DB, superAdminRoleID string) error {
 
 	// User management submenu
 	userMenuID := uuid.New().String()
-	_, err = db.Exec(`
+	_, err = db.ExecContext(ctx, `
 		INSERT INTO permissions (id, parent_id, name, code, type, path, component, icon, sort, status, created_at, updated_at)
 		VALUES ($1, $2, 'User Management', 'user:menu', 'menu', '/system/users', 'UserManagement', 'user', 1, 1, NOW(), NOW())
 		ON CONFLICT (code) DO NOTHING
@@ -259,7 +261,7 @@ func seedPermissions(db *sql.DB, superAdminRoleID string) error {
 
 	for _, perm := range userPerms {
 		permID := uuid.New().String()
-		_, err = db.Exec(`
+		_, err = db.ExecContext(ctx, `
 			INSERT INTO permissions (id, parent_id, name, code, type, path, method, sort, status, created_at, updated_at)
 			VALUES ($1, $2, $3, $4, 'api', $5, $6, $7, 1, NOW(), NOW())
 			ON CONFLICT (code) DO NOTHING
@@ -269,7 +271,7 @@ func seedPermissions(db *sql.DB, superAdminRoleID string) error {
 		}
 
 		// Assign to super_admin role
-		_, err = db.Exec(`
+		_, err = db.ExecContext(ctx, `
 			INSERT INTO role_permissions (role_id, permission_id)
 			VALUES ($1, $2)
 			ON CONFLICT DO NOTHING

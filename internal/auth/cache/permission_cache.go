@@ -12,23 +12,23 @@ import (
 )
 
 const (
-	// Cache key prefixes
+	// Cache key prefixes.
 	userPermissionsPrefix = "user:permissions:"
 	rolePermissionsPrefix = "role:permissions:"
 	userRolesPrefix       = "user:roles:"
 
-	// Cache TTLs
+	// Cache TTLs.
 	permissionCacheTTL = 15 * time.Minute
 	roleCacheTTL       = 15 * time.Minute
 )
 
-// PermissionCache handles permission caching in Redis
+// PermissionCache handles permission caching in Redis.
 type PermissionCache struct {
 	redis *storage.RedisClient
 	db    *storage.PostgresDB
 }
 
-// NewPermissionCache creates a new permission cache
+// NewPermissionCache creates a new permission cache.
 func NewPermissionCache(redis *storage.RedisClient, db *storage.PostgresDB) *PermissionCache {
 	return &PermissionCache{
 		redis: redis,
@@ -36,7 +36,7 @@ func NewPermissionCache(redis *storage.RedisClient, db *storage.PostgresDB) *Per
 	}
 }
 
-// GetUserPermissions gets user permissions from cache or DB
+// GetUserPermissions gets user permissions from cache or DB.
 func (pc *PermissionCache) GetUserPermissions(ctx context.Context, userID string) ([]types.Permission, error) {
 	cacheKey := userPermissionsPrefix + userID
 
@@ -62,7 +62,7 @@ func (pc *PermissionCache) GetUserPermissions(ctx context.Context, userID string
 	return permissions, nil
 }
 
-// GetUserRoles gets user roles from cache or DB
+// GetUserRoles gets user roles from cache or DB.
 func (pc *PermissionCache) GetUserRoles(ctx context.Context, userID string) ([]types.Role, error) {
 	cacheKey := userRolesPrefix + userID
 
@@ -88,7 +88,7 @@ func (pc *PermissionCache) GetUserRoles(ctx context.Context, userID string) ([]t
 	return roles, nil
 }
 
-// GetRolePermissions gets role permissions from cache or DB
+// GetRolePermissions gets role permissions from cache or DB.
 func (pc *PermissionCache) GetRolePermissions(ctx context.Context, roleID string) ([]types.Permission, error) {
 	cacheKey := rolePermissionsPrefix + roleID
 
@@ -114,22 +114,22 @@ func (pc *PermissionCache) GetRolePermissions(ctx context.Context, roleID string
 	return permissions, nil
 }
 
-// InvalidateUserPermissions invalidates user permission cache
+// InvalidateUserPermissions invalidates user permission cache.
 func (pc *PermissionCache) InvalidateUserPermissions(ctx context.Context, userID string) error {
 	return pc.redis.Client.Del(ctx, userPermissionsPrefix+userID).Err()
 }
 
-// InvalidateUserRoles invalidates user roles cache
+// InvalidateUserRoles invalidates user roles cache.
 func (pc *PermissionCache) InvalidateUserRoles(ctx context.Context, userID string) error {
 	return pc.redis.Client.Del(ctx, userRolesPrefix+userID).Err()
 }
 
-// InvalidateRolePermissions invalidates role permissions cache
+// InvalidateRolePermissions invalidates role permissions cache.
 func (pc *PermissionCache) InvalidateRolePermissions(ctx context.Context, roleID string) error {
 	return pc.redis.Client.Del(ctx, rolePermissionsPrefix+roleID).Err()
 }
 
-// InvalidateAllUserCaches invalidates all caches for a user
+// InvalidateAllUserCaches invalidates all caches for a user.
 func (pc *PermissionCache) InvalidateAllUserCaches(ctx context.Context, userID string) error {
 	if err := pc.InvalidateUserPermissions(ctx, userID); err != nil {
 		return err
@@ -137,12 +137,12 @@ func (pc *PermissionCache) InvalidateAllUserCaches(ctx context.Context, userID s
 	return pc.InvalidateUserRoles(ctx, userID)
 }
 
-// InvalidateAllRoleCaches invalidates all caches for a role
+// InvalidateAllRoleCaches invalidates all caches for a role.
 func (pc *PermissionCache) InvalidateAllRoleCaches(ctx context.Context, roleID string) error {
 	return pc.InvalidateRolePermissions(ctx, roleID)
 }
 
-// fetchUserPermissionsFromDB fetches user permissions from database
+// fetchUserPermissionsFromDB fetches user permissions from database.
 func (pc *PermissionCache) fetchUserPermissionsFromDB(userID string) ([]types.Permission, error) {
 	var modelPerms []model.Permission
 	err := pc.db.DB.Distinct().
@@ -182,7 +182,7 @@ func (pc *PermissionCache) fetchUserPermissionsFromDB(userID string) ([]types.Pe
 	return permissions, nil
 }
 
-// fetchUserRolesFromDB fetches user roles from database
+// fetchUserRolesFromDB fetches user roles from database.
 func (pc *PermissionCache) fetchUserRolesFromDB(userID string) ([]types.Role, error) {
 	var modelRoles []model.Role
 	err := pc.db.DB.
@@ -212,7 +212,7 @@ func (pc *PermissionCache) fetchUserRolesFromDB(userID string) ([]types.Role, er
 	return roles, nil
 }
 
-// fetchRolePermissionsFromDB fetches role permissions from database
+// fetchRolePermissionsFromDB fetches role permissions from database.
 func (pc *PermissionCache) fetchRolePermissionsFromDB(roleID string) ([]types.Permission, error) {
 	var modelPerms []model.Permission
 	err := pc.db.DB.

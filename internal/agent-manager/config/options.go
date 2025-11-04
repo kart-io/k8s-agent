@@ -6,7 +6,7 @@ import (
 	configoptions "github.com/kart-io/k8s-agent/common/options"
 )
 
-// Options defines options for agent-manager service
+// Options defines options for agent-manager service.
 type Options struct {
 	Server   *configoptions.ServerOptions   `json:"server" mapstructure:"server"`
 	GRPC     *configoptions.GRPCOptions     `json:"grpc" mapstructure:"grpc"`
@@ -17,7 +17,7 @@ type Options struct {
 	Metrics  *configoptions.MetricsOptions  `json:"metrics" mapstructure:"metrics"`
 }
 
-// NewOptions creates a new Options instance with default values
+// NewOptions creates a new Options instance with default values.
 func NewOptions() *Options {
 	return &Options{
 		Server:   configoptions.NewServerOptions(),
@@ -30,7 +30,7 @@ func NewOptions() *Options {
 	}
 }
 
-// Validate validates all the required options
+// Validate validates all the required options.
 func (o *Options) Validate() []error {
 	var errs []error
 
@@ -65,7 +65,7 @@ func (o *Options) Validate() []error {
 	return errs
 }
 
-// Complete fills in any fields not set that are required to have valid data
+// Complete fills in any fields not set that are required to have valid data.
 func (o *Options) Complete() error {
 	// Complete all sub-options
 	if err := o.Server.Complete(); err != nil {
@@ -99,7 +99,7 @@ func (o *Options) Complete() error {
 	return nil
 }
 
-// AddFlags adds flags to the flag set
+// AddFlags adds flags to the flag set.
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
 	o.GRPC.AddFlags(fs)
@@ -111,7 +111,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 }
 
 // GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions
+// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *Options) GetHealthPort() int {
 	return 8091 // Agent Manager 健康检查端口
 }

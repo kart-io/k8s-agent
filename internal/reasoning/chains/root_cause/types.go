@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-// Chain 定义根因分析 Chain 的接口
+// Chain 定义根因分析 Chain 的接口.
 type Chain interface {
 	// Analyze 执行根因分析
 	Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisOutput, error)
 }
 
-// AnalysisInput 根因分析输入
+// AnalysisInput 根因分析输入.
 type AnalysisInput struct {
 	// 故障信息
 	FailureType  string    `json:"failure_type"`  // 故障类型: "pod_failure", "service_down", etc.
@@ -34,7 +34,7 @@ type AnalysisInput struct {
 	HistoricalData map[string]interface{} `json:"historical_data"` // 历史数据
 }
 
-// AnalysisOutput 根因分析输出
+// AnalysisOutput 根因分析输出.
 type AnalysisOutput struct {
 	// 根因分析结果
 	RootCause  string  `json:"root_cause"` // 根本原因描述
@@ -56,7 +56,7 @@ type AnalysisOutput struct {
 	Latency      time.Duration `json:"latency"`       // 延迟
 }
 
-// K8sEvent K8s 事件
+// K8sEvent K8s 事件.
 type K8sEvent struct {
 	Type      string    `json:"type"`      // 事件类型: "Normal", "Warning"
 	Reason    string    `json:"reason"`    // 原因
@@ -65,7 +65,7 @@ type K8sEvent struct {
 	Source    string    `json:"source"`    // 来源
 }
 
-// SimilarCase 相似案例
+// SimilarCase 相似案例.
 type SimilarCase struct {
 	CaseID      string  `json:"case_id"`     // 案例 ID
 	Description string  `json:"description"` // 描述
@@ -74,7 +74,7 @@ type SimilarCase struct {
 	Resolution  string  `json:"resolution"`  // 解决方案
 }
 
-// Factor 贡献因素
+// Factor 贡献因素.
 type Factor struct {
 	Name        string `json:"name"`        // 因素名称
 	Description string `json:"description"` // 描述
@@ -82,7 +82,7 @@ type Factor struct {
 	Evidence    string `json:"evidence"`    // 证据
 }
 
-// Recommendation 修复建议
+// Recommendation 修复建议.
 type Recommendation struct {
 	Action      string   `json:"action"`      // 建议操作
 	Priority    string   `json:"priority"`    // 优先级: "high", "medium", "low"
@@ -92,7 +92,7 @@ type Recommendation struct {
 	RiskLevel   string   `json:"risk_level"`  // 风险等级
 }
 
-// ChainConfig 根因分析 Chain 配置
+// ChainConfig 根因分析 Chain 配置.
 type ChainConfig struct {
 	// LLM 配置
 	Temperature float64 `json:"temperature"` // 温度参数

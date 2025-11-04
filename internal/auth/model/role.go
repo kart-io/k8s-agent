@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Role represents a user role in the database
+// Role represents a user role in the database.
 type Role struct {
 	ID          string    `gorm:"column:id;primaryKey;type:varchar(36)" db:"id"`
 	Name        string    `gorm:"column:name;uniqueIndex;not null;type:varchar(50)" db:"name"`
@@ -20,7 +20,7 @@ type Role struct {
 	Permissions []Permission `gorm:"many2many:role_permissions;foreignKey:ID;joinForeignKey:RoleID;References:ID;joinReferences:PermissionID"`
 }
 
-// TableName returns the table name for Role
+// TableName returns the table name for Role.
 func (Role) TableName() string {
 	return "roles"
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// RegistryInitializer Agent Registry 初始化器
+// RegistryInitializer Agent Registry 初始化器.
 type RegistryInitializer struct {
 	opts      *options.ServerOptions
 	logger    core.Logger
@@ -21,7 +21,7 @@ type RegistryInitializer struct {
 	registry  *agent.Registry
 }
 
-// NewRegistryInitializer 创建 Registry 初始化器
+// NewRegistryInitializer 创建 Registry 初始化器.
 func NewRegistryInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -36,17 +36,17 @@ func NewRegistryInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (r *RegistryInitializer) Name() string {
 	return "registry"
 }
 
-// Priority 返回初始化优先级 (在 Database 和 Redis 之后)
+// Priority 返回初始化优先级 (在 Database 和 Redis 之后).
 func (r *RegistryInitializer) Priority() int {
 	return bootstrap.PriorityCache + 50
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (r *RegistryInitializer) Initialize(ctx context.Context) error {
 	r.logger.Infow("Initializing agent registry")
 
@@ -65,7 +65,7 @@ func (r *RegistryInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭 Registry
+// Close 关闭 Registry.
 func (r *RegistryInitializer) Close(ctx context.Context) error {
 	if r.registry != nil {
 		r.logger.Infow("Stopping agent registry")
@@ -74,12 +74,12 @@ func (r *RegistryInitializer) Close(ctx context.Context) error {
 	return nil
 }
 
-// Registry 获取 Registry 实例
+// Registry 获取 Registry 实例.
 func (r *RegistryInitializer) Registry() *agent.Registry {
 	return r.registry
 }
 
-// NATSInitializer NATS 服务器初始化器
+// NATSInitializer NATS 服务器初始化器.
 type NATSInitializer struct {
 	opts       *options.ServerOptions
 	logger     core.Logger
@@ -88,7 +88,7 @@ type NATSInitializer struct {
 	natsServer *nats.Server
 }
 
-// NewNATSInitializer 创建 NATS 初始化器
+// NewNATSInitializer 创建 NATS 初始化器.
 func NewNATSInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -112,17 +112,17 @@ func NewNATSInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (n *NATSInitializer) Name() string {
 	return "nats"
 }
 
-// Priority 返回初始化优先级
+// Priority 返回初始化优先级.
 func (n *NATSInitializer) Priority() int {
 	return bootstrap.PriorityMQ
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (n *NATSInitializer) Initialize(ctx context.Context) error {
 	n.logger.Infow("Initializing NATS server",
 		"url", n.opts.NATS.URL,
@@ -148,7 +148,7 @@ func (n *NATSInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭 NATS 服务器
+// Close 关闭 NATS 服务器.
 func (n *NATSInitializer) Close(ctx context.Context) error {
 	if n.natsServer != nil {
 		n.logger.Infow("Stopping NATS server")
@@ -157,17 +157,17 @@ func (n *NATSInitializer) Close(ctx context.Context) error {
 	return nil
 }
 
-// Server 获取 NATS 服务器实例
+// Server 获取 NATS 服务器实例.
 func (n *NATSInitializer) Server() *nats.Server {
 	return n.natsServer
 }
 
-// EventProcessor 获取事件处理器实例
+// EventProcessor 获取事件处理器实例.
 func (n *NATSInitializer) EventProcessor() *event.Processor {
 	return n.eventProc
 }
 
-// DispatcherInitializer Command Dispatcher 初始化器
+// DispatcherInitializer Command Dispatcher 初始化器.
 type DispatcherInitializer struct {
 	opts       *options.ServerOptions
 	logger     core.Logger
@@ -178,7 +178,7 @@ type DispatcherInitializer struct {
 	dispatcher *command.Dispatcher
 }
 
-// NewDispatcherInitializer 创建 Dispatcher 初始化器
+// NewDispatcherInitializer 创建 Dispatcher 初始化器.
 func NewDispatcherInitializer(
 	opts *options.ServerOptions,
 	logger core.Logger,
@@ -197,17 +197,17 @@ func NewDispatcherInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (d *DispatcherInitializer) Name() string {
 	return "dispatcher"
 }
 
-// Priority 返回初始化优先级 (在 NATS 之后)
+// Priority 返回初始化优先级 (在 NATS 之后).
 func (d *DispatcherInitializer) Priority() int {
 	return bootstrap.PriorityMQ + 50
 }
 
-// Initialize 执行初始化
+// Initialize 执行初始化.
 func (d *DispatcherInitializer) Initialize(ctx context.Context) error {
 	d.logger.Infow("Initializing command dispatcher")
 
@@ -223,12 +223,12 @@ func (d *DispatcherInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Close 关闭 Dispatcher (目前无需关闭操作)
+// Close 关闭 Dispatcher (目前无需关闭操作).
 func (d *DispatcherInitializer) Close(ctx context.Context) error {
 	return nil
 }
 
-// Dispatcher 获取 Dispatcher 实例
+// Dispatcher 获取 Dispatcher 实例.
 func (d *DispatcherInitializer) Dispatcher() *command.Dispatcher {
 	return d.dispatcher
 }

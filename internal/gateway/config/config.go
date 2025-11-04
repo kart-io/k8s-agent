@@ -7,7 +7,7 @@ import (
 	commoncore "github.com/kart-io/k8s-agent/common/core"
 )
 
-// Config holds all configuration
+// Config holds all configuration.
 type Config struct {
 	Server      ServerConfig      `mapstructure:"server"`
 	Log         LogConfig         `mapstructure:"log"`
@@ -21,7 +21,7 @@ type Config struct {
 	Metrics     MetricsConfig     `mapstructure:"metrics"`
 }
 
-// ServerConfig holds server configuration
+// ServerConfig holds server configuration.
 type ServerConfig struct {
 	Host         string        `mapstructure:"host"`
 	Port         int           `mapstructure:"port"`
@@ -30,13 +30,13 @@ type ServerConfig struct {
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 }
 
-// LogConfig holds logging configuration
+// LogConfig holds logging configuration.
 type LogConfig struct {
 	Level string `mapstructure:"level"`
 	File  string `mapstructure:"file"`
 }
 
-// RedisConfig holds Redis configuration
+// RedisConfig holds Redis configuration.
 type RedisConfig struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
@@ -45,20 +45,20 @@ type RedisConfig struct {
 	PoolSize int    `mapstructure:"pool_size"`
 }
 
-// JWTConfig holds JWT configuration
+// JWTConfig holds JWT configuration.
 type JWTConfig struct {
 	Secret       string `mapstructure:"secret"`
 	ExpiresHours int    `mapstructure:"expires_hours"`
 }
 
-// RateLimitConfig holds rate limiting configuration
+// RateLimitConfig holds rate limiting configuration.
 type RateLimitConfig struct {
 	Enabled           bool `mapstructure:"enabled"`
 	RequestsPerSecond int  `mapstructure:"requests_per_second"`
 	Burst             int  `mapstructure:"burst"`
 }
 
-// CORSConfig holds CORS configuration
+// CORSConfig holds CORS configuration.
 type CORSConfig struct {
 	Enabled          bool          `mapstructure:"enabled"`
 	AllowOrigins     []string      `mapstructure:"allow_origins"`
@@ -69,7 +69,7 @@ type CORSConfig struct {
 	MaxAge           time.Duration `mapstructure:"max_age"`
 }
 
-// ServiceConfig holds individual service configuration
+// ServiceConfig holds individual service configuration.
 type ServiceConfig struct {
 	Name        string        `mapstructure:"name"`
 	URL         string        `mapstructure:"url"`
@@ -78,7 +78,7 @@ type ServiceConfig struct {
 	HealthCheck string        `mapstructure:"health_check"`
 }
 
-// ServicesConfig holds all backend services configuration
+// ServicesConfig holds all backend services configuration.
 type ServicesConfig struct {
 	Auth         ServiceConfig `mapstructure:"auth"`
 	AgentManager ServiceConfig `mapstructure:"agent_manager"`
@@ -86,7 +86,7 @@ type ServicesConfig struct {
 	Reasoning    ServiceConfig `mapstructure:"reasoning"`
 }
 
-// RouteConfig holds route configuration
+// RouteConfig holds route configuration.
 type RouteConfig struct {
 	Path         string `mapstructure:"path"`
 	Service      string `mapstructure:"service"`
@@ -94,25 +94,25 @@ type RouteConfig struct {
 	AuthRequired bool   `mapstructure:"auth_required"`
 }
 
-// HealthCheckConfig holds health check configuration
+// HealthCheckConfig holds health check configuration.
 type HealthCheckConfig struct {
 	Enabled  bool          `mapstructure:"enabled"`
 	Interval time.Duration `mapstructure:"interval"`
 	Timeout  time.Duration `mapstructure:"timeout"`
 }
 
-// MetricsConfig holds metrics configuration
+// MetricsConfig holds metrics configuration.
 type MetricsConfig struct {
 	Enabled bool   `mapstructure:"enabled"`
 	Path    string `mapstructure:"path"`
 }
 
-// Load loads configuration from file and environment variables
+// Load loads configuration from file and environment variables.
 func Load() (*Config, error) {
 	return LoadFromPath("")
 }
 
-// LoadFromPath loads configuration from a specific file path
+// LoadFromPath loads configuration from a specific file path.
 func LoadFromPath(configPath string) (*Config, error) {
 	config := &Config{}
 
@@ -132,18 +132,18 @@ func LoadFromPath(configPath string) (*Config, error) {
 	return config, nil
 }
 
-// configWrapper 包装 Config 以实现 Options 接口
+// configWrapper 包装 Config 以实现 Options 接口.
 type configWrapper struct {
 	*Config
 }
 
-// Complete 实现 Options 接口
+// Complete 实现 Options 接口.
 func (w *configWrapper) Complete() error {
 	// gateway 的 Config 不需要特殊的 Complete 逻辑
 	return nil
 }
 
-// Validate 实现 Options 接口
+// Validate 实现 Options 接口.
 func (w *configWrapper) Validate() []error {
 	if err := validate(w.Config); err != nil {
 		return []error{err}
@@ -151,7 +151,7 @@ func (w *configWrapper) Validate() []error {
 	return nil
 }
 
-// validate validates configuration
+// validate validates configuration.
 func validate(cfg *Config) error {
 	if cfg.Server.Port == 0 {
 		return fmt.Errorf("server.port is required")

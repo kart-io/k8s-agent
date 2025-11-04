@@ -13,13 +13,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sServiceService Service 管理服务
+// K8sServiceService Service 管理服务.
 type K8sServiceService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sServiceService 创建新的 Service 服务
+// NewK8sServiceService 创建新的 Service 服务.
 func NewK8sServiceService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sServiceService {
 	return &K8sServiceService{
 		storage:        storage,
@@ -27,7 +27,7 @@ func NewK8sServiceService(storage *storage.MySQLStorage, clusterService *K8sClus
 	}
 }
 
-// ServiceInfo Service 信息
+// ServiceInfo Service 信息.
 type ServiceInfo struct {
 	Name           string            `json:"name"`
 	Namespace      string            `json:"namespace"`
@@ -42,7 +42,7 @@ type ServiceInfo struct {
 	CreatedAt      string            `json:"createdAt"`
 }
 
-// ServicePort Service 端口
+// ServicePort Service 端口.
 type ServicePort struct {
 	Name       string `json:"name"`
 	Protocol   string `json:"protocol"`
@@ -51,7 +51,7 @@ type ServicePort struct {
 	NodePort   int32  `json:"nodePort,omitempty"`
 }
 
-// CreateServiceRequest 创建 Service 请求
+// CreateServiceRequest 创建 Service 请求.
 type CreateServiceRequest struct {
 	Name        string            `json:"name" binding:"required"`
 	Namespace   string            `json:"namespace" binding:"required"`
@@ -62,7 +62,7 @@ type CreateServiceRequest struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-// ListServices 获取 Service 列表
+// ListServices 获取 Service 列表.
 func (s *K8sServiceService) ListServices(ctx context.Context, clusterID, namespace string, offset, limit int) ([]ServiceInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -95,7 +95,7 @@ func (s *K8sServiceService) ListServices(ctx context.Context, clusterID, namespa
 	return result, total, nil
 }
 
-// GetService 获取 Service 详情
+// GetService 获取 Service 详情.
 func (s *K8sServiceService) GetService(ctx context.Context, clusterID, namespace, serviceName string) (*ServiceInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -111,7 +111,7 @@ func (s *K8sServiceService) GetService(ctx context.Context, clusterID, namespace
 	return &serviceInfo, nil
 }
 
-// CreateService 创建 Service
+// CreateService 创建 Service.
 func (s *K8sServiceService) CreateService(ctx context.Context, clusterID string, req *CreateServiceRequest) (*ServiceInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -154,7 +154,7 @@ func (s *K8sServiceService) CreateService(ctx context.Context, clusterID string,
 	return &serviceInfo, nil
 }
 
-// UpdateService 更新 Service
+// UpdateService 更新 Service.
 func (s *K8sServiceService) UpdateService(ctx context.Context, clusterID, namespace, serviceName string, req *CreateServiceRequest) (*ServiceInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -192,7 +192,7 @@ func (s *K8sServiceService) UpdateService(ctx context.Context, clusterID, namesp
 	return &serviceInfo, nil
 }
 
-// DeleteService 删除 Service
+// DeleteService 删除 Service.
 func (s *K8sServiceService) DeleteService(ctx context.Context, clusterID, namespace, serviceName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -213,7 +213,7 @@ func (s *K8sServiceService) DeleteService(ctx context.Context, clusterID, namesp
 	return nil
 }
 
-// convertServiceInfo 转换 Service 信息
+// convertServiceInfo 转换 Service 信息.
 func (s *K8sServiceService) convertServiceInfo(service *corev1.Service) ServiceInfo {
 	ports := make([]ServicePort, 0)
 	for _, port := range service.Spec.Ports {
@@ -258,7 +258,7 @@ func (s *K8sServiceService) convertServiceInfo(service *corev1.Service) ServiceI
 	}
 }
 
-// convertToK8sPorts 转换为 K8s ServicePort 数组
+// convertToK8sPorts 转换为 K8s ServicePort 数组.
 func (s *K8sServiceService) convertToK8sPorts(ports []ServicePort) []corev1.ServicePort {
 	k8sPorts := make([]corev1.ServicePort, 0)
 	for _, port := range ports {

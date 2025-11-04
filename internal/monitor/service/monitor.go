@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
@@ -25,7 +26,7 @@ func NewMonitorService(db *storage.PostgresStorage, redis *storage.RedisStorage,
 	}
 }
 
-// GetMetricsSummary 获取监控概览
+// GetMetricsSummary 获取监控概览.
 func (s *MonitorService) GetMetricsSummary(ctx context.Context) (*types.MetricsSummary, error) {
 	// 尝试从缓存获取
 	cached, err := s.redis.GetMetricsSummary(ctx, "metrics:summary")
@@ -63,7 +64,7 @@ func (s *MonitorService) GetMetricsSummary(ctx context.Context) (*types.MetricsS
 		&summary.LastUpdateTime,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			// 返回空数据
 			return &types.MetricsSummary{
 				LastUpdateTime: time.Now(),
@@ -74,12 +75,14 @@ func (s *MonitorService) GetMetricsSummary(ctx context.Context) (*types.MetricsS
 
 	// 缓存结果
 	data, _ := json.Marshal(summary)
-	s.redis.SetMetricsSummary(ctx, "metrics:summary", string(data), 30*time.Second)
+	if err := s.redis.SetMetricsSummary(ctx, "metrics:summary", string(data), 30*time.Second); err != nil {
+		s.log.Warnw("Failed to cache metrics summary", "error", err)
+	}
 
 	return &summary, nil
 }
 
-// SaveMetricsSummary 保存监控概览
+// SaveMetricsSummary 保存监控概览.
 func (s *MonitorService) SaveMetricsSummary(ctx context.Context, summary *types.MetricsSummary) error {
 	query := `
 		INSERT INTO metrics_summary
@@ -112,7 +115,7 @@ func (s *MonitorService) SaveMetricsSummary(ctx context.Context, summary *types.
 	return err
 }
 
-// GetAgentMetrics 获取 Agent 指标列表
+// GetAgentMetrics 获取 Agent 指标列表.
 func (s *MonitorService) GetAgentMetrics(ctx context.Context, limit, offset int) ([]types.AgentMetrics, error) {
 	query := `
 		SELECT agent_id, agent_name, cluster_id, status, cpu_usage,
@@ -126,7 +129,11 @@ func (s *MonitorService) GetAgentMetrics(ctx context.Context, limit, offset int)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			s.log.Warnw("Failed to close rows", "error", err)
+		}
+	}()
 
 	var metrics []types.AgentMetrics
 	for rows.Next() {
@@ -149,10 +156,15 @@ func (s *MonitorService) GetAgentMetrics(ctx context.Context, limit, offset int)
 		metrics = append(metrics, m)
 	}
 
+	// Check for errors during iteration
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return metrics, nil
 }
 
-// GetTrendData 获取趋势数据
+// GetTrendData 获取趋势数据.
 func (s *MonitorService) GetTrendData(ctx context.Context, hours int) ([]types.TrendData, error) {
 	query := `
 		SELECT timestamp, metrics
@@ -166,7 +178,11 @@ func (s *MonitorService) GetTrendData(ctx context.Context, hours int) ([]types.T
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			s.log.Warnw("Failed to close trend rows", "error", err)
+		}
+	}()
 
 	var trends []types.TrendData
 	for rows.Next() {
@@ -181,6 +197,11 @@ func (s *MonitorService) GetTrendData(ctx context.Context, hours int) ([]types.T
 			continue
 		}
 		trends = append(trends, t)
+	}
+
+	// Check for errors during iteration
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return trends, nil

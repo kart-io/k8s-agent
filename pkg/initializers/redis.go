@@ -18,7 +18,7 @@ import (
 // - Redis 连接初始化
 // - 连接池配置
 // - 健康检查
-// - 优雅关闭
+// - 优雅关闭.
 type RedisInitializer struct {
 	opts   *options.RedisOptions
 	logger core.Logger
@@ -43,14 +43,14 @@ func NewRedisInitializer(
 	}
 }
 
-// Name 返回初始化器名称
+// Name 返回初始化器名称.
 func (r *RedisInitializer) Name() string {
 	return "redis"
 }
 
 // Priority 返回初始化优先级
 //
-// Redis 初始化器应该在数据库之后，业务逻辑之前初始化
+// Redis 初始化器应该在数据库之后，业务逻辑之前初始化.
 func (r *RedisInitializer) Priority() int {
 	return bootstrap.PriorityCache
 }

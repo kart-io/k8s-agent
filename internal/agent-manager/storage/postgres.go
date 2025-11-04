@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	// defaultDBTimeout 数据库操作默认超时时间
+	// defaultDBTimeout 数据库操作默认超时时间.
 	defaultDBTimeout = 5 * time.Second
 )
 
-// withTimeout 为context添加默认超时（如果尚未设置deadline）
+// withTimeout 为context添加默认超时（如果尚未设置deadline）.
 func withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 	if _, ok := ctx.Deadline(); ok {
 		// context已经有deadline，直接返回
@@ -26,14 +26,14 @@ func withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 }
 
 // PostgresStore implements storage using MySQL
-// Note: Kept the name for backward compatibility, but now using MySQL
+// Note: Kept the name for backward compatibility, but now using MySQL.
 type PostgresStore struct {
 	*db.MySQLClient // Embed common MySQL client
 	logger          core.Logger
 }
 
 // NewPostgresStore creates a new MySQL store
-// Note: Kept the name for backward compatibility, but now using MySQL
+// Note: Kept the name for backward compatibility, but now using MySQL.
 func NewPostgresStore(config types.DatabaseConfig, log core.Logger) (*PostgresStore, error) {
 	// Create MySQL client using common package with Options pattern
 	mysqlClient, err := db.NewMySQL(log,
@@ -79,14 +79,14 @@ func NewPostgresStore(config types.DatabaseConfig, log core.Logger) (*PostgresSt
 
 // Agent operations
 
-// SaveAgent saves an agent to the database
+// SaveAgent saves an agent to the database.
 func (s *PostgresStore) SaveAgent(ctx context.Context, agent *types.Agent) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	return s.DB.WithContext(ctx).Save(agent).Error
 }
 
-// GetAgent retrieves an agent by ID
+// GetAgent retrieves an agent by ID.
 func (s *PostgresStore) GetAgent(ctx context.Context, id string) (*types.Agent, error) {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -98,7 +98,7 @@ func (s *PostgresStore) GetAgent(ctx context.Context, id string) (*types.Agent, 
 	return &agent, nil
 }
 
-// GetAgentByClusterID retrieves an agent by cluster ID
+// GetAgentByClusterID retrieves an agent by cluster ID.
 func (s *PostgresStore) GetAgentByClusterID(ctx context.Context, clusterID string) (*types.Agent, error) {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -110,7 +110,7 @@ func (s *PostgresStore) GetAgentByClusterID(ctx context.Context, clusterID strin
 	return &agent, nil
 }
 
-// ListAgents lists all agents
+// ListAgents lists all agents.
 func (s *PostgresStore) ListAgents(ctx context.Context, status *types.AgentStatus) ([]*types.Agent, error) {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -128,7 +128,7 @@ func (s *PostgresStore) ListAgents(ctx context.Context, status *types.AgentStatu
 	return agents, nil
 }
 
-// UpdateAgentStatus updates agent status
+// UpdateAgentStatus updates agent status.
 func (s *PostgresStore) UpdateAgentStatus(ctx context.Context, id string, status types.AgentStatus) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -141,7 +141,7 @@ func (s *PostgresStore) UpdateAgentStatus(ctx context.Context, id string, status
 		}).Error
 }
 
-// UpdateAgentHeartbeat updates agent heartbeat timestamp
+// UpdateAgentHeartbeat updates agent heartbeat timestamp.
 func (s *PostgresStore) UpdateAgentHeartbeat(ctx context.Context, id string) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -151,7 +151,7 @@ func (s *PostgresStore) UpdateAgentHeartbeat(ctx context.Context, id string) err
 		Update("last_heartbeat", time.Now()).Error
 }
 
-// DeleteAgent deletes an agent
+// DeleteAgent deletes an agent.
 func (s *PostgresStore) DeleteAgent(ctx context.Context, id string) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -161,12 +161,12 @@ func (s *PostgresStore) DeleteAgent(ctx context.Context, id string) error {
 
 // Event operations
 
-// SaveEvent saves an event to the database
+// SaveEvent saves an event to the database.
 func (s *PostgresStore) SaveEvent(ctx context.Context, event *types.Event) error {
 	return s.DB.WithContext(ctx).Create(event).Error
 }
 
-// GetEvent retrieves an event by ID
+// GetEvent retrieves an event by ID.
 func (s *PostgresStore) GetEvent(ctx context.Context, id string) (*types.Event, error) {
 	var event types.Event
 	if err := s.DB.WithContext(ctx).First(&event, "id = ?", id).Error; err != nil {
@@ -175,7 +175,7 @@ func (s *PostgresStore) GetEvent(ctx context.Context, id string) (*types.Event, 
 	return &event, nil
 }
 
-// ListEvents lists events with filters
+// ListEvents lists events with filters.
 func (s *PostgresStore) ListEvents(ctx context.Context, filter EventFilter) ([]*types.Event, error) {
 	var events []*types.Event
 	query := s.DB.WithContext(ctx)
@@ -203,7 +203,7 @@ func (s *PostgresStore) ListEvents(ctx context.Context, filter EventFilter) ([]*
 	return events, nil
 }
 
-// EventFilter defines filters for event queries
+// EventFilter defines filters for event queries.
 type EventFilter struct {
 	ClusterID string
 	Severity  string
@@ -215,12 +215,12 @@ type EventFilter struct {
 
 // Command operations
 
-// SaveCommand saves a command to the database
+// SaveCommand saves a command to the database.
 func (s *PostgresStore) SaveCommand(ctx context.Context, cmd *types.Command) error {
 	return s.DB.WithContext(ctx).Create(cmd).Error
 }
 
-// GetCommand retrieves a command by ID
+// GetCommand retrieves a command by ID.
 func (s *PostgresStore) GetCommand(ctx context.Context, id string) (*types.Command, error) {
 	var cmd types.Command
 	if err := s.DB.WithContext(ctx).First(&cmd, "id = ?", id).Error; err != nil {
@@ -229,7 +229,7 @@ func (s *PostgresStore) GetCommand(ctx context.Context, id string) (*types.Comma
 	return &cmd, nil
 }
 
-// UpdateCommandStatus updates command status
+// UpdateCommandStatus updates command status.
 func (s *PostgresStore) UpdateCommandStatus(ctx context.Context, id string, status types.CommandStatus) error {
 	return s.DB.WithContext(ctx).Model(&types.Command{}).
 		Where("id = ?", id).
@@ -239,12 +239,12 @@ func (s *PostgresStore) UpdateCommandStatus(ctx context.Context, id string, stat
 		}).Error
 }
 
-// SaveCommandResult saves a command result
+// SaveCommandResult saves a command result.
 func (s *PostgresStore) SaveCommandResult(ctx context.Context, result *types.CommandResult) error {
 	return s.DB.WithContext(ctx).Create(result).Error
 }
 
-// GetCommandResult retrieves a command result
+// GetCommandResult retrieves a command result.
 func (s *PostgresStore) GetCommandResult(ctx context.Context, commandID string) (*types.CommandResult, error) {
 	var result types.CommandResult
 	if err := s.DB.WithContext(ctx).First(&result, "command_id = ?", commandID).Error; err != nil {
@@ -255,12 +255,12 @@ func (s *PostgresStore) GetCommandResult(ctx context.Context, commandID string) 
 
 // Cluster operations
 
-// SaveCluster saves a cluster to the database
+// SaveCluster saves a cluster to the database.
 func (s *PostgresStore) SaveCluster(ctx context.Context, cluster *types.Cluster) error {
 	return s.DB.WithContext(ctx).Save(cluster).Error
 }
 
-// GetCluster retrieves a cluster by ID
+// GetCluster retrieves a cluster by ID.
 func (s *PostgresStore) GetCluster(ctx context.Context, id string) (*types.Cluster, error) {
 	var cluster types.Cluster
 	if err := s.DB.WithContext(ctx).First(&cluster, "id = ?", id).Error; err != nil {
@@ -269,7 +269,7 @@ func (s *PostgresStore) GetCluster(ctx context.Context, id string) (*types.Clust
 	return &cluster, nil
 }
 
-// ListClusters lists all clusters
+// ListClusters lists all clusters.
 func (s *PostgresStore) ListClusters(ctx context.Context) ([]*types.Cluster, error) {
 	var clusters []*types.Cluster
 	if err := s.DB.WithContext(ctx).Order("created_at DESC").Find(&clusters).Error; err != nil {
@@ -278,7 +278,7 @@ func (s *PostgresStore) ListClusters(ctx context.Context) ([]*types.Cluster, err
 	return clusters, nil
 }
 
-// UpdateClusterHealth updates cluster health
+// UpdateClusterHealth updates cluster health.
 func (s *PostgresStore) UpdateClusterHealth(ctx context.Context, id string, health types.ClusterHealth) error {
 	return s.DB.WithContext(ctx).Model(&types.Cluster{}).
 		Where("id = ?", id).
@@ -288,7 +288,7 @@ func (s *PostgresStore) UpdateClusterHealth(ctx context.Context, id string, heal
 		}).Error
 }
 
-// DeleteCluster deletes a cluster
+// DeleteCluster deletes a cluster.
 func (s *PostgresStore) DeleteCluster(ctx context.Context, id string) error {
 	return s.DB.WithContext(ctx).Delete(&types.Cluster{}, "id = ?", id).Error
 }

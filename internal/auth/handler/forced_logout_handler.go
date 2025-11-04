@@ -9,12 +9,17 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// ForcedLogoutHandler handles forced logout operations
+const (
+	// defaultTriggeredBy is the default value for TriggeredBy field when not provided
+	defaultTriggeredBy = "manual"
+)
+
+// ForcedLogoutHandler handles forced logout operations.
 type ForcedLogoutHandler struct {
 	forcedLogoutService *forcedlogout.Service
 }
 
-// NewForcedLogoutHandler creates a new forced logout handler
+// NewForcedLogoutHandler creates a new forced logout handler.
 func NewForcedLogoutHandler(forcedLogoutService *forcedlogout.Service) *ForcedLogoutHandler {
 	return &ForcedLogoutHandler{
 		forcedLogoutService: forcedLogoutService,
@@ -22,7 +27,7 @@ func NewForcedLogoutHandler(forcedLogoutService *forcedlogout.Service) *ForcedLo
 }
 
 // ForceLogoutSession handles POST /api/v1/forced-logout/session/:jti
-// Terminates a single session by JTI
+// Terminates a single session by JTI.
 func (h *ForcedLogoutHandler) ForceLogoutSession(c *gin.Context) {
 	// Extract JTI from path parameter
 	jti := c.Param("jti")
@@ -47,7 +52,7 @@ func (h *ForcedLogoutHandler) ForceLogoutSession(c *gin.Context) {
 
 	// Set default triggered_by if not provided
 	if req.TriggeredBy == "" {
-		req.TriggeredBy = "manual"
+		req.TriggeredBy = defaultTriggeredBy
 	}
 
 	// Extract actor information from context (set by auth middleware)
@@ -106,7 +111,7 @@ func (h *ForcedLogoutHandler) ForceLogoutSession(c *gin.Context) {
 }
 
 // ForceLogoutUser handles POST /api/v1/forced-logout/user/:userId
-// Terminates all sessions for a user
+// Terminates all sessions for a user.
 func (h *ForcedLogoutHandler) ForceLogoutUser(c *gin.Context) {
 	// Extract userId from path parameter
 	userID := c.Param("userId")
@@ -140,7 +145,7 @@ func (h *ForcedLogoutHandler) ForceLogoutUser(c *gin.Context) {
 
 	// Set default triggered_by if not provided
 	if req.TriggeredBy == "" {
-		req.TriggeredBy = "manual"
+		req.TriggeredBy = defaultTriggeredBy
 	}
 
 	// Extract actor information from context
@@ -192,7 +197,7 @@ func (h *ForcedLogoutHandler) ForceLogoutUser(c *gin.Context) {
 }
 
 // BulkForceLogout handles POST /api/v1/forced-logout/sessions
-// Terminates multiple sessions in bulk
+// Terminates multiple sessions in bulk.
 func (h *ForcedLogoutHandler) BulkForceLogout(c *gin.Context) {
 	// Parse request body
 	var req types.BulkForceLogoutRequest
@@ -224,7 +229,7 @@ func (h *ForcedLogoutHandler) BulkForceLogout(c *gin.Context) {
 
 	// Set default triggered_by if not provided
 	if req.TriggeredBy == "" {
-		req.TriggeredBy = "manual"
+		req.TriggeredBy = defaultTriggeredBy
 	}
 
 	// Extract actor information from context

@@ -13,13 +13,13 @@ import (
 	"github.com/kart-io/logger"
 )
 
-// K8sStatefulSetService StatefulSet 管理服务
+// K8sStatefulSetService StatefulSet 管理服务.
 type K8sStatefulSetService struct {
 	storage        *storage.MySQLStorage
 	clusterService *K8sClusterService
 }
 
-// NewK8sStatefulSetService 创建新的 StatefulSet 服务
+// NewK8sStatefulSetService 创建新的 StatefulSet 服务.
 func NewK8sStatefulSetService(storage *storage.MySQLStorage, clusterService *K8sClusterService) *K8sStatefulSetService {
 	return &K8sStatefulSetService{
 		storage:        storage,
@@ -27,7 +27,7 @@ func NewK8sStatefulSetService(storage *storage.MySQLStorage, clusterService *K8s
 	}
 }
 
-// StatefulSetInfo StatefulSet 信息
+// StatefulSetInfo StatefulSet 信息.
 type StatefulSetInfo struct {
 	Name            string            `json:"name"`
 	Namespace       string            `json:"namespace"`
@@ -43,7 +43,7 @@ type StatefulSetInfo struct {
 	CreatedAt       string            `json:"createdAt"`
 }
 
-// ListStatefulSets 获取 StatefulSet 列表
+// ListStatefulSets 获取 StatefulSet 列表.
 func (s *K8sStatefulSetService) ListStatefulSets(ctx context.Context, clusterID, namespace string, offset, limit int) ([]StatefulSetInfo, int64, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -76,7 +76,7 @@ func (s *K8sStatefulSetService) ListStatefulSets(ctx context.Context, clusterID,
 	return result, total, nil
 }
 
-// GetStatefulSet 获取 StatefulSet 详情
+// GetStatefulSet 获取 StatefulSet 详情.
 func (s *K8sStatefulSetService) GetStatefulSet(ctx context.Context, clusterID, namespace, statefulsetName string) (*StatefulSetInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -92,7 +92,7 @@ func (s *K8sStatefulSetService) GetStatefulSet(ctx context.Context, clusterID, n
 	return &stsInfo, nil
 }
 
-// ScaleStatefulSet 扩缩容 StatefulSet
+// ScaleStatefulSet 扩缩容 StatefulSet.
 func (s *K8sStatefulSetService) ScaleStatefulSet(ctx context.Context, clusterID, namespace, statefulsetName string, replicas int32) (*StatefulSetInfo, error) {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *K8sStatefulSetService) ScaleStatefulSet(ctx context.Context, clusterID,
 	return &stsInfo, nil
 }
 
-// RestartStatefulSet 重启 StatefulSet
+// RestartStatefulSet 重启 StatefulSet.
 func (s *K8sStatefulSetService) RestartStatefulSet(ctx context.Context, clusterID, namespace, statefulsetName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -139,10 +139,10 @@ func (s *K8sStatefulSetService) RestartStatefulSet(ctx context.Context, clusterI
 	}
 
 	// 添加重启注解（通过修改 Pod 模板的注解来触发重启）
-	if statefulset.Spec.Template.ObjectMeta.Annotations == nil {
-		statefulset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	if statefulset.Spec.Template.Annotations == nil {
+		statefulset.Spec.Template.Annotations = make(map[string]string)
 	}
-	statefulset.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+	statefulset.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 
 	// 更新 StatefulSet
 	_, err = client.Clientset().AppsV1().StatefulSets(namespace).Update(ctx, statefulset, metav1.UpdateOptions{})
@@ -159,7 +159,7 @@ func (s *K8sStatefulSetService) RestartStatefulSet(ctx context.Context, clusterI
 	return nil
 }
 
-// DeleteStatefulSet 删除 StatefulSet
+// DeleteStatefulSet 删除 StatefulSet.
 func (s *K8sStatefulSetService) DeleteStatefulSet(ctx context.Context, clusterID, namespace, statefulsetName string) error {
 	client, err := s.clusterService.getClient(ctx, clusterID)
 	if err != nil {
@@ -180,7 +180,7 @@ func (s *K8sStatefulSetService) DeleteStatefulSet(ctx context.Context, clusterID
 	return nil
 }
 
-// convertStatefulSetInfo 转换 StatefulSet 信息
+// convertStatefulSetInfo 转换 StatefulSet 信息.
 func (s *K8sStatefulSetService) convertStatefulSetInfo(statefulset *appsv1.StatefulSet) StatefulSetInfo {
 	var replicas int32
 	if statefulset.Spec.Replicas != nil {

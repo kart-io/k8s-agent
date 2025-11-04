@@ -14,7 +14,7 @@ import (
 	llmclient "github.com/kart-io/k8s-agent/internal/reasoning/llm"
 )
 
-// ProxyAdapter 封装 gollm 提供统一的 LLM 访问接口
+// ProxyAdapter 封装 gollm 提供统一的 LLM 访问接口.
 type ProxyAdapter struct {
 	providers []*ProviderClient // 按优先级排序的提供商列表
 	config    *config.LLMConfig // LLM 配置
@@ -22,7 +22,7 @@ type ProxyAdapter struct {
 	mu        sync.RWMutex      // 保护 metrics 的并发访问
 }
 
-// ProviderClient 单个提供商客户端
+// ProviderClient 单个提供商客户端.
 type ProviderClient struct {
 	name      string                    // 提供商名称
 	priority  int                       // 优先级 (数值越小优先级越高)
@@ -35,7 +35,7 @@ type ProviderClient struct {
 }
 
 // NewProxyAdapter 创建新的代理适配器
-// 从配置初始化提供商列表并按 priority 排序
+// 从配置初始化提供商列表并按 priority 排序.
 func NewProxyAdapter(cfg *config.LLMConfig) (*ProxyAdapter, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("LLM config is nil")
@@ -57,7 +57,8 @@ func NewProxyAdapter(cfg *config.LLMConfig) (*ProxyAdapter, error) {
 	}
 
 	// 初始化提供商客户端
-	for _, providerCfg := range cfg.Providers {
+	for i := range cfg.Providers {
+		providerCfg := cfg.Providers[i]
 		// 跳过没有 API key 的提供商(ollama 除外)
 		if providerCfg.APIKey == "" && providerCfg.Name != "ollama" {
 			log.Printf("Skipping provider %s: no API key configured", providerCfg.Name)
@@ -72,14 +73,14 @@ func NewProxyAdapter(cfg *config.LLMConfig) (*ProxyAdapter, error) {
 
 		if useGollm {
 			// 使用 gollm 创建客户端
-			clientInterface, err = createGollmClient(&providerCfg)
+			clientInterface, err = createGollmClient(&cfg.Providers[i])
 			if err != nil {
 				log.Printf("Failed to create gollm client for %s: %v", providerCfg.Name, err)
 				continue
 			}
 		} else {
 			// 使用项目原生 LLM 客户端
-			clientInterface, err = createNativeLLMClient(&providerCfg)
+			clientInterface, err = createNativeLLMClient(&cfg.Providers[i])
 			if err != nil {
 				log.Printf("Failed to create native LLM client for %s: %v", providerCfg.Name, err)
 				continue
@@ -91,7 +92,7 @@ func NewProxyAdapter(cfg *config.LLMConfig) (*ProxyAdapter, error) {
 			priority:  providerCfg.Priority,
 			client:    clientInterface,
 			useGollm:  useGollm,
-			config:    &providerCfg,
+			config:    &cfg.Providers[i],
 			healthy:   true,
 			lastCheck: time.Now(),
 		}
@@ -123,7 +124,7 @@ func NewProxyAdapter(cfg *config.LLMConfig) (*ProxyAdapter, error) {
 }
 
 // Complete 标准的补全请求
-// 调用 gollm 或原生客户端发送请求到优先级最高的可用提供商
+// 调用 gollm 或原生客户端发送请求到优先级最高的可用提供商.
 func (a *ProxyAdapter) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("completion request is nil")
@@ -206,7 +207,7 @@ func (a *ProxyAdapter) Complete(ctx context.Context, req *CompletionRequest) (*C
 	return nil, fmt.Errorf("all providers failed")
 }
 
-// GetMetrics 获取使用指标
+// GetMetrics 获取使用指标.
 func (a *ProxyAdapter) GetMetrics() *UsageMetrics {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -227,7 +228,7 @@ func (a *ProxyAdapter) GetMetrics() *UsageMetrics {
 	return metricsCopy
 }
 
-// GetProviderStatus 获取所有提供商状态
+// GetProviderStatus 获取所有提供商状态.
 func (a *ProxyAdapter) GetProviderStatus() map[string]ProviderStatus {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -245,7 +246,7 @@ func (a *ProxyAdapter) GetProviderStatus() map[string]ProviderStatus {
 	return status
 }
 
-// recordSuccess 记录成功调用 (内部方法)
+// recordSuccess 记录成功调用 (内部方法).
 func (a *ProxyAdapter) recordSuccess(providerName string, latency time.Duration, tokensUsed int, cost float64) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -270,7 +271,7 @@ func (a *ProxyAdapter) recordSuccess(providerName string, latency time.Duration,
 	a.metrics.ProviderStats[providerName] = stats
 }
 
-// recordFailure 记录失败调用 (内部方法)
+// recordFailure 记录失败调用 (内部方法).
 func (a *ProxyAdapter) recordFailure(providerName string, err error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -296,7 +297,7 @@ func (a *ProxyAdapter) recordFailure(providerName string, err error) {
 
 // shouldUseGollm 判断提供商是否应该使用 gollm
 // gollm 原生支持: openai, anthropic, groq, ollama, mistral, openrouter
-// 其他提供商使用项目原生 LLM 客户端
+// 其他提供商使用项目原生 LLM 客户端.
 func shouldUseGollm(providerName string) bool {
 	switch providerName {
 	case "openai", "anthropic", "claude", "groq", "ollama", "mistral", "openrouter":
@@ -306,7 +307,7 @@ func shouldUseGollm(providerName string) bool {
 	}
 }
 
-// createNativeLLMClient 创建项目原生 LLM 客户端
+// createNativeLLMClient 创建项目原生 LLM 客户端.
 func createNativeLLMClient(cfg *config.LLMProviderConfig) (llmclient.Client, error) {
 	llmCfg := &llmclient.Config{
 		Provider:    llmclient.Provider(cfg.Name),
@@ -323,7 +324,7 @@ func createNativeLLMClient(cfg *config.LLMProviderConfig) (llmclient.Client, err
 	return llmclient.NewClient(llmCfg)
 }
 
-// convertMessages 将 proxy 消息格式转换为 llmclient 格式
+// convertMessages 将 proxy 消息格式转换为 llmclient 格式.
 func convertMessages(proxyMessages []Message) []llmclient.Message {
 	messages := make([]llmclient.Message, len(proxyMessages))
 	for i, msg := range proxyMessages {
@@ -335,7 +336,7 @@ func convertMessages(proxyMessages []Message) []llmclient.Message {
 	return messages
 }
 
-// createGollmClient 创建 gollm 客户端
+// createGollmClient 创建 gollm 客户端.
 func createGollmClient(cfg *config.LLMProviderConfig) (gollm.LLM, error) {
 	// 将超时秒转换为 time.Duration
 	timeout := time.Duration(cfg.Timeout) * time.Second
@@ -370,7 +371,7 @@ func createGollmClient(cfg *config.LLMProviderConfig) (gollm.LLM, error) {
 	return llm, nil
 }
 
-// buildGollmPrompt 构建 gollm 提示
+// buildGollmPrompt 构建 gollm 提示.
 func buildGollmPrompt(req *CompletionRequest) (*gollm.Prompt, error) {
 	if len(req.Messages) == 0 {
 		return nil, fmt.Errorf("no messages in request")
@@ -380,9 +381,10 @@ func buildGollmPrompt(req *CompletionRequest) (*gollm.Prompt, error) {
 	// TODO: 未来可以使用 gollm 的对话模式支持多轮对话
 	var promptText string
 	for _, msg := range req.Messages {
-		if msg.Role == "system" {
+		switch msg.Role {
+		case "system":
 			promptText += msg.Content + "\n\n"
-		} else if msg.Role == "user" {
+		case "user":
 			promptText += msg.Content
 		}
 	}
@@ -392,13 +394,13 @@ func buildGollmPrompt(req *CompletionRequest) (*gollm.Prompt, error) {
 }
 
 // estimateTokens 估算 token 数量
-// 简单估算: 1 token ≈ 4 个字符
+// 简单估算: 1 token ≈ 4 个字符.
 func estimateTokens(text string) int {
 	return len(text) / 4
 }
 
 // calculateCost 计算调用成本
-// 简化版本,实际成本应根据提供商和模型定价
+// 简化版本,实际成本应根据提供商和模型定价.
 func calculateCost(providerName string, tokensUsed int) float64 {
 	// 简化的成本计算 (美元)
 	// 实际应该根据 provider 和 model 查表

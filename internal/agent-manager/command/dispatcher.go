@@ -16,7 +16,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Dispatcher handles command dispatch and tracking
+// Dispatcher handles command dispatch and tracking.
 type Dispatcher struct {
 	store    *storage.PostgresStore
 	cache    *storage.RedisStore
@@ -40,7 +40,7 @@ type Dispatcher struct {
 	commandsTimeout   int64
 }
 
-// NewDispatcher creates a new command dispatcher
+// NewDispatcher creates a new command dispatcher.
 func NewDispatcher(
 	store *storage.PostgresStore,
 	cache *storage.RedisStore,
@@ -66,7 +66,7 @@ func NewDispatcher(
 	return d
 }
 
-// Stop stops the dispatcher
+// Stop stops the dispatcher.
 func (d *Dispatcher) Stop() error {
 	close(d.stopCh)
 	d.wg.Wait()
@@ -83,7 +83,7 @@ func (d *Dispatcher) Stop() error {
 	return nil
 }
 
-// cleanupExpiredTimers periodically cleans up stale timers
+// cleanupExpiredTimers periodically cleans up stale timers.
 func (d *Dispatcher) cleanupExpiredTimers() {
 	defer d.wg.Done()
 	defer func() {
@@ -105,7 +105,7 @@ func (d *Dispatcher) cleanupExpiredTimers() {
 	}
 }
 
-// performTimerCleanup removes stopped timers from map
+// performTimerCleanup removes stopped timers from map.
 func (d *Dispatcher) performTimerCleanup() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -131,7 +131,7 @@ func (d *Dispatcher) performTimerCleanup() {
 	}
 }
 
-// DispatchCommand dispatches a command to an agent
+// DispatchCommand dispatches a command to an agent.
 func (d *Dispatcher) DispatchCommand(ctx context.Context, cmd *types.Command) error {
 	// Validate command
 	if err := d.validateCommand(cmd); err != nil {
@@ -176,7 +176,9 @@ func (d *Dispatcher) DispatchCommand(ctx context.Context, cmd *types.Command) er
 	// Publish command via NATS
 	if err := d.nats.PublishCommand(cmd.ClusterID, cmd); err != nil {
 		// Update status to failed
-		d.updateCommandStatus(ctx, cmd.ID, types.CommandStatusFailed)
+		if updateErr := d.updateCommandStatus(ctx, cmd.ID, types.CommandStatusFailed); updateErr != nil {
+			d.logger.Warnw("Failed to update command status", "command_id", cmd.ID, "error", updateErr)
+		}
 		return fmt.Errorf("failed to publish command: %w", err)
 	}
 
@@ -201,7 +203,7 @@ func (d *Dispatcher) DispatchCommand(ctx context.Context, cmd *types.Command) er
 	return nil
 }
 
-// HandleCommandResult handles a command execution result
+// HandleCommandResult handles a command execution result.
 func (d *Dispatcher) HandleCommandResult(ctx context.Context, result *types.CommandResult) error {
 	// Save result to database
 	if err := d.store.SaveCommandResult(ctx, result); err != nil {
@@ -242,17 +244,17 @@ func (d *Dispatcher) HandleCommandResult(ctx context.Context, result *types.Comm
 	return nil
 }
 
-// GetCommand retrieves a command by ID
+// GetCommand retrieves a command by ID.
 func (d *Dispatcher) GetCommand(ctx context.Context, commandID string) (*types.Command, error) {
 	return d.store.GetCommand(ctx, commandID)
 }
 
-// GetCommandResult retrieves command result
+// GetCommandResult retrieves command result.
 func (d *Dispatcher) GetCommandResult(ctx context.Context, commandID string) (*types.CommandResult, error) {
 	return d.store.GetCommandResult(ctx, commandID)
 }
 
-// validateCommand validates command before dispatch
+// validateCommand validates command before dispatch.
 func (d *Dispatcher) validateCommand(cmd *types.Command) error {
 	if cmd.ClusterID == "" {
 		return fmt.Errorf("cluster_id is required")
@@ -285,12 +287,12 @@ func (d *Dispatcher) validateCommand(cmd *types.Command) error {
 	return nil
 }
 
-// updateCommandStatus updates command status in database
+// updateCommandStatus updates command status in database.
 func (d *Dispatcher) updateCommandStatus(ctx context.Context, commandID string, status types.CommandStatus) error {
 	return d.store.UpdateCommandStatus(ctx, commandID, status)
 }
 
-// setupCommandTimeout sets up timeout for command
+// setupCommandTimeout sets up timeout for command.
 func (d *Dispatcher) setupCommandTimeout(cmd *types.Command) {
 	timer := time.AfterFunc(cmd.Timeout, func() {
 		d.handleCommandTimeout(cmd.ID)
@@ -301,7 +303,7 @@ func (d *Dispatcher) setupCommandTimeout(cmd *types.Command) {
 	d.mu.Unlock()
 }
 
-// cancelCommandTimeout cancels command timeout
+// cancelCommandTimeout cancels command timeout.
 func (d *Dispatcher) cancelCommandTimeout(commandID string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -312,7 +314,7 @@ func (d *Dispatcher) cancelCommandTimeout(commandID string) {
 	}
 }
 
-// handleCommandTimeout handles command timeout
+// handleCommandTimeout handles command timeout.
 func (d *Dispatcher) handleCommandTimeout(commandID string) {
 	ctx := context.Background()
 
@@ -332,7 +334,7 @@ func (d *Dispatcher) handleCommandTimeout(commandID string) {
 	d.mu.Unlock()
 }
 
-// GetPendingCommands returns all pending commands
+// GetPendingCommands returns all pending commands.
 func (d *Dispatcher) GetPendingCommands() []*types.Command {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -345,7 +347,7 @@ func (d *Dispatcher) GetPendingCommands() []*types.Command {
 	return commands
 }
 
-// GetStatistics returns dispatcher statistics
+// GetStatistics returns dispatcher statistics.
 func (d *Dispatcher) GetStatistics() map[string]interface{} {
 	d.mu.RLock()
 	defer d.mu.RUnlock()

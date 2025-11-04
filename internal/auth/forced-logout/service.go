@@ -12,7 +12,7 @@ import (
 )
 
 // Service provides core forced logout operations
-// It orchestrates session revocation, audit logging, and user notifications
+// It orchestrates session revocation, audit logging, and user notifications.
 type Service struct {
 	sessionService      *session.Service
 	auditService        *audit.Service
@@ -20,7 +20,7 @@ type Service struct {
 	loginURL            string // Base URL for login page
 }
 
-// NewService creates a new forced logout service
+// NewService creates a new forced logout service.
 func NewService(
 	sessionService *session.Service,
 	auditService *audit.Service,
@@ -35,7 +35,7 @@ func NewService(
 	}
 }
 
-// ForceLogoutSessionParams contains parameters for single session logout
+// ForceLogoutSessionParams contains parameters for single session logout.
 type ForceLogoutSessionParams struct {
 	JTI            string
 	UserID         string
@@ -47,7 +47,7 @@ type ForceLogoutSessionParams struct {
 	CorrelationID  string
 }
 
-// ForceLogoutUserParams contains parameters for all user sessions logout
+// ForceLogoutUserParams contains parameters for all user sessions logout.
 type ForceLogoutUserParams struct {
 	UserID         string
 	ActorID        string
@@ -58,7 +58,7 @@ type ForceLogoutUserParams struct {
 	CorrelationID  string
 }
 
-// BulkForceLogoutParams contains parameters for bulk session logout
+// BulkForceLogoutParams contains parameters for bulk session logout.
 type BulkForceLogoutParams struct {
 	JTIs           []string
 	ActorID        string
@@ -69,7 +69,7 @@ type BulkForceLogoutParams struct {
 	CorrelationID  string
 }
 
-// ForceLogoutResult represents the result of a forced logout operation
+// ForceLogoutResult represents the result of a forced logout operation.
 type ForceLogoutResult struct {
 	EventID          string    `json:"event_id"`
 	SessionCount     int       `json:"session_count"`
@@ -78,7 +78,7 @@ type ForceLogoutResult struct {
 	Timestamp        time.Time `json:"timestamp"`
 }
 
-// ForceLogoutSession terminates a single session by JTI
+// ForceLogoutSession terminates a single session by JTI.
 func (s *Service) ForceLogoutSession(ctx context.Context, params ForceLogoutSessionParams) (*ForceLogoutResult, error) {
 	// Validate parameters
 	if err := s.validateSessionParams(params); err != nil {
@@ -160,7 +160,7 @@ func (s *Service) ForceLogoutSession(ctx context.Context, params ForceLogoutSess
 	}, nil
 }
 
-// ForceLogoutUser terminates all sessions for a user
+// ForceLogoutUser terminates all sessions for a user.
 func (s *Service) ForceLogoutUser(ctx context.Context, params ForceLogoutUserParams) (*ForceLogoutResult, error) {
 	// Validate parameters
 	if err := s.validateUserParams(params); err != nil {
@@ -255,7 +255,7 @@ func (s *Service) ForceLogoutUser(ctx context.Context, params ForceLogoutUserPar
 	}, nil
 }
 
-// BulkForceLogout terminates multiple specified sessions
+// BulkForceLogout terminates multiple specified sessions.
 func (s *Service) BulkForceLogout(ctx context.Context, params BulkForceLogoutParams) (*BulkForceLogoutResult, error) {
 	// Validate parameters
 	if err := s.validateBulkParams(params); err != nil {
@@ -348,7 +348,7 @@ func (s *Service) BulkForceLogout(ctx context.Context, params BulkForceLogoutPar
 	}, nil
 }
 
-// BulkForceLogoutResult represents the result of bulk logout operation
+// BulkForceLogoutResult represents the result of bulk logout operation.
 type BulkForceLogoutResult struct {
 	EventID      string                      `json:"event_id"`
 	TotalCount   int                         `json:"total_count"`
@@ -358,7 +358,7 @@ type BulkForceLogoutResult struct {
 	Timestamp    time.Time                   `json:"timestamp"`
 }
 
-// validateSessionParams validates single session logout parameters
+// validateSessionParams validates single session logout parameters.
 func (s *Service) validateSessionParams(params ForceLogoutSessionParams) error {
 	if params.JTI == "" {
 		return fmt.Errorf("jti is required")
@@ -378,7 +378,7 @@ func (s *Service) validateSessionParams(params ForceLogoutSessionParams) error {
 	return nil
 }
 
-// validateUserParams validates user logout parameters
+// validateUserParams validates user logout parameters.
 func (s *Service) validateUserParams(params ForceLogoutUserParams) error {
 	if params.UserID == "" {
 		return fmt.Errorf("user_id is required")
@@ -395,7 +395,7 @@ func (s *Service) validateUserParams(params ForceLogoutUserParams) error {
 	return nil
 }
 
-// validateBulkParams validates bulk logout parameters
+// validateBulkParams validates bulk logout parameters.
 func (s *Service) validateBulkParams(params BulkForceLogoutParams) error {
 	if len(params.JTIs) == 0 {
 		return fmt.Errorf("at least one JTI is required")

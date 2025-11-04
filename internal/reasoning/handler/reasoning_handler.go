@@ -99,7 +99,7 @@ func (h *ReasoningHandler) RootCauseAnalysis(
 // SaveCase saves a historical case for learning
 // This method implements both:
 // - reasoningv1.ReasoningServiceServer.SaveCase (gRPC)
-// - reasoningv1.ReasoningServiceHTTPServer.SaveCase (HTTP)
+// - reasoningv1.ReasoningServiceHTTPServer.SaveCase (HTTP).
 func (h *ReasoningHandler) SaveCase(
 	ctx context.Context,
 	req *reasoningv1.SaveCaseRequest,
@@ -341,7 +341,7 @@ func convertRecommendationType(risk string) reasoningv1.Recommendation_Type {
 	}
 }
 
-// Helper functions for getting result fields safely
+// Helper functions for getting result fields safely.
 func getResultRootCause(result *types.AnalysisResult) string {
 	if result.Result != nil && result.Result.RootCause != nil {
 		return string(result.Result.RootCause.Type)
@@ -356,7 +356,7 @@ func getResultConfidence(result *types.AnalysisResult) float64 {
 	return 0
 }
 
-// Helper functions for extracting values from maps
+// Helper functions for extracting values from maps.
 func getFloat64(m map[string]interface{}, key string) float64 {
 	if val, ok := m[key]; ok {
 		switch v := val.(type) {

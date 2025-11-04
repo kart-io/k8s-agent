@@ -128,12 +128,12 @@ func GetSessionID(ctx context.Context) string {
 	return ""
 }
 
-// WithTimeout is a convenience wrapper for context.WithTimeout
+// WithTimeout is a convenience wrapper for context.WithTimeout.
 func WithTimeout(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(parent, timeout)
 }
 
-// WithDeadline is a convenience wrapper for context.WithDeadline
+// WithDeadline is a convenience wrapper for context.WithDeadline.
 func WithDeadline(parent context.Context, deadline time.Time) (context.Context, context.CancelFunc) {
 	return context.WithDeadline(parent, deadline)
 }

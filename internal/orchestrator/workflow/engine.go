@@ -14,7 +14,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Engine manages workflow execution
+// Engine manages workflow execution.
 type Engine struct {
 	store    *storage.PostgresStore
 	cache    *storage.RedisStore
@@ -31,7 +31,7 @@ type Engine struct {
 	executionsFailed    int64
 }
 
-// NewEngine creates a new workflow engine
+// NewEngine creates a new workflow engine.
 func NewEngine(
 	store *storage.PostgresStore,
 	cache *storage.RedisStore,
@@ -47,7 +47,7 @@ func NewEngine(
 	}
 }
 
-// StartWorkflow starts a new workflow execution
+// StartWorkflow starts a new workflow execution.
 func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEvent map[string]interface{}) (*types.WorkflowExecution, error) {
 	e.logger.Info("🎬 Starting workflow execution",
 		"workflow_id", workflowID)
@@ -119,7 +119,7 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 	return execution, nil
 }
 
-// executeWorkflow executes a workflow
+// executeWorkflow executes a workflow.
 func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, execution *types.WorkflowExecution) {
 	defer func() {
 		e.mu.Lock()
@@ -129,7 +129,12 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 
 	// Update status to running
 	execution.Status = types.ExecutionStatusRunning
-	e.store.UpdateWorkflowExecutionStatus(ctx, execution.ID, types.ExecutionStatusRunning)
+	if err := e.store.UpdateWorkflowExecutionStatus(ctx, execution.ID, types.ExecutionStatusRunning); err != nil {
+		e.logger.Errorw("Failed to update workflow execution status to running",
+			"execution_id", execution.ID,
+			"error", err)
+		// Continue execution despite update failure
+	}
 
 	// Execute steps in sequence
 	for i, step := range workflow.Steps {
@@ -193,7 +198,7 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 	e.completeExecution(ctx, execution, types.ExecutionStatusCompleted, "")
 }
 
-// executeStep executes a single workflow step
+// executeStep executes a single workflow step.
 func (e *Engine) executeStep(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (*types.StepExecution, error) {
 	stepExec := &types.StepExecution{
 		StepID:    step.ID,
@@ -271,7 +276,7 @@ func (e *Engine) executeStep(ctx context.Context, execution *types.WorkflowExecu
 	return stepExec, nil
 }
 
-// shouldExecuteStep checks if step conditions are met
+// shouldExecuteStep checks if step conditions are met.
 func (e *Engine) shouldExecuteStep(execution *types.WorkflowExecution, step types.WorkflowStep) bool {
 	if len(step.Conditions) == 0 {
 		return true
@@ -286,7 +291,7 @@ func (e *Engine) shouldExecuteStep(execution *types.WorkflowExecution, step type
 	return true
 }
 
-// evaluateCondition evaluates a single condition
+// evaluateCondition evaluates a single condition.
 func (e *Engine) evaluateCondition(execution *types.WorkflowExecution, condition types.Condition) bool {
 	// Get field value from context
 	value, ok := execution.Context[condition.Field]
@@ -323,7 +328,7 @@ func (e *Engine) evaluateCondition(execution *types.WorkflowExecution, condition
 	return false
 }
 
-// prepareStepInput prepares input for step execution
+// prepareStepInput prepares input for step execution.
 func (e *Engine) prepareStepInput(execution *types.WorkflowExecution, step types.WorkflowStep) map[string]interface{} {
 	input := make(map[string]interface{})
 
@@ -340,7 +345,7 @@ func (e *Engine) prepareStepInput(execution *types.WorkflowExecution, step types
 	return input
 }
 
-// calculateRetryDelay calculates retry delay with exponential backoff
+// calculateRetryDelay calculates retry delay with exponential backoff.
 func (e *Engine) calculateRetryDelay(policy *types.RetryPolicy, retryCount int) time.Duration {
 	delay := policy.InitialDelay
 	for i := 1; i < retryCount; i++ {
@@ -352,7 +357,7 @@ func (e *Engine) calculateRetryDelay(policy *types.RetryPolicy, retryCount int) 
 	return delay
 }
 
-// handleStepFailure handles step execution failure
+// handleStepFailure handles step execution failure.
 func (e *Engine) handleStepFailure(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep, err error) {
 	e.logger.Error("Step execution failed",
 		"execution_id", execution.ID,
@@ -362,7 +367,7 @@ func (e *Engine) handleStepFailure(ctx context.Context, execution *types.Workflo
 	e.completeExecution(ctx, execution, types.ExecutionStatusFailed, err.Error())
 }
 
-// executeFailureBranch executes failure branch
+// executeFailureBranch executes failure branch.
 func (e *Engine) executeFailureBranch(ctx context.Context, workflow *types.Workflow, execution *types.WorkflowExecution, step types.WorkflowStep) {
 	// TODO: Implement failure branch execution
 	e.logger.Info("Executing failure branch",
@@ -372,7 +377,7 @@ func (e *Engine) executeFailureBranch(ctx context.Context, workflow *types.Workf
 	e.completeExecution(ctx, execution, types.ExecutionStatusFailed, "Failure branch executed")
 }
 
-// completeExecution completes workflow execution
+// completeExecution completes workflow execution.
 func (e *Engine) completeExecution(ctx context.Context, execution *types.WorkflowExecution, status types.ExecutionStatus, errorMsg string) {
 	completedAt := time.Now()
 	execution.Status = status
@@ -407,7 +412,7 @@ func (e *Engine) completeExecution(ctx context.Context, execution *types.Workflo
 		"duration", execution.Duration)
 }
 
-// CancelExecution cancels a running execution
+// CancelExecution cancels a running execution.
 func (e *Engine) CancelExecution(ctx context.Context, executionID string) error {
 	e.mu.Lock()
 	execution, ok := e.executions[executionID]
@@ -425,7 +430,7 @@ func (e *Engine) CancelExecution(ctx context.Context, executionID string) error 
 	return e.store.SaveWorkflowExecution(ctx, execution)
 }
 
-// GetExecution retrieves execution details
+// GetExecution retrieves execution details.
 func (e *Engine) GetExecution(ctx context.Context, executionID string) (*types.WorkflowExecution, error) {
 	// Check in-memory first
 	e.mu.RLock()
@@ -439,7 +444,7 @@ func (e *Engine) GetExecution(ctx context.Context, executionID string) (*types.W
 	return e.store.GetWorkflowExecution(ctx, executionID)
 }
 
-// GetStatistics returns engine statistics
+// GetStatistics returns engine statistics.
 func (e *Engine) GetStatistics() map[string]interface{} {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -454,7 +459,7 @@ func (e *Engine) GetStatistics() map[string]interface{} {
 
 // Helper functions
 
-// contains checks if string s contains substr
+// contains checks if string s contains substr.
 func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }

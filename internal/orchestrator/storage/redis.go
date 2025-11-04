@@ -11,14 +11,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// RedisStore implements Redis caching
+// RedisStore implements Redis caching.
 type RedisStore struct {
 	client      *redis.Client
 	logger      core.Logger
 	redisClient *commondb.RedisClient
 }
 
-// NewRedisStore creates a new Redis store using common/db
+// NewRedisStore creates a new Redis store using common/db.
 func NewRedisStore(opts *options.RedisOptions, log core.Logger) (*RedisStore, error) {
 	// 直接使用 db 包创建 Redis 客户端
 	redisClient, err := commondb.NewRedis(log,

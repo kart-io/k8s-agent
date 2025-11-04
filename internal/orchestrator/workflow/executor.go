@@ -12,7 +12,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Executor executes workflow steps
+// Executor executes workflow steps.
 type Executor struct {
 	logger              core.Logger
 	agentManagerURL     string
@@ -20,7 +20,7 @@ type Executor struct {
 	httpClient          *http.Client
 }
 
-// NewExecutor creates a new executor
+// NewExecutor creates a new executor.
 func NewExecutor(
 	agentManagerURL string,
 	reasoningServiceURL string,
@@ -36,7 +36,7 @@ func NewExecutor(
 	}
 }
 
-// ExecuteCommand executes a command step
+// ExecuteCommand executes a command step.
 func (ex *Executor) ExecuteCommand(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing command step",
 		"execution_id", execution.ID,
@@ -110,7 +110,7 @@ func (ex *Executor) ExecuteCommand(ctx context.Context, execution *types.Workflo
 	}, nil
 }
 
-// ExecuteAIAnalysis executes an AI analysis step
+// ExecuteAIAnalysis executes an AI analysis step.
 func (ex *Executor) ExecuteAIAnalysis(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing AI analysis step",
 		"execution_id", execution.ID,
@@ -141,7 +141,7 @@ func (ex *Executor) ExecuteAIAnalysis(ctx context.Context, execution *types.Work
 	return resp, nil
 }
 
-// ExecuteDecision executes a decision step
+// ExecuteDecision executes a decision step.
 func (ex *Executor) ExecuteDecision(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing decision step",
 		"execution_id", execution.ID,
@@ -186,7 +186,7 @@ func (ex *Executor) ExecuteDecision(ctx context.Context, execution *types.Workfl
 	}, nil
 }
 
-// ExecuteRemediation executes a remediation step
+// ExecuteRemediation executes a remediation step.
 func (ex *Executor) ExecuteRemediation(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing remediation step",
 		"execution_id", execution.ID,
@@ -209,7 +209,7 @@ func (ex *Executor) ExecuteRemediation(ctx context.Context, execution *types.Wor
 	}, nil
 }
 
-// ExecuteNotification executes a notification step
+// ExecuteNotification executes a notification step.
 func (ex *Executor) ExecuteNotification(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing notification step",
 		"execution_id", execution.ID,
@@ -233,7 +233,7 @@ func (ex *Executor) ExecuteNotification(ctx context.Context, execution *types.Wo
 	}, nil
 }
 
-// ExecuteWait executes a wait step
+// ExecuteWait executes a wait step.
 func (ex *Executor) ExecuteWait(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (map[string]interface{}, error) {
 	ex.logger.Info("Executing wait step",
 		"execution_id", execution.ID,
@@ -260,7 +260,7 @@ func (ex *Executor) ExecuteWait(ctx context.Context, execution *types.WorkflowEx
 
 // Helper functions
 
-// sendHTTPRequest sends an HTTP request
+// sendHTTPRequest sends an HTTP request.
 func (ex *Executor) sendHTTPRequest(ctx context.Context, method, url string, body interface{}) (map[string]interface{}, error) {
 	var reqBody []byte
 	var err error
@@ -283,7 +283,11 @@ func (ex *Executor) sendHTTPRequest(ctx context.Context, method, url string, bod
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			ex.logger.Warnw("Failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("request failed with status %d", resp.StatusCode)
@@ -297,7 +301,7 @@ func (ex *Executor) sendHTTPRequest(ctx context.Context, method, url string, bod
 	return result, nil
 }
 
-// waitForCommandResult waits for command execution result
+// waitForCommandResult waits for command execution result.
 func (ex *Executor) waitForCommandResult(ctx context.Context, commandID string, timeout time.Duration) (map[string]interface{}, error) {
 	deadline := time.Now().Add(timeout)
 	ticker := time.NewTicker(2 * time.Second)
@@ -325,7 +329,7 @@ func (ex *Executor) waitForCommandResult(ctx context.Context, commandID string, 
 	}
 }
 
-// evaluateDecisionCondition evaluates a decision condition
+// evaluateDecisionCondition evaluates a decision condition.
 func (ex *Executor) evaluateDecisionCondition(execution *types.WorkflowExecution, condition string) bool {
 	// Simple condition evaluation
 	// In production, this would use a proper expression evaluator

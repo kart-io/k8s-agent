@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,7 +14,13 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// Lua脚本用于原子性地执行rate limit操作
+// ErrCacheMiss is returned when a cache key is not found.
+var ErrCacheMiss = errors.New("cache miss")
+
+// ErrQueueEmpty is returned when attempting to dequeue from an empty queue.
+var ErrQueueEmpty = errors.New("queue empty")
+
+// Lua脚本用于原子性地执行rate limit操作.
 var rateLimitScript = redis.NewScript(`
 	local current = redis.call("INCR", KEYS[1])
 	if current == 1 then
@@ -22,13 +29,13 @@ var rateLimitScript = redis.NewScript(`
 	return current
 `)
 
-// RedisStore implements caching using Redis
+// RedisStore implements caching using Redis.
 type RedisStore struct {
 	*db.RedisClient // Embed common Redis client
 	logger          core.Logger
 }
 
-// NewRedisStore creates a new Redis store
+// NewRedisStore creates a new Redis store.
 func NewRedisStore(config types.RedisConfig, log core.Logger) (*RedisStore, error) {
 	// Create Redis client using common package with Options pattern
 	redisClient, err := db.NewRedis(log,
@@ -57,7 +64,7 @@ func NewRedisStore(config types.RedisConfig, log core.Logger) (*RedisStore, erro
 
 // Agent cache operations
 
-// CacheAgent caches agent information
+// CacheAgent caches agent information.
 func (s *RedisStore) CacheAgent(ctx context.Context, agent *types.Agent, ttl time.Duration) error {
 	key := s.agentKey(agent.ID)
 	data, err := json.Marshal(agent)
@@ -68,13 +75,13 @@ func (s *RedisStore) CacheAgent(ctx context.Context, agent *types.Agent, ttl tim
 	return s.Client.Set(ctx, key, data, ttl).Err()
 }
 
-// GetCachedAgent retrieves cached agent information
+// GetCachedAgent retrieves cached agent information.
 func (s *RedisStore) GetCachedAgent(ctx context.Context, id string) (*types.Agent, error) {
 	key := s.agentKey(id)
 	data, err := s.Client.Get(ctx, key).Bytes()
 	if err != nil {
-		if err == redis.Nil {
-			return nil, nil // Cache miss
+		if errors.Is(err, redis.Nil) {
+			return nil, ErrCacheMiss
 		}
 		return nil, err
 	}
@@ -87,7 +94,7 @@ func (s *RedisStore) GetCachedAgent(ctx context.Context, id string) (*types.Agen
 	return &agent, nil
 }
 
-// DeleteCachedAgent removes cached agent information
+// DeleteCachedAgent removes cached agent information.
 func (s *RedisStore) DeleteCachedAgent(ctx context.Context, id string) error {
 	key := s.agentKey(id)
 	return s.Client.Del(ctx, key).Err()
@@ -95,13 +102,13 @@ func (s *RedisStore) DeleteCachedAgent(ctx context.Context, id string) error {
 
 // Agent status tracking
 
-// SetAgentOnline marks agent as online
+// SetAgentOnline marks agent as online.
 func (s *RedisStore) SetAgentOnline(ctx context.Context, agentID string, ttl time.Duration) error {
 	key := s.agentStatusKey(agentID)
 	return s.Client.Set(ctx, key, "online", ttl).Err()
 }
 
-// IsAgentOnline checks if agent is online
+// IsAgentOnline checks if agent is online.
 func (s *RedisStore) IsAgentOnline(ctx context.Context, agentID string) (bool, error) {
 	key := s.agentStatusKey(agentID)
 	result, err := s.Client.Exists(ctx, key).Result()
@@ -111,7 +118,7 @@ func (s *RedisStore) IsAgentOnline(ctx context.Context, agentID string) (bool, e
 	return result > 0, nil
 }
 
-// GetOnlineAgents returns list of online agent IDs
+// GetOnlineAgents returns list of online agent IDs.
 func (s *RedisStore) GetOnlineAgents(ctx context.Context) ([]string, error) {
 	pattern := "agent:status:*"
 	var agentIDs []string
@@ -135,7 +142,7 @@ func (s *RedisStore) GetOnlineAgents(ctx context.Context) ([]string, error) {
 
 // Command queue operations
 
-// EnqueueCommand adds a command to the cluster's command queue
+// EnqueueCommand adds a command to the cluster's command queue.
 func (s *RedisStore) EnqueueCommand(ctx context.Context, clusterID string, cmd *types.Command) error {
 	key := s.commandQueueKey(clusterID)
 	data, err := json.Marshal(cmd)
@@ -146,13 +153,13 @@ func (s *RedisStore) EnqueueCommand(ctx context.Context, clusterID string, cmd *
 	return s.Client.LPush(ctx, key, data).Err()
 }
 
-// DequeueCommand removes and returns a command from the queue
+// DequeueCommand removes and returns a command from the queue.
 func (s *RedisStore) DequeueCommand(ctx context.Context, clusterID string, timeout time.Duration) (*types.Command, error) {
 	key := s.commandQueueKey(clusterID)
 	result, err := s.Client.BRPop(ctx, timeout, key).Result()
 	if err != nil {
-		if err == redis.Nil {
-			return nil, nil // Queue empty
+		if errors.Is(err, redis.Nil) {
+			return nil, ErrQueueEmpty
 		}
 		return nil, err
 	}
@@ -169,7 +176,7 @@ func (s *RedisStore) DequeueCommand(ctx context.Context, clusterID string, timeo
 	return &cmd, nil
 }
 
-// GetCommandQueueLength returns the length of command queue
+// GetCommandQueueLength returns the length of command queue.
 func (s *RedisStore) GetCommandQueueLength(ctx context.Context, clusterID string) (int64, error) {
 	key := s.commandQueueKey(clusterID)
 	return s.Client.LLen(ctx, key).Result()
@@ -177,19 +184,19 @@ func (s *RedisStore) GetCommandQueueLength(ctx context.Context, clusterID string
 
 // Metrics aggregation
 
-// IncrementEventCounter increments event counter
+// IncrementEventCounter increments event counter.
 func (s *RedisStore) IncrementEventCounter(ctx context.Context, clusterID, severity string) error {
 	key := s.eventCounterKey(clusterID, severity)
 	return s.Client.Incr(ctx, key).Err()
 }
 
-// GetEventCount returns event count
+// GetEventCount returns event count.
 func (s *RedisStore) GetEventCount(ctx context.Context, clusterID, severity string) (int64, error) {
 	key := s.eventCounterKey(clusterID, severity)
 	return s.Client.Get(ctx, key).Int64()
 }
 
-// ResetEventCounters resets event counters
+// ResetEventCounters resets event counters.
 func (s *RedisStore) ResetEventCounters(ctx context.Context) error {
 	pattern := "event:count:*"
 	iter := s.Client.Scan(ctx, 0, pattern, 100).Iterator()
@@ -212,18 +219,18 @@ func (s *RedisStore) ResetEventCounters(ctx context.Context) error {
 
 // Session management
 
-// CreateSession creates a new session
+// CreateSession creates a new session.
 func (s *RedisStore) CreateSession(ctx context.Context, sessionID, userID string, ttl time.Duration) error {
 	key := s.sessionKey(sessionID)
 	return s.Client.Set(ctx, key, userID, ttl).Err()
 }
 
-// ValidateSession validates a session
+// ValidateSession validates a session.
 func (s *RedisStore) ValidateSession(ctx context.Context, sessionID string) (string, error) {
 	key := s.sessionKey(sessionID)
 	userID, err := s.Client.Get(ctx, key).Result()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return "", fmt.Errorf("session not found")
 		}
 		return "", err
@@ -231,7 +238,7 @@ func (s *RedisStore) ValidateSession(ctx context.Context, sessionID string) (str
 	return userID, nil
 }
 
-// DeleteSession deletes a session
+// DeleteSession deletes a session.
 func (s *RedisStore) DeleteSession(ctx context.Context, sessionID string) error {
 	key := s.sessionKey(sessionID)
 	return s.Client.Del(ctx, key).Err()
@@ -240,7 +247,7 @@ func (s *RedisStore) DeleteSession(ctx context.Context, sessionID string) error 
 // Rate limiting
 
 // CheckRateLimit checks if request is within rate limit
-// 使用Lua脚本保证Incr和Expire操作的原子性，避免竞态条件
+// 使用Lua脚本保证Incr和Expire操作的原子性，避免竞态条件.
 func (s *RedisStore) CheckRateLimit(ctx context.Context, key string, limit int64, window time.Duration) (bool, error) {
 	rateLimitKey := s.rateLimitKey(key)
 
@@ -255,13 +262,13 @@ func (s *RedisStore) CheckRateLimit(ctx context.Context, key string, limit int64
 
 // Distributed lock
 
-// AcquireLock acquires a distributed lock
+// AcquireLock acquires a distributed lock.
 func (s *RedisStore) AcquireLock(ctx context.Context, lockKey string, ttl time.Duration) (bool, error) {
 	key := s.lockKey(lockKey)
 	return s.Client.SetNX(ctx, key, "locked", ttl).Result()
 }
 
-// ReleaseLock releases a distributed lock
+// ReleaseLock releases a distributed lock.
 func (s *RedisStore) ReleaseLock(ctx context.Context, lockKey string) error {
 	key := s.lockKey(lockKey)
 	return s.Client.Del(ctx, key).Err()

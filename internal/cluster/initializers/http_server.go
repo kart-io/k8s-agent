@@ -15,7 +15,7 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// HTTPServerInitializer initializes the HTTP server with all services and handlers
+// HTTPServerInitializer initializes the HTTP server with all services and handlers.
 type HTTPServerInitializer struct {
 	serverOpts *commonoptions.ServerOptions
 	jwtOpts    *commonoptions.JWTOptions
@@ -24,7 +24,7 @@ type HTTPServerInitializer struct {
 	server     *api.Server
 }
 
-// NewHTTPServerInitializer creates a new HTTP server initializer
+// NewHTTPServerInitializer creates a new HTTP server initializer.
 func NewHTTPServerInitializer(
 	serverOpts *commonoptions.ServerOptions,
 	jwtOpts *commonoptions.JWTOptions,
@@ -39,7 +39,7 @@ func NewHTTPServerInitializer(
 	}
 }
 
-// Initialize initializes the HTTP server
+// Initialize initializes the HTTP server.
 func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	i.logger.Infow("Initializing HTTP server",
 		"host", i.serverOpts.Host,
@@ -66,7 +66,7 @@ func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// initializeServices 初始化所有服务层和处理器
+// initializeServices 初始化所有服务层和处理器.
 func (i *HTTPServerInitializer) initializeServices(storage interface{}) error {
 	// 使用实际的存储实例
 	mysqlStorage := i.dbInit.GetStorage()
@@ -161,7 +161,7 @@ func (i *HTTPServerInitializer) initializeServices(storage interface{}) error {
 	return nil
 }
 
-// Shutdown stops the HTTP server
+// Shutdown stops the HTTP server.
 func (i *HTTPServerInitializer) Shutdown(ctx context.Context) error {
 	i.logger.Info("Shutting down HTTP server")
 	if i.server != nil {
@@ -170,22 +170,22 @@ func (i *HTTPServerInitializer) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Priority returns the initialization priority (higher = earlier)
+// Priority returns the initialization priority (higher = earlier).
 func (i *HTTPServerInitializer) Priority() int {
 	return 500 // HTTP server should be initialized after database
 }
 
-// Name returns the name of this initializer
+// Name returns the name of this initializer.
 func (i *HTTPServerInitializer) Name() string {
 	return "HTTPServer"
 }
 
-// GetServer returns the initialized server instance
+// GetServer returns the initialized server instance.
 func (i *HTTPServerInitializer) GetServer() *api.Server {
 	return i.server
 }
 
-// Start starts the HTTP server
+// Start starts the HTTP server.
 func (i *HTTPServerInitializer) Start() error {
 	if i.server == nil {
 		return fmt.Errorf("server not initialized")

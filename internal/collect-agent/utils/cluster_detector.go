@@ -12,13 +12,13 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// ClusterIDDetector detects the cluster ID from various cloud providers
+// ClusterIDDetector detects the cluster ID from various cloud providers.
 type ClusterIDDetector struct {
 	clientset kubernetes.Interface
 	logger    core.Logger
 }
 
-// NewClusterIDDetector creates a new cluster ID detector
+// NewClusterIDDetector creates a new cluster ID detector.
 func NewClusterIDDetector(clientset kubernetes.Interface, logger core.Logger) *ClusterIDDetector {
 	return &ClusterIDDetector{
 		clientset: clientset,
@@ -26,7 +26,7 @@ func NewClusterIDDetector(clientset kubernetes.Interface, logger core.Logger) *C
 	}
 }
 
-// DetectClusterID attempts to detect the cluster ID from various sources
+// DetectClusterID attempts to detect the cluster ID from various sources.
 func (d *ClusterIDDetector) DetectClusterID(ctx context.Context) (string, error) {
 	d.logger.Infow("Attempting to detect cluster ID")
 
@@ -58,7 +58,7 @@ func (d *ClusterIDDetector) DetectClusterID(ctx context.Context) (string, error)
 	return "", fmt.Errorf("failed to detect cluster ID from any source")
 }
 
-// detectFromEnvironment checks for CLUSTER_ID environment variable
+// detectFromEnvironment checks for CLUSTER_ID environment variable.
 func (d *ClusterIDDetector) detectFromEnvironment(ctx context.Context) (string, error) {
 	clusterID := os.Getenv("CLUSTER_ID")
 	if clusterID == "" {
@@ -67,7 +67,7 @@ func (d *ClusterIDDetector) detectFromEnvironment(ctx context.Context) (string, 
 	return clusterID, nil
 }
 
-// detectFromEKS detects cluster ID from AWS EKS
+// detectFromEKS detects cluster ID from AWS EKS.
 func (d *ClusterIDDetector) detectFromEKS(ctx context.Context) (string, error) {
 	// In EKS, we can check the kube-system namespace for cluster information
 	configMap, err := d.clientset.CoreV1().ConfigMaps("kube-system").Get(ctx, "aws-auth", metav1.GetOptions{})
@@ -107,7 +107,7 @@ func (d *ClusterIDDetector) detectFromEKS(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("not an EKS cluster or cluster ID not found")
 }
 
-// detectFromGKE detects cluster ID from Google GKE
+// detectFromGKE detects cluster ID from Google GKE.
 func (d *ClusterIDDetector) detectFromGKE(ctx context.Context) (string, error) {
 	nodes, err := d.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{Limit: 1})
 	if err != nil {
@@ -135,7 +135,7 @@ func (d *ClusterIDDetector) detectFromGKE(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("not a GKE cluster or cluster ID not found")
 }
 
-// detectFromAKS detects cluster ID from Azure AKS
+// detectFromAKS detects cluster ID from Azure AKS.
 func (d *ClusterIDDetector) detectFromAKS(ctx context.Context) (string, error) {
 	nodes, err := d.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{Limit: 1})
 	if err != nil {
@@ -166,7 +166,7 @@ func (d *ClusterIDDetector) detectFromAKS(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("not an AKS cluster or cluster ID not found")
 }
 
-// detectFromKubernetesUID uses the kube-system namespace UID as cluster ID
+// detectFromKubernetesUID uses the kube-system namespace UID as cluster ID.
 func (d *ClusterIDDetector) detectFromKubernetesUID(ctx context.Context) (string, error) {
 	namespace, err := d.clientset.CoreV1().Namespaces().Get(ctx, "kube-system", metav1.GetOptions{})
 	if err != nil {
@@ -185,7 +185,7 @@ func (d *ClusterIDDetector) detectFromKubernetesUID(ctx context.Context) (string
 	return fmt.Sprintf("k8s-%s", uid), nil
 }
 
-// detectFromNodeLabels attempts to find cluster ID from node labels
+// detectFromNodeLabels attempts to find cluster ID from node labels.
 func (d *ClusterIDDetector) detectFromNodeLabels(ctx context.Context) (string, error) {
 	nodes, err := d.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{Limit: 1})
 	if err != nil {

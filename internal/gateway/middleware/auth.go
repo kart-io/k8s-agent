@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// JWTAuth JWT认证中间件
+// JWTAuth JWT认证中间件.
 func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从 Header 获取 token

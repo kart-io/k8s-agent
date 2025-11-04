@@ -18,7 +18,7 @@ var (
 	startTime       = time.Now()
 )
 
-// MetricsHandler 监控指标处理器
+// MetricsHandler 监控指标处理器.
 func MetricsHandler(c *gin.Context) {
 	total := atomic.LoadInt64(&totalRequests)
 	success := atomic.LoadInt64(&successRequests)
@@ -45,7 +45,7 @@ func MetricsHandler(c *gin.Context) {
 	})
 }
 
-// RecordRequest 记录请求
+// RecordRequest 记录请求.
 func RecordRequest(success bool, latency time.Duration) {
 	atomic.AddInt64(&totalRequests, 1)
 	atomic.AddInt64(&totalLatency, int64(latency))
