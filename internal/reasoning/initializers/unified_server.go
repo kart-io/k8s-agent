@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
 	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/k8s-agent/internal/reasoning/handler"
@@ -64,37 +63,10 @@ func (i *UnifiedServerInitializer) Initialize(ctx context.Context) error {
 	// Create unified handler (implements both gRPC and HTTP interfaces)
 	i.handler = handler.NewReasoningHandler(rootCauseAnalyzer, i.logger)
 
-	// Prepare server configuration using common/options types
-	httpOpts := &commonoptions.ServerOptions{
-		Host:         i.opts.Server.Host,
-		Port:         i.opts.Server.Port,
-		Mode:         i.opts.Server.Mode,
-		ReadTimeout:  i.opts.Server.ReadTimeout,
-		WriteTimeout: i.opts.Server.WriteTimeout,
-		IdleTimeout:  i.opts.Server.IdleTimeout,
-		GracefulStop: i.opts.Server.GracefulStop,
-	}
-
-	grpcOpts := &commonoptions.GRPCOptions{
-		Enable:                i.opts.GRPC.Enable,
-		Host:                  i.opts.GRPC.Host,
-		Port:                  i.opts.GRPC.Port,
-		MaxRecvMsgSize:        i.opts.GRPC.MaxRecvMsgSize,
-		MaxSendMsgSize:        i.opts.GRPC.MaxSendMsgSize,
-		ConnectionTimeout:     i.opts.GRPC.ConnectionTimeout,
-		KeepAliveTime:         i.opts.GRPC.KeepAliveTime,
-		KeepAliveTimeout:      i.opts.GRPC.KeepAliveTimeout,
-		MaxConnectionIdle:     i.opts.GRPC.MaxConnectionIdle,
-		MaxConnectionAge:      i.opts.GRPC.MaxConnectionAge,
-		MaxConnectionAgeGrace: i.opts.GRPC.MaxConnectionAgeGrace,
-		EnableReflection:      i.opts.GRPC.EnableReflection,
-		EnableHealthCheck:     i.opts.GRPC.EnableHealthCheck,
-	}
-
-	// Create server configuration
+	// 直接使用配置指针，避免冗余复制
 	serverCfg := &server.Config{
-		HTTP:    httpOpts,
-		GRPC:    grpcOpts,
+		HTTP:    i.opts.Server,
+		GRPC:    i.opts.GRPC,
 		Handler: i.handler,
 	}
 

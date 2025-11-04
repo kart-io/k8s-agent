@@ -14,7 +14,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	commoncore "github.com/kart-io/k8s-agent/common/core"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	"github.com/kart-io/logger"
 	"github.com/kart-io/logger/core"
 	"github.com/kart-io/version"
 )
@@ -58,26 +60,46 @@ type Config struct {
 
 // Run runs an application with the given configuration.
 func Run(app Application, opts Options, cfg Config) {
+	var configFile string
+
 	cmd := &cobra.Command{
-		Use:   cfg.Use,
-		Short: cfg.Short,
-		Long:  cfg.Long,
+		Use:           cfg.Use,
+		Short:         cfg.Short,
+		Long:          cfg.Long,
+		SilenceUsage:  true, // 出错时不显示帮助文档
+		SilenceErrors: true, // 我们自己用 logger 打印错误
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Print version if requested
 			version.PrintAndExitIfRequested()
 
-			// Complete configuration
-			if err := opts.Complete(); err != nil {
-				return fmt.Errorf("failed to complete config: %w", err)
-			}
-
-			// Validate configuration
-			if errs := opts.Validate(); len(errs) > 0 {
-				return fmt.Errorf("config validation failed: %v", errs)
-			}
-
-			// Initialize logger
+			// Initialize a basic logger first for error reporting
 			logger := initLogger(app.Name())
+
+			// Load config file if specified
+			if configFile != "" {
+				// 检查 opts 是否实现了 commoncore.LoadableConfig 接口
+				if loadable, ok := opts.(commoncore.LoadableConfig); ok {
+					if err := commoncore.LoadOptions(loadable, configFile, nil); err != nil {
+						logger.Errorw("Failed to load config file", "error", err, "config_file", configFile)
+						return fmt.Errorf("failed to load config file: %w", err)
+					}
+				} else {
+					logger.Errorw("Options does not implement LoadableConfig interface")
+					return fmt.Errorf("options does not implement LoadableConfig interface")
+				}
+			} else {
+				// Complete configuration
+				if err := opts.Complete(); err != nil {
+					logger.Errorw("Failed to complete config", "error", err)
+					return fmt.Errorf("failed to complete config: %w", err)
+				}
+
+				// Validate configuration
+				if errs := opts.Validate(); len(errs) > 0 {
+					logger.Errorw("Config validation failed", "errors", errs)
+					return fmt.Errorf("config validation failed: %v", errs)
+				}
+			}
 
 			// Create context with cancel
 			ctx, cancel := context.WithCancel(context.Background())
@@ -90,6 +112,7 @@ func Run(app Application, opts Options, cfg Config) {
 			// Initialize application
 			logger.Infow("Initializing application", "app", app.Name())
 			if err := app.Initialize(ctx, opts); err != nil {
+				logger.Errorw("Application initialization failed", "error", err, "app", app.Name())
 				return fmt.Errorf("failed to initialize: %w", err)
 			}
 
@@ -111,6 +134,7 @@ func Run(app Application, opts Options, cfg Config) {
 			// Run application (blocks)
 			logger.Infow("Starting application", "app", app.Name())
 			if err := app.Run(ctx); err != nil {
+				logger.Errorw("Application error", "error", err, "app", app.Name())
 				return fmt.Errorf("application error: %w", err)
 			}
 
@@ -119,13 +143,17 @@ func Run(app Application, opts Options, cfg Config) {
 		},
 	}
 
+	// Add --config flag
+	cmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to configuration file (YAML)")
+
 	// Add flags
 	version.AddFlags(cmd.Flags())
 	opts.AddFlags(cmd.Flags())
 
-	// Execute
+	// Execute command
+	// Note: SilenceErrors is true, so we handle error logging ourselves
 	if err := cmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		// Error has already been logged by the RunE function
 		os.Exit(1)
 	}
 }
@@ -153,23 +181,25 @@ func (b *bootstrapApp) Name() string {
 }
 
 func (b *bootstrapApp) Initialize(ctx context.Context, opts Options) error {
+	// Initialize app first so it can set up its internal state
+	if err := b.app.Initialize(ctx, opts); err != nil {
+		return fmt.Errorf("app initialization failed: %w", err)
+	}
+
 	// Create bootstrap
 	b.bootstrap = bootstrap.New(nil)
 
-	// Register components
+	// Register components (app is now initialized, so opts/logger are available)
 	if b.registrar != nil {
 		if err := b.registrar(b.bootstrap); err != nil {
 			return fmt.Errorf("failed to register components: %w", err)
 		}
 	}
 
-	// Initialize bootstrap
-	if err := b.bootstrap.Initialize(ctx); err != nil {
-		return fmt.Errorf("bootstrap initialization failed: %w", err)
-	}
+	// Note: Do NOT call b.bootstrap.Initialize(ctx) here!
+	// Bootstrap.Run() will call Initialize() automatically
 
-	// Initialize app
-	return b.app.Initialize(ctx, opts)
+	return nil
 }
 
 func (b *bootstrapApp) Run(ctx context.Context) error {
@@ -192,7 +222,13 @@ func (b *bootstrapApp) Shutdown(ctx context.Context) error {
 
 // initLogger initializes a basic logger.
 func initLogger(appName string) core.Logger {
-	// This is a simplified version
-	// In real implementation, use configuration to setup logger
-	return core.NewNoOpLogger(nil)
+	// Create a basic logger for startup/error messages
+	// This is used before the full logger is configured
+	logger, err := logger.NewWithDefaults()
+	if err != nil {
+		// Fallback to stderr if logger creation fails
+		fmt.Fprintf(os.Stderr, "Failed to create logger: %v\n", err)
+		return core.NewNoOpLogger(nil)
+	}
+	return logger
 }

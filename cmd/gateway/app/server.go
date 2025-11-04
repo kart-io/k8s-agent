@@ -19,14 +19,14 @@ import (
 
 // GatewayService represents the gateway service using common/server.
 type GatewayService struct {
-	opts   *options.Options
+	opts   *options.ServerOptions
 	log    core.Logger
 	rdb    *redis.Client
 	server commonserver.Server
 }
 
 // NewServer creates a new gateway service (使用 common/server).
-func NewServer(opts *options.Options, log core.Logger) (*GatewayService, error) {
+func NewServer(opts *options.ServerOptions, log core.Logger) (*GatewayService, error) {
 	svc := &GatewayService{
 		opts: opts,
 		log:  log,

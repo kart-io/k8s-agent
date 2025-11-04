@@ -3,13 +3,11 @@ package app
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	httpserver "github.com/kart-io/k8s-agent/common/server/http"
 	"github.com/kart-io/k8s-agent/internal/monitor/handler"
@@ -21,7 +19,7 @@ import (
 
 // MonitorService represents the monitor service using common/server.
 type MonitorService struct {
-	opts           *options.Options
+	opts           *options.ServerOptions
 	log            core.Logger
 	pgStorage      *storage.PostgresStorage
 	redisStorage   *storage.RedisStorage
@@ -30,7 +28,7 @@ type MonitorService struct {
 }
 
 // NewServer creates a new monitor service (使用 common/server).
-func NewServer(opts *options.Options, log core.Logger) (*MonitorService, error) {
+func NewServer(opts *options.ServerOptions, log core.Logger) (*MonitorService, error) {
 	srv := &MonitorService{
 		opts: opts,
 		log:  log,
@@ -48,24 +46,15 @@ func (s *MonitorService) initialize() error {
 	var err error
 
 	// Initialize PostgreSQL storage
-	dbOpts := &commonoptions.DatabaseOptions{
-		Host:         s.opts.Database.Host,
-		Port:         s.opts.Database.Port,
-		User:         s.opts.Database.User,
-		Password:     s.opts.Database.Password,
-		Database:     s.opts.Database.DBName,
-		MaxOpenConns: s.opts.Database.MaxOpenConns,
-		MaxIdleConns: s.opts.Database.MaxIdleConns,
-	}
-	s.pgStorage, err = storage.NewPostgresStorage(dbOpts, s.log)
+	s.pgStorage, err = storage.NewPostgresStorage(s.opts.Database, s.log)
 	if err != nil {
 		return fmt.Errorf("failed to initialize PostgreSQL storage: %w", err)
 	}
 
 	// Initialize Redis storage
 	s.redisStorage, err = storage.NewRedisStorage(&storage.RedisConfig{
-		Host:     s.opts.Redis.Host,
-		Port:     s.opts.Redis.Port,
+		Host:     s.opts.Redis.Addr,
+		Port:     0, // Port is included in Addr
 		Password: s.opts.Redis.Password,
 		DB:       s.opts.Redis.DB,
 		PoolSize: s.opts.Redis.PoolSize,
@@ -83,18 +72,8 @@ func (s *MonitorService) initialize() error {
 	// Initialize metrics handler
 	metricsHandler := handler.NewMetricsHandler(s.monitorService, s.log)
 
-	// Parse timeout durations
-	readTimeout, _ := time.ParseDuration(s.opts.Server.ReadTimeout)
-	writeTimeout, _ := time.ParseDuration(s.opts.Server.WriteTimeout)
-
 	// Create Gin server config using common/server
-	ginConfig := httpserver.NewGinServerConfig(&commonoptions.ServerOptions{
-		Host:         "",
-		Port:         s.opts.Server.Port,
-		Mode:         s.opts.Server.Mode,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
-	})
+	ginConfig := httpserver.NewGinServerConfig(s.opts.Server)
 
 	// Create Gin server
 	ginServer := httpserver.NewGinServerFromFullConfig(s.log, ginConfig)

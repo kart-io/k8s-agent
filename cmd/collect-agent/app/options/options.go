@@ -5,42 +5,37 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
+	"github.com/kart-io/logger/core"
 )
 
-// Options defines options for collect-agent service
-// This implements the pkg/app.Options interface.
-type Options struct {
-	// Common options from common/options package
+// ServerOptions 定义 collect-agent 服务的配置选项
+// 实现 pkg/app.Options 接口
+type ServerOptions struct {
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
+	Health  *commonoptions.HealthOptions  `json:"health" mapstructure:"health"`
 	Agent   *commonoptions.AgentOptions   `json:"agent" mapstructure:"agent"`
-
-	// Collect-agent specific options (if any)
-	// Add service-specific options here if needed
 }
 
-// NewOptions creates a new Options instance with default values.
-func NewOptions() *Options {
-	agentOpts := commonoptions.NewAgentOptions()
-	agentOpts.HealthPort = 8097 // Collect-Agent 健康检查端口
-
-	return &Options{
+// NewServerOptions 创建新的 ServerOptions 实例，使用默认值
+func NewServerOptions() *ServerOptions {
+	return &ServerOptions{
 		Logging: commonoptions.NewLoggingOptions(),
-		Agent:   agentOpts,
+		Health:  commonoptions.NewHealthOptions(),
+		Agent:   commonoptions.NewAgentOptions(),
 	}
 }
 
-// Validate validates all the required options.
-func (o *Options) Validate() []error {
+// Validate 验证所有必需的配置选项
+func (o *ServerOptions) Validate() []error {
 	var errs []error
 
-	// Validate logging options
 	if err := o.Logging.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 
-	// Validate agent options
 	if err := o.Agent.Validate(); err != nil {
 		errs = append(errs, err)
 	}
@@ -48,8 +43,8 @@ func (o *Options) Validate() []error {
 	return errs
 }
 
-// Complete fills in any fields not set that are required to have valid data.
-func (o *Options) Complete() error {
+// Complete 填充未设置但需要有效数据的字段
+func (o *ServerOptions) Complete() error {
 	if err := o.Logging.Complete(); err != nil {
 		return err
 	}
@@ -61,72 +56,92 @@ func (o *Options) Complete() error {
 	return nil
 }
 
-// AddFlags adds flags to the flag set
-// Note: --config/-c flag is automatically added by pkg/app framework.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
+// AddFlags 添加 flags 到 flag set
+// 注意: --config/-c flag 由 pkg/app 框架自动添加
+func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	o.Logging.AddFlags(fs)
+	o.Health.AddFlags(fs)
 	o.Agent.AddFlags(fs)
 }
 
-// Deprecated compatibility methods - map to new Agent options structure
+// InitLogger 基于配置初始化 logger
+func (o *ServerOptions) InitLogger() (core.Logger, error) {
+	return loggerutil.InitFromOptions(o.Logging)
+}
 
-// GetClusterID returns the cluster ID (for backward compatibility).
-func (o *Options) GetClusterID() string {
+// GetServiceName 返回服务名称
+func (o *ServerOptions) GetServiceName() string {
+	return "CollectAgent"
+}
+
+// GetLogFields 返回初始化日志的字段
+func (o *ServerOptions) GetLogFields() []interface{} {
+	return []interface{}{
+		"cluster_id", o.Agent.ClusterID,
+		"central_endpoint", o.Agent.CentralEndpoint,
+		"health_port", o.Health.Port,
+	}
+}
+
+// 向后兼容方法 - 映射到新的 Agent options 结构
+
+// GetClusterID 返回集群 ID (向后兼容)
+func (o *ServerOptions) GetClusterID() string {
 	return o.Agent.ClusterID
 }
 
-// GetClusterName returns the cluster name (for backward compatibility).
-func (o *Options) GetClusterName() string {
+// GetClusterName 返回集群名称 (向后兼容)
+func (o *ServerOptions) GetClusterName() string {
 	return o.Agent.ClusterName
 }
 
-// GetCentralEndpoint returns the central endpoint (for backward compatibility).
-func (o *Options) GetCentralEndpoint() string {
+// GetCentralEndpoint 返回中央端点 (向后兼容)
+func (o *ServerOptions) GetCentralEndpoint() string {
 	return o.Agent.CentralEndpoint
 }
 
-// GetReconnectDelay returns the reconnect delay (for backward compatibility).
-func (o *Options) GetReconnectDelay() time.Duration {
+// GetReconnectDelay 返回重连延迟 (向后兼容)
+func (o *ServerOptions) GetReconnectDelay() time.Duration {
 	return o.Agent.ReconnectDelay
 }
 
-// GetHeartbeatInterval returns the heartbeat interval (for backward compatibility).
-func (o *Options) GetHeartbeatInterval() time.Duration {
+// GetHeartbeatInterval 返回心跳间隔 (向后兼容)
+func (o *ServerOptions) GetHeartbeatInterval() time.Duration {
 	return o.Agent.HeartbeatInterval
 }
 
-// GetMetricsInterval returns the metrics interval (for backward compatibility).
-func (o *Options) GetMetricsInterval() time.Duration {
+// GetMetricsInterval 返回指标间隔 (向后兼容)
+func (o *ServerOptions) GetMetricsInterval() time.Duration {
 	return o.Agent.MetricsInterval
 }
 
-// GetBufferSize returns the buffer size (for backward compatibility).
-func (o *Options) GetBufferSize() int {
+// GetBufferSize 返回缓冲区大小 (向后兼容)
+func (o *ServerOptions) GetBufferSize() int {
 	return o.Agent.BufferSize
 }
 
-// GetMaxRetries returns the max retries (for backward compatibility).
-func (o *Options) GetMaxRetries() int {
+// GetMaxRetries 返回最大重试次数 (向后兼容)
+func (o *ServerOptions) GetMaxRetries() int {
 	return o.Agent.MaxRetries
 }
 
-// IsMetricsEnabled returns whether metrics are enabled (for backward compatibility).
-func (o *Options) IsMetricsEnabled() bool {
+// IsMetricsEnabled 返回是否启用指标 (向后兼容)
+func (o *ServerOptions) IsMetricsEnabled() bool {
 	return o.Agent.EnableMetrics
 }
 
-// IsEventsEnabled returns whether events are enabled (for backward compatibility).
-func (o *Options) IsEventsEnabled() bool {
+// IsEventsEnabled 返回是否启用事件 (向后兼容)
+func (o *ServerOptions) IsEventsEnabled() bool {
 	return o.Agent.EnableEvents
 }
 
-// GetHealthPort returns the health port (for backward compatibility).
-func (o *Options) GetHealthPort() int {
-	return o.Agent.HealthPort
+// GetHealthPort 返回健康检查端口 (向后兼容)
+func (o *ServerOptions) GetHealthPort() int {
+	return o.Health.Port
 }
 
-// ToAgentConfig converts Options to types.AgentConfig for backward compatibility.
-func (o *Options) ToAgentConfig() *types.AgentConfig {
+// ToAgentConfig 将 Options 转换为 types.AgentConfig (向后兼容)
+func (o *ServerOptions) ToAgentConfig() *types.AgentConfig {
 	return &types.AgentConfig{
 		ClusterID:         o.Agent.ClusterID,
 		ClusterName:       o.Agent.ClusterName,
@@ -139,6 +154,6 @@ func (o *Options) ToAgentConfig() *types.AgentConfig {
 		LogLevel:          o.Logging.Level,
 		EnableMetrics:     o.Agent.EnableMetrics,
 		EnableEvents:      o.Agent.EnableEvents,
-		HealthPort:        o.Agent.HealthPort,
+		HealthPort:        o.Health.Port,
 	}
 }

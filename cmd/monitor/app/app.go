@@ -13,7 +13,7 @@ import (
 // Execute runs the monitor command.
 func Execute() {
 	// Create configuration options
-	opts := options.NewOptions()
+	opts := options.NewServerOptions()
 
 	// Create application instance
 	app := &MonitorApp{}
@@ -33,7 +33,7 @@ func Execute() {
 
 // MonitorApp implements commonapp.Application interface.
 type MonitorApp struct {
-	opts   *options.Options // 直接使用Options
+	opts   *options.ServerOptions // 使用 ServerOptions
 	logger core.Logger
 	server *MonitorService
 }
@@ -45,8 +45,8 @@ func (a *MonitorApp) Name() string {
 
 // Initialize initializes the application.
 func (a *MonitorApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 直接保存Options，不需要转换
-	a.opts = opts.(*options.Options)
+	// 保存 ServerOptions
+	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

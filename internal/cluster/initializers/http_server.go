@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
 	"github.com/kart-io/k8s-agent/internal/cluster/handler"
 	"github.com/kart-io/k8s-agent/internal/cluster/service"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -22,8 +22,7 @@ import (
 // 使用标准化的 common/server 框架替代手动服务器管理
 type HTTPServerInitializer struct {
 	*pkginitializers.HTTPServerInitializer
-	serverOpts     *commonoptions.ServerOptions
-	jwtOpts        *commonoptions.JWTOptions
+	opts           *options.ServerOptions
 	logger         core.Logger
 	dbInit         *DatabaseInitializer
 	handler        *handler.ClusterHandler
@@ -33,23 +32,21 @@ type HTTPServerInitializer struct {
 
 // NewHTTPServerInitializer creates a new HTTP server initializer using common/server framework.
 func NewHTTPServerInitializer(
-	serverOpts *commonoptions.ServerOptions,
-	jwtOpts *commonoptions.JWTOptions,
+	opts *options.ServerOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 ) *HTTPServerInitializer {
 	h := &HTTPServerInitializer{
-		serverOpts: serverOpts,
-		jwtOpts:    jwtOpts,
-		logger:     logger,
-		dbInit:     dbInit,
+		opts:   opts,
+		logger: logger,
+		dbInit: dbInit,
 	}
 
 	// Create standard HTTP server config
 	serverConfig := &pkginitializers.HTTPServerConfig{
 		Name:       "cluster-http-server",
 		Priority:   bootstrap.PriorityHTTP,
-		Config:     serverOpts,
+		Config:     opts.Server,
 		RouteSetup: h.setupRoutes, // Method defined below
 	}
 

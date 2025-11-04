@@ -5,281 +5,190 @@ import (
 
 	"github.com/spf13/pflag"
 
-	commoncore "github.com/kart-io/k8s-agent/common/core"
 	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
 
-const (
-	// Default ports
-	defaultHTTPPort       = 8095
-	defaultMySQLPort      = 3306
-	defaultRedisPort      = 6379
-	defaultPrometheusPort = 9095
+// ServerOptions 定义 monitor 服务的配置选项
+// 实现 pkg/app.Options 接口
+type ServerOptions struct {
+	Server   *commonoptions.ServerOptions   `json:"server" mapstructure:"server"`
+	Logging  *commonoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
+	Health   *commonoptions.HealthOptions   `json:"health" mapstructure:"health"`
+	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
+	Redis    *commonoptions.RedisOptions    `json:"redis" mapstructure:"redis"`
+	Metrics  *commonoptions.MetricsOptions  `json:"metrics" mapstructure:"metrics"`
+	JWT      *commonoptions.JWTOptions      `json:"jwt" mapstructure:"jwt"`
 
-	// Default connection pool settings
-	defaultMaxOpenConns  = 100
-	defaultMaxIdleConns  = 10
-	defaultRedisPoolSize = 100
-)
-
-// Options 实现 commonapp.Options 接口.
-type Options struct {
-	ConfigFile string // 配置文件路径
-	*Config           // 嵌入原有的 Config 结构
-}
-
-// NewOptions 创建配置选项.
-func NewOptions() *Options {
-	return &Options{
-		Config: &Config{
-			Server: ServerConfig{
-				Port:         defaultHTTPPort,
-				Mode:         "release",
-				ReadTimeout:  "60s",
-				WriteTimeout: "60s",
-			},
-			Database: DatabaseConfig{
-				Host:         "localhost",
-				Port:         defaultMySQLPort,
-				User:         "aetherius",
-				Password:     "aetherius",
-				DBName:       "aetherius_monitor",
-				MaxOpenConns: defaultMaxOpenConns,
-				MaxIdleConns: defaultMaxIdleConns,
-			},
-			Redis: RedisConfig{
-				Host:     "localhost",
-				Port:     defaultRedisPort,
-				DB:       0,
-				PoolSize: defaultRedisPoolSize,
-			},
-			Prometheus: PrometheusConfig{
-				Enabled: true,
-				Port:    defaultPrometheusPort,
-			},
-			JWT: JWTConfig{
-				Secret:     "change-this-secret",
-				Expiration: "24h",
-			},
-			Logging: LoggingConfig{
-				Level:  "info",
-				Format: "json",
-				Output: "stdout",
-			},
-		},
-	}
-}
-
-// AddFlags 添加命令行标志.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVarP(&o.ConfigFile, "config", "c", "", "配置文件路径")
-	fs.IntVar(&o.Server.Port, "port", o.Server.Port, "服务器端口")
-	fs.StringVar(&o.Database.Host, "db-host", o.Database.Host, "数据库主机")
-	fs.IntVar(&o.Database.Port, "db-port", o.Database.Port, "数据库端口")
-}
-
-// Complete 完成配置初始化.
-func (o *Options) Complete() error {
-	if o.ConfigFile != "" {
-		cfg, err := LoadFromPath(o.ConfigFile)
-		if err != nil {
-			return err
-		}
-		o.Config = cfg
-	}
-	return nil
-}
-
-// Validate 验证配置.
-func (o *Options) Validate() []error {
-	if err := validate(o.Config); err != nil {
-		return []error{err}
-	}
-	return nil
-}
-
-// GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions.
-func (o *Options) GetHealthPort() int {
-	return 8096 // Monitor 健康检查端口
-}
-
-// 确保 Options 实现 commonapp.Options 接口.
-var _ commonapp.Options = (*Options)(nil)
-
-// Config holds all configuration.
-type Config struct {
-	Server     ServerConfig     `mapstructure:"server"`
-	Database   DatabaseConfig   `mapstructure:"database"`
-	Redis      RedisConfig      `mapstructure:"redis"`
-	Prometheus PrometheusConfig `mapstructure:"prometheus"`
-	JWT        JWTConfig        `mapstructure:"jwt"`
-	Logging    LoggingConfig    `mapstructure:"logging"`
-	Alert      AlertConfig      `mapstructure:"alert"`
-	Metrics    MetricsConfig    `mapstructure:"metrics"`
-}
-
-// ServerConfig holds server configuration.
-type ServerConfig struct {
-	Port         int    `mapstructure:"port"`
-	Mode         string `mapstructure:"mode"`
-	ReadTimeout  string `mapstructure:"read_timeout"`
-	WriteTimeout string `mapstructure:"write_timeout"`
-}
-
-// DatabaseConfig holds database configuration.
-type DatabaseConfig struct {
-	Host         string `mapstructure:"host"`
-	Port         int    `mapstructure:"port"`
-	User         string `mapstructure:"user"`
-	Password     string `mapstructure:"password"`
-	DBName       string `mapstructure:"dbname"`
-	SSLMode      string `mapstructure:"sslmode"`
-	MaxOpenConns int    `mapstructure:"max_open_conns"`
-	MaxIdleConns int    `mapstructure:"max_idle_conns"`
-}
-
-// RedisConfig holds Redis configuration.
-type RedisConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
-	PoolSize int    `mapstructure:"pool_size"`
+	// Monitor 特有配置
+	Prometheus PrometheusConfig `json:"prometheus" mapstructure:"prometheus"`
+	Alert      AlertConfig      `json:"alert" mapstructure:"alert"`
 }
 
 // PrometheusConfig holds Prometheus configuration.
 type PrometheusConfig struct {
-	Enabled bool `mapstructure:"enabled"`
-	Port    int  `mapstructure:"port"`
-}
-
-// JWTConfig holds JWT configuration.
-type JWTConfig struct {
-	Secret     string `mapstructure:"secret"`
-	Expiration string `mapstructure:"expiration"`
-}
-
-// LoggingConfig holds logging configuration.
-type LoggingConfig struct {
-	Level  string `mapstructure:"level"`
-	Format string `mapstructure:"format"`
-	Output string `mapstructure:"output"`
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
+	Port    int  `json:"port" mapstructure:"port"`
 }
 
 // AlertConfig holds alert configuration.
 type AlertConfig struct {
-	CheckInterval string              `mapstructure:"check_interval"`
-	Channels      AlertChannelsConfig `mapstructure:"channels"`
+	CheckInterval string              `json:"check_interval" mapstructure:"check_interval"`
+	Channels      AlertChannelsConfig `json:"channels" mapstructure:"channels"`
 }
 
 // AlertChannelsConfig holds alert channels configuration.
 type AlertChannelsConfig struct {
-	Email   EmailAlertConfig   `mapstructure:"email"`
-	Webhook WebhookAlertConfig `mapstructure:"webhook"`
-	Slack   SlackAlertConfig   `mapstructure:"slack"`
+	Email   EmailAlertConfig   `json:"email" mapstructure:"email"`
+	Webhook WebhookAlertConfig `json:"webhook" mapstructure:"webhook"`
+	Slack   SlackAlertConfig   `json:"slack" mapstructure:"slack"`
 }
 
 // EmailAlertConfig holds email alert configuration.
 type EmailAlertConfig struct {
-	Enabled  bool   `mapstructure:"enabled"`
-	SMTPHost string `mapstructure:"smtp_host"`
-	SMTPPort int    `mapstructure:"smtp_port"`
-	From     string `mapstructure:"from"`
+	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
+	SMTPHost string `json:"smtp_host" mapstructure:"smtp_host"`
+	SMTPPort int    `json:"smtp_port" mapstructure:"smtp_port"`
+	From     string `json:"from" mapstructure:"from"`
 }
 
 // WebhookAlertConfig holds webhook alert configuration.
 type WebhookAlertConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	URL     string `mapstructure:"url"`
+	Enabled bool   `json:"enabled" mapstructure:"enabled"`
+	URL     string `json:"url" mapstructure:"url"`
 }
 
 // SlackAlertConfig holds Slack alert configuration.
 type SlackAlertConfig struct {
-	Enabled    bool   `mapstructure:"enabled"`
-	WebhookURL string `mapstructure:"webhook_url"`
+	Enabled    bool   `json:"enabled" mapstructure:"enabled"`
+	WebhookURL string `json:"webhook_url" mapstructure:"webhook_url"`
 }
 
-// MetricsConfig holds metrics configuration.
-type MetricsConfig struct {
-	RetentionDays       int    `mapstructure:"retention_days"`
-	AggregationInterval string `mapstructure:"aggregation_interval"`
+// NewServerOptions 创建新的 ServerOptions 实例，使用默认值
+func NewServerOptions() *ServerOptions {
+	return &ServerOptions{
+		Server:   commonoptions.NewServerOptions(),
+		Logging:  commonoptions.NewLoggingOptions(),
+		Health:   commonoptions.NewHealthOptions(),
+		Database: commonoptions.NewDatabaseOptions(),
+		Redis:    commonoptions.NewRedisOptions(),
+		Metrics:  commonoptions.NewMetricsOptions(),
+		JWT:      commonoptions.NewJWTOptions(),
+		Prometheus: PrometheusConfig{
+			Enabled: true,
+			Port:    9095,
+		},
+		Alert: AlertConfig{
+			CheckInterval: "30s",
+		},
+	}
 }
 
-// Load loads configuration from file and environment variables.
-func Load() (*Config, error) {
-	return LoadFromPath("")
-}
+// Validate 验证所有必需的配置选项
+func (o *ServerOptions) Validate() []error {
+	var errs []error
 
-// LoadFromPath loads configuration from a specific file path.
-func LoadFromPath(configPath string) (*Config, error) {
-	config := &Config{}
-
-	// 使用通用配置加载器
-	wrapper := &configWrapper{Config: config}
-
-	envBindings := map[string]string{
-		"jwt.secret":        "JWT_SECRET",
-		"database.password": "DB_PASSWORD",
-		"redis.password":    "REDIS_PASSWORD",
+	if err := o.Server.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
-	if err := commoncore.LoadOptions(wrapper, configPath, envBindings); err != nil {
-		return nil, err
+	if err := o.Logging.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
-	return config, nil
+	if err := o.Database.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := o.Redis.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := o.JWT.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	// Validate monitor specific options
+	if o.Prometheus.Enabled && o.Prometheus.Port == 0 {
+		errs = append(errs, fmt.Errorf("prometheus.port is required when enabled"))
+	}
+
+	return errs
 }
 
-// configWrapper 包装 Config 以实现 Options 接口.
-type configWrapper struct {
-	*Config
-}
+// Complete 填充未设置但需要有效数据的字段
+func (o *ServerOptions) Complete() error {
+	if err := o.Server.Complete(); err != nil {
+		return err
+	}
 
-// Complete 实现 Options 接口.
-func (w *configWrapper) Complete() error {
-	// monitor 的 Config 不需要特殊的 Complete 逻辑
+	if err := o.Logging.Complete(); err != nil {
+		return err
+	}
+
+	if err := o.Database.Complete(); err != nil {
+		return err
+	}
+
+	if err := o.Redis.Complete(); err != nil {
+		return err
+	}
+
+	if err := o.JWT.Complete(); err != nil {
+		return err
+	}
+
+	// Set defaults for monitor specific options
+	if o.Prometheus.Port == 0 {
+		o.Prometheus.Port = 9095
+	}
+
+	if o.Alert.CheckInterval == "" {
+		o.Alert.CheckInterval = "30s"
+	}
+
 	return nil
 }
 
-// Validate 实现 Options 接口.
-func (w *configWrapper) Validate() []error {
-	if err := validate(w.Config); err != nil {
-		return []error{err}
-	}
-	return nil
+// AddFlags 添加 flags 到 flag set
+// 注意: --config/-c flag 由 pkg/app 框架自动添加
+func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
+	o.Server.AddFlags(fs)
+	o.Logging.AddFlags(fs)
+	o.Health.AddFlags(fs)
+	o.Database.AddFlags(fs)
+	o.Redis.AddFlags(fs)
+	o.Metrics.AddFlags(fs)
+	o.JWT.AddFlags(fs)
+
+	// Add monitor specific flags
+	fs.BoolVar(&o.Prometheus.Enabled, "prometheus.enabled", o.Prometheus.Enabled,
+		"Enable Prometheus metrics")
+
+	fs.IntVar(&o.Prometheus.Port, "prometheus.port", o.Prometheus.Port,
+		"Prometheus metrics port")
+
+	fs.StringVar(&o.Alert.CheckInterval, "alert.check-interval", o.Alert.CheckInterval,
+		"Alert check interval")
 }
 
-// validate validates configuration.
-func validate(cfg *Config) error {
-	if cfg.Server.Port == 0 {
-		return fmt.Errorf("server.port is required")
-	}
-	if cfg.Database.Host == "" {
-		return fmt.Errorf("database.host is required")
-	}
-	if cfg.Database.DBName == "" {
-		return fmt.Errorf("database.dbname is required")
-	}
-	if cfg.Redis.Host == "" {
-		return fmt.Errorf("redis.host is required")
-	}
-	if cfg.JWT.Secret == "" {
-		return fmt.Errorf("jwt.secret is required")
-	}
-	return nil
+// InitLogger 基于配置初始化 logger
+func (o *ServerOptions) InitLogger() (core.Logger, error) {
+	return loggerutil.InitFromOptions(o.Logging)
 }
 
-// InitLogger initializes the logger based on the options.
-func (o *Options) InitLogger() (core.Logger, error) {
-	// Convert LoggingConfig to commonoptions.LoggingOptions
-	loggingOpts := &commonoptions.LoggingOptions{
-		Level:       o.Logging.Level,
-		Format:      o.Logging.Format,
-		OutputPaths: []string{o.Logging.Output},
+// GetServiceName 返回服务名称
+func (o *ServerOptions) GetServiceName() string {
+	return "Monitor"
+}
+
+// GetLogFields 返回初始化日志的字段
+func (o *ServerOptions) GetLogFields() []interface{} {
+	return []interface{}{
+		"http_port", o.Server.Port,
+		"health_port", o.Health.Port,
+		"prometheus_enabled", o.Prometheus.Enabled,
+		"prometheus_port", o.Prometheus.Port,
 	}
-	return loggerutil.InitFromOptions(loggingOpts)
 }

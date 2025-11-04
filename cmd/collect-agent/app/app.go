@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/collect-agent/app/options"
-	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
@@ -13,7 +12,7 @@ import (
 // Execute runs the collect-agent command.
 func Execute() {
 	// Create configuration options
-	opts := options.NewOptions()
+	opts := options.NewServerOptions()
 
 	// Create application instance
 	app := &CollectAgentApp{}
@@ -33,7 +32,7 @@ func Execute() {
 
 // CollectAgentApp implements commonapp.Application interface.
 type CollectAgentApp struct {
-	opts   *options.Options // 直接使用Options，不需要转换
+	opts   *options.ServerOptions // 使用 ServerOptions
 	logger core.Logger
 	server *CollectAgentService
 }
@@ -45,11 +44,11 @@ func (a *CollectAgentApp) Name() string {
 
 // Initialize initializes the application.
 func (a *CollectAgentApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 直接保存Options，不需要转换
-	a.opts = opts.(*options.Options)
+	// 保存 ServerOptions
+	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger
-	logger, err := loggerutil.InitFromOptions(a.opts.Logging)
+	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -58,7 +57,7 @@ func (a *CollectAgentApp) Initialize(ctx context.Context, opts commonapp.Options
 	a.logger.Infow("Starting Aetherius Collect Agent",
 		"cluster_id", a.opts.Agent.ClusterID,
 		"central_endpoint", a.opts.Agent.CentralEndpoint,
-		"health_port", a.opts.Agent.HealthPort,
+		"health_port", a.opts.Health.Port,
 	)
 
 	// Create server

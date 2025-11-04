@@ -17,15 +17,16 @@ var (
 	ErrInvalidBurst     = errors.New("burst must be greater than 0")
 )
 
-// Options defines options for gateway service
-// This implements the pkg/app.Options interface.
-type Options struct {
+// ServerOptions 定义 gateway 服务的配置选项
+// 实现 pkg/app.Options 接口
+type ServerOptions struct {
 	Server  *commonoptions.ServerOptions  `json:"server" mapstructure:"server"`
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
+	Health  *commonoptions.HealthOptions  `json:"health" mapstructure:"health"`
 	Redis   *commonoptions.RedisOptions   `json:"redis" mapstructure:"redis"`
 	JWT     *commonoptions.JWTOptions     `json:"jwt" mapstructure:"jwt"`
 
-	// Gateway specific options
+	// Gateway 特有配置
 	RateLimit   RateLimitOptions   `json:"rate_limit" mapstructure:"rate_limit"`
 	CORS        CORSOptions        `json:"cors" mapstructure:"cors"`
 	Services    ServicesOptions    `json:"services" mapstructure:"services"`
@@ -90,11 +91,12 @@ type MetricsOptions struct {
 	Path    string `json:"path" mapstructure:"path"`
 }
 
-// NewOptions creates a new Options instance with default values.
-func NewOptions() *Options {
-	return &Options{
+// NewServerOptions 创建新的 ServerOptions 实例，使用默认值
+func NewServerOptions() *ServerOptions {
+	return &ServerOptions{
 		Server:  commonoptions.NewServerOptions(),
 		Logging: commonoptions.NewLoggingOptions(),
+		Health:  commonoptions.NewHealthOptions(),
 		Redis:   commonoptions.NewRedisOptions(),
 		JWT:     commonoptions.NewJWTOptions(),
 		RateLimit: RateLimitOptions{
@@ -153,8 +155,8 @@ func NewOptions() *Options {
 	}
 }
 
-// Validate validates all the required options.
-func (o *Options) Validate() []error {
+// Validate 验证所有必需的配置选项
+func (o *ServerOptions) Validate() []error {
 	var errs []error
 
 	if err := o.Server.Validate(); err != nil {
@@ -186,8 +188,8 @@ func (o *Options) Validate() []error {
 	return errs
 }
 
-// Complete fills in any fields not set that are required to have valid data.
-func (o *Options) Complete() error {
+// Complete 填充未设置但需要有效数据的字段
+func (o *ServerOptions) Complete() error {
 	if err := o.Server.Complete(); err != nil {
 		return err
 	}
@@ -228,17 +230,12 @@ func (o *Options) Complete() error {
 	return nil
 }
 
-// GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions.
-func (o *Options) GetHealthPort() int {
-	return 8095 // Gateway 健康检查端口
-}
-
-// AddFlags adds flags to the flag set
-// Note: --config/-c flag is automatically added by pkg/app framework.
-func (o *Options) AddFlags(fs *pflag.FlagSet) {
+// AddFlags 添加 flags 到 flag set
+// 注意: --config/-c flag 由 pkg/app 框架自动添加
+func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	o.Server.AddFlags(fs)
 	o.Logging.AddFlags(fs)
+	o.Health.AddFlags(fs)
 	o.Redis.AddFlags(fs)
 	o.JWT.AddFlags(fs)
 
@@ -271,7 +268,22 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		"Path for metrics endpoint")
 }
 
-// InitLogger initializes the logger based on the options.
-func (o *Options) InitLogger() (core.Logger, error) {
+// InitLogger 基于配置初始化 logger
+func (o *ServerOptions) InitLogger() (core.Logger, error) {
 	return loggerutil.InitFromOptions(o.Logging)
+}
+
+// GetServiceName 返回服务名称
+func (o *ServerOptions) GetServiceName() string {
+	return "Gateway"
+}
+
+// GetLogFields 返回初始化日志的字段
+func (o *ServerOptions) GetLogFields() []interface{} {
+	return []interface{}{
+		"http_port", o.Server.Port,
+		"health_port", o.Health.Port,
+		"rate_limit_enabled", o.RateLimit.Enabled,
+		"cors_enabled", o.CORS.Enabled,
+	}
 }

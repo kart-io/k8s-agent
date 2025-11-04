@@ -16,14 +16,14 @@ import (
 
 // CollectAgentService represents the collect-agent service using common/server.
 type CollectAgentService struct {
-	opts          *options.Options
+	opts          *options.ServerOptions
 	log           core.Logger
 	agentInstance *agent.Agent
 	healthServer  commonserver.Server
 }
 
 // NewServer creates a new collect-agent service (使用 common/server).
-func NewServer(opts *options.Options, log core.Logger) (*CollectAgentService, error) {
+func NewServer(opts *options.ServerOptions, log core.Logger) (*CollectAgentService, error) {
 	srv := &CollectAgentService{
 		opts: opts,
 		log:  log,
@@ -50,14 +50,14 @@ func (s *CollectAgentService) initialize() error {
 	}
 
 	// Determine health port
-	port := s.opts.Agent.HealthPort
+	port := s.opts.Health.Port
 	if port == 0 {
 		port = 8080 // default
 	}
 
 	// Create health server using common/server
 	ginConfig := httpserver.NewGinServerConfig(&commonoptions.ServerOptions{
-		Host: "",
+		Host: s.opts.Health.Host,
 		Port: port,
 		Mode: "release",
 	})
@@ -119,13 +119,13 @@ func (s *CollectAgentService) setupHealthRoutes(engine *gin.Engine) {
 		})
 	})
 
-	s.log.Infow("Health check routes configured", "port", s.opts.Agent.HealthPort)
+	s.log.Infow("Health check routes configured", "port", s.opts.Health.Port)
 }
 
 // Run starts the collect-agent service.
 func (s *CollectAgentService) Run(ctx context.Context) error {
 	s.log.Infow("Starting Collect Agent Service",
-		"health_port", s.opts.Agent.HealthPort,
+		"health_port", s.opts.Health.Port,
 	)
 
 	// Create context for agent

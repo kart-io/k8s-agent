@@ -13,7 +13,7 @@ import (
 // Execute runs the gateway command.
 func Execute() {
 	// Create configuration options
-	opts := options.NewOptions()
+	opts := options.NewServerOptions()
 
 	// Create application instance
 	app := &GatewayApp{}
@@ -33,7 +33,7 @@ func Execute() {
 
 // GatewayApp implements commonapp.Application interface.
 type GatewayApp struct {
-	opts   *options.Options // 直接使用Options
+	opts   *options.ServerOptions // 使用 ServerOptions
 	logger core.Logger
 	server *GatewayService
 }
@@ -45,8 +45,8 @@ func (a *GatewayApp) Name() string {
 
 // Initialize initializes the application.
 func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 直接保存Options，不需要转换
-	a.opts = opts.(*options.Options)
+	// 保存 ServerOptions
+	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

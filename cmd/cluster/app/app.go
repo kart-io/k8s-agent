@@ -93,13 +93,12 @@ func (a *ClusterApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	// 直接使用已有的opts，不需要重新创建
 
 	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(a.opts.Database, a.logger)
+	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
 	bs.Register(a.dbInit)
 
 	// 2. HTTP Server (priority 500)
 	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.opts.Server,
-		a.opts.JWT,
+		a.opts,
 		a.logger,
 		a.dbInit,
 	)

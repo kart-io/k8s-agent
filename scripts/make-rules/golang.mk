@@ -97,10 +97,10 @@ go.fmt: ## Format Go code
 .PHONY: fmt
 fmt: ## Advanced Go formatting with gofumpt and gci
 	@printf "$(BLUE)==> fmt (enhanced formatting)$(NC)\n"
-	@gofumpt -version >/dev/null 2>&1 || (printf "$(YELLOW)Installing gofumpt...$(NC)\n" && go install mvdan.cc/gofumpt@latest)
+	@which gofumpt >/dev/null 2>&1 || (printf "$(YELLOW)Installing gofumpt...$(NC)\n" && go install mvdan.cc/gofumpt@latest)
 	@printf "$(GREEN)Running gofumpt...$(NC)\n"
 	@gofumpt -w -l .
-	@gci -version >/dev/null 2>&1 || (printf "$(YELLOW)Installing gci...$(NC)\n" && go install github.com/daixiang0/gci@latest)
+	@which gci >/dev/null 2>&1 || (printf "$(YELLOW)Installing gci...$(NC)\n" && go install github.com/daixiang0/gci@latest)
 	@printf "$(GREEN)Running gci (import organizer)...$(NC)\n"
 	@gci write -s standard -s default -s "Prefix($(GO_MOD_DOMAIN))" --skip-generated .
 	@printf "$(GREEN)Enhanced formatting completed$(NC)\n"

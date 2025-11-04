@@ -8,20 +8,20 @@ import (
 	"context"
 	"fmt"
 
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/logger/core"
 )
 
 // DatabaseInitializer initializes the database connection and schema.
 type DatabaseInitializer struct {
-	opts    *commonoptions.DatabaseOptions
+	opts    *options.ServerOptions
 	logger  core.Logger
 	storage *storage.MySQLStorage
 }
 
 // NewDatabaseInitializer creates a new database initializer.
-func NewDatabaseInitializer(opts *commonoptions.DatabaseOptions, logger core.Logger) *DatabaseInitializer {
+func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *DatabaseInitializer {
 	return &DatabaseInitializer{
 		opts:   opts,
 		logger: logger,
@@ -31,22 +31,22 @@ func NewDatabaseInitializer(opts *commonoptions.DatabaseOptions, logger core.Log
 // Initialize initializes the database connection.
 func (i *DatabaseInitializer) Initialize(ctx context.Context) error {
 	i.logger.Infow("Initializing database connection",
-		"host", i.opts.Host,
-		"port", i.opts.Port,
-		"database", i.opts.Database,
+		"host", i.opts.Database.Host,
+		"port", i.opts.Database.Port,
+		"database", i.opts.Database.Database,
 	)
 
 	// 创建数据库连接
-	store, err := storage.NewMySQLStorage(i.opts, i.logger)
+	store, err := storage.NewMySQLStorage(i.opts.Database, i.logger)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	i.storage = store
 
 	i.logger.Infow("Database connected successfully",
-		"host", i.opts.Host,
-		"port", i.opts.Port,
-		"database", i.opts.Database,
+		"host", i.opts.Database.Host,
+		"port", i.opts.Database.Port,
+		"database", i.opts.Database.Database,
 	)
 
 	// 初始化数据库 schema
