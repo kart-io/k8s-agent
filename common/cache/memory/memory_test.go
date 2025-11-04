@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/k8s-agent/common/cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kart-io/k8s-agent/common/cache"
 )
 
 func TestMemoryCache(t *testing.T) {

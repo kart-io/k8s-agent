@@ -62,7 +62,6 @@ func (s *MonitorService) GetMetricsSummary(ctx context.Context) (*types.MetricsS
 		&summary.NetworkOut,
 		&summary.LastUpdateTime,
 	)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// 返回空数据

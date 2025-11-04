@@ -3,8 +3,9 @@ package config
 import (
 	"time"
 
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/spf13/pflag"
+
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 )
 
 // Options defines options for gateway service

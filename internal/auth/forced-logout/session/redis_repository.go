@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
 // RedisRepository implements Repository using Redis

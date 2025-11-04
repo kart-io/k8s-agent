@@ -1,8 +1,9 @@
 package config
 
 import (
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/spf13/pflag"
+
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 )
 
 // Options defines options for reasoning service

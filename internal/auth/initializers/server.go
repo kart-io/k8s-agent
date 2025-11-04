@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+
 	"github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/k8s-agent/internal/auth/handler"
 	"github.com/kart-io/k8s-agent/internal/auth/middleware"
 	"github.com/kart-io/k8s-agent/internal/auth/routes"
 	"github.com/kart-io/k8s-agent/internal/auth/service"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
 )
 

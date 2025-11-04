@@ -4,13 +4,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/internal/auth/logger"
+
+	"github.com/kart-io/logger/core"
 )
 
 // RequestLogger logs HTTP request details
-func RequestLogger() gin.HandlerFunc {
-	log := logger.GetLogger()
-
+func RequestLogger(log core.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer
 		startTime := time.Now()
@@ -50,7 +49,6 @@ func RequestLogger() gin.HandlerFunc {
 				"client_ip", clientIP,
 				"user_id", userID,
 				"auth_type", authType,
-				"errors", c.Errors.String(),
 			)
 		case statusCode >= 400:
 			log.Warnw("Client error",
@@ -61,10 +59,17 @@ func RequestLogger() gin.HandlerFunc {
 				"client_ip", clientIP,
 				"user_id", userID,
 				"auth_type", authType,
-				"errors", c.Errors.String(),
+			)
+		case statusCode >= 300:
+			log.Debugw("Redirect",
+				"method", method,
+				"path", path,
+				"status", statusCode,
+				"latency_ms", latency.Milliseconds(),
+				"client_ip", clientIP,
 			)
 		default:
-			log.Infow("Request completed",
+			log.Infow("Request processed",
 				"method", method,
 				"path", path,
 				"status", statusCode,

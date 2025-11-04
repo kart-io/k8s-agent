@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
+
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
-	"gorm.io/gorm"
 )
 
 // UserService handles user management business logic
@@ -176,7 +177,6 @@ func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) 
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

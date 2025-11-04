@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"github.com/nats-io/nats.go"
+
+	"github.com/kart-io/logger/core"
 )
 
 // NATSOptions NATS 配置选项

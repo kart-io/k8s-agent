@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/k8s-agent/common/utils"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kart-io/k8s-agent/common/utils"
 )
 
 // Test basic CORS middleware

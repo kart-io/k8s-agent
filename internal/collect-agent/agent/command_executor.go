@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
+	"github.com/kart-io/logger/core"
 )
 
 // CommandExecutor executes commands received from the central control plane
@@ -246,7 +246,6 @@ func (ce *CommandExecutor) executeDiagnosticCommand(ctx context.Context, cmd typ
 
 	// Execute command
 	output, err := execCmd.CombinedOutput()
-
 	if err != nil {
 		if execCtx.Err() == context.DeadlineExceeded {
 			result.Status = "timeout"

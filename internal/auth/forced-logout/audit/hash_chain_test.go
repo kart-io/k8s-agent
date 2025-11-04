@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
 func TestNewHashChain(t *testing.T) {

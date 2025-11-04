@@ -3,9 +3,10 @@ package config
 import (
 	"fmt"
 
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
-	commoncore "github.com/kart-io/k8s-agent/common/core"
 	"github.com/spf13/pflag"
+
+	commoncore "github.com/kart-io/k8s-agent/common/core"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 )
 
 // Options 实现 commonapp.Options 接口
@@ -92,9 +93,6 @@ func (o *Options) GetHealthPort() int {
 
 // 确保 Options 实现 commonapp.Options 接口
 var _ commonapp.Options = (*Options)(nil)
-
-// 确保 Options 实现 commonapp.HealthPortProvider 接口
-var _ commonapp.HealthPortProvider = (*Options)(nil)
 
 // Config holds all configuration
 type Config struct {

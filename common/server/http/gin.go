@@ -10,9 +10,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/common/middleware"
+	"github.com/kart-io/logger/core"
 )
 
 // GinServer Gin HTTP 服务器

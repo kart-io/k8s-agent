@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/logger/core"
-
 	"github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/pkg/types"
+	"github.com/kart-io/logger/core"
 )
 
 const (

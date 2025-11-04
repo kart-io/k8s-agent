@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"github.com/nats-io/nats.go"
 
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/k8s-agent/pkg/types"
+	"github.com/kart-io/logger/core"
 )
 
 // Processor handles event processing and routing

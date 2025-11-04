@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/utils"
+	"github.com/kart-io/logger/core"
 )
 
 // Agent represents the main collect agent that coordinates all components

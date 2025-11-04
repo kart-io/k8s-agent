@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
+	"github.com/kart-io/logger/core"
 )
 
 func TestNewCommandExecutor(t *testing.T) {

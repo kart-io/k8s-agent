@@ -11,11 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
 	"github.com/kart-io/version"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // Application defines the unified application interface

@@ -8,10 +8,9 @@ package options
 import (
 	"time"
 
-	"github.com/kart-io/k8s-agent/common/loggerutil"
-
 	"github.com/spf13/pflag"
 
+	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	orchestrator "github.com/kart-io/k8s-agent/internal/orchestrator"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
@@ -161,13 +160,11 @@ func (o *ServerOptions) Config() (*orchestrator.Config, error) {
 }
 
 // GetServiceName returns the service name
-// This method is required by the BootstrapConfig interface
 func (o *ServerOptions) GetServiceName() string {
 	return "Orchestrator"
 }
 
 // GetLogFields returns log fields for initialization logging
-// This method is required by the BootstrapConfig interface
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,

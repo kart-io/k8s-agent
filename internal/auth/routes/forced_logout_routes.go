@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+
 	"github.com/kart-io/k8s-agent/internal/auth/handler"
 	"github.com/kart-io/k8s-agent/internal/auth/middleware"
 )

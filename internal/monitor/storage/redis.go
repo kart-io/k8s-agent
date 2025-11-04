@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/kart-io/logger/core"
 )
 
 type RedisConfig struct {

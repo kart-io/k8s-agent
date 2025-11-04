@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/kart-io/k8s-agent/common/response"
 )
 
@@ -63,7 +64,6 @@ func (m *JWTMiddleware) Auth() gin.HandlerFunc {
 			}
 			return m.config.Secret, nil
 		})
-
 		if err != nil {
 			response.Unauthorized(c, "Invalid or expired token", err)
 			c.Abort()
@@ -199,7 +199,6 @@ func (m *JWTMiddleware) RefreshToken(oldToken string, expiresHours int) (string,
 		}
 		return m.config.Secret, nil
 	})
-
 	if err != nil {
 		return "", err
 	}

@@ -5,9 +5,9 @@
 package options
 
 import (
-	"github.com/kart-io/k8s-agent/common/loggerutil"
 	"github.com/spf13/pflag"
 
+	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/logger/core"
@@ -62,13 +62,11 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // GetServiceName returns the service name
-// This method is required by the BootstrapConfig interface
 func (o *ServerOptions) GetServiceName() string {
 	return "Reasoning"
 }
 
 // GetLogFields returns log fields for initialization logging
-// This method is required by the BootstrapConfig interface
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,

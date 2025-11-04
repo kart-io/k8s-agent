@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 )
 
 // K8sRoleService provides Role-related operations

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/kart-io/k8s-agent/internal/auth/service"
 )
 

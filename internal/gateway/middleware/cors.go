@@ -1,9 +1,10 @@
 package middleware
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"strings"
 )
 
 // CORS 跨域中间件

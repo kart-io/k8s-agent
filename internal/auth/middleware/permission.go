@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 )
@@ -96,7 +97,6 @@ func checkUserPermission(db *storage.PostgresDB, userID, permissionCode string) 
 		Joins("JOIN user_roles ON role_permissions.role_id = user_roles.role_id").
 		Where("user_roles.user_id = ? AND permissions.code = ? AND permissions.status = ?", userID, permissionCode, 1).
 		Count(&count).Error
-
 	if err != nil {
 		return false, err
 	}
@@ -111,7 +111,6 @@ func checkUserRole(db *storage.PostgresDB, userID, roleCode string) (bool, error
 		Joins("JOIN user_roles ON roles.id = user_roles.role_id").
 		Where("user_roles.user_id = ? AND roles.code = ? AND roles.status = ?", userID, roleCode, 1).
 		Count(&count).Error
-
 	if err != nil {
 		return false, err
 	}

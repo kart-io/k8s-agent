@@ -90,7 +90,6 @@ func (m *ForcedLogoutAuthMiddleware) getUserRoles(userID string) ([]string, erro
 		Joins("JOIN user_roles ON roles.id = user_roles.role_id").
 		Where("user_roles.user_id = ? AND roles.status = 1", userID).
 		Scan(&roles).Error
-
 	if err != nil {
 		return nil, err
 	}

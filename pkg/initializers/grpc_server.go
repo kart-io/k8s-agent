@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	"google.golang.org/grpc"
+
 	"github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	grpcserver "github.com/kart-io/k8s-agent/common/server/grpc"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
-	"google.golang.org/grpc"
 )
 
 // GRPCServerConfig holds configuration for the gRPC server initializer.

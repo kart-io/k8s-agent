@@ -6,11 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/logger/core"
-
 	"github.com/kart-io/k8s-agent/internal/agent-manager/constants"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
 	"github.com/kart-io/k8s-agent/pkg/types"
+	"github.com/kart-io/logger/core"
 )
 
 // Registry manages agent lifecycle and state

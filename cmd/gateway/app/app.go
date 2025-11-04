@@ -1,62 +1,86 @@
 package app
 
 import (
-    "github.com/kart-io/k8s-agent/common/loggerutil"
 	"context"
 	"fmt"
 
-	"github.com/kart-io/logger"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/common/loggerutil"
 	"github.com/kart-io/k8s-agent/internal/gateway/config"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the gateway command
 func Execute() {
-	// 创建配置选项
+	// Create configuration options
 	opts := config.NewOptions()
 
-	// 定义运行函数
-	runFunc := func(opts commonapp.Options) error {
-		return run(opts.(*config.Options))
-	}
+	// Create application instance
+	app := &GatewayApp{}
 
-	// 使用增强框架运行应用
-	commonapp.RunWithOptions(opts, runFunc, commonapp.CommandConfig{
-		Use:       "gateway",
-		Short:     "Gateway Service",
-		Long:      "Gateway Service provides API gateway with Traefik integration",
-		EnvPrefix: "GATEWAY",
-	},
-		// 启用健康检查
-		commonapp.WithHealthCheck(commonapp.DefaultHealthCheckFuncFromOptions(opts)),
-		// 启用版本信息
-		commonapp.WithPrintVersion(),
-		// 启用运行时信息
-		commonapp.WithPrintRuntime(),
-		// 启用配置监听
-		commonapp.WithWatch(),
+	// Use the simplified framework (no bootstrap needed for simple services)
+	commonapp.Run(
+		app,
+		opts,
+		commonapp.Config{
+			Use:       "gateway",
+			Short:     "Gateway Service",
+			Long:      "Gateway Service provides API gateway with Traefik integration",
+			EnvPrefix: "GATEWAY",
+		},
 	)
 }
 
-// run runs the gateway service
-func run(opts *config.Options) error {
+// GatewayApp implements commonapp.Application interface
+type GatewayApp struct {
+	config *config.Options
+	logger core.Logger
+	server *GatewayService
+}
+
+// Name returns the application name
+func (a *GatewayApp) Name() string {
+	return "Gateway Service"
+}
+
+// Initialize initializes the application
+func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) error {
+	// Convert configuration
+	configOpts := opts.(*config.Options)
+	a.config = configOpts
+
 	// Initialize logger
-	log, err := loggerutil.InitFromOptions(opts.Logging)
+	logger, err := loggerutil.InitFromOptions(configOpts.Logging)
 	if err != nil {
-		return fmt.Errorf("failed to init logger: %w", err)
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer log.Flush()
+	a.logger = logger
 
-	log.Info("Starting Gateway Service...")
+	a.logger.Info("Starting Gateway Service...")
 
-	// Create service (使用 common/server)
-	svc, err := NewServer(opts, log)
+	// Create service
+	svc, err := NewServer(configOpts, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create service: %w", err)
 	}
-	defer svc.Cleanup()
+	a.server = svc
 
-	// Start service (使用 common/server.Serve)
-	ctx := context.Background()
-	return svc.Run(ctx)
+	return nil
+}
+
+// Run runs the application
+func (a *GatewayApp) Run(ctx context.Context) error {
+	// Start service
+	return a.server.Run(ctx)
+}
+
+// Shutdown gracefully shuts down the application
+func (a *GatewayApp) Shutdown(ctx context.Context) error {
+	if a.server != nil {
+		a.server.Cleanup()
+	}
+	if a.logger != nil {
+		a.logger.Flush()
+	}
+	return nil
 }

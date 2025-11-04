@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/redis/go-redis/v9"
+
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 )
 
 // RedisClient wraps Redis client

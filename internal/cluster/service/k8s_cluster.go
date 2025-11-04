@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/kart-io/k8s-agent/common/errors"
-	"github.com/kart-io/logger"
 	"github.com/kart-io/k8s-agent/internal/cluster/k8s"
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/kart-io/logger"
 )
 
 // K8sClusterService 集群管理服务
@@ -136,7 +137,6 @@ func (s *K8sClusterService) GetCluster(ctx context.Context, clusterID string) (*
 		&cluster.CreatedAt,
 		&cluster.UpdatedAt,
 	)
-
 	if err != nil {
 		return nil, errors.ErrClusterNotFound
 	}
@@ -232,7 +232,6 @@ func (s *K8sClusterService) CreateCluster(
 		cluster.Version, cluster.Status, cluster.Region, cluster.Provider,
 		kubeconfig, cluster.CreatedAt, cluster.UpdatedAt,
 	)
-
 	if err != nil {
 		return nil, errors.NewDatabaseError(fmt.Errorf("failed to create cluster: %w", err))
 	}

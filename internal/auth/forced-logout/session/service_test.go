@@ -5,9 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
 // MockRepository is a mock implementation of Repository interface

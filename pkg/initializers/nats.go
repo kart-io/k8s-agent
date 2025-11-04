@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
-	"github.com/kart-io/k8s-agent/common/options"
-	"github.com/kart-io/logger/core"
 	"github.com/nats-io/nats.go"
+
+	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	"github.com/kart-io/logger/core"
 )
 
 // NATSInitializer 通用 NATS 初始化器

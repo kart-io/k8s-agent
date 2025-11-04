@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"gorm.io/gorm"
+
+	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
 // PostgresRepository implements Repository using PostgreSQL via GORM

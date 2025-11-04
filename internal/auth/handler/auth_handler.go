@@ -6,12 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+
 	"github.com/kart-io/k8s-agent/common/response"
 	"github.com/kart-io/k8s-agent/common/utils"
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 // AuthHandler handles authentication-related HTTP requests
@@ -204,7 +205,6 @@ func (h *AuthHandler) GetAccessCodesHandler(c *gin.Context) {
 		Joins("JOIN user_roles ON role_permissions.role_id = user_roles.role_id").
 		Where("user_roles.user_id = ? AND permissions.status = 1", userID).
 		Pluck("code", &codes).Error
-
 	if err != nil {
 		response.InternalError(c, "Failed to retrieve access codes", err)
 		return

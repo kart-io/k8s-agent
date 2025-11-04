@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
+
 	"github.com/kart-io/k8s-agent/common/cache"
 )
 

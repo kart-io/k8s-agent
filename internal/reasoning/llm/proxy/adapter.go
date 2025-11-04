@@ -3,14 +3,15 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"github.com/kart-io/k8s-agent/internal/reasoning/config"
-	llmclient "github.com/kart-io/k8s-agent/internal/reasoning/llm"
 	"log"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/teilomillet/gollm"
+
+	"github.com/kart-io/k8s-agent/internal/reasoning/config"
+	llmclient "github.com/kart-io/k8s-agent/internal/reasoning/llm"
 )
 
 // ProxyAdapter 封装 gollm 提供统一的 LLM 访问接口

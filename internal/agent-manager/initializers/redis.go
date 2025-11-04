@@ -2,8 +2,8 @@ package initializers
 
 import (
 	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
-	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/storage"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 )
 

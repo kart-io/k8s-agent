@@ -9,11 +9,12 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
+	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
-	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
-	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -119,7 +120,7 @@ func (a *ClusterApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.httpInit)
 
 	// 3. Health Check (priority 2000)
-	healthOpts := commonapp.GetHealthOptions(opts)
+	healthOpts := commonoptions.NewHealthOptions()
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
 		healthOpts,
 		a.logger,

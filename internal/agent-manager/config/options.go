@@ -1,8 +1,9 @@
 package config
 
 import (
-	configoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/spf13/pflag"
+
+	configoptions "github.com/kart-io/k8s-agent/common/options"
 )
 
 // Options defines options for agent-manager service

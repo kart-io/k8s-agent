@@ -30,7 +30,7 @@ type Options struct {
 	DefaultExpiration time.Duration `json:"defaultExpiration" mapstructure:"default_expiration"`
 
 	// Memory cache options
-	MemoryMaxSize      int           `json:"memoryMaxSize" mapstructure:"memory_max_size"`
+	MemoryMaxSize         int           `json:"memoryMaxSize" mapstructure:"memory_max_size"`
 	MemoryCleanupInterval time.Duration `json:"memoryCleanupInterval" mapstructure:"memory_cleanup_interval"`
 
 	// Redis cache options

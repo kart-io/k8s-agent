@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/kart-io/logger/core"
 )
 
 // MySQLOptions MySQL 配置选项

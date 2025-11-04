@@ -2,13 +2,13 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/kart-io/logger/core"
 	"github.com/spf13/viper"
 
 	"github.com/kart-io/k8s-agent/internal/gateway/handler"
 	"github.com/kart-io/k8s-agent/internal/gateway/middleware"
 	"github.com/kart-io/k8s-agent/internal/gateway/proxy"
 	"github.com/kart-io/k8s-agent/internal/gateway/types"
+	"github.com/kart-io/logger/core"
 )
 
 // Setup 设置路由

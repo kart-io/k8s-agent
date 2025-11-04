@@ -1,8 +1,9 @@
 package proxy
 
 import (
-	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"testing"
+
+	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 )
 
 func TestNewProxyAdapter(t *testing.T) {

@@ -5,18 +5,19 @@ package contextutil
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Context key types using unexported structs for type safety.
 type (
-	requestIDKey  struct{}
-	traceIDKey    struct{}
-	userIDKey     struct{}
-	usernameKey   struct{}
-	tenantIDKey   struct{}
-	sessionIDKey  struct{}
+	requestIDKey struct{}
+	traceIDKey   struct{}
+	userIDKey    struct{}
+	usernameKey  struct{}
+	tenantIDKey  struct{}
+	sessionIDKey struct{}
 )
 
 // TraceID operations

@@ -46,7 +46,6 @@ func ValidateToken(tokenString, secret string) (*Claims, error) {
 		}
 		return []byte(secret), nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}

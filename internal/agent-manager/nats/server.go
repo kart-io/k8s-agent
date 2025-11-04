@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"github.com/nats-io/nats.go"
 
 	"github.com/kart-io/k8s-agent/internal/agent-manager/agent"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/event"
 	"github.com/kart-io/k8s-agent/pkg/types"
+	"github.com/kart-io/logger/core"
 )
 
 // ServerOptions NATS Server 配置选项

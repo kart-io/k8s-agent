@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/jwt"
 	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
-	"gorm.io/gorm"
 )
 
 // AuthService handles authentication business logic
@@ -156,7 +157,6 @@ func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 		Where("user_roles.user_id = ? AND permissions.type = ? AND permissions.status = ?", userID, "menu", 1).
 		Order("permissions.sort").
 		Find(&permissions).Error
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to query menu permissions: %w", err)
 	}

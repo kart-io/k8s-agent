@@ -9,12 +9,13 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
-	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/auth"
 	authconfig "github.com/kart-io/k8s-agent/internal/auth/config"
 	"github.com/kart-io/k8s-agent/internal/auth/initializers"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -170,7 +171,7 @@ func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.httpInit)
 
 	// 9. Health Check Server (priority 2000)
-	healthOpts := commonapp.GetHealthOptions(opts)
+	healthOpts := commonoptions.NewHealthOptions()
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthOpts, a.logger)
 	bs.Register(a.healthInit)
 

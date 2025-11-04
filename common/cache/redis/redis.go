@@ -8,8 +8,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/kart-io/k8s-agent/common/cache"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/kart-io/k8s-agent/common/cache"
 )
 
 // RedisCache implements Cache interface using Redis.

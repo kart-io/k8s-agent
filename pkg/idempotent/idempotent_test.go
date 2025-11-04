@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/k8s-agent/pkg/idempotent"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kart-io/k8s-agent/pkg/idempotent"
 )
 
 func TestIdempotentHandler(t *testing.T) {

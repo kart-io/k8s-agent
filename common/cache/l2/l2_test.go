@@ -3,13 +3,14 @@ package l2
 import (
 	"context"
 	"encoding/json"
-	"github.com/kart-io/k8s-agent/common/cache"
-	"github.com/kart-io/k8s-agent/common/cache/memory"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kart-io/k8s-agent/common/cache"
+	"github.com/kart-io/k8s-agent/common/cache/memory"
 )
 
 // TestAgent is a sample type for testing generic cache

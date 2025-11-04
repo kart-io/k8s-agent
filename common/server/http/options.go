@@ -10,9 +10,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kart-io/logger/core"
-
 	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/logger/core"
 )
 
 // HTTPOptionsServer 使用 Options 配置模式的 HTTP 服务器

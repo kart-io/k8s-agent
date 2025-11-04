@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	httpserver "github.com/kart-io/k8s-agent/common/server/http"
@@ -15,7 +17,6 @@ import (
 	"github.com/kart-io/k8s-agent/internal/monitor/service"
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
 	"github.com/kart-io/logger/core"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // MonitorService represents the monitor service using common/server

@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	"gorm.io/gorm"
+
 	"github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
-	"gorm.io/gorm"
 )
 
 // DatabaseInitializer 通用数据库初始化器

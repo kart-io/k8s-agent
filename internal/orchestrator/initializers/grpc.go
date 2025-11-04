@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/grpc"
+
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
-	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/service"
 	orchestratorv1 "github.com/kart-io/k8s-agent/pkg/api/orchestrator/v1"
+	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
-	"google.golang.org/grpc"
 )
 
 // GRPCServerInitializer initializes the gRPC server

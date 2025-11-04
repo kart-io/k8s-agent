@@ -3,8 +3,9 @@ package config
 import (
 	"time"
 
-	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/spf13/pflag"
+
+	"github.com/kart-io/k8s-agent/common/options"
 )
 
 // Options defines options for collect-agent service

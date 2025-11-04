@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	"github.com/nats-io/nats.go"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
+	"github.com/kart-io/logger/core"
 )
 
 // CommunicationManager handles all NATS communication for the agent
@@ -221,7 +221,6 @@ func (cm *CommunicationManager) subscribeToCommands() error {
 			go cm.commandHandler(&cmd)
 		}
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to commands: %w", err)
 	}

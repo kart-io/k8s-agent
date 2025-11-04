@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	forcedlogout "github.com/kart-io/k8s-agent/internal/auth/forced-logout"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
@@ -75,7 +76,6 @@ func (h *ForcedLogoutHandler) ForceLogoutSession(c *gin.Context) {
 		TriggeredBy:    req.TriggeredBy,
 		CorrelationID:  req.CorrelationID,
 	})
-
 	if err != nil {
 		// Handle specific error cases
 		if err.Error() == "session not found" {
@@ -158,7 +158,6 @@ func (h *ForcedLogoutHandler) ForceLogoutUser(c *gin.Context) {
 		TriggeredBy:    req.TriggeredBy,
 		CorrelationID:  req.CorrelationID,
 	})
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "internal_error",
@@ -242,7 +241,6 @@ func (h *ForcedLogoutHandler) BulkForceLogout(c *gin.Context) {
 		Reason:         req.Reason,
 		TriggeredBy:    req.TriggeredBy,
 	})
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "internal_error",

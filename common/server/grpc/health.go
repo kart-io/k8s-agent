@@ -7,8 +7,9 @@ package server
 import (
 	"context"
 
-	"github.com/kart-io/k8s-agent/common/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
+
+	"github.com/kart-io/k8s-agent/common/health"
 )
 
 // GRPCHealthAdapter gRPC 健康检查适配器

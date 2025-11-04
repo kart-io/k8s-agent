@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kart-io/k8s-agent/internal/reasoning/llm/proxy"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/kart-io/k8s-agent/internal/reasoning/llm/proxy"
 )
 
 // RootCauseChain 根因分析 Chain 实现

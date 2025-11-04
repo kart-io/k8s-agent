@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
+
 	commoncore "github.com/kart-io/k8s-agent/common/core"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	"github.com/spf13/viper"
 )
 
 // Type aliases for backward compatibility

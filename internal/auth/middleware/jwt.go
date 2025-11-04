@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+
 	commonmiddleware "github.com/kart-io/k8s-agent/common/middleware"
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
 )

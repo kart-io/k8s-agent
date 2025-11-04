@@ -9,11 +9,12 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
+	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
-	reasoningconfig "github.com/kart-io/k8s-agent/internal/reasoning/config"
-	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -110,7 +111,7 @@ func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.unifiedServerInit)
 
 	// 3. Health Check (priority 2000)
-	healthOpts := commonapp.GetHealthOptions(opts)
+	healthOpts := commonoptions.NewHealthOptions()
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(
 		healthOpts,
 		a.logger,

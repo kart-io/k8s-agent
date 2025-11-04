@@ -2,9 +2,10 @@ package proxy
 
 import (
 	"context"
-	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"testing"
 	"time"
+
+	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 )
 
 func TestCompleteWithMockGollm(t *testing.T) {

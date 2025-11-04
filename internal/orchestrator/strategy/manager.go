@@ -100,7 +100,6 @@ func (m *Manager) ExecuteStrategy(ctx context.Context, strategy *types.Strategy,
 		"strategy_id": strategy.ID,
 		"event":       event,
 	})
-
 	if err != nil {
 		m.logger.Error("❌ Failed to start workflow",
 			"strategy_id", strategy.ID,

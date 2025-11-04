@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
+	"github.com/kart-io/logger/core"
 )
 
 // BenchmarkEventProcessing benchmarks event processing throughput

@@ -1,67 +1,92 @@
 package app
 
 import (
-    "github.com/kart-io/k8s-agent/common/loggerutil"
 	"context"
 	"fmt"
 
-	"github.com/kart-io/logger"
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/common/loggerutil"
 	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/config"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/logger/core"
 )
 
 // Execute runs the monitor command
 func Execute() {
-	// 创建配置选项
+	// Create configuration options
 	opts := config.NewOptions()
 
-	// 定义运行函数
-	runFunc := func(opts commonapp.Options) error {
-		return run(opts.(*config.Options))
-	}
+	// Create application instance
+	app := &MonitorApp{}
 
-	// 使用增强框架运行应用
-	commonapp.RunWithOptions(opts, runFunc, commonapp.CommandConfig{
-		Use:       "monitor",
-		Short:     "Monitor Service",
-		Long:      "Monitor Service provides monitoring and metrics collection for the platform",
-		EnvPrefix: "MONITOR",
-	},
-		commonapp.WithHealthCheck(commonapp.DefaultHealthCheckFuncFromOptions(opts)),
-		commonapp.WithPrintVersion(),
-		commonapp.WithPrintRuntime(),
-		commonapp.WithWatch(),
+	// Use the simplified framework (no bootstrap needed for simple services)
+	commonapp.Run(
+		app,
+		opts,
+		commonapp.Config{
+			Use:       "monitor",
+			Short:     "Monitor Service",
+			Long:      "Monitor Service provides monitoring and metrics collection for the platform",
+			EnvPrefix: "MONITOR",
+		},
 	)
 }
 
-// run runs the monitor service
-func run(opts *config.Options) error {
-	// 转换 LoggingConfig 为 LoggingOptions
+// MonitorApp implements commonapp.Application interface
+type MonitorApp struct {
+	config *config.Options
+	logger core.Logger
+	server *MonitorService
+}
+
+// Name returns the application name
+func (a *MonitorApp) Name() string {
+	return "Monitor Service"
+}
+
+// Initialize initializes the application
+func (a *MonitorApp) Initialize(ctx context.Context, opts commonapp.Options) error {
+	// Convert configuration
+	configOpts := opts.(*config.Options)
+	a.config = configOpts
+
+	// Convert LoggingConfig to LoggingOptions for compatibility
 	logOpts := &options.LoggingOptions{
 		Engine:      "slog",
-		Level:       opts.Logging.Level,
-		Format:      opts.Logging.Format,
-		OutputPaths: []string{opts.Logging.Output},
+		Level:       configOpts.Logging.Level,
+		Format:      configOpts.Logging.Format,
+		OutputPaths: []string{configOpts.Logging.Output},
 	}
 
 	// Initialize logger
-	log, err := loggerutil.InitFromOptions(logOpts)
+	logger, err := loggerutil.InitFromOptions(logOpts)
 	if err != nil {
-		return fmt.Errorf("failed to init logger: %w", err)
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer log.Flush()
+	a.logger = logger
 
-	log.Info("Starting Monitor Service...")
+	a.logger.Info("Starting Monitor Service...")
 
-	// Create service (使用 common/server)
-	svc, err := NewServer(opts, log)
+	// Create service
+	svc, err := NewServer(configOpts, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create service: %w", err)
 	}
-	defer svc.Cleanup()
+	a.server = svc
 
-	// Start service (使用 common/server.Serve)
-	ctx := context.Background()
-	return svc.Run(ctx)
+	return nil
+}
+
+// Run runs the application
+func (a *MonitorApp) Run(ctx context.Context) error {
+	// Start service
+	return a.server.Run(ctx)
+}
+
+// Shutdown gracefully shuts down the application
+func (a *MonitorApp) Shutdown(ctx context.Context) error {
+	if a.logger != nil {
+		a.logger.Flush()
+	}
+	return nil
 }

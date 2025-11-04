@@ -5,9 +5,9 @@
 package options
 
 import (
-	"github.com/kart-io/k8s-agent/common/loggerutil"
 	"github.com/spf13/pflag"
 
+	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 	clusterconfig "github.com/kart-io/k8s-agent/internal/cluster/config"
 	"github.com/kart-io/logger/core"
@@ -24,11 +24,8 @@ type ServerOptions struct {
 
 // NewServerOptions creates a new ServerOptions instance with default values
 func NewServerOptions() *ServerOptions {
-	serverOpts := commonoptions.NewServerOptions()
-	serverOpts.Port = 8084 // Cluster 主服务端口
-
 	return &ServerOptions{
-		Server:   serverOpts,
+		Server:   commonoptions.NewServerOptions(),
 		Database: commonoptions.NewDatabaseOptions(),
 		JWT:      commonoptions.NewJWTOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
@@ -61,13 +58,11 @@ func (o *ServerOptions) InitLogger() (core.Logger, error) {
 }
 
 // GetServiceName returns the service name
-// This method is required by the BootstrapConfig interface
 func (o *ServerOptions) GetServiceName() string {
 	return "Cluster"
 }
 
 // GetLogFields returns log fields for initialization logging
-// This method is required by the BootstrapConfig interface
 func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,

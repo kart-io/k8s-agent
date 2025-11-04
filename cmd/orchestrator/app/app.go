@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	orchestrator "github.com/kart-io/k8s-agent/internal/orchestrator"
+	"github.com/kart-io/k8s-agent/internal/orchestrator/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
-	orchestrator "github.com/kart-io/k8s-agent/internal/orchestrator"
-	"github.com/kart-io/k8s-agent/internal/orchestrator/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -157,7 +158,7 @@ func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(a.httpInit)
 
 	// 9. Health Check Server (priority 2000)
-	healthOpts := commonapp.GetHealthOptions(opts)
+	healthOpts := commonoptions.NewHealthOptions()
 	a.healthInit = pkginitializers.NewHealthCheckInitializer(healthOpts, a.logger)
 	bs.Register(a.healthInit)
 

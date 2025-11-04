@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/kart-io/k8s-agent/internal/cluster/k8s"
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	"github.com/kart-io/k8s-agent/internal/cluster/types"
 	"github.com/kart-io/logger/core"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type ClusterService struct {
@@ -60,7 +61,6 @@ func (s *ClusterService) AddCluster(ctx context.Context, cluster *types.Cluster)
 		cluster.Version, cluster.Status, cluster.Region, cluster.Provider,
 		cluster.KubeConfig, cluster.CreatedAt, cluster.UpdatedAt,
 	)
-
 	if err != nil {
 		return err
 	}

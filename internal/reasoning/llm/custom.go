@@ -177,7 +177,6 @@ Provide your root cause analysis.`, string(eventJSON), logs, metrics)
 			{Role: "user", Content: userPrompt},
 		},
 	})
-
 	if err != nil {
 		return "", err
 	}
@@ -211,7 +210,6 @@ Provide recommended actions to fix this issue.`, rootCause, contextInfo)
 			{Role: "user", Content: userPrompt},
 		},
 	})
-
 	if err != nil {
 		return "", err
 	}

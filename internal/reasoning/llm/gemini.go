@@ -187,7 +187,6 @@ Provide your root cause analysis.`, RootCauseAnalysisSystemPrompt, string(eventJ
 			{Role: "user", Content: userPrompt},
 		},
 	})
-
 	if err != nil {
 		return "", err
 	}
@@ -211,7 +210,6 @@ Provide recommended actions to fix this issue.`, RecommendationsSystemPrompt, ro
 			{Role: "user", Content: userPrompt},
 		},
 	})
-
 	if err != nil {
 		return "", err
 	}

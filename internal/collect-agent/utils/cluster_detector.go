@@ -6,9 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kart-io/logger/core"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/kart-io/logger/core"
 )
 
 // ClusterIDDetector detects the cluster ID from various cloud providers

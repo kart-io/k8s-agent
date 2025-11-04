@@ -151,7 +151,6 @@ func (pc *PermissionCache) fetchUserPermissionsFromDB(userID string) ([]types.Pe
 		Where("user_roles.user_id = ? AND permissions.status = ?", userID, 1).
 		Order("permissions.sort ASC").
 		Find(&modelPerms).Error
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to query user permissions: %w", err)
 	}
@@ -191,7 +190,6 @@ func (pc *PermissionCache) fetchUserRolesFromDB(userID string) ([]types.Role, er
 		Where("user_roles.user_id = ? AND roles.status = ?", userID, 1).
 		Order("roles.sort ASC").
 		Find(&modelRoles).Error
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to query user roles: %w", err)
 	}
@@ -222,7 +220,6 @@ func (pc *PermissionCache) fetchRolePermissionsFromDB(roleID string) ([]types.Pe
 		Where("role_permissions.role_id = ? AND permissions.status = ?", roleID, 1).
 		Order("permissions.sort ASC").
 		Find(&modelPerms).Error
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to query role permissions: %w", err)
 	}

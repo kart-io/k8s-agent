@@ -19,9 +19,8 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/kart-io/logger/core"
-
 	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/logger/core"
 )
 
 // GRPCOptionsServer 使用 Options 配置模式的 gRPC 服务器

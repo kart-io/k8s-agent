@@ -62,6 +62,10 @@ LDFLAGS := -s -w \
 	-X 'github.com/kart-io/version.goVersion=$(GO_VERSION)' \
 	-X 'github.com/kart-io/version.platform=$(PLATFORM)'
 
+# Go module information
+GO_MOD_NAME := github.com/kart-io/k8s-agent
+GO_MOD_DOMAIN := github.com/kart-io
+
 # Go build options
 GO_BUILD := $(GO) build
 GO_TEST := $(GO) test
@@ -97,19 +101,19 @@ NC := \033[0m # No Color
 
 # Functions
 define print_info
-	printf "$(GREEN)$(1)$(NC)\n"
+	@printf "$(GREEN)$(1)$(NC)\n"
 endef
 
 define print_error
-	printf "$(RED)$(1)$(NC)\n"
+	@printf "$(RED)$(1)$(NC)\n"
 endef
 
 define print_warning
-	printf "$(YELLOW)$(1)$(NC)\n"
+	@printf "$(YELLOW)$(1)$(NC)\n"
 endef
 
 define print_target
-	printf "$(BLUE)==> $(1)$(NC)\n"
+	@printf "$(BLUE)==> $(1)$(NC)\n"
 endef
 
 # Ensure output directories exist

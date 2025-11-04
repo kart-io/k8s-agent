@@ -9,9 +9,9 @@ import (
 	"time"
 
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
-	"github.com/kart-io/logger/core"
 
 	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/logger/core"
 )
 
 // KratosServerOption Kratos 服务器配置选项函数

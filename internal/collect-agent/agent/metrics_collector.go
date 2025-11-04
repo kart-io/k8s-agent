@@ -5,13 +5,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/logger/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	metricsv1beta1 "k8s.io/metrics/pkg/client/clientset/versioned"
 
 	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
+	"github.com/kart-io/logger/core"
 )
 
 // MetricsCollector collects cluster metrics and sends them to the metrics channel

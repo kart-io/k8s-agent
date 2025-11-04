@@ -9,9 +9,10 @@ import (
 	"log"
 	"time"
 
-	agentv1 "github.com/kart-io/k8s-agent/pkg/api/agent/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	agentv1 "github.com/kart-io/k8s-agent/pkg/api/agent/v1"
 )
 
 var (

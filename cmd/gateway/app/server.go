@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
+
 	"github.com/kart-io/k8s-agent/common/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	httpserver "github.com/kart-io/k8s-agent/common/server/http"
@@ -13,7 +15,6 @@ import (
 	"github.com/kart-io/k8s-agent/internal/gateway/middleware"
 	"github.com/kart-io/k8s-agent/internal/gateway/router"
 	"github.com/kart-io/logger/core"
-	"github.com/redis/go-redis/v9"
 )
 
 // GatewayService represents the gateway service using common/server

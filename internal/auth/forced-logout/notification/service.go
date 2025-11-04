@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/kart-io/k8s-agent/internal/auth/email"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
@@ -231,7 +232,6 @@ func (s *Service) NotifyUserSync(ctx context.Context, params NotifyUserParams) e
 
 	// Send email synchronously
 	receipt, err := s.emailClient.Send(ctx, msg)
-
 	// Update status
 	if err != nil {
 		errMsg := err.Error()

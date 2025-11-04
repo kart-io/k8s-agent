@@ -7,6 +7,7 @@ package internal
 
 import (
 	"github.com/gin-gonic/gin"
+
 	"github.com/kart-io/k8s-agent/common/health"
 	"github.com/kart-io/k8s-agent/common/options"
 )
