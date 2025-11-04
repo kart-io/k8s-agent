@@ -5,7 +5,10 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/collect-agent/app/options"
+	"github.com/kart-io/k8s-agent/internal/collect-agent/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -17,8 +20,8 @@ func Execute() {
 	// Create application instance
 	app := &CollectAgentApp{}
 
-	// Use the simplified framework (no bootstrap needed for simple services)
-	commonapp.Run(
+	// Use the simplified RunWithBootstrap to run the application
+	commonapp.RunWithBootstrap(
 		app,
 		opts,
 		commonapp.Config{
@@ -27,6 +30,7 @@ func Execute() {
 			Long:      "Collect Agent monitors K8s cluster events and collects metrics from edge clusters",
 			EnvPrefix: "COLLECT_AGENT",
 		},
+		app.registerComponents,
 	)
 }
 
@@ -34,7 +38,10 @@ func Execute() {
 type CollectAgentApp struct {
 	opts   *options.ServerOptions // 使用 ServerOptions
 	logger core.Logger
-	server *CollectAgentService
+
+	// Component initializers
+	agentInit  *initializers.AgentInitializer
+	healthInit *pkginitializers.HealthCheckInitializer
 }
 
 // Name returns the application name.
@@ -60,26 +67,36 @@ func (a *CollectAgentApp) Initialize(ctx context.Context, opts commonapp.Options
 		"health_port", a.opts.Health.Port,
 	)
 
-	// Create server
-	srv, err := NewServer(a.opts, logger)
-	if err != nil {
-		return fmt.Errorf("failed to create server: %w", err)
-	}
-	a.server = srv
-
 	return nil
 }
 
 // Run runs the application.
 func (a *CollectAgentApp) Run(ctx context.Context) error {
-	// Start server
-	return a.server.Run(ctx)
+	// The bootstrap framework handles running all components
+	// This method can be used for additional application logic if needed
+	<-ctx.Done()
+	return nil
 }
 
 // Shutdown gracefully shuts down the application.
 func (a *CollectAgentApp) Shutdown(ctx context.Context) error {
-	if a.logger != nil {
-		_ = a.logger.Flush() // Best effort flush, ignore errors during shutdown
-	}
+	// Bootstrap framework handles component shutdown
+	// This method can be used for additional cleanup if needed
+	return nil
+}
+
+// registerComponents registers all component initializers with bootstrap.
+func (a *CollectAgentApp) registerComponents(bs *bootstrap.Bootstrap) error {
+	// 1. Agent (priority 500 - main application logic)
+	a.agentInit = initializers.NewAgentInitializer(a.opts, a.logger)
+	bs.Register(a.agentInit)
+
+	// 2. Health Check (priority 2000)
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(
+		a.opts.Health,
+		a.logger,
+	)
+	bs.Register(a.healthInit)
+
 	return nil
 }

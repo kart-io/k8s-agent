@@ -3,10 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
+	"github.com/kart-io/k8s-agent/internal/monitor/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -18,8 +20,8 @@ func Execute() {
 	// Create application instance
 	app := &MonitorApp{}
 
-	// Use the simplified framework (no bootstrap needed for simple services)
-	commonapp.Run(
+	// Use the simplified RunWithBootstrap to run the application
+	commonapp.RunWithBootstrap(
 		app,
 		opts,
 		commonapp.Config{
@@ -28,6 +30,7 @@ func Execute() {
 			Long:      "Monitor Service provides monitoring and metrics collection for the platform",
 			EnvPrefix: "MONITOR",
 		},
+		app.registerComponents,
 	)
 }
 
@@ -35,7 +38,12 @@ func Execute() {
 type MonitorApp struct {
 	opts   *options.ServerOptions // 使用 ServerOptions
 	logger core.Logger
-	server *MonitorService
+
+	// Component initializers
+	dbInit     *initializers.DatabaseInitializer
+	redisInit  *initializers.RedisInitializer
+	httpInit   *initializers.HTTPServerInitializer
+	healthInit *pkginitializers.HealthCheckInitializer
 }
 
 // Name returns the application name.
@@ -57,29 +65,49 @@ func (a *MonitorApp) Initialize(ctx context.Context, opts commonapp.Options) err
 
 	a.logger.Info("Starting Monitor Service...")
 
-	// Create service
-	svc, err := NewServer(a.opts, logger)
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
-	}
-	a.server = svc
-
 	return nil
 }
 
 // Run runs the application.
 func (a *MonitorApp) Run(ctx context.Context) error {
-	// Start service
-	return a.server.Run(ctx)
+	// The bootstrap framework handles running all servers
+	// This method can be used for additional application logic if needed
+	<-ctx.Done()
+	return nil
 }
 
 // Shutdown gracefully shuts down the application.
 func (a *MonitorApp) Shutdown(ctx context.Context) error {
-	if a.logger != nil {
-		if err := a.logger.Flush(); err != nil {
-			// Can't log the error since logger is being flushed
-			fmt.Fprintf(os.Stderr, "Failed to flush logger: %v\n", err)
-		}
-	}
+	// Bootstrap framework handles component shutdown
+	// This method can be used for additional cleanup if needed
+	return nil
+}
+
+// registerComponents registers all component initializers with bootstrap.
+func (a *MonitorApp) registerComponents(bs *bootstrap.Bootstrap) error {
+	// 1. Database (priority 300)
+	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
+	bs.Register(a.dbInit)
+
+	// 2. Redis (priority 400)
+	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
+	bs.Register(a.redisInit)
+
+	// 3. HTTP Server (priority 500)
+	a.httpInit = initializers.NewHTTPServerInitializer(
+		a.opts,
+		a.logger,
+		a.dbInit,
+		a.redisInit,
+	)
+	bs.Register(a.httpInit)
+
+	// 4. Health Check (priority 2000)
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(
+		a.opts.Health,
+		a.logger,
+	)
+	bs.Register(a.healthInit)
+
 	return nil
 }

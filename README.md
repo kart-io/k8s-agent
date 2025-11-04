@@ -62,6 +62,29 @@ Aetherius 是一个企业级智能 Kubernetes 运维平台，采用 4 层架构�
 
 详细架构设计请查看: [系统架构文档](docs/architecture/SYSTEM_ARCHITECTURE.md)
 
+### 服务架构
+
+所有服务采用统一的 **Bootstrap 框架**，确保一致性和可维护性：
+
+| 服务 | 类型 | 端口 | 说明 |
+|------|------|------|------|
+| **auth** | HTTP REST | 8080 | 用户认证与权限管理 |
+| **agent-manager** | HTTP + gRPC | 8081/9091 | Agent 注册与集群管理 |
+| **cluster** | HTTP REST | 8084 | 集群信息管理 |
+| **orchestrator** | HTTP + gRPC | 8082/9082 | 工作流编排与任务调度 |
+| **reasoning** | HTTP + gRPC | 8083/9083 | AI 根因分析与智能推荐 |
+| **monitor** | HTTP REST | 8085 | 监控指标收集 |
+| **gateway** | HTTP Proxy | 8086 | API 网关与反向代理 |
+| **collect-agent** | 后台任务 | - | 集群事件采集 |
+
+**架构特点：**
+- ✅ 统一的组件初始化流程
+- ✅ 标准化的配置管理
+- ✅ 自动化的生命周期管理
+- ✅ 健康检查端口可配置
+
+详细开发指南请查看: [服务开发指南](docs/devel/SERVICE_DEVELOPMENT_GUIDE.md)
+
 ---
 
 ## 🚀 快速开始

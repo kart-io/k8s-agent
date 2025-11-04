@@ -89,7 +89,7 @@ func (s *Service) ValidateSession(ctx context.Context, jti string) (bool, error)
 	_, err = s.repo.GetSession(ctx, jti)
 	if err != nil {
 		// Session not found means it's not active (could be expired or never existed)
-		_ = err // Explicitly ignore error
+		//nolint:nilerr // Return false to indicate session is not active
 		return false, nil
 	}
 

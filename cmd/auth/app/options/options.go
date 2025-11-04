@@ -31,6 +31,8 @@ type ServerOptions struct {
 	JWT *commonoptions.JWTOptions `json:"jwt" mapstructure:"jwt"`
 	// Logging options for configuring logging related options.
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
+	// Health options for configuring health check related options.
+	Health *commonoptions.HealthOptions `json:"health" mapstructure:"health"`
 	// Email options for configuring email related options.
 	Email *commonoptions.EmailOptions `json:"email" mapstructure:"email"`
 	// Metrics options for configuring metrics related options.
@@ -48,6 +50,7 @@ func NewServerOptions() *ServerOptions {
 		Redis:    commonoptions.NewRedisOptions(),
 		JWT:      commonoptions.NewJWTOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
+		Health:   commonoptions.NewHealthOptions(),
 		Email:    commonoptions.NewEmailOptions(),
 		Metrics:  commonoptions.NewMetricsOptions(),
 	}

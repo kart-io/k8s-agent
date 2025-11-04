@@ -40,6 +40,8 @@ type ServerOptions struct {
 	GRPC *commonoptions.GRPCOptions `json:"grpc" mapstructure:"grpc"`
 	// Logging options for configuring logging related options.
 	Logging *commonoptions.LoggingOptions `json:"logging" mapstructure:"logging"`
+	// Health options for configuring health check related options.
+	Health *commonoptions.HealthOptions `json:"health" mapstructure:"health"`
 	// Metrics options for configuring metrics related options.
 	Metrics *commonoptions.MetricsOptions `json:"metrics" mapstructure:"metrics"`
 	// AI options for configuring AI service integration.
@@ -114,15 +116,15 @@ func NewServerOptions() *ServerOptions {
 		NATS:     commonoptions.NewNATSOptions(),
 		GRPC:     commonoptions.NewGRPCOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
+		Health:   commonoptions.NewHealthOptions(),
 		Metrics:  commonoptions.NewMetricsOptions(),
 		AI:       NewAIOptions(),
 	}
 }
 
-// GetHealthPort 实现 commonapp.HealthPortProvider 接口
-// 简化版本：直接返回固定端口，不使用HealthOptions.
+// GetHealthPort returns the health check port
 func (o *ServerOptions) GetHealthPort() int {
-	return o.Server.Port // Orchestrator 健康检查端口
+	return o.Health.Port
 }
 
 // AddFlags adds flags to the specified FlagSet.

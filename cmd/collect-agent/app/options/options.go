@@ -30,38 +30,21 @@ func NewServerOptions() *ServerOptions {
 
 // Validate 验证所有必需的配置选项
 func (o *ServerOptions) Validate() []error {
-	var errs []error
-
-	if err := o.Logging.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Agent.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	return errs
+	// 使用通用工具函数统一验证所有子选项
+	return commonoptions.ValidateAll(o)
 }
 
 // Complete 填充未设置但需要有效数据的字段
 func (o *ServerOptions) Complete() error {
-	if err := o.Logging.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Agent.Complete(); err != nil {
-		return err
-	}
-
-	return nil
+	// 使用通用工具函数统一完成所有子选项
+	return commonoptions.CompleteAll(o)
 }
 
 // AddFlags 添加 flags 到 flag set
 // 注意: --config/-c flag 由 pkg/app 框架自动添加
 func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
-	o.Logging.AddFlags(fs)
-	o.Health.AddFlags(fs)
-	o.Agent.AddFlags(fs)
+	// 使用通用工具函数统一添加所有子选项的 flags
+	commonoptions.AddFlagsAll(o, fs)
 }
 
 // InitLogger 基于配置初始化 logger

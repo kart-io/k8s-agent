@@ -157,23 +157,8 @@ func NewServerOptions() *ServerOptions {
 
 // Validate 验证所有必需的配置选项
 func (o *ServerOptions) Validate() []error {
-	var errs []error
-
-	if err := o.Server.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Logging.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.Redis.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := o.JWT.Validate(); err != nil {
-		errs = append(errs, err)
-	}
+	// 使用通用工具函数统一验证所有子选项
+	errs := commonoptions.ValidateAll(o)
 
 	// Validate gateway specific options
 	if o.RateLimit.Enabled {
@@ -190,19 +175,8 @@ func (o *ServerOptions) Validate() []error {
 
 // Complete 填充未设置但需要有效数据的字段
 func (o *ServerOptions) Complete() error {
-	if err := o.Server.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Logging.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.Redis.Complete(); err != nil {
-		return err
-	}
-
-	if err := o.JWT.Complete(); err != nil {
+	// 使用通用工具函数统一完成所有子选项
+	if err := commonoptions.CompleteAll(o); err != nil {
 		return err
 	}
 
@@ -233,11 +207,8 @@ func (o *ServerOptions) Complete() error {
 // AddFlags 添加 flags 到 flag set
 // 注意: --config/-c flag 由 pkg/app 框架自动添加
 func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
-	o.Server.AddFlags(fs)
-	o.Logging.AddFlags(fs)
-	o.Health.AddFlags(fs)
-	o.Redis.AddFlags(fs)
-	o.JWT.AddFlags(fs)
+	// 使用通用工具函数统一添加所有子选项的 flags
+	commonoptions.AddFlagsAll(o, fs)
 
 	// Add gateway specific flags
 	fs.BoolVar(&o.RateLimit.Enabled, "rate-limit.enabled", o.RateLimit.Enabled,

@@ -18,6 +18,7 @@ type ServerOptions struct {
 	Server      *commonoptions.ServerOptions      `json:"server" mapstructure:"server"`
 	GRPC        *commonoptions.GRPCOptions        `json:"grpc" mapstructure:"grpc"`
 	Logging     *commonoptions.LoggingOptions     `json:"logging" mapstructure:"logging"`
+	Health      *commonoptions.HealthOptions      `json:"health" mapstructure:"health"`
 	LLM         *commonoptions.LLMOptions         `json:"llm" mapstructure:"llm"`
 	Memory      *commonoptions.MemoryOptions      `json:"memory" mapstructure:"memory"`
 	Analysis    *commonoptions.AnalysisOptions    `json:"analysis" mapstructure:"analysis"`
@@ -32,6 +33,7 @@ func NewServerOptions() *ServerOptions {
 		Server:      commonoptions.NewServerOptions(),
 		GRPC:        commonoptions.NewGRPCOptions(),
 		Logging:     commonoptions.NewLoggingOptions(),
+		Health:      commonoptions.NewHealthOptions(),
 		LLM:         commonoptions.NewLLMOptions(),
 		Memory:      commonoptions.NewMemoryOptions(),
 		Analysis:    commonoptions.NewAnalysisOptions(),
@@ -82,8 +84,6 @@ func (o *ServerOptions) InitLogger() (core.Logger, error) {
 }
 
 // GetHealthPort returns the health check port
-// This method is required by the Bootstrap pattern
-// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *ServerOptions) GetHealthPort() int {
-	return o.Server.Port // Reasoning 健康检查端口
+	return o.Health.Port
 }

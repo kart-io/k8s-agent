@@ -3,10 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/kart-io/k8s-agent/cmd/gateway/app/options"
+	"github.com/kart-io/k8s-agent/internal/gateway/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -18,16 +20,17 @@ func Execute() {
 	// Create application instance
 	app := &GatewayApp{}
 
-	// Use the simplified framework (no bootstrap needed for simple services)
-	commonapp.Run(
+	// Use the simplified RunWithBootstrap to run the application
+	commonapp.RunWithBootstrap(
 		app,
 		opts,
 		commonapp.Config{
 			Use:       "gateway",
 			Short:     "Gateway Service",
-			Long:      "Gateway Service provides API gateway with Traefik integration",
+			Long:      "Gateway Service provides API gateway with proxy capabilities",
 			EnvPrefix: "GATEWAY",
 		},
+		app.registerComponents,
 	)
 }
 
@@ -35,7 +38,11 @@ func Execute() {
 type GatewayApp struct {
 	opts   *options.ServerOptions // 使用 ServerOptions
 	logger core.Logger
-	server *GatewayService
+
+	// Component initializers
+	redisInit  *initializers.RedisInitializer
+	httpInit   *initializers.HTTPServerInitializer
+	healthInit *pkginitializers.HealthCheckInitializer
 }
 
 // Name returns the application name.
@@ -57,34 +64,44 @@ func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) err
 
 	a.logger.Info("Starting Gateway Service...")
 
-	// Create service
-	svc, err := NewServer(a.opts, logger)
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
-	}
-	a.server = svc
-
 	return nil
 }
 
 // Run runs the application.
 func (a *GatewayApp) Run(ctx context.Context) error {
-	// Start service
-	return a.server.Run(ctx)
+	// The bootstrap framework handles running all servers
+	// This method can be used for additional application logic if needed
+	<-ctx.Done()
+	return nil
 }
 
 // Shutdown gracefully shuts down the application.
 func (a *GatewayApp) Shutdown(ctx context.Context) error {
-	if a.server != nil {
-		if err := a.server.Cleanup(); err != nil {
-			a.logger.Errorw("Failed to cleanup server", "error", err)
-		}
-	}
-	if a.logger != nil {
-		if err := a.logger.Flush(); err != nil {
-			// Can't log the error since logger is being flushed
-			fmt.Fprintf(os.Stderr, "Failed to flush logger: %v\n", err)
-		}
-	}
+	// Bootstrap framework handles component shutdown
+	// This method can be used for additional cleanup if needed
+	return nil
+}
+
+// registerComponents registers all component initializers with bootstrap.
+func (a *GatewayApp) registerComponents(bs *bootstrap.Bootstrap) error {
+	// 1. Redis (priority 400)
+	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
+	bs.Register(a.redisInit)
+
+	// 2. HTTP Server (priority 500)
+	a.httpInit = initializers.NewHTTPServerInitializer(
+		a.opts,
+		a.logger,
+		a.redisInit,
+	)
+	bs.Register(a.httpInit)
+
+	// 3. Health Check (priority 2000)
+	a.healthInit = pkginitializers.NewHealthCheckInitializer(
+		a.opts.Health,
+		a.logger,
+	)
+	bs.Register(a.healthInit)
+
 	return nil
 }

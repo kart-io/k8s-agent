@@ -269,10 +269,7 @@ func (e *ClusterEnricher) Enrich(ctx context.Context, event *types.Event) error 
 	cluster, err := e.store.GetCluster(ctx, event.ClusterID)
 	if err != nil {
 		// Cluster info not found is acceptable (metadata enrichment is optional)
-		// Only return error if it's a database/connection issue, not "not found"
-		// For now, we'll accept the enrichment failure silently
-		// TODO: distinguish between "not found" and actual errors
-		_ = err // Explicitly ignore to satisfy linter
+		//nolint:nilerr // Silently ignore enrichment failures - enrichment is optional
 		return nil
 	}
 

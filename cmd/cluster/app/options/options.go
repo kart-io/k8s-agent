@@ -19,6 +19,7 @@ type ServerOptions struct {
 	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
 	JWT      *commonoptions.JWTOptions      `json:"jwt" mapstructure:"jwt"`
 	Logging  *commonoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
+	Health   *commonoptions.HealthOptions   `json:"health" mapstructure:"health"`
 }
 
 // NewServerOptions creates a new ServerOptions instance with default values.
@@ -28,6 +29,7 @@ func NewServerOptions() *ServerOptions {
 		Database: commonoptions.NewDatabaseOptions(),
 		JWT:      commonoptions.NewJWTOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
+		Health:   commonoptions.NewHealthOptions(),
 	}
 }
 
@@ -69,7 +71,6 @@ func (o *ServerOptions) GetLogFields() []interface{} {
 }
 
 // GetHealthPort returns the health check port
-// 简化版本：直接返回固定端口，不使用HealthOptions.
 func (o *ServerOptions) GetHealthPort() int {
-	return o.Server.Port // Cluster 健康检查端口
+	return o.Health.Port
 }
