@@ -58,20 +58,24 @@ func (i *GRPCServerInitializer) Priority() int {
 func (i *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	i.logger.Infow("Initializing gRPC server", "name", i.config.Name)
 
-	// Create gRPC server from config
-	grpcServer, err := grpcserver.NewStandardGRPCServerFromConfig(i.logger, i.config.Config)
+	// Create gRPC server using GRPCOptions (统一实现)
+	grpcServer, err := grpcserver.NewGRPCOptionsServer(
+		i.config.Config,
+		nil, // TLS 配置（如果需要可以从 config 中获取）
+		func(srv grpc.ServiceRegistrar) {
+			// Register services
+			if i.config.ServiceRegister != nil {
+				if err := i.config.ServiceRegister(srv.(*grpc.Server)); err != nil {
+					i.logger.Errorw("Failed to register gRPC services", "name", i.config.Name, "err", err)
+				}
+			}
+		},
+		i.logger,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create gRPC server for %s: %w", i.config.Name, err)
 	}
 	i.server = grpcServer
-
-	// Register services
-	if i.config.ServiceRegister != nil {
-		if err := i.config.ServiceRegister(grpcServer.GetServer()); err != nil {
-			return fmt.Errorf("failed to register gRPC services for %s: %w", i.config.Name, err)
-		}
-		i.logger.Infow("gRPC services registered", "name", i.config.Name)
-	}
 
 	i.logger.Infow("gRPC server initialized successfully", "name", i.config.Name)
 	return nil

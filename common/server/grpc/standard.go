@@ -1,6 +1,14 @@
 // Copyright 2025 Kart Project. All rights reserved.
 // Standard gRPC server implementation with functional options
 //
+// Deprecated: 此实现已废弃，请使用 GRPCOptionsServer（options.go）代替。
+// GRPCOptionsServer 提供了更统一、配置驱动的 gRPC 服务器实现。
+//
+// 迁移指南：
+//   - NewStandardGRPCServer() -> NewGRPCOptionsServer()
+//   - NewStandardGRPCServerFromConfig() -> NewGRPCOptionsServer()
+//   - 使用 GRPCOptions 进行配置，而不是函数式选项
+//
 // This file provides a traditional gRPC server that can be configured
 // using functional options or from GRPCOptions config. It includes
 // support for TLS, interceptors, health checks, and reflection.

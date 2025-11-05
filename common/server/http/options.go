@@ -25,7 +25,7 @@ type HTTPOptionsServer struct {
 // 参考 OneX 项目的 NewHTTPServer 设计
 //
 // 参数:
-//   - httpOpts: HTTP 服务器配置选项
+//   - serverOpts: HTTP 服务器配置选项（统一使用 ServerOptions）
 //   - tlsOpts: TLS 配置选项 (可选，为 nil 则使用 HTTP)
 //   - handler: HTTP 请求处理器
 //   - log: 日志记录器
@@ -33,13 +33,13 @@ type HTTPOptionsServer struct {
 // 使用示例:
 //
 //	// HTTP 服务器
-//	httpOpts := options.NewHTTPServerOptions()
-//	httpSrv := server.NewHTTPOptionsServer(httpOpts, nil, handler, log)
+//	serverOpts := options.NewServerOptions()
+//	httpSrv := server.NewHTTPOptionsServer(serverOpts, nil, handler, log)
 //
 //	// HTTPS 服务器
 //	tlsOpts := options.NewTLSOptions()
 //	tlsOpts.UseTLS = true
-//	httpsSrv := server.NewHTTPOptionsServer(httpOpts, tlsOpts, handler, log)
+//	httpsSrv := server.NewHTTPOptionsServer(serverOpts, tlsOpts, handler, log)
 //
 //	// 启动服务器
 //	ctx, cancel := context.WithCancel(context.Background())
@@ -47,7 +47,7 @@ type HTTPOptionsServer struct {
 //	    log.Fatalw("Server failed", "err", err)
 //	}
 func NewHTTPOptionsServer(
-	httpOpts *options.HTTPServerOptions,
+	serverOpts *options.ServerOptions,
 	tlsOpts *options.TLSOptions,
 	handler http.Handler,
 	log core.Logger,
@@ -69,13 +69,13 @@ func NewHTTPOptionsServer(
 
 	// 创建 HTTP 服务器
 	srv := &http.Server{
-		Addr:           httpOpts.Addr,
+		Addr:           serverOpts.GetAddr(), // 使用统一的 GetAddr() 方法
 		Handler:        handler,
 		TLSConfig:      tlsConfig,
-		ReadTimeout:    httpOpts.ReadTimeout,
-		WriteTimeout:   httpOpts.WriteTimeout,
-		IdleTimeout:    httpOpts.IdleTimeout,
-		MaxHeaderBytes: httpOpts.MaxHeaderBytes,
+		ReadTimeout:    serverOpts.ReadTimeout,
+		WriteTimeout:   serverOpts.WriteTimeout,
+		IdleTimeout:    serverOpts.IdleTimeout,
+		MaxHeaderBytes: serverOpts.MaxHeaderBytes,
 	}
 
 	return &HTTPOptionsServer{

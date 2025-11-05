@@ -1,6 +1,7 @@
 package options
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -9,6 +10,7 @@ import (
 )
 
 // ServerOptions HTTP服务器配置
+// 统一了 ServerOptions 和 HTTPServerOptions，包含所有 HTTP 服务器需要的配置
 type ServerOptions struct {
 	Host         string        `mapstructure:"host" yaml:"host" json:"host"`
 	Port         int           `mapstructure:"port" yaml:"port" json:"port"`
@@ -17,18 +19,24 @@ type ServerOptions struct {
 	WriteTimeout time.Duration `mapstructure:"write_timeout" yaml:"write_timeout" json:"write_timeout"`
 	IdleTimeout  time.Duration `mapstructure:"idle_timeout" yaml:"idle_timeout" json:"idle_timeout"`
 	GracefulStop time.Duration `mapstructure:"graceful_stop" yaml:"graceful_stop" json:"graceful_stop"`
+
+	// 从 HTTPServerOptions 合并的字段
+	Network        string `mapstructure:"network" yaml:"network" json:"network"`               // 网络类型（tcp, tcp4, tcp6, unix, unixpacket）
+	MaxHeaderBytes int    `mapstructure:"max_header_bytes" yaml:"max_header_bytes" json:"max_header_bytes"` // 最大请求头大小（字节）
 }
 
 // NewServerOptions 创建默认的服务器配置
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
-		Host:         "0.0.0.0",
-		Port:         8080,
-		Mode:         "release",
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  60 * time.Second,
-		GracefulStop: 30 * time.Second,
+		Host:           "0.0.0.0",
+		Port:           8080,
+		Mode:           "release",
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		GracefulStop:   30 * time.Second,
+		Network:        "tcp",     // 默认使用 tcp
+		MaxHeaderBytes: 1 << 20,   // 默认 1 MB
 	}
 }
 
@@ -44,6 +52,19 @@ func (o *ServerOptions) Validate() error {
 		return err
 	}
 
+	// 验证网络类型
+	validNetworks := []string{"tcp", "tcp4", "tcp6", "unix", "unixpacket"}
+	if !ContainsString(validNetworks, o.Network) {
+		if err := validation.ValidateEnum(o.Network, "network", validNetworks); err != nil {
+			return err
+		}
+	}
+
+	// 验证最大请求头大小
+	if err := validation.ValidatePositiveInt(o.MaxHeaderBytes, "max_header_bytes"); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -56,6 +77,8 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&o.WriteTimeout, "server.write-timeout", o.WriteTimeout, "Server write timeout")
 	fs.DurationVar(&o.IdleTimeout, "server.idle-timeout", o.IdleTimeout, "Server idle timeout")
 	fs.DurationVar(&o.GracefulStop, "server.graceful-stop", o.GracefulStop, "Server graceful stop timeout")
+	fs.StringVar(&o.Network, "server.network", o.Network, "Network type (tcp, tcp4, tcp6, unix, unixpacket)")
+	fs.IntVar(&o.MaxHeaderBytes, "server.max-header-bytes", o.MaxHeaderBytes, "Maximum request header size in bytes")
 }
 
 // ApplyTo 将配置应用到目标接口
@@ -125,6 +148,16 @@ func (o *ServerOptions) Complete() error {
 		o.GracefulStop = 60 * time.Second
 	}
 
+	// 确保网络类型有效
+	if o.Network == "" {
+		o.Network = "tcp"
+	}
+
+	// 确保最大请求头大小合理
+	if o.MaxHeaderBytes <= 0 {
+		o.MaxHeaderBytes = 1 << 20 // 1 MB
+	}
+
 	return nil
 }
 
@@ -175,4 +208,23 @@ func WithGracefulStop(timeout time.Duration) func(*ServerOptions) {
 	return func(o *ServerOptions) {
 		o.GracefulStop = timeout
 	}
+}
+
+// WithNetwork 设置网络类型
+func WithNetwork(network string) func(*ServerOptions) {
+	return func(o *ServerOptions) {
+		o.Network = network
+	}
+}
+
+// WithMaxHeaderBytes 设置最大请求头大小
+func WithMaxHeaderBytes(maxHeaderBytes int) func(*ServerOptions) {
+	return func(o *ServerOptions) {
+		o.MaxHeaderBytes = maxHeaderBytes
+	}
+}
+
+// GetAddr 返回服务器地址（host:port 格式）
+func (o *ServerOptions) GetAddr() string {
+	return fmt.Sprintf("%s:%d", o.Host, o.Port)
 }

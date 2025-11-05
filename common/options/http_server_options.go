@@ -9,6 +9,19 @@ import (
 )
 
 // HTTPServerOptions HTTP 服务器配置选项
+//
+// Deprecated: 此类型已废弃，请使用 ServerOptions 代替。
+// ServerOptions 现在包含了所有 HTTPServerOptions 的功能，并提供了更统一的接口。
+//
+// 迁移指南：
+//   - HTTPServerOptions.Network -> ServerOptions.Network
+//   - HTTPServerOptions.Addr -> ServerOptions.GetAddr() 或分别使用 Host 和 Port
+//   - HTTPServerOptions.Timeout -> 不再需要（这是客户端超时，不是服务器配置）
+//   - HTTPServerOptions.ReadTimeout -> ServerOptions.ReadTimeout
+//   - HTTPServerOptions.WriteTimeout -> ServerOptions.WriteTimeout
+//   - HTTPServerOptions.IdleTimeout -> ServerOptions.IdleTimeout
+//   - HTTPServerOptions.MaxHeaderBytes -> ServerOptions.MaxHeaderBytes
+//
 // 参考 OneX 项目设计，用于配置 HTTP 服务器基础参数
 // 这是一个简化版本，适用于不需要 TLS 的 HTTP 服务器场景
 type HTTPServerOptions struct {
