@@ -79,6 +79,13 @@ func (i *DatabaseInitializer) Name() string {
 }
 
 // GetStorage returns the initialized storage instance.
+// Deprecated: Use Store() instead for consistency across services.
 func (i *DatabaseInitializer) GetStorage() *storage.MySQLStorage {
+	return i.storage
+}
+
+// Store returns the initialized storage instance.
+// This is the standard method name across all database initializers.
+func (i *DatabaseInitializer) Store() interface{} {
 	return i.storage
 }

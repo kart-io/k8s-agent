@@ -3,6 +3,23 @@
 
 ##@ Code Generation
 
+.PHONY: gen.wire
+gen.wire: ## Generate Wire dependency injection code
+	$(call print_target,$@)
+	@$(call print_info,"Generating Wire code...")
+	@if command -v wire >/dev/null 2>&1; then \
+		for svc in $(SERVICES); do \
+			if [ -f "cmd/$$svc/app/wire.go" ]; then \
+				$(call print_info,"Generating wire code for $$svc..."); \
+				cd cmd/$$svc/app && wire && cd $(ROOT_DIR); \
+			fi \
+		done; \
+		$(call print_info,"Wire code generated successfully"); \
+	else \
+		$(call print_warning,"wire not installed. wire_gen.go files are already committed."); \
+		$(call print_info,"To install wire: go install github.com/google/wire/cmd/wire@latest"); \
+	fi
+
 .PHONY: gen.clean
 gen.clean: ## Clean generated code
 	$(call print_target,$@)

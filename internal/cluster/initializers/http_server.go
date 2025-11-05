@@ -84,74 +84,14 @@ func (h *HTTPServerInitializer) initializeServices(storage interface{}) error {
 	h.handler = handler.NewClusterHandler(clusterService, h.logger)
 	h.versionHandler = handler.NewVersionHandler()
 
-	// Initialize K8s API related services
-	k8sClusterService := service.NewK8sClusterService(mysqlStorage)
-	k8sNamespaceService := service.NewK8sNamespaceService(mysqlStorage, k8sClusterService)
-	k8sPodService := service.NewK8sPodService(mysqlStorage, k8sClusterService)
-	k8sDeploymentService := service.NewK8sDeploymentService(mysqlStorage, k8sClusterService)
-	k8sNodeService := service.NewK8sNodeService(mysqlStorage, k8sClusterService)
-	k8sServiceService := service.NewK8sServiceService(mysqlStorage, k8sClusterService)
-	k8sStatefulSetService := service.NewK8sStatefulSetService(mysqlStorage, k8sClusterService)
-	k8sDaemonSetService := service.NewK8sDaemonSetService(mysqlStorage, k8sClusterService)
-	k8sConfigMapService := service.NewK8sConfigMapService(mysqlStorage, k8sClusterService)
-	k8sSecretService := service.NewK8sSecretService(mysqlStorage, k8sClusterService)
-	k8sEndpointService := service.NewK8sEndpointService(mysqlStorage, k8sClusterService)
-	k8sPVCService := service.NewK8sPVCService(mysqlStorage, k8sClusterService)
-	k8sPVService := service.NewK8sPVService(mysqlStorage, k8sClusterService)
-	k8sEndpointSliceService := service.NewK8sEndpointSliceService(mysqlStorage, k8sClusterService)
-	k8sHPAService := service.NewK8sHPAService(mysqlStorage, k8sClusterService)
-	k8sEventService := service.NewK8sEventService(mysqlStorage, k8sClusterService)
-	k8sRoleBindingService := service.NewK8sRoleBindingService(mysqlStorage, k8sClusterService)
-	k8sClusterRoleService := service.NewK8sClusterRoleService(mysqlStorage, k8sClusterService)
-	k8sPriorityClassService := service.NewK8sPriorityClassService(mysqlStorage, k8sClusterService)
-	k8sRoleService := service.NewK8sRoleService(mysqlStorage, k8sClusterService)
-	k8sStorageClassService := service.NewK8sStorageClassService(mysqlStorage, k8sClusterService)
-	k8sJobService := service.NewK8sJobService(mysqlStorage, k8sClusterService)
-	k8sCronJobService := service.NewK8sCronJobService(mysqlStorage, k8sClusterService)
-	k8sIngressService := service.NewK8sIngressService(mysqlStorage, k8sClusterService)
-	k8sNetworkPolicyService := service.NewK8sNetworkPolicyService(mysqlStorage, k8sClusterService)
-	k8sReplicaSetService := service.NewK8sReplicaSetService(mysqlStorage, k8sClusterService)
-	k8sLimitRangeService := service.NewK8sLimitRangeService(mysqlStorage, k8sClusterService)
-	k8sServiceAccountService := service.NewK8sServiceAccountService(mysqlStorage, k8sClusterService)
-	k8sClusterRoleBindingService := service.NewK8sClusterRoleBindingService(mysqlStorage, k8sClusterService)
-	k8sResourceQuotaService := service.NewK8sResourceQuotaService(mysqlStorage, k8sClusterService)
+	// Initialize all K8s services using the registry (replaces 30+ lines of repetitive code)
+	k8sServiceRegistry := service.NewK8sServiceRegistry(mysqlStorage)
 
-	// Create K8s API handler with all services
-	h.k8sAPIHandler = handler.NewK8sAPIHandler(
-		k8sClusterService,
-		k8sNamespaceService,
-		k8sPodService,
-		k8sDeploymentService,
-		k8sNodeService,
-		k8sServiceService,
-		k8sStatefulSetService,
-		k8sDaemonSetService,
-		k8sConfigMapService,
-		k8sSecretService,
-		k8sEndpointService,
-		k8sPVCService,
-		k8sPVService,
-		k8sEndpointSliceService,
-		k8sHPAService,
-		k8sEventService,
-		k8sRoleBindingService,
-		k8sClusterRoleService,
-		k8sPriorityClassService,
-		k8sRoleService,
-		k8sStorageClassService,
-		k8sJobService,
-		k8sCronJobService,
-		k8sIngressService,
-		k8sNetworkPolicyService,
-		k8sReplicaSetService,
-		k8sLimitRangeService,
-		k8sServiceAccountService,
-		k8sClusterRoleBindingService,
-		k8sResourceQuotaService,
-	)
+	// Create K8s API handler with service registry (single parameter instead of 30!)
+	h.k8sAPIHandler = handler.NewK8sAPIHandler(k8sServiceRegistry)
 
 	h.logger.Infow("K8s API endpoints initialized",
-		"count", 30,
+		"count", k8sServiceRegistry.Count(),
 		"base_path", "/api/k8s",
 	)
 

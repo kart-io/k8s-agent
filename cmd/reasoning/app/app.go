@@ -86,29 +86,21 @@ func (a *ReasoningApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// 直接使用已有的opts，不需要重新创建
+	// Use Wire to automatically inject all dependencies
+	components, err := InitializeReasoningComponents(a.opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize components: %w", err)
+	}
 
-	// 1. LLM Clients (priority 400)
-	a.llmInit = initializers.NewLLMInitializer(a.opts.LLM, a.logger)
-	bs.Register(a.llmInit)
+	// Register components to Bootstrap
+	bs.Register(components.LLM)
+	bs.Register(components.UnifiedServer)
+	bs.Register(components.Health)
 
-	// 2. Unified Server (gRPC + HTTP using Kratos framework, OneX architecture pattern)
-	// Priority 450 - after LLM initialization
-	// A single handler implements both ReasoningServiceServer (gRPC) and ReasoningServiceHTTPServer (HTTP)
-	// This follows the OneX pattern where both protocols share the same handler methods
-	a.unifiedServerInit = initializers.NewUnifiedServerInitializer(
-		a.opts,
-		a.logger,
-		a.llmInit,
-	)
-	bs.Register(a.unifiedServerInit)
-
-	// 3. Health Check (priority 2000)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(
-		a.opts.Health,
-		a.logger,
-	)
-	bs.Register(a.healthInit)
+	// Save references for app
+	a.llmInit = components.LLM
+	a.unifiedServerInit = components.UnifiedServer
+	a.healthInit = components.Health
 
 	return nil
 }

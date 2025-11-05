@@ -89,26 +89,21 @@ func (a *ClusterApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *ClusterApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// 直接使用已有的opts，不需要重新创建
+	// Use Wire to automatically inject all dependencies
+	components, err := InitializeClusterComponents(a.opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize components: %w", err)
+	}
 
-	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
-	bs.Register(a.dbInit)
+	// Register components to Bootstrap
+	bs.Register(components.DB)
+	bs.Register(components.HTTP)
+	bs.Register(components.Health)
 
-	// 2. HTTP Server (priority 500)
-	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-	)
-	bs.Register(a.httpInit)
-
-	// 3. Health Check (priority 2000)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(
-		a.opts.Health,
-		a.logger,
-	)
-	bs.Register(a.healthInit)
+	// Save references for app
+	a.dbInit = components.DB
+	a.httpInit = components.HTTP
+	a.healthInit = components.Health
 
 	return nil
 }

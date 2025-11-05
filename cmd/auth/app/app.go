@@ -92,73 +92,33 @@ func (a *AuthApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// 直接使用已有的 opts，不需要重新创建或转换
+	// Use Wire to automatically inject all dependencies
+	components, err := InitializeAuthComponents(a.opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize components: %w", err)
+	}
 
-	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
-	bs.Register(a.dbInit)
+	// Register components to Bootstrap
+	bs.Register(components.DB)
+	bs.Register(components.Redis)
+	bs.Register(components.Session)
+	bs.Register(components.Email)
+	bs.Register(components.Audit)
+	bs.Register(components.Notification)
+	bs.Register(components.ForcedLogout)
+	bs.Register(components.HTTP)
+	bs.Register(components.Health)
 
-	// 2. Redis (priority 400)
-	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
-	bs.Register(a.redisInit)
-
-	// 3. Session Service (priority 450)
-	a.sessionInit = initializers.NewSessionServiceInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-		a.redisInit,
-	)
-	bs.Register(a.sessionInit)
-
-	// 4. Email Client (priority 450)
-	a.emailInit = initializers.NewEmailClientInitializer(a.opts, a.logger)
-	bs.Register(a.emailInit)
-
-	// 5. Audit Service (priority 460)
-	a.auditInit = initializers.NewAuditServiceInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-	)
-	bs.Register(a.auditInit)
-
-	// 6. Notification Service (priority 470)
-	a.notificationInit = initializers.NewNotificationServiceInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-		a.emailInit,
-	)
-	bs.Register(a.notificationInit)
-
-	// 7. Forced Logout Service (priority 490)
-	a.forcedLogoutInit = initializers.NewForcedLogoutServiceInitializer(
-		a.opts,
-		a.logger,
-		a.sessionInit,
-		a.auditInit,
-		a.notificationInit,
-	)
-	bs.Register(a.forcedLogoutInit)
-
-	// 8. HTTP Server (priority 600)
-	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-		a.redisInit,
-		a.sessionInit,
-		a.auditInit,
-		a.notificationInit,
-		a.forcedLogoutInit,
-		a.emailInit,
-	)
-	bs.Register(a.httpInit)
-
-	// 9. Health Check Server (priority 2000)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(a.opts.Health, a.logger)
-	bs.Register(a.healthInit)
+	// Save references for app
+	a.dbInit = components.DB
+	a.redisInit = components.Redis
+	a.sessionInit = components.Session
+	a.emailInit = components.Email
+	a.auditInit = components.Audit
+	a.notificationInit = components.Notification
+	a.forcedLogoutInit = components.ForcedLogout
+	a.httpInit = components.HTTP
+	a.healthInit = components.Health
 
 	return nil
 }

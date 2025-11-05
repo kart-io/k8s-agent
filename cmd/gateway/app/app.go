@@ -84,24 +84,21 @@ func (a *GatewayApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *GatewayApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// 1. Redis (priority 400)
-	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
-	bs.Register(a.redisInit)
+	// Use Wire to automatically inject all dependencies
+	components, err := InitializeGatewayComponents(a.opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize components: %w", err)
+	}
 
-	// 2. HTTP Server (priority 500)
-	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.opts,
-		a.logger,
-		a.redisInit,
-	)
-	bs.Register(a.httpInit)
+	// Register components to Bootstrap
+	bs.Register(components.Redis)
+	bs.Register(components.HTTP)
+	bs.Register(components.Health)
 
-	// 3. Health Check (priority 2000)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(
-		a.opts.Health,
-		a.logger,
-	)
-	bs.Register(a.healthInit)
+	// Save references for app
+	a.redisInit = components.Redis
+	a.httpInit = components.HTTP
+	a.healthInit = components.Health
 
 	return nil
 }

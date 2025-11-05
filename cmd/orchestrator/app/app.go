@@ -88,68 +88,33 @@ func (a *OrchestratorApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// 直接使用已有的opts，不需要重新创建
+	// Use Wire to automatically inject all dependencies
+	components, err := InitializeOrchestratorComponents(a.opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize components: %w", err)
+	}
 
-	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
-	bs.Register(a.dbInit)
+	// Register components to Bootstrap in dependency order
+	bs.Register(components.DB)
+	bs.Register(components.Redis)
+	bs.Register(components.NATS)
+	bs.Register(components.Workflow)
+	bs.Register(components.Strategy)
+	bs.Register(components.Subscriber)
+	bs.Register(components.GRPC)
+	bs.Register(components.HTTP)
+	bs.Register(components.Health)
 
-	// 2. Redis (priority 400)
-	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
-	bs.Register(a.redisInit)
-
-	// 3. NATS (priority 500)
-	a.natsInit = initializers.NewNATSInitializer(a.opts, a.logger)
-	bs.Register(a.natsInit)
-
-	// 4. Workflow Engine (priority 550 - after Database and Redis)
-	a.workflowInit = initializers.NewWorkflowInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-		a.redisInit,
-	)
-	bs.Register(a.workflowInit)
-
-	// 5. Strategy Manager (priority 600 - after Workflow)
-	a.strategyInit = initializers.NewStrategyInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-		a.workflowInit,
-	)
-	bs.Register(a.strategyInit)
-
-	// 6. Subscriber (priority 650 - after Strategy)
-	a.subInit = initializers.NewSubscriberInitializer(
-		a.opts,
-		a.logger,
-		a.natsInit,
-		a.strategyInit,
-	)
-	bs.Register(a.subInit)
-
-	// 7. gRPC Server (priority 700 - after Workflow and Strategy)
-	a.grpcInit = initializers.NewGRPCServerInitializer(
-		a.opts,
-		a.logger,
-		a.workflowInit,
-		a.dbInit,
-	)
-	bs.Register(a.grpcInit)
-
-	// 8. HTTP Server with gRPC-Gateway (priority 800 - after gRPC)
-	// HTTP requests will be automatically converted to gRPC calls using the same workflow service!
-	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.opts,
-		a.logger,
-		a.grpcInit, // Pass gRPC init to get shared service
-	)
-	bs.Register(a.httpInit)
-
-	// 9. Health Check Server (priority 2000)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(a.opts.Health, a.logger)
-	bs.Register(a.healthInit)
+	// Save references for app
+	a.dbInit = components.DB
+	a.redisInit = components.Redis
+	a.natsInit = components.NATS
+	a.workflowInit = components.Workflow
+	a.strategyInit = components.Strategy
+	a.subInit = components.Subscriber
+	a.grpcInit = components.GRPC
+	a.httpInit = components.HTTP
+	a.healthInit = components.Health
 
 	return nil
 }

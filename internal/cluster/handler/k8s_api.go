@@ -49,7 +49,45 @@ type K8sAPIHandler struct {
 }
 
 // NewK8sAPIHandler 创建新的 K8s API 处理器.
-func NewK8sAPIHandler(
+// 使用服务注册表代替30个单独的参数，大幅简化接口.
+func NewK8sAPIHandler(registry *service.K8sServiceRegistry) *K8sAPIHandler {
+	return &K8sAPIHandler{
+		clusterService:            registry.ClusterService,
+		namespaceService:          registry.NamespaceService,
+		podService:                registry.PodService,
+		deploymentService:         registry.DeploymentService,
+		nodeService:               registry.NodeService,
+		serviceService:            registry.ServiceService,
+		statefulsetService:        registry.StatefulSetService,
+		daemonsetService:          registry.DaemonSetService,
+		configmapService:          registry.ConfigMapService,
+		secretService:             registry.SecretService,
+		endpointService:           registry.EndpointService,
+		pvcService:                registry.PVCService,
+		pvService:                 registry.PVService,
+		endpointsliceService:      registry.EndpointSliceService,
+		hpaService:                registry.HPAService,
+		eventService:              registry.EventService,
+		rolebindingService:        registry.RoleBindingService,
+		clusterroleService:        registry.ClusterRoleService,
+		priorityclassService:      registry.PriorityClassService,
+		roleService:               registry.RoleService,
+		storageclassService:       registry.StorageClassService,
+		jobService:                registry.JobService,
+		cronjobService:            registry.CronJobService,
+		ingressService:            registry.IngressService,
+		networkpolicyService:      registry.NetworkPolicyService,
+		replicasetService:         registry.ReplicaSetService,
+		limitrangeService:         registry.LimitRangeService,
+		serviceaccountService:     registry.ServiceAccountService,
+		clusterrolebindingService: registry.ClusterRoleBindingService,
+		resourcequotaService:      registry.ResourceQuotaService,
+	}
+}
+
+// NewK8sAPIHandlerLegacy 保留旧的构造函数用于向后兼容（已废弃）.
+// Deprecated: Use NewK8sAPIHandler with K8sServiceRegistry instead.
+func NewK8sAPIHandlerLegacy(
 	clusterService *service.K8sClusterService,
 	namespaceService *service.K8sNamespaceService,
 	podService *service.K8sPodService,

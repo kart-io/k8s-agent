@@ -2,21 +2,12 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+
+	commonmiddleware "github.com/kart-io/k8s-agent/common/middleware"
 )
 
 // CORS creates CORS middleware for frontend integration.
+// 使用 common/middleware 的通用实现，避免代码重复
 func CORS() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
+	return commonmiddleware.CORS()
 }

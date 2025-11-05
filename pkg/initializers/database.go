@@ -191,3 +191,14 @@ func (d *DatabaseInitializer) DB() *gorm.DB {
 func (d *DatabaseInitializer) Client() *db.MySQLClient {
 	return d.client
 }
+
+// Store 返回数据库存储实例
+//
+// 这是标准方法名，用于统一所有数据库初始化器的接口。
+// 返回 interface{} 以支持不同的存储类型。
+//
+// 返回：
+//   - interface{}: 数据库客户端实例（实际类型为 *db.MySQLClient）
+func (d *DatabaseInitializer) Store() interface{} {
+	return d.client
+}

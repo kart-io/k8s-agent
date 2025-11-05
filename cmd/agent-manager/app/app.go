@@ -87,73 +87,42 @@ func (a *AgentManagerApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *AgentManagerApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// 直接使用已有的opts，不需要重新创建
+	// Use Wire to automatically inject all dependencies
+	components, err := InitializeAgentManagerComponents(a.opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize components: %w", err)
+	}
 
-	// 1. Database (priority 300)
-	a.dbInit = initializers.NewDatabaseInitializer(a.opts, a.logger)
-	bs.Register(a.dbInit)
+	// Register components to Bootstrap
+	bs.Register(components.DB)
+	bs.Register(components.Redis)
+	bs.Register(components.Registry)
+	bs.Register(components.NATS)
+	bs.Register(components.Dispatcher)
+	bs.Register(components.HTTP)
 
-	// 2. Redis (priority 400)
-	a.redisInit = initializers.NewRedisInitializer(a.opts, a.logger)
-	bs.Register(a.redisInit)
-
-	// 3. Registry (priority 450 - after Database and Redis)
-	a.registryInit = initializers.NewRegistryInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-		a.redisInit,
-	)
-	bs.Register(a.registryInit)
-
-	// 4. NATS (priority 500)
-	a.natsInit = initializers.NewNATSInitializer(
-		a.opts,
-		a.logger,
-		a.registryInit,
-		a.dbInit,
-		a.redisInit,
-	)
-	bs.Register(a.natsInit)
-
-	// 5. Dispatcher (priority 600 - after NATS)
-	a.dispatcherInit = initializers.NewDispatcherInitializer(
-		a.opts,
-		a.logger,
-		a.dbInit,
-		a.redisInit,
-		a.registryInit,
-		a.natsInit,
-	)
-	bs.Register(a.dispatcherInit)
-
-	// 6. HTTP Server (priority 1000)
-	a.httpInit = initializers.NewHTTPServerInitializer(
-		a.opts,
-		a.logger,
-		a.registryInit,
-		a.dispatcherInit,
-		a.dbInit,
-		a.redisInit,
-		a.natsInit,
-	)
-	bs.Register(a.httpInit)
-
-	// 7. gRPC Server (priority 1100)
+	// Register gRPC if enabled
 	if a.opts.GRPC.Enable {
 		a.grpcInit = initializers.NewGRPCServerInitializer(
 			a.opts,
 			a.logger,
-			a.registryInit,
-			a.dispatcherInit,
-			a.dbInit,
+			components.Registry,
+			components.Dispatcher,
+			components.DB,
 		)
 		bs.Register(a.grpcInit)
 	}
 
-	// 8. Health Check Server (priority 2000)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(a.opts.Health, a.logger)
-	bs.Register(a.healthInit)
+	bs.Register(components.Health)
+
+	// Save references for app
+	a.dbInit = components.DB
+	a.redisInit = components.Redis
+	a.registryInit = components.Registry
+	a.natsInit = components.NATS
+	a.dispatcherInit = components.Dispatcher
+	a.httpInit = components.HTTP
+	a.healthInit = components.Health
 
 	return nil
 }

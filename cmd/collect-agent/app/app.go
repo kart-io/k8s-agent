@@ -87,16 +87,19 @@ func (a *CollectAgentApp) Shutdown(ctx context.Context) error {
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *CollectAgentApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// 1. Agent (priority 500 - main application logic)
-	a.agentInit = initializers.NewAgentInitializer(a.opts, a.logger)
-	bs.Register(a.agentInit)
+	// Use Wire to automatically inject all dependencies
+	components, err := InitializeCollectAgentComponents(a.opts)
+	if err != nil {
+		return fmt.Errorf("failed to initialize components: %w", err)
+	}
 
-	// 2. Health Check (priority 2000)
-	a.healthInit = pkginitializers.NewHealthCheckInitializer(
-		a.opts.Health,
-		a.logger,
-	)
-	bs.Register(a.healthInit)
+	// Register components to Bootstrap
+	bs.Register(components.Agent)
+	bs.Register(components.Health)
+
+	// Save references for app
+	a.agentInit = components.Agent
+	a.healthInit = components.Health
 
 	return nil
 }
