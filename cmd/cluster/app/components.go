@@ -1,0 +1,39 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+package app
+
+import (
+	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
+	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+	"github.com/kart-io/logger/core"
+)
+
+// ClusterComponents contains all component initializers.
+type ClusterComponents struct {
+	DB     *initializers.DatabaseInitializer
+	HTTP   *initializers.HTTPServerInitializer
+	Health *pkginitializers.HealthCheckInitializer
+}
+
+// NewClusterComponents creates a new ClusterComponents.
+func NewClusterComponents(
+	db *initializers.DatabaseInitializer,
+	http *initializers.HTTPServerInitializer,
+	health *pkginitializers.HealthCheckInitializer,
+) *ClusterComponents {
+	return &ClusterComponents{
+		DB:     db,
+		HTTP:   http,
+		Health: health,
+	}
+}
+
+// ProvideLogger provides logger from options.
+func ProvideLogger(opts *options.ServerOptions) (core.Logger, error) {
+	return opts.InitLogger()
+}
+
+
