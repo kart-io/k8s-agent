@@ -161,69 +161,6 @@ func (o *ServerOptions) Complete() error {
 	return nil
 }
 
-// WithHost 设置服务器地址
-func WithHost(host string) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.Host = host
-	}
-}
-
-// WithPort 设置服务器端口
-func WithPort(port int) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.Port = port
-	}
-}
-
-// WithMode 设置服务器模式
-func WithMode(mode string) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.Mode = mode
-	}
-}
-
-// WithReadTimeout 设置读超时时间
-func WithReadTimeout(timeout time.Duration) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.ReadTimeout = timeout
-	}
-}
-
-// WithWriteTimeout 设置写超时时间
-func WithWriteTimeout(timeout time.Duration) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.WriteTimeout = timeout
-	}
-}
-
-// WithIdleTimeout 设置空闲超时时间
-func WithIdleTimeout(timeout time.Duration) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.IdleTimeout = timeout
-	}
-}
-
-// WithGracefulStop 设置优雅停机时间
-func WithGracefulStop(timeout time.Duration) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.GracefulStop = timeout
-	}
-}
-
-// WithNetwork 设置网络类型
-func WithNetwork(network string) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.Network = network
-	}
-}
-
-// WithMaxHeaderBytes 设置最大请求头大小
-func WithMaxHeaderBytes(maxHeaderBytes int) func(*ServerOptions) {
-	return func(o *ServerOptions) {
-		o.MaxHeaderBytes = maxHeaderBytes
-	}
-}
-
 // GetAddr 返回服务器地址（host:port 格式）
 func (o *ServerOptions) GetAddr() string {
 	return fmt.Sprintf("%s:%d", o.Host, o.Port)

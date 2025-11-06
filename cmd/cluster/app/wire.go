@@ -19,6 +19,7 @@ var InitializerSet = wire.NewSet(
 	ProvideLogger,
 	initializers.NewDatabaseInitializer,
 	initializers.NewHTTPServerInitializer,
+	initializers.NewGRPCServerInitializer,
 )
 
 // HealthInitializerSet Wire dependency set for health check.

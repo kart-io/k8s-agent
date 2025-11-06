@@ -12,7 +12,37 @@
       "name": "CommandService"
     },
     {
+      "name": "AuthService"
+    },
+    {
+      "name": "UserService"
+    },
+    {
+      "name": "RoleService"
+    },
+    {
+      "name": "PermissionService"
+    },
+    {
+      "name": "SessionService"
+    },
+    {
+      "name": "ClusterService"
+    },
+    {
+      "name": "K8sResourceService"
+    },
+    {
       "name": "HealthService"
+    },
+    {
+      "name": "MonitorService"
+    },
+    {
+      "name": "AlertRuleService"
+    },
+    {
+      "name": "MetricsCollectorService"
     },
     {
       "name": "WorkflowService"
@@ -28,6 +58,2365 @@
     "application/json"
   ],
   "paths": {
+    "/api/v1/auth/check": {
+      "post": {
+        "summary": "检查权限",
+        "operationId": "AuthService_CheckPermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CheckPermissionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CheckPermissionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "用户登录",
+        "operationId": "AuthService_Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1LoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "用户登出",
+        "operationId": "AuthService_Logout",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LogoutResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1LogoutRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "获取当前用户信息",
+        "operationId": "AuthService_GetMe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1User"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/menus": {
+      "get": {
+        "summary": "获取用户菜单权限",
+        "operationId": "AuthService_GetMenus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetMenusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "summary": "刷新Token",
+        "operationId": "AuthService_RefreshToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RefreshTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RefreshTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/clusters": {
+      "get": {
+        "summary": "列出集群",
+        "operationId": "ClusterService_ListClusters",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListClustersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "description": " - HEALTHY: 健康\n - UNHEALTHY: 不健康\n - UNREACHABLE: 不可达\n - UNKNOWN: 未知",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "CLUSTER_STATUS_UNSPECIFIED",
+              "HEALTHY",
+              "UNHEALTHY",
+              "UNREACHABLE",
+              "UNKNOWN"
+            ],
+            "default": "CLUSTER_STATUS_UNSPECIFIED"
+          }
+        ],
+        "tags": [
+          "ClusterService"
+        ]
+      },
+      "post": {
+        "summary": "创建集群",
+        "operationId": "ClusterService_CreateCluster",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Cluster"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateClusterRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ClusterService"
+        ]
+      }
+    },
+    "/api/v1/clusters/{clusterId}": {
+      "get": {
+        "summary": "获取集群",
+        "operationId": "ClusterService_GetCluster",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Cluster"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClusterService"
+        ]
+      },
+      "delete": {
+        "summary": "删除集群",
+        "operationId": "ClusterService_DeleteCluster",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteClusterResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClusterService"
+        ]
+      },
+      "put": {
+        "summary": "更新集群",
+        "operationId": "ClusterService_UpdateCluster",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Cluster"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClusterServiceUpdateClusterBody"
+            }
+          }
+        ],
+        "tags": [
+          "ClusterService"
+        ]
+      }
+    },
+    "/api/v1/clusters/{clusterId}/health": {
+      "get": {
+        "summary": "获取集群健康状态",
+        "operationId": "ClusterService_GetClusterHealth",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ClusterHealth"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClusterService"
+        ]
+      }
+    },
+    "/api/v1/clusters/{clusterId}/resources/{resourceType}": {
+      "get": {
+        "summary": "列出资源",
+        "operationId": "K8sResourceService_ListResources",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListResourcesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "resourceType",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "RESOURCE_TYPE_UNSPECIFIED",
+              "POD",
+              "DEPLOYMENT",
+              "SERVICE",
+              "CONFIGMAP",
+              "SECRET",
+              "NAMESPACE",
+              "NODE",
+              "PERSISTENTVOLUME",
+              "PERSISTENTVOLUMECLAIM",
+              "STATEFULSET",
+              "DAEMONSET",
+              "JOB",
+              "CRONJOB",
+              "INGRESS",
+              "NETWORKPOLICY",
+              "RESOURCEQUOTA",
+              "LIMITRANGE",
+              "HORIZONTALPODAUTOSCALER",
+              "STORAGECLASS",
+              "ROLE",
+              "ROLEBINDING",
+              "CLUSTERROLE",
+              "CLUSTERROLEBINDING",
+              "SERVICEACCOUNT",
+              "ENDPOINT",
+              "ENDPOINTSLICE",
+              "EVENT",
+              "PRIORITYCLASS",
+              "REPLICASET"
+            ]
+          },
+          {
+            "name": "namespace",
+            "description": "空表示所有命名空间",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "labelSelector",
+            "description": "标签选择器",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "K8sResourceService"
+        ]
+      },
+      "post": {
+        "summary": "创建资源",
+        "operationId": "K8sResourceService_CreateResource",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Resource"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "resourceType",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "RESOURCE_TYPE_UNSPECIFIED",
+              "POD",
+              "DEPLOYMENT",
+              "SERVICE",
+              "CONFIGMAP",
+              "SECRET",
+              "NAMESPACE",
+              "NODE",
+              "PERSISTENTVOLUME",
+              "PERSISTENTVOLUMECLAIM",
+              "STATEFULSET",
+              "DAEMONSET",
+              "JOB",
+              "CRONJOB",
+              "INGRESS",
+              "NETWORKPOLICY",
+              "RESOURCEQUOTA",
+              "LIMITRANGE",
+              "HORIZONTALPODAUTOSCALER",
+              "STORAGECLASS",
+              "ROLE",
+              "ROLEBINDING",
+              "CLUSTERROLE",
+              "CLUSTERROLEBINDING",
+              "SERVICEACCOUNT",
+              "ENDPOINT",
+              "ENDPOINTSLICE",
+              "EVENT",
+              "PRIORITYCLASS",
+              "REPLICASET"
+            ]
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/K8sResourceServiceCreateResourceBody"
+            }
+          }
+        ],
+        "tags": [
+          "K8sResourceService"
+        ]
+      }
+    },
+    "/api/v1/clusters/{clusterId}/resources/{resourceType}/watch": {
+      "get": {
+        "summary": "监听资源变化",
+        "operationId": "K8sResourceService_WatchResources",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/v1ResourceEvent"
+                },
+                "error": {
+                  "$ref": "#/definitions/googlerpcStatus"
+                }
+              },
+              "title": "Stream result of v1ResourceEvent"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "resourceType",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "RESOURCE_TYPE_UNSPECIFIED",
+              "POD",
+              "DEPLOYMENT",
+              "SERVICE",
+              "CONFIGMAP",
+              "SECRET",
+              "NAMESPACE",
+              "NODE",
+              "PERSISTENTVOLUME",
+              "PERSISTENTVOLUMECLAIM",
+              "STATEFULSET",
+              "DAEMONSET",
+              "JOB",
+              "CRONJOB",
+              "INGRESS",
+              "NETWORKPOLICY",
+              "RESOURCEQUOTA",
+              "LIMITRANGE",
+              "HORIZONTALPODAUTOSCALER",
+              "STORAGECLASS",
+              "ROLE",
+              "ROLEBINDING",
+              "CLUSTERROLE",
+              "CLUSTERROLEBINDING",
+              "SERVICEACCOUNT",
+              "ENDPOINT",
+              "ENDPOINTSLICE",
+              "EVENT",
+              "PRIORITYCLASS",
+              "REPLICASET"
+            ]
+          },
+          {
+            "name": "namespace",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "labelSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "K8sResourceService"
+        ]
+      }
+    },
+    "/api/v1/clusters/{clusterId}/resources/{resourceType}/{namespace}/{name}": {
+      "get": {
+        "summary": "获取资源",
+        "operationId": "K8sResourceService_GetResource",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Resource"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "resourceType",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "RESOURCE_TYPE_UNSPECIFIED",
+              "POD",
+              "DEPLOYMENT",
+              "SERVICE",
+              "CONFIGMAP",
+              "SECRET",
+              "NAMESPACE",
+              "NODE",
+              "PERSISTENTVOLUME",
+              "PERSISTENTVOLUMECLAIM",
+              "STATEFULSET",
+              "DAEMONSET",
+              "JOB",
+              "CRONJOB",
+              "INGRESS",
+              "NETWORKPOLICY",
+              "RESOURCEQUOTA",
+              "LIMITRANGE",
+              "HORIZONTALPODAUTOSCALER",
+              "STORAGECLASS",
+              "ROLE",
+              "ROLEBINDING",
+              "CLUSTERROLE",
+              "CLUSTERROLEBINDING",
+              "SERVICEACCOUNT",
+              "ENDPOINT",
+              "ENDPOINTSLICE",
+              "EVENT",
+              "PRIORITYCLASS",
+              "REPLICASET"
+            ]
+          },
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "K8sResourceService"
+        ]
+      },
+      "delete": {
+        "summary": "删除资源",
+        "operationId": "K8sResourceService_DeleteResource",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteResourceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "resourceType",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "RESOURCE_TYPE_UNSPECIFIED",
+              "POD",
+              "DEPLOYMENT",
+              "SERVICE",
+              "CONFIGMAP",
+              "SECRET",
+              "NAMESPACE",
+              "NODE",
+              "PERSISTENTVOLUME",
+              "PERSISTENTVOLUMECLAIM",
+              "STATEFULSET",
+              "DAEMONSET",
+              "JOB",
+              "CRONJOB",
+              "INGRESS",
+              "NETWORKPOLICY",
+              "RESOURCEQUOTA",
+              "LIMITRANGE",
+              "HORIZONTALPODAUTOSCALER",
+              "STORAGECLASS",
+              "ROLE",
+              "ROLEBINDING",
+              "CLUSTERROLE",
+              "CLUSTERROLEBINDING",
+              "SERVICEACCOUNT",
+              "ENDPOINT",
+              "ENDPOINTSLICE",
+              "EVENT",
+              "PRIORITYCLASS",
+              "REPLICASET"
+            ]
+          },
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "K8sResourceService"
+        ]
+      },
+      "put": {
+        "summary": "更新资源",
+        "operationId": "K8sResourceService_UpdateResource",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Resource"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "resourceType",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "RESOURCE_TYPE_UNSPECIFIED",
+              "POD",
+              "DEPLOYMENT",
+              "SERVICE",
+              "CONFIGMAP",
+              "SECRET",
+              "NAMESPACE",
+              "NODE",
+              "PERSISTENTVOLUME",
+              "PERSISTENTVOLUMECLAIM",
+              "STATEFULSET",
+              "DAEMONSET",
+              "JOB",
+              "CRONJOB",
+              "INGRESS",
+              "NETWORKPOLICY",
+              "RESOURCEQUOTA",
+              "LIMITRANGE",
+              "HORIZONTALPODAUTOSCALER",
+              "STORAGECLASS",
+              "ROLE",
+              "ROLEBINDING",
+              "CLUSTERROLE",
+              "CLUSTERROLEBINDING",
+              "SERVICEACCOUNT",
+              "ENDPOINT",
+              "ENDPOINTSLICE",
+              "EVENT",
+              "PRIORITYCLASS",
+              "REPLICASET"
+            ]
+          },
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/K8sResourceServiceUpdateResourceBody"
+            }
+          }
+        ],
+        "tags": [
+          "K8sResourceService"
+        ]
+      }
+    },
+    "/api/v1/clusters/{clusterId}/version": {
+      "get": {
+        "summary": "获取集群版本信息",
+        "operationId": "ClusterService_GetClusterVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ClusterVersion"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ClusterService"
+        ]
+      }
+    },
+    "/api/v1/monitor/agents/metrics": {
+      "get": {
+        "summary": "获取Agent指标",
+        "operationId": "MonitorService_GetAgentMetrics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetAgentMetricsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "agentId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "clusterId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MonitorService"
+        ]
+      }
+    },
+    "/api/v1/monitor/alert-rules": {
+      "get": {
+        "summary": "列出告警规则",
+        "operationId": "AlertRuleService_ListAlertRules",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListAlertRulesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "enabled",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "AlertRuleService"
+        ]
+      },
+      "post": {
+        "summary": "创建告警规则",
+        "operationId": "AlertRuleService_CreateAlertRule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AlertRule"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateAlertRuleRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AlertRuleService"
+        ]
+      }
+    },
+    "/api/v1/monitor/alert-rules/{ruleId}": {
+      "get": {
+        "summary": "获取告警规则",
+        "operationId": "AlertRuleService_GetAlertRule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AlertRule"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AlertRuleService"
+        ]
+      },
+      "delete": {
+        "summary": "删除告警规则",
+        "operationId": "AlertRuleService_DeleteAlertRule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteAlertRuleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AlertRuleService"
+        ]
+      },
+      "put": {
+        "summary": "更新告警规则",
+        "operationId": "AlertRuleService_UpdateAlertRule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AlertRule"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AlertRuleServiceUpdateAlertRuleBody"
+            }
+          }
+        ],
+        "tags": [
+          "AlertRuleService"
+        ]
+      }
+    },
+    "/api/v1/monitor/alert-rules/{ruleId}/toggle": {
+      "post": {
+        "summary": "启用/禁用告警规则",
+        "operationId": "AlertRuleService_ToggleAlertRule",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AlertRule"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ruleId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AlertRuleServiceToggleAlertRuleBody"
+            }
+          }
+        ],
+        "tags": [
+          "AlertRuleService"
+        ]
+      }
+    },
+    "/api/v1/monitor/alerts": {
+      "get": {
+        "summary": "列出告警",
+        "operationId": "MonitorService_ListAlerts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListAlertsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "severity",
+            "description": " - CRITICAL: 严重\n - WARNING: 警告\n - INFO: 信息",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "ALERT_SEVERITY_UNSPECIFIED",
+              "CRITICAL",
+              "WARNING",
+              "INFO"
+            ],
+            "default": "ALERT_SEVERITY_UNSPECIFIED"
+          },
+          {
+            "name": "status",
+            "description": " - FIRING: 触发中\n - RESOLVED: 已解决\n - ACKNOWLEDGED: 已确认\n - SILENCED: 已静默",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "ALERT_STATUS_UNSPECIFIED",
+              "FIRING",
+              "RESOLVED",
+              "ACKNOWLEDGED",
+              "SILENCED"
+            ],
+            "default": "ALERT_STATUS_UNSPECIFIED"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MonitorService"
+        ]
+      },
+      "post": {
+        "summary": "创建告警",
+        "operationId": "MonitorService_CreateAlert",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Alert"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateAlertRequest"
+            }
+          }
+        ],
+        "tags": [
+          "MonitorService"
+        ]
+      }
+    },
+    "/api/v1/monitor/alerts/{alertId}": {
+      "get": {
+        "summary": "获取告警",
+        "operationId": "MonitorService_GetAlert",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Alert"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "alertId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MonitorService"
+        ]
+      },
+      "delete": {
+        "summary": "删除告警",
+        "operationId": "MonitorService_DeleteAlert",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteAlertResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "alertId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MonitorService"
+        ]
+      },
+      "put": {
+        "summary": "更新告警",
+        "operationId": "MonitorService_UpdateAlert",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Alert"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "alertId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MonitorServiceUpdateAlertBody"
+            }
+          }
+        ],
+        "tags": [
+          "MonitorService"
+        ]
+      }
+    },
+    "/api/v1/monitor/alerts/{alertId}/acknowledge": {
+      "post": {
+        "summary": "确认告警",
+        "operationId": "MonitorService_AcknowledgeAlert",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AcknowledgeAlertResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "alertId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MonitorServiceAcknowledgeAlertBody"
+            }
+          }
+        ],
+        "tags": [
+          "MonitorService"
+        ]
+      }
+    },
+    "/api/v1/monitor/collector/config": {
+      "get": {
+        "summary": "获取采集器配置",
+        "operationId": "MetricsCollectorService_GetCollectorConfig",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CollectorConfig"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MetricsCollectorService"
+        ]
+      }
+    },
+    "/api/v1/monitor/query": {
+      "post": {
+        "summary": "查询指标数据",
+        "operationId": "MonitorService_QueryMetrics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1QueryMetricsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1QueryMetricsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "MonitorService"
+        ]
+      }
+    },
+    "/api/v1/monitor/summary": {
+      "get": {
+        "summary": "获取监控概览",
+        "operationId": "MonitorService_GetMetricsSummary",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1MetricsSummary"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "MonitorService"
+        ]
+      }
+    },
+    "/api/v1/permissions": {
+      "get": {
+        "summary": "列出权限",
+        "operationId": "PermissionService_ListPermissions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListPermissionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PermissionService"
+        ]
+      },
+      "post": {
+        "summary": "创建权限",
+        "operationId": "PermissionService_CreatePermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Permission"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreatePermissionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PermissionService"
+        ]
+      }
+    },
+    "/api/v1/permissions/tree": {
+      "get": {
+        "summary": "获取权限树",
+        "operationId": "PermissionService_GetPermissionTree",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetPermissionTreeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "PermissionService"
+        ]
+      }
+    },
+    "/api/v1/permissions/{permissionId}": {
+      "get": {
+        "summary": "获取权限",
+        "operationId": "PermissionService_GetPermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Permission"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "PermissionService"
+        ]
+      },
+      "delete": {
+        "summary": "删除权限",
+        "operationId": "PermissionService_DeletePermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeletePermissionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "PermissionService"
+        ]
+      },
+      "put": {
+        "summary": "更新权限",
+        "operationId": "PermissionService_UpdatePermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Permission"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PermissionServiceUpdatePermissionBody"
+            }
+          }
+        ],
+        "tags": [
+          "PermissionService"
+        ]
+      }
+    },
+    "/api/v1/roles": {
+      "get": {
+        "summary": "列出角色",
+        "operationId": "RoleService_ListRoles",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListRolesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoleService"
+        ]
+      },
+      "post": {
+        "summary": "创建角色",
+        "operationId": "RoleService_CreateRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Role"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateRoleRequest"
+            }
+          }
+        ],
+        "tags": [
+          "RoleService"
+        ]
+      }
+    },
+    "/api/v1/roles/{roleId}": {
+      "get": {
+        "summary": "获取角色",
+        "operationId": "RoleService_GetRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Role"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "RoleService"
+        ]
+      },
+      "delete": {
+        "summary": "删除角色",
+        "operationId": "RoleService_DeleteRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteRoleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "RoleService"
+        ]
+      },
+      "put": {
+        "summary": "更新角色",
+        "operationId": "RoleService_UpdateRole",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Role"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RoleServiceUpdateRoleBody"
+            }
+          }
+        ],
+        "tags": [
+          "RoleService"
+        ]
+      }
+    },
+    "/api/v1/roles/{roleId}/permissions": {
+      "post": {
+        "summary": "分配权限给角色",
+        "operationId": "RoleService_AssignPermissions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1AssignPermissionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RoleServiceAssignPermissionsBody"
+            }
+          }
+        ],
+        "tags": [
+          "RoleService"
+        ]
+      }
+    },
+    "/api/v1/sessions": {
+      "get": {
+        "summary": "列出会话",
+        "operationId": "SessionService_ListSessions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListSessionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "SessionService"
+        ]
+      }
+    },
+    "/api/v1/sessions/{sessionId}": {
+      "get": {
+        "summary": "获取会话",
+        "operationId": "SessionService_GetSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Session"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SessionService"
+        ]
+      },
+      "delete": {
+        "summary": "使会话失效",
+        "operationId": "SessionService_InvalidateSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1InvalidateSessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "SessionService"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "summary": "列出用户",
+        "operationId": "UserService_ListUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListUsersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pagination.page",
+            "description": "页码（从 1 开始）",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.pageSize",
+            "description": "每页大小",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pagination.orderBy",
+            "description": "排序字段",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pagination.orderDirection",
+            "description": "排序方向：asc/desc",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      },
+      "post": {
+        "summary": "创建用户",
+        "operationId": "UserService_CreateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1User"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/api/v1/users/{userId}": {
+      "get": {
+        "summary": "获取用户",
+        "operationId": "UserService_GetUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1User"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      },
+      "delete": {
+        "summary": "删除用户",
+        "operationId": "UserService_DeleteUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      },
+      "put": {
+        "summary": "更新用户",
+        "operationId": "UserService_UpdateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1User"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserServiceUpdateUserBody"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
     "/v1/analysis/root-cause": {
       "post": {
         "summary": "根因分析",
@@ -298,6 +2687,54 @@
     }
   },
   "definitions": {
+    "AlertRuleServiceToggleAlertRuleBody": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "title": "启用/禁用告警规则请求"
+    },
+    "AlertRuleServiceUpdateAlertRuleBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/definitions/v1AlertSeverity"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "notificationChannels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "更新告警规则请求"
+    },
     "AnalysisOptionsDepth": {
       "type": "string",
       "enum": [
@@ -309,6 +2746,30 @@
       "default": "DEPTH_UNSPECIFIED",
       "description": "- SHALLOW: 浅层分析\n - MEDIUM: 中等深度\n - DEEP: 深度分析",
       "title": "分析深度"
+    },
+    "ClusterServiceUpdateClusterBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "apiServer": {
+          "type": "string"
+        },
+        "kubeconfig": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "更新集群请求"
     },
     "HealthCheckResponseServingStatus": {
       "type": "string",
@@ -322,6 +2783,113 @@
       "description": "- SERVING: 服务正常\n - NOT_SERVING: 服务不可用\n - UNKNOWN: 状态未知",
       "title": "健康状态枚举"
     },
+    "K8sResourceServiceCreateResourceBody": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "spec": {
+          "type": "object",
+          "title": "资源规格（JSON格式）"
+        }
+      },
+      "title": "创建资源请求"
+    },
+    "K8sResourceServiceUpdateResourceBody": {
+      "type": "object",
+      "properties": {
+        "spec": {
+          "type": "object",
+          "title": "资源规格（JSON格式）"
+        }
+      },
+      "title": "更新资源请求"
+    },
+    "MonitorServiceAcknowledgeAlertBody": {
+      "type": "object",
+      "properties": {
+        "acknowledgedBy": {
+          "type": "string"
+        },
+        "comment": {
+          "type": "string"
+        }
+      },
+      "title": "确认告警请求"
+    },
+    "MonitorServiceUpdateAlertBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/definitions/v1AlertSeverity"
+        },
+        "status": {
+          "$ref": "#/definitions/v1AlertStatus"
+        }
+      },
+      "title": "更新告警请求"
+    },
+    "PermissionServiceUpdatePermissionBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string",
+          "format": "uint64"
+        }
+      },
+      "title": "更新权限请求"
+    },
+    "RoleServiceAssignPermissionsBody": {
+      "type": "object",
+      "properties": {
+        "permissionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uint64"
+          }
+        }
+      },
+      "title": "分配权限请求"
+    },
+    "RoleServiceUpdateRoleBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "更新角色请求"
+    },
     "SaveCaseRequestResult": {
       "type": "string",
       "enum": [
@@ -333,6 +2901,32 @@
       "default": "RESULT_UNSPECIFIED",
       "description": "- SUCCESSFUL: 成功\n - PARTIALLY_SUCCESSFUL: 部分成功\n - FAILED: 失败",
       "title": "解决结果"
+    },
+    "UserServiceUpdateUserBody": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "roleIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uint64"
+          }
+        }
+      },
+      "title": "更新用户请求"
     },
     "WorkflowServiceExecuteWorkflowBody": {
       "type": "object",
@@ -382,6 +2976,15 @@
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\nThe JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
+    "v1AcknowledgeAlertResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "确认告警响应"
+    },
     "v1Agent": {
       "type": "object",
       "properties": {
@@ -428,6 +3031,50 @@
       },
       "title": "Agent 信息"
     },
+    "v1AgentMetrics": {
+      "type": "object",
+      "properties": {
+        "agentId": {
+          "type": "string"
+        },
+        "agentName": {
+          "type": "string"
+        },
+        "clusterId": {
+          "type": "string"
+        },
+        "cpuUsage": {
+          "type": "number",
+          "format": "double",
+          "title": "CPU使用率 (%)"
+        },
+        "memoryUsage": {
+          "type": "number",
+          "format": "double",
+          "title": "内存使用率 (%)"
+        },
+        "diskUsage": {
+          "type": "number",
+          "format": "double",
+          "title": "磁盘使用率 (%)"
+        },
+        "networkIn": {
+          "type": "string",
+          "format": "int64",
+          "title": "网络入流量 (bytes/s)"
+        },
+        "networkOut": {
+          "type": "string",
+          "format": "int64",
+          "title": "网络出流量 (bytes/s)"
+        },
+        "collectedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Agent指标"
+    },
     "v1AgentStatus": {
       "type": "string",
       "enum": [
@@ -440,6 +3087,139 @@
       "default": "STATUS_UNSPECIFIED",
       "description": "- ONLINE: 在线\n - OFFLINE: 离线\n - UNHEALTHY: 不健康\n - INITIALIZING: 初始化中",
       "title": "Agent 状态"
+    },
+    "v1Alert": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/definitions/v1AlertSeverity"
+        },
+        "status": {
+          "$ref": "#/definitions/v1AlertStatus"
+        },
+        "source": {
+          "type": "string",
+          "title": "告警来源"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "triggeredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "acknowledgedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "acknowledgedBy": {
+          "type": "string"
+        }
+      },
+      "title": "告警信息"
+    },
+    "v1AlertRule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string",
+          "title": "PromQL表达式"
+        },
+        "duration": {
+          "type": "string",
+          "title": "持续时间，如: 5m"
+        },
+        "severity": {
+          "$ref": "#/definitions/v1AlertSeverity"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "notificationChannels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "通知渠道"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "告警规则"
+    },
+    "v1AlertSeverity": {
+      "type": "string",
+      "enum": [
+        "ALERT_SEVERITY_UNSPECIFIED",
+        "CRITICAL",
+        "WARNING",
+        "INFO"
+      ],
+      "default": "ALERT_SEVERITY_UNSPECIFIED",
+      "description": "- CRITICAL: 严重\n - WARNING: 警告\n - INFO: 信息",
+      "title": "告警严重级别"
+    },
+    "v1AlertStatus": {
+      "type": "string",
+      "enum": [
+        "ALERT_STATUS_UNSPECIFIED",
+        "FIRING",
+        "RESOLVED",
+        "ACKNOWLEDGED",
+        "SILENCED"
+      ],
+      "default": "ALERT_STATUS_UNSPECIFIED",
+      "description": "- FIRING: 触发中\n - RESOLVED: 已解决\n - ACKNOWLEDGED: 已确认\n - SILENCED: 已静默",
+      "title": "告警状态"
     },
     "v1AnalysisContext": {
       "type": "object",
@@ -502,6 +3282,15 @@
       },
       "title": "分析选项"
     },
+    "v1AssignPermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "分配权限响应"
+    },
     "v1CancelCommandResponse": {
       "type": "object",
       "properties": {
@@ -510,6 +3299,180 @@
         }
       },
       "title": "取消命令响应"
+    },
+    "v1CheckPermissionRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        }
+      },
+      "title": "检查权限请求"
+    },
+    "v1CheckPermissionResponse": {
+      "type": "object",
+      "properties": {
+        "allowed": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "title": "检查权限响应"
+    },
+    "v1Cluster": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "apiServer": {
+          "type": "string",
+          "title": "API Server地址"
+        },
+        "kubeconfig": {
+          "type": "string",
+          "title": "Kubeconfig内容（base64编码）"
+        },
+        "version": {
+          "type": "string",
+          "title": "K8s版本"
+        },
+        "status": {
+          "$ref": "#/definitions/v1ClusterStatus"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "集群信息"
+    },
+    "v1ClusterHealth": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1ClusterStatus"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ComponentHealth"
+          }
+        },
+        "resources": {
+          "$ref": "#/definitions/v1ClusterResources"
+        },
+        "lastCheck": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "集群健康状态"
+    },
+    "v1ClusterResources": {
+      "type": "object",
+      "properties": {
+        "nodeCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "namespaceCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "podCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "serviceCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "deploymentCount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "集群资源"
+    },
+    "v1ClusterStatus": {
+      "type": "string",
+      "enum": [
+        "CLUSTER_STATUS_UNSPECIFIED",
+        "HEALTHY",
+        "UNHEALTHY",
+        "UNREACHABLE",
+        "UNKNOWN"
+      ],
+      "default": "CLUSTER_STATUS_UNSPECIFIED",
+      "description": "- HEALTHY: 健康\n - UNHEALTHY: 不健康\n - UNREACHABLE: 不可达\n - UNKNOWN: 未知",
+      "title": "集群状态"
+    },
+    "v1ClusterVersion": {
+      "type": "object",
+      "properties": {
+        "kubernetesVersion": {
+          "type": "string"
+        },
+        "gitVersion": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        }
+      },
+      "title": "集群版本"
+    },
+    "v1CollectorConfig": {
+      "type": "object",
+      "properties": {
+        "intervalSeconds": {
+          "type": "integer",
+          "format": "int32",
+          "title": "采集间隔（秒）"
+        },
+        "enabledMetrics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "启用的指标"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "全局标签"
+        }
+      },
+      "title": "采集器配置"
     },
     "v1Command": {
       "type": "object",
@@ -598,6 +3561,180 @@
       "description": "- KUBECTL: kubectl 命令\n - DIAGNOSTIC: 诊断命令\n - REMEDIATION: 修复命令\n - CUSTOM: 自定义命令",
       "title": "命令类型"
     },
+    "v1ComponentHealth": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "kube-apiserver, kube-controller-manager, etc."
+        },
+        "healthy": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "组件健康状态"
+    },
+    "v1CreateAlertRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/definitions/v1AlertSeverity"
+        },
+        "source": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "创建告警请求"
+    },
+    "v1CreateAlertRuleRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/definitions/v1AlertSeverity"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "notificationChannels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "创建告警规则请求"
+    },
+    "v1CreateClusterRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "apiServer": {
+          "type": "string"
+        },
+        "kubeconfig": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "创建集群请求"
+    },
+    "v1CreatePermissionRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string",
+          "format": "uint64"
+        }
+      },
+      "title": "创建权限请求"
+    },
+    "v1CreateRoleRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "title": "创建角色请求"
+    },
+    "v1CreateUserRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "roleIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uint64"
+          }
+        }
+      },
+      "title": "创建用户请求"
+    },
     "v1CreateWorkflowRequest": {
       "type": "object",
       "properties": {
@@ -631,6 +3768,80 @@
         }
       },
       "title": "创建工作流响应"
+    },
+    "v1DeleteAlertResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "删除告警响应"
+    },
+    "v1DeleteAlertRuleResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "删除告警规则响应"
+    },
+    "v1DeleteClusterResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "删除集群响应"
+    },
+    "v1DeletePermissionResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "删除权限响应"
+    },
+    "v1DeleteResourceResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "删除资源响应"
+    },
+    "v1DeleteRoleResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "删除角色响应"
+    },
+    "v1DeleteUserResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "删除用户响应"
+    },
+    "v1EventType": {
+      "type": "string",
+      "enum": [
+        "EVENT_TYPE_UNSPECIFIED",
+        "ADDED",
+        "MODIFIED",
+        "DELETED"
+      ],
+      "default": "EVENT_TYPE_UNSPECIFIED",
+      "title": "事件类型"
     },
     "v1Evidence": {
       "type": "object",
@@ -685,6 +3896,22 @@
       },
       "title": "执行工作流响应"
     },
+    "v1GetAgentMetricsResponse": {
+      "type": "object",
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1AgentMetrics"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "获取Agent指标响应"
+    },
     "v1GetAgentResponse": {
       "type": "object",
       "properties": {
@@ -711,6 +3938,32 @@
         }
       },
       "title": "获取执行状态响应"
+    },
+    "v1GetMenusResponse": {
+      "type": "object",
+      "properties": {
+        "menus": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Menu"
+          }
+        }
+      },
+      "title": "获取菜单响应"
+    },
+    "v1GetPermissionTreeResponse": {
+      "type": "object",
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Permission"
+          }
+        }
+      },
+      "title": "获取权限树响应"
     },
     "v1GetWorkflowResponse": {
       "type": "object",
@@ -794,6 +4047,15 @@
       },
       "title": "历史案例"
     },
+    "v1InvalidateSessionResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "使会话失效响应"
+    },
     "v1ListAgentsResponse": {
       "type": "object",
       "properties": {
@@ -810,6 +4072,134 @@
       },
       "title": "列出 Agent 响应"
     },
+    "v1ListAlertRulesResponse": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1AlertRule"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出告警规则响应"
+    },
+    "v1ListAlertsResponse": {
+      "type": "object",
+      "properties": {
+        "alerts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Alert"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出告警响应"
+    },
+    "v1ListClustersResponse": {
+      "type": "object",
+      "properties": {
+        "clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Cluster"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出集群响应"
+    },
+    "v1ListPermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Permission"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出权限响应"
+    },
+    "v1ListResourcesResponse": {
+      "type": "object",
+      "properties": {
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Resource"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出资源响应"
+    },
+    "v1ListRolesResponse": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Role"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出角色响应"
+    },
+    "v1ListSessionsResponse": {
+      "type": "object",
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Session"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出会话响应"
+    },
+    "v1ListUsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1User"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/v1PaginationMetadata"
+        }
+      },
+      "title": "列出用户响应"
+    },
     "v1ListWorkflowsResponse": {
       "type": "object",
       "properties": {
@@ -825,6 +4215,135 @@
         }
       },
       "title": "列出工作流响应"
+    },
+    "v1LoginRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "title": "登录请求"
+    },
+    "v1LoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "user": {
+          "$ref": "#/definitions/v1User"
+        }
+      },
+      "title": "登录响应"
+    },
+    "v1LogoutRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      },
+      "title": "登出请求"
+    },
+    "v1LogoutResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "登出响应"
+    },
+    "v1Menu": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Menu"
+          }
+        }
+      },
+      "title": "菜单定义"
+    },
+    "v1MetricDataPoint": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "指标数据点"
+    },
+    "v1MetricsSummary": {
+      "type": "object",
+      "properties": {
+        "totalAgents": {
+          "type": "string",
+          "format": "int64"
+        },
+        "activeAgents": {
+          "type": "string",
+          "format": "int64"
+        },
+        "totalClusters": {
+          "type": "string",
+          "format": "int64"
+        },
+        "activeAlerts": {
+          "type": "string",
+          "format": "int64"
+        },
+        "avgCpuUsage": {
+          "type": "number",
+          "format": "double"
+        },
+        "avgMemoryUsage": {
+          "type": "number",
+          "format": "double"
+        },
+        "avgDiskUsage": {
+          "type": "number",
+          "format": "double"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "监控概览"
     },
     "v1PaginationMetadata": {
       "type": "object",
@@ -883,6 +4402,102 @@
         }
       },
       "title": "分页请求参数"
+    },
+    "v1Permission": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string",
+          "title": "权限代码，如: user:read"
+        },
+        "resource": {
+          "type": "string",
+          "title": "资源，如: user"
+        },
+        "action": {
+          "type": "string",
+          "title": "操作，如: read"
+        },
+        "description": {
+          "type": "string"
+        },
+        "parentId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Permission"
+          }
+        }
+      },
+      "title": "权限信息"
+    },
+    "v1QueryMetricsRequest": {
+      "type": "object",
+      "properties": {
+        "metricName": {
+          "type": "string",
+          "title": "指标名称"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "标签过滤"
+        },
+        "startTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "aggregation": {
+          "type": "string",
+          "title": "聚合方式：avg, sum, min, max"
+        },
+        "interval": {
+          "type": "string",
+          "title": "时间间隔：1m, 5m, 1h"
+        }
+      },
+      "title": "查询指标请求"
+    },
+    "v1QueryMetricsResponse": {
+      "type": "object",
+      "properties": {
+        "metricName": {
+          "type": "string"
+        },
+        "dataPoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1MetricDataPoint"
+          }
+        }
+      },
+      "title": "查询指标响应"
     },
     "v1Recommendation": {
       "type": "object",
@@ -944,6 +4559,28 @@
       "description": "- MANUAL: 手动修复\n - AUTOMATED: 自动修复\n - PREVENTIVE: 预防性措施",
       "title": "建议类型"
     },
+    "v1RefreshTokenRequest": {
+      "type": "object",
+      "properties": {
+        "refreshToken": {
+          "type": "string"
+        }
+      },
+      "title": "刷新Token请求"
+    },
+    "v1RefreshTokenResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "title": "刷新Token响应"
+    },
     "v1RegisterAgentResponse": {
       "type": "object",
       "properties": {
@@ -956,6 +4593,146 @@
         }
       },
       "title": "Agent 注册响应"
+    },
+    "v1ReportMetricsResponse": {
+      "type": "object",
+      "properties": {
+        "receivedCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "上报指标响应"
+    },
+    "v1Resource": {
+      "type": "object",
+      "properties": {
+        "clusterId": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/v1ResourceType"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "spec": {
+          "type": "object",
+          "title": "资源规格（JSON格式）"
+        },
+        "status": {
+          "type": "object",
+          "title": "资源状态（JSON格式）"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "K8s资源"
+    },
+    "v1ResourceEvent": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/v1EventType"
+        },
+        "resource": {
+          "$ref": "#/definitions/v1Resource"
+        }
+      },
+      "title": "资源事件"
+    },
+    "v1ResourceType": {
+      "type": "string",
+      "enum": [
+        "RESOURCE_TYPE_UNSPECIFIED",
+        "POD",
+        "DEPLOYMENT",
+        "SERVICE",
+        "CONFIGMAP",
+        "SECRET",
+        "NAMESPACE",
+        "NODE",
+        "PERSISTENTVOLUME",
+        "PERSISTENTVOLUMECLAIM",
+        "STATEFULSET",
+        "DAEMONSET",
+        "JOB",
+        "CRONJOB",
+        "INGRESS",
+        "NETWORKPOLICY",
+        "RESOURCEQUOTA",
+        "LIMITRANGE",
+        "HORIZONTALPODAUTOSCALER",
+        "STORAGECLASS",
+        "ROLE",
+        "ROLEBINDING",
+        "CLUSTERROLE",
+        "CLUSTERROLEBINDING",
+        "SERVICEACCOUNT",
+        "ENDPOINT",
+        "ENDPOINTSLICE",
+        "EVENT",
+        "PRIORITYCLASS",
+        "REPLICASET"
+      ],
+      "default": "RESOURCE_TYPE_UNSPECIFIED",
+      "title": "资源类型"
+    },
+    "v1Role": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "title": "1=active, 0=inactive"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Permission"
+          }
+        }
+      },
+      "title": "角色信息"
     },
     "v1RootCause": {
       "type": "object",
@@ -1103,6 +4880,36 @@
       },
       "title": "保存案例响应"
     },
+    "v1Session": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "username": {
+          "type": "string"
+        },
+        "ipAddress": {
+          "type": "string"
+        },
+        "userAgent": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "会话信息"
+    },
     "v1UnregisterAgentResponse": {
       "type": "object",
       "properties": {
@@ -1111,6 +4918,48 @@
         }
       },
       "title": "注销 Agent 响应"
+    },
+    "v1User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer",
+          "format": "int32",
+          "title": "1=active, 0=inactive"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Role"
+          }
+        }
+      },
+      "title": "用户信息"
     },
     "v1Workflow": {
       "type": "object",

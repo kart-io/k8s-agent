@@ -98,6 +98,7 @@ func (a *ClusterApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	// Register components to Bootstrap
 	bs.Register(components.DB)
 	bs.Register(components.HTTP)
+	bs.Register(components.GRPC)
 	bs.Register(components.Health)
 
 	// Save references for app

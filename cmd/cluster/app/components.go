@@ -15,6 +15,7 @@ import (
 type ClusterComponents struct {
 	DB     *initializers.DatabaseInitializer
 	HTTP   *initializers.HTTPServerInitializer
+	GRPC   *initializers.GRPCServerInitializer
 	Health *pkginitializers.HealthCheckInitializer
 }
 
@@ -22,11 +23,13 @@ type ClusterComponents struct {
 func NewClusterComponents(
 	db *initializers.DatabaseInitializer,
 	http *initializers.HTTPServerInitializer,
+	grpc *initializers.GRPCServerInitializer,
 	health *pkginitializers.HealthCheckInitializer,
 ) *ClusterComponents {
 	return &ClusterComponents{
 		DB:     db,
 		HTTP:   http,
+		GRPC:   grpc,
 		Health: health,
 	}
 }

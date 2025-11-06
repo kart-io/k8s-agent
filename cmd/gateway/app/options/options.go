@@ -26,31 +26,15 @@ type ServerOptions struct {
 	Redis   *commonoptions.RedisOptions   `json:"redis" mapstructure:"redis"`
 	JWT     *commonoptions.JWTOptions     `json:"jwt" mapstructure:"jwt"`
 
+	// 使用 common/options 标准配置
+	RateLimit *commonoptions.RateLimitOptions `json:"rate_limit" mapstructure:"rate_limit"`
+	CORS      *commonoptions.CORSOptions      `json:"cors" mapstructure:"cors"`
+	Metrics   *commonoptions.MetricsOptions   `json:"metrics" mapstructure:"metrics"`
+
 	// Gateway 特有配置
-	RateLimit   RateLimitOptions   `json:"rate_limit" mapstructure:"rate_limit"`
-	CORS        CORSOptions        `json:"cors" mapstructure:"cors"`
 	Services    ServicesOptions    `json:"services" mapstructure:"services"`
 	Routes      []RouteOptions     `json:"routes" mapstructure:"routes"`
 	HealthCheck HealthCheckOptions `json:"health_check" mapstructure:"health_check"`
-	Metrics     MetricsOptions     `json:"metrics" mapstructure:"metrics"`
-}
-
-// RateLimitOptions holds rate limiting configuration.
-type RateLimitOptions struct {
-	Enabled           bool `json:"enabled" mapstructure:"enabled"`
-	RequestsPerSecond int  `json:"requests_per_second" mapstructure:"requests_per_second"`
-	Burst             int  `json:"burst" mapstructure:"burst"`
-}
-
-// CORSOptions holds CORS configuration.
-type CORSOptions struct {
-	Enabled          bool          `json:"enabled" mapstructure:"enabled"`
-	AllowOrigins     []string      `json:"allow_origins" mapstructure:"allow_origins"`
-	AllowMethods     []string      `json:"allow_methods" mapstructure:"allow_methods"`
-	AllowHeaders     []string      `json:"allow_headers" mapstructure:"allow_headers"`
-	ExposeHeaders    []string      `json:"expose_headers" mapstructure:"expose_headers"`
-	AllowCredentials bool          `json:"allow_credentials" mapstructure:"allow_credentials"`
-	MaxAge           time.Duration `json:"max_age" mapstructure:"max_age"`
 }
 
 // ServiceOptions holds individual service configuration.
@@ -85,12 +69,6 @@ type HealthCheckOptions struct {
 	Timeout  time.Duration `json:"timeout" mapstructure:"timeout"`
 }
 
-// MetricsOptions holds metrics configuration.
-type MetricsOptions struct {
-	Enabled bool   `json:"enabled" mapstructure:"enabled"`
-	Path    string `json:"path" mapstructure:"path"`
-}
-
 // NewServerOptions 创建新的 ServerOptions 实例，使用默认值
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
@@ -99,20 +77,12 @@ func NewServerOptions() *ServerOptions {
 		Health:  commonoptions.NewHealthOptions(),
 		Redis:   commonoptions.NewRedisOptions(),
 		JWT:     commonoptions.NewJWTOptions(),
-		RateLimit: RateLimitOptions{
-			Enabled:           true,
-			RequestsPerSecond: 100,
-			Burst:             200,
-		},
-		CORS: CORSOptions{
-			Enabled:          true,
-			AllowOrigins:     []string{"*"},
-			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-			ExposeHeaders:    []string{"Content-Length"},
-			AllowCredentials: true,
-			MaxAge:           12 * time.Hour,
-		},
+
+		// 使用 common/options 标准配置
+		RateLimit: commonoptions.NewRateLimitOptions(),
+		CORS:      commonoptions.NewCORSOptions(),
+		Metrics:   commonoptions.NewMetricsOptions(),
+
 		Services: ServicesOptions{
 			Auth: ServiceOptions{
 				Name:        "auth",
@@ -148,10 +118,6 @@ func NewServerOptions() *ServerOptions {
 			Interval: 30 * time.Second,
 			Timeout:  5 * time.Second,
 		},
-		Metrics: MetricsOptions{
-			Enabled: true,
-			Path:    "/metrics",
-		},
 	}
 }
 
@@ -161,8 +127,8 @@ func (o *ServerOptions) Validate() []error {
 	errs := commonoptions.ValidateAll(o)
 
 	// Validate gateway specific options
-	if o.RateLimit.Enabled {
-		if o.RateLimit.RequestsPerSecond <= 0 {
+	if o.RateLimit != nil && o.RateLimit.Enable {
+		if o.RateLimit.Rate <= 0 {
 			errs = append(errs, ErrInvalidRateLimit)
 		}
 		if o.RateLimit.Burst <= 0 {
@@ -181,24 +147,12 @@ func (o *ServerOptions) Complete() error {
 	}
 
 	// Set defaults for gateway specific options
-	if o.RateLimit.RequestsPerSecond == 0 {
-		o.RateLimit.RequestsPerSecond = 100
-	}
-
-	if o.RateLimit.Burst == 0 {
-		o.RateLimit.Burst = 200
-	}
-
 	if o.HealthCheck.Interval == 0 {
 		o.HealthCheck.Interval = 30 * time.Second
 	}
 
 	if o.HealthCheck.Timeout == 0 {
 		o.HealthCheck.Timeout = 5 * time.Second
-	}
-
-	if o.Metrics.Path == "" {
-		o.Metrics.Path = "/metrics"
 	}
 
 	return nil
@@ -211,32 +165,11 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	commonoptions.AddFlagsAll(o, fs)
 
 	// Add gateway specific flags
-	fs.BoolVar(&o.RateLimit.Enabled, "rate-limit.enabled", o.RateLimit.Enabled,
-		"Enable rate limiting")
-
-	fs.IntVar(&o.RateLimit.RequestsPerSecond, "rate-limit.requests-per-second", o.RateLimit.RequestsPerSecond,
-		"Maximum requests per second")
-
-	fs.IntVar(&o.RateLimit.Burst, "rate-limit.burst", o.RateLimit.Burst,
-		"Burst size for rate limiting")
-
-	fs.BoolVar(&o.CORS.Enabled, "cors.enabled", o.CORS.Enabled,
-		"Enable CORS middleware")
-
-	fs.StringSliceVar(&o.CORS.AllowOrigins, "cors.allow-origins", o.CORS.AllowOrigins,
-		"Allowed origins for CORS")
-
 	fs.BoolVar(&o.HealthCheck.Enabled, "health-check.enabled", o.HealthCheck.Enabled,
 		"Enable health check for backend services")
 
 	fs.DurationVar(&o.HealthCheck.Interval, "health-check.interval", o.HealthCheck.Interval,
 		"Health check interval")
-
-	fs.BoolVar(&o.Metrics.Enabled, "metrics.enabled", o.Metrics.Enabled,
-		"Enable metrics endpoint")
-
-	fs.StringVar(&o.Metrics.Path, "metrics.path", o.Metrics.Path,
-		"Path for metrics endpoint")
 }
 
 // InitLogger 基于配置初始化 logger
@@ -254,7 +187,7 @@ func (o *ServerOptions) GetLogFields() []interface{} {
 	return []interface{}{
 		"http_port", o.Server.Port,
 		"health_port", o.Health.Port,
-		"rate_limit_enabled", o.RateLimit.Enabled,
+		"rate_limit_enabled", o.RateLimit.Enable,
 		"cors_enabled", o.CORS.Enabled,
 	}
 }

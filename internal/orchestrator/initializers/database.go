@@ -1,77 +1,58 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package initializers
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
-// DatabaseInitializer 数据库初始化器.
+// DatabaseInitializer wraps the generic database initializer with orchestrator-specific configuration.
 type DatabaseInitializer struct {
+	*pkginitializers.DatabaseInitializer
 	opts   *options.ServerOptions
 	logger core.Logger
-	store  *storage.PostgresStore
+	store  *storage.PostgresStore // Cached storage instance
 }
 
-// NewDatabaseInitializer 创建数据库初始化器.
+// NewDatabaseInitializer creates a database initializer for orchestrator service.
 func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *DatabaseInitializer {
+	// Create the base initializer
+	dbInit := pkginitializers.NewDatabaseInitializer(opts.Database, logger)
+
+	// Configure auto-migration if enabled
+	// Note: Orchestrator models should be defined in internal/orchestrator/models package
+	// When models are created, uncomment the following:
+	// if opts.Database.AutoMigrate {
+	//     dbInit.WithAutoMigrate(&models.Workflow{}, &models.Strategy{}, ...)
+	// }
+
 	return &DatabaseInitializer{
-		opts:   opts,
-		logger: logger,
+		DatabaseInitializer: dbInit,
+		opts:                opts,
+		logger:              logger,
 	}
 }
 
-// Name 返回初始化器名称.
-func (d *DatabaseInitializer) Name() string {
-	return "database"
-}
+// Store returns the initialized storage instance.
+// It lazily creates the storage wrapper on first call.
+func (d *DatabaseInitializer) Store() *storage.PostgresStore {
+	if d.store != nil {
+		return d.store
+	}
 
-// Priority 返回初始化优先级.
-func (d *DatabaseInitializer) Priority() int {
-	return bootstrap.PriorityDatabase
-}
-
-// Initialize 执行初始化.
-func (d *DatabaseInitializer) Initialize(ctx context.Context) error {
-	d.logger.Infow("Initializing PostgreSQL",
-		"host", d.opts.Database.Host,
-		"port", d.opts.Database.Port,
-		"database", d.opts.Database.Database,
-	)
-
+	// Create storage using the configuration (this will create its own connection)
 	store, err := storage.NewPostgresStore(d.opts.Database, d.logger)
 	if err != nil {
-		return fmt.Errorf("failed to initialize PostgreSQL store (host=%s, port=%d, db=%s): %w",
-			d.opts.Database.Host, d.opts.Database.Port, d.opts.Database.Database, err)
+		d.logger.Errorw("Failed to create Postgres store", "error", err)
+		return nil
 	}
 
 	d.store = store
-	d.logger.Info("PostgreSQL initialized successfully")
-	return nil
-}
-
-// Close 关闭数据库连接.
-func (d *DatabaseInitializer) Close(ctx context.Context) error {
-	if d.store != nil {
-		if err := d.store.Close(); err != nil {
-			d.logger.Errorw("Failed to close database store", "error", err)
-			return err
-		}
-	}
-	return nil
-}
-
-// HealthCheck 检查数据库健康状态.
-func (d *DatabaseInitializer) HealthCheck(ctx context.Context) error {
-	// Database health is checked via connection status
-	return nil
-}
-
-// Store 获取存储实例.
-func (d *DatabaseInitializer) Store() *storage.PostgresStore {
 	return d.store
 }
+

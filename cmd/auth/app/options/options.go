@@ -23,6 +23,8 @@ const (
 type ServerOptions struct {
 	// Server options for configuring HTTP server related options.
 	Server *commonoptions.ServerOptions `json:"server" mapstructure:"server"`
+	// GRPC options for configuring gRPC server related options.
+	GRPC *commonoptions.GRPCOptions `json:"grpc" mapstructure:"grpc"`
 	// Database options for configuring MySQL database related options.
 	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
 	// Redis options for configuring Redis related options.
@@ -46,6 +48,7 @@ var _ commonapp.Options = (*ServerOptions)(nil)
 func NewServerOptions() *ServerOptions {
 	o := &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
+		GRPC:     commonoptions.NewGRPCOptions(),
 		Database: commonoptions.NewDatabaseOptions(),
 		Redis:    commonoptions.NewRedisOptions(),
 		JWT:      commonoptions.NewJWTOptions(),

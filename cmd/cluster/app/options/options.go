@@ -16,6 +16,7 @@ import (
 // This implements the pkg/app.Options interface.
 type ServerOptions struct {
 	Server   *commonoptions.ServerOptions   `json:"server" mapstructure:"server"`
+	GRPC     *commonoptions.GRPCOptions     `json:"grpc" mapstructure:"grpc"`
 	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
 	JWT      *commonoptions.JWTOptions      `json:"jwt" mapstructure:"jwt"`
 	Logging  *commonoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
@@ -26,6 +27,7 @@ type ServerOptions struct {
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
+		GRPC:     commonoptions.NewGRPCOptions(),
 		Database: commonoptions.NewDatabaseOptions(),
 		JWT:      commonoptions.NewJWTOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),

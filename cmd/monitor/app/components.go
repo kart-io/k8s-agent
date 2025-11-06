@@ -16,6 +16,7 @@ type MonitorComponents struct {
 	DB     *initializers.DatabaseInitializer
 	Redis  *initializers.RedisInitializer
 	HTTP   *initializers.HTTPServerInitializer
+	GRPC   *initializers.GRPCServerInitializer
 	Health *pkginitializers.HealthCheckInitializer
 }
 
@@ -24,12 +25,14 @@ func NewMonitorComponents(
 	db *initializers.DatabaseInitializer,
 	redis *initializers.RedisInitializer,
 	http *initializers.HTTPServerInitializer,
+	grpc *initializers.GRPCServerInitializer,
 	health *pkginitializers.HealthCheckInitializer,
 ) *MonitorComponents {
 	return &MonitorComponents{
 		DB:     db,
 		Redis:  redis,
 		HTTP:   http,
+		GRPC:   grpc,
 		Health: health,
 	}
 }

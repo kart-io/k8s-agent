@@ -1,0 +1,353 @@
+// cluster/cluster.proto
+// Cluster Service API 定义 - Kubernetes集群管理服务
+
+syntax = "proto3";
+
+package cluster.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "google/api/annotations.proto";
+import "common/pagination/v1/pagination.proto";
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/cluster/v1;clusterv1";
+
+// ============================================================================
+// Cluster Service - 集群管理
+// ============================================================================
+
+service ClusterService {
+  // 获取集群
+  rpc GetCluster(GetClusterRequest) returns (Cluster) {
+    option (google.api.http) = {
+      get: "/api/v1/clusters/{cluster_id}"
+    };
+  }
+
+  // 列出集群
+  rpc ListClusters(ListClustersRequest) returns (ListClustersResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/clusters"
+    };
+  }
+
+  // 创建集群
+  rpc CreateCluster(CreateClusterRequest) returns (Cluster) {
+    option (google.api.http) = {
+      post: "/api/v1/clusters"
+      body: "*"
+    };
+  }
+
+  // 更新集群
+  rpc UpdateCluster(UpdateClusterRequest) returns (Cluster) {
+    option (google.api.http) = {
+      put: "/api/v1/clusters/{cluster_id}"
+      body: "*"
+    };
+  }
+
+  // 删除集群
+  rpc DeleteCluster(DeleteClusterRequest) returns (DeleteClusterResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/clusters/{cluster_id}"
+    };
+  }
+
+  // 获取集群健康状态
+  rpc GetClusterHealth(GetClusterHealthRequest) returns (ClusterHealth) {
+    option (google.api.http) = {
+      get: "/api/v1/clusters/{cluster_id}/health"
+    };
+  }
+
+  // 获取集群版本信息
+  rpc GetClusterVersion(GetClusterVersionRequest) returns (ClusterVersion) {
+    option (google.api.http) = {
+      get: "/api/v1/clusters/{cluster_id}/version"
+    };
+  }
+}
+
+// 集群信息
+message Cluster {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string api_server = 4;  // API Server地址
+  string kubeconfig = 5;  // Kubeconfig内容（base64编码）
+  string version = 6;  // K8s版本
+  ClusterStatus status = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  map<string, string> labels = 10;
+}
+
+// 集群状态
+enum ClusterStatus {
+  CLUSTER_STATUS_UNSPECIFIED = 0;
+  HEALTHY = 1;      // 健康
+  UNHEALTHY = 2;    // 不健康
+  UNREACHABLE = 3;  // 不可达
+  UNKNOWN = 4;      // 未知
+}
+
+// 获取集群请求
+message GetClusterRequest {
+  string cluster_id = 1;
+}
+
+// 列出集群请求
+message ListClustersRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+  optional ClusterStatus status = 2;
+}
+
+// 列出集群响应
+message ListClustersResponse {
+  repeated Cluster clusters = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 创建集群请求
+message CreateClusterRequest {
+  string name = 1;
+  string description = 2;
+  string api_server = 3;
+  string kubeconfig = 4;
+  map<string, string> labels = 5;
+}
+
+// 更新集群请求
+message UpdateClusterRequest {
+  string cluster_id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string api_server = 4;
+  optional string kubeconfig = 5;
+  map<string, string> labels = 6;
+}
+
+// 删除集群请求
+message DeleteClusterRequest {
+  string cluster_id = 1;
+}
+
+// 删除集群响应
+message DeleteClusterResponse {
+  string message = 1;
+}
+
+// 获取集群健康请求
+message GetClusterHealthRequest {
+  string cluster_id = 1;
+}
+
+// 集群健康状态
+message ClusterHealth {
+  ClusterStatus status = 1;
+  repeated ComponentHealth components = 2;
+  ClusterResources resources = 3;
+  google.protobuf.Timestamp last_check = 4;
+}
+
+// 组件健康状态
+message ComponentHealth {
+  string name = 1;  // kube-apiserver, kube-controller-manager, etc.
+  bool healthy = 2;
+  string message = 3;
+}
+
+// 集群资源
+message ClusterResources {
+  int32 node_count = 1;
+  int32 namespace_count = 2;
+  int32 pod_count = 3;
+  int32 service_count = 4;
+  int32 deployment_count = 5;
+}
+
+// 获取集群版本请求
+message GetClusterVersionRequest {
+  string cluster_id = 1;
+}
+
+// 集群版本
+message ClusterVersion {
+  string kubernetes_version = 1;
+  string git_version = 2;
+  string platform = 3;
+}
+
+// ============================================================================
+// K8s Resource Service - Kubernetes资源操作
+// ============================================================================
+
+service K8sResourceService {
+  // 获取资源
+  rpc GetResource(GetResourceRequest) returns (Resource) {
+    option (google.api.http) = {
+      get: "/api/v1/clusters/{cluster_id}/resources/{resource_type}/{namespace}/{name}"
+    };
+  }
+
+  // 列出资源
+  rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/clusters/{cluster_id}/resources/{resource_type}"
+    };
+  }
+
+  // 创建资源
+  rpc CreateResource(CreateResourceRequest) returns (Resource) {
+    option (google.api.http) = {
+      post: "/api/v1/clusters/{cluster_id}/resources/{resource_type}"
+      body: "*"
+    };
+  }
+
+  // 更新资源
+  rpc UpdateResource(UpdateResourceRequest) returns (Resource) {
+    option (google.api.http) = {
+      put: "/api/v1/clusters/{cluster_id}/resources/{resource_type}/{namespace}/{name}"
+      body: "*"
+    };
+  }
+
+  // 删除资源
+  rpc DeleteResource(DeleteResourceRequest) returns (DeleteResourceResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/clusters/{cluster_id}/resources/{resource_type}/{namespace}/{name}"
+    };
+  }
+
+  // 监听资源变化
+  rpc WatchResources(WatchResourcesRequest) returns (stream ResourceEvent) {
+    option (google.api.http) = {
+      get: "/api/v1/clusters/{cluster_id}/resources/{resource_type}/watch"
+    };
+  }
+}
+
+// 资源类型
+enum ResourceType {
+  RESOURCE_TYPE_UNSPECIFIED = 0;
+  POD = 1;
+  DEPLOYMENT = 2;
+  SERVICE = 3;
+  CONFIGMAP = 4;
+  SECRET = 5;
+  NAMESPACE = 6;
+  NODE = 7;
+  PERSISTENTVOLUME = 8;
+  PERSISTENTVOLUMECLAIM = 9;
+  STATEFULSET = 10;
+  DAEMONSET = 11;
+  JOB = 12;
+  CRONJOB = 13;
+  INGRESS = 14;
+  NETWORKPOLICY = 15;
+  RESOURCEQUOTA = 16;
+  LIMITRANGE = 17;
+  HORIZONTALPODAUTOSCALER = 18;
+  STORAGECLASS = 19;
+  ROLE = 20;
+  ROLEBINDING = 21;
+  CLUSTERROLE = 22;
+  CLUSTERROLEBINDING = 23;
+  SERVICEACCOUNT = 24;
+  ENDPOINT = 25;
+  ENDPOINTSLICE = 26;
+  EVENT = 27;
+  PRIORITYCLASS = 28;
+  REPLICASET = 29;
+}
+
+// K8s资源
+message Resource {
+  string cluster_id = 1;
+  ResourceType type = 2;
+  string namespace = 3;
+  string name = 4;
+  google.protobuf.Struct spec = 5;  // 资源规格（JSON格式）
+  google.protobuf.Struct status = 6;  // 资源状态（JSON格式）
+  map<string, string> labels = 7;
+  map<string, string> annotations = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+// 获取资源请求
+message GetResourceRequest {
+  string cluster_id = 1;
+  ResourceType resource_type = 2;
+  string namespace = 3;
+  string name = 4;
+}
+
+// 列出资源请求
+message ListResourcesRequest {
+  string cluster_id = 1;
+  ResourceType resource_type = 2;
+  optional string namespace = 3;  // 空表示所有命名空间
+  optional string label_selector = 4;  // 标签选择器
+  common.pagination.v1.PaginationRequest pagination = 5;
+}
+
+// 列出资源响应
+message ListResourcesResponse {
+  repeated Resource resources = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 创建资源请求
+message CreateResourceRequest {
+  string cluster_id = 1;
+  ResourceType resource_type = 2;
+  string namespace = 3;
+  google.protobuf.Struct spec = 4;  // 资源规格（JSON格式）
+}
+
+// 更新资源请求
+message UpdateResourceRequest {
+  string cluster_id = 1;
+  ResourceType resource_type = 2;
+  string namespace = 3;
+  string name = 4;
+  google.protobuf.Struct spec = 5;  // 资源规格（JSON格式）
+}
+
+// 删除资源请求
+message DeleteResourceRequest {
+  string cluster_id = 1;
+  ResourceType resource_type = 2;
+  string namespace = 3;
+  string name = 4;
+}
+
+// 删除资源响应
+message DeleteResourceResponse {
+  string message = 1;
+}
+
+// 监听资源请求
+message WatchResourcesRequest {
+  string cluster_id = 1;
+  ResourceType resource_type = 2;
+  optional string namespace = 3;
+  optional string label_selector = 4;
+}
+
+// 资源事件
+message ResourceEvent {
+  EventType type = 1;
+  Resource resource = 2;
+}
+
+// 事件类型
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  ADDED = 1;
+  MODIFIED = 2;
+  DELETED = 3;
+}
+

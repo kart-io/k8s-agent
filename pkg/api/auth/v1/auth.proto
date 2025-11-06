@@ -1,0 +1,533 @@
+// auth/auth.proto
+// Auth Service API 定义 - 认证和授权服务
+
+syntax = "proto3";
+
+package auth.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "common/pagination/v1/pagination.proto";
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/auth/v1;authv1";
+
+// ============================================================================
+// Auth Service - 用户认证
+// ============================================================================
+
+service AuthService {
+  // 用户登录
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/login"
+      body: "*"
+    };
+  }
+
+  // 用户登出
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/logout"
+      body: "*"
+    };
+  }
+
+  // 刷新Token
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/refresh"
+      body: "*"
+    };
+  }
+
+  // 获取当前用户信息
+  rpc GetMe(GetMeRequest) returns (User) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/me"
+    };
+  }
+
+  // 获取用户菜单权限
+  rpc GetMenus(GetMenusRequest) returns (GetMenusResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/menus"
+    };
+  }
+
+  // 检查权限
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/check"
+      body: "*"
+    };
+  }
+}
+
+// 登录请求
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// 登录响应
+message LoginResponse {
+  string token = 1;
+  int64 expires_at = 2;
+  User user = 3;
+}
+
+// 登出请求
+message LogoutRequest {
+  string token = 1;
+}
+
+// 登出响应
+message LogoutResponse {
+  string message = 1;
+}
+
+// 刷新Token请求
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+// 刷新Token响应
+message RefreshTokenResponse {
+  string token = 1;
+  int64 expires_at = 2;
+}
+
+// 获取当前用户请求
+message GetMeRequest {}
+
+// 获取菜单请求
+message GetMenusRequest {}
+
+// 获取菜单响应
+message GetMenusResponse {
+  repeated Menu menus = 1;
+}
+
+// 菜单定义
+message Menu {
+  string id = 1;
+  string name = 2;
+  string path = 3;
+  string icon = 4;
+  repeated Menu children = 5;
+}
+
+// 检查权限请求
+message CheckPermissionRequest {
+  uint64 user_id = 1;
+  string resource = 2;
+  string action = 3;
+}
+
+// 检查权限响应
+message CheckPermissionResponse {
+  bool allowed = 1;
+  string reason = 2;
+}
+
+// ============================================================================
+// User Service - 用户管理
+// ============================================================================
+
+service UserService {
+  // 获取用户
+  rpc GetUser(GetUserRequest) returns (User) {
+    option (google.api.http) = {
+      get: "/api/v1/users/{user_id}"
+    };
+  }
+
+  // 列出用户
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users"
+    };
+  }
+
+  // 创建用户
+  rpc CreateUser(CreateUserRequest) returns (User) {
+    option (google.api.http) = {
+      post: "/api/v1/users"
+      body: "*"
+    };
+  }
+
+  // 更新用户
+  rpc UpdateUser(UpdateUserRequest) returns (User) {
+    option (google.api.http) = {
+      put: "/api/v1/users/{user_id}"
+      body: "*"
+    };
+  }
+
+  // 删除用户
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/users/{user_id}"
+    };
+  }
+}
+
+// 用户信息
+message User {
+  uint64 id = 1;
+  string username = 2;
+  string email = 3;
+  string nickname = 4;
+  string phone = 5;
+  int32 status = 6;  // 1=active, 0=inactive
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  repeated Role roles = 9;
+}
+
+// 获取用户请求
+message GetUserRequest {
+  uint64 user_id = 1;
+}
+
+// 列出用户请求
+message ListUsersRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+  optional int32 status = 2;
+}
+
+// 列出用户响应
+message ListUsersResponse {
+  repeated User users = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 创建用户请求
+message CreateUserRequest {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+  string nickname = 4;
+  string phone = 5;
+  repeated uint64 role_ids = 6;
+}
+
+// 更新用户请求
+message UpdateUserRequest {
+  uint64 user_id = 1;
+  optional string email = 2;
+  optional string nickname = 3;
+  optional string phone = 4;
+  optional int32 status = 5;
+  repeated uint64 role_ids = 6;
+}
+
+// 删除用户请求
+message DeleteUserRequest {
+  uint64 user_id = 1;
+}
+
+// 删除用户响应
+message DeleteUserResponse {
+  string message = 1;
+}
+
+// ============================================================================
+// Role Service - 角色管理
+// ============================================================================
+
+service RoleService {
+  // 获取角色
+  rpc GetRole(GetRoleRequest) returns (Role) {
+    option (google.api.http) = {
+      get: "/api/v1/roles/{role_id}"
+    };
+  }
+
+  // 列出角色
+  rpc ListRoles(ListRolesRequest) returns (ListRolesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/roles"
+    };
+  }
+
+  // 创建角色
+  rpc CreateRole(CreateRoleRequest) returns (Role) {
+    option (google.api.http) = {
+      post: "/api/v1/roles"
+      body: "*"
+    };
+  }
+
+  // 更新角色
+  rpc UpdateRole(UpdateRoleRequest) returns (Role) {
+    option (google.api.http) = {
+      put: "/api/v1/roles/{role_id}"
+      body: "*"
+    };
+  }
+
+  // 删除角色
+  rpc DeleteRole(DeleteRoleRequest) returns (DeleteRoleResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/roles/{role_id}"
+    };
+  }
+
+  // 分配权限给角色
+  rpc AssignPermissions(AssignPermissionsRequest) returns (AssignPermissionsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/roles/{role_id}/permissions"
+      body: "*"
+    };
+  }
+}
+
+// 角色信息
+message Role {
+  uint64 id = 1;
+  string name = 2;
+  string description = 3;
+  int32 status = 4;  // 1=active, 0=inactive
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  repeated Permission permissions = 7;
+}
+
+// 获取角色请求
+message GetRoleRequest {
+  uint64 role_id = 1;
+}
+
+// 列出角色请求
+message ListRolesRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+  optional int32 status = 2;
+}
+
+// 列出角色响应
+message ListRolesResponse {
+  repeated Role roles = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 创建角色请求
+message CreateRoleRequest {
+  string name = 1;
+  string description = 2;
+}
+
+// 更新角色请求
+message UpdateRoleRequest {
+  uint64 role_id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional int32 status = 4;
+}
+
+// 删除角色请求
+message DeleteRoleRequest {
+  uint64 role_id = 1;
+}
+
+// 删除角色响应
+message DeleteRoleResponse {
+  string message = 1;
+}
+
+// 分配权限请求
+message AssignPermissionsRequest {
+  uint64 role_id = 1;
+  repeated uint64 permission_ids = 2;
+}
+
+// 分配权限响应
+message AssignPermissionsResponse {
+  string message = 1;
+}
+
+// ============================================================================
+// Permission Service - 权限管理
+// ============================================================================
+
+service PermissionService {
+  // 获取权限
+  rpc GetPermission(GetPermissionRequest) returns (Permission) {
+    option (google.api.http) = {
+      get: "/api/v1/permissions/{permission_id}"
+    };
+  }
+
+  // 列出权限
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/permissions"
+    };
+  }
+
+  // 获取权限树
+  rpc GetPermissionTree(GetPermissionTreeRequest) returns (GetPermissionTreeResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/permissions/tree"
+    };
+  }
+
+  // 创建权限
+  rpc CreatePermission(CreatePermissionRequest) returns (Permission) {
+    option (google.api.http) = {
+      post: "/api/v1/permissions"
+      body: "*"
+    };
+  }
+
+  // 更新权限
+  rpc UpdatePermission(UpdatePermissionRequest) returns (Permission) {
+    option (google.api.http) = {
+      put: "/api/v1/permissions/{permission_id}"
+      body: "*"
+    };
+  }
+
+  // 删除权限
+  rpc DeletePermission(DeletePermissionRequest) returns (DeletePermissionResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/permissions/{permission_id}"
+    };
+  }
+}
+
+// 权限信息
+message Permission {
+  uint64 id = 1;
+  string name = 2;
+  string code = 3;  // 权限代码，如: user:read
+  string resource = 4;  // 资源，如: user
+  string action = 5;  // 操作，如: read
+  string description = 6;
+  uint64 parent_id = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  repeated Permission children = 10;
+}
+
+// 获取权限请求
+message GetPermissionRequest {
+  uint64 permission_id = 1;
+}
+
+// 列出权限请求
+message ListPermissionsRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+}
+
+// 列出权限响应
+message ListPermissionsResponse {
+  repeated Permission permissions = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 获取权限树请求
+message GetPermissionTreeRequest {}
+
+// 获取权限树响应
+message GetPermissionTreeResponse {
+  repeated Permission permissions = 1;
+}
+
+// 创建权限请求
+message CreatePermissionRequest {
+  string name = 1;
+  string code = 2;
+  string resource = 3;
+  string action = 4;
+  string description = 5;
+  uint64 parent_id = 6;
+}
+
+// 更新权限请求
+message UpdatePermissionRequest {
+  uint64 permission_id = 1;
+  optional string name = 2;
+  optional string code = 3;
+  optional string resource = 4;
+  optional string action = 5;
+  optional string description = 6;
+  optional uint64 parent_id = 7;
+}
+
+// 删除权限请求
+message DeletePermissionRequest {
+  uint64 permission_id = 1;
+}
+
+// 删除权限响应
+message DeletePermissionResponse {
+  string message = 1;
+}
+
+// ============================================================================
+// Session Service - 会话管理
+// ============================================================================
+
+service SessionService {
+  // 获取会话
+  rpc GetSession(GetSessionRequest) returns (Session) {
+    option (google.api.http) = {
+      get: "/api/v1/sessions/{session_id}"
+    };
+  }
+
+  // 列出会话
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/sessions"
+    };
+  }
+
+  // 使会话失效
+  rpc InvalidateSession(InvalidateSessionRequest) returns (InvalidateSessionResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/sessions/{session_id}"
+    };
+  }
+}
+
+// 会话信息
+message Session {
+  string id = 1;
+  uint64 user_id = 2;
+  string username = 3;
+  string ip_address = 4;
+  string user_agent = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+// 获取会话请求
+message GetSessionRequest {
+  string session_id = 1;
+}
+
+// 列出会话请求
+message ListSessionsRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+  optional uint64 user_id = 2;
+}
+
+// 列出会话响应
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 使会话失效请求
+message InvalidateSessionRequest {
+  string session_id = 1;
+}
+
+// 使会话失效响应
+message InvalidateSessionResponse {
+  string message = 1;
+}
+

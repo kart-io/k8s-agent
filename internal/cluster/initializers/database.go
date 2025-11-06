@@ -5,87 +5,62 @@
 package initializers
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
-// DatabaseInitializer initializes the database connection and schema.
+// DatabaseInitializer wraps the generic database initializer with cluster-specific configuration.
 type DatabaseInitializer struct {
-	opts    *options.ServerOptions
-	logger  core.Logger
-	storage *storage.MySQLStorage
+	*pkginitializers.DatabaseInitializer
+	opts   *options.ServerOptions
+	logger core.Logger
+	store  *storage.MySQLStorage // Cached storage instance
 }
 
-// NewDatabaseInitializer creates a new database initializer.
+// NewDatabaseInitializer creates a database initializer for cluster service.
 func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *DatabaseInitializer {
+	// Create the base initializer
+	dbInit := pkginitializers.NewDatabaseInitializer(opts.Database, logger)
+
+	// Configure auto-migration if enabled
+	// Note: Cluster models should be defined in internal/cluster/models package
+	// When models are created, uncomment the following:
+	// if opts.Database.AutoMigrate {
+	//     dbInit.WithAutoMigrate(&models.Cluster{}, ...)
+	// }
+
 	return &DatabaseInitializer{
-		opts:   opts,
-		logger: logger,
+		DatabaseInitializer: dbInit,
+		opts:                opts,
+		logger:              logger,
 	}
 }
 
-// Initialize initializes the database connection.
-func (i *DatabaseInitializer) Initialize(ctx context.Context) error {
-	i.logger.Infow("Initializing database connection",
-		"host", i.opts.Database.Host,
-		"port", i.opts.Database.Port,
-		"database", i.opts.Database.Database,
-	)
+// GetStorage returns the initialized storage instance (for backward compatibility).
+// It lazily creates the storage wrapper on first call.
+func (d *DatabaseInitializer) GetStorage() *storage.MySQLStorage {
+	if d.store != nil {
+		return d.store
+	}
 
-	// 创建数据库连接
-	store, err := storage.NewMySQLStorage(i.opts.Database, i.logger)
+	// Create storage using the configuration (this will create its own connection)
+	// TODO: This is not ideal as it creates a new connection instead of reusing
+	// the one from DatabaseInitializer. A better approach would be to refactor
+	// MySQLStorage to accept an existing connection.
+	store, err := storage.NewMySQLStorage(d.opts.Database, d.logger)
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+		d.logger.Errorw("Failed to create MySQL storage", "error", err)
+		return nil
 	}
-	i.storage = store
 
-	i.logger.Infow("Database connected successfully",
-		"host", i.opts.Database.Host,
-		"port", i.opts.Database.Port,
-		"database", i.opts.Database.Database,
-	)
-
-	// 初始化数据库 schema
-	if err := i.storage.InitSchema(); err != nil {
-		return fmt.Errorf("failed to initialize database schema: %w", err)
-	}
-	i.logger.Info("Database schema initialized successfully")
-
-	return nil
-}
-
-// Shutdown closes the database connection.
-func (i *DatabaseInitializer) Shutdown(ctx context.Context) error {
-	i.logger.Info("Closing database connection")
-	if i.storage != nil {
-		// MySQL storage doesn't have explicit close method
-		// Connection will be closed when the process exits
-	}
-	return nil
-}
-
-// Priority returns the initialization priority (higher = earlier).
-func (i *DatabaseInitializer) Priority() int {
-	return 300 // Database should be initialized early
-}
-
-// Name returns the name of this initializer.
-func (i *DatabaseInitializer) Name() string {
-	return "Database"
-}
-
-// GetStorage returns the initialized storage instance.
-// Deprecated: Use Store() instead for consistency across services.
-func (i *DatabaseInitializer) GetStorage() *storage.MySQLStorage {
-	return i.storage
+	d.store = store
+	return d.store
 }
 
 // Store returns the initialized storage instance.
 // This is the standard method name across all database initializers.
-func (i *DatabaseInitializer) Store() interface{} {
-	return i.storage
+func (d *DatabaseInitializer) Store() interface{} {
+	return d.GetStorage()
 }

@@ -95,6 +95,7 @@ func (a *MonitorApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(components.DB)
 	bs.Register(components.Redis)
 	bs.Register(components.HTTP)
+	bs.Register(components.GRPC)
 	bs.Register(components.Health)
 
 	// Save references for app

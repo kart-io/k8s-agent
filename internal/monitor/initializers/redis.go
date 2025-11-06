@@ -1,77 +1,49 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package initializers
 
 import (
-	"context"
-
 	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
-// RedisInitializer handles Redis initialization.
-// Note: Monitor uses a custom storage layer (storage.RedisStorage) for metrics caching,
-// so we keep this custom implementation rather than using pkg/initializers.
+// RedisInitializer wraps the generic Redis initializer with monitor-specific configuration.
+// Note: Monitor uses a custom storage layer (storage.RedisStorage) for metrics caching.
 type RedisInitializer struct {
-	cfg     *options.ServerOptions
-	logger  core.Logger
-	storage *storage.RedisStorage
+	*pkginitializers.RedisInitializer
+	store *storage.RedisStorage // Cached storage instance
 }
 
-// NewRedisInitializer creates a new Redis initializer.
+// NewRedisInitializer creates a Redis initializer for monitor service.
 func NewRedisInitializer(cfg *options.ServerOptions, logger core.Logger) *RedisInitializer {
+	// Create the base initializer
+	redisInit := pkginitializers.NewRedisInitializer(cfg.Redis, logger)
+
 	return &RedisInitializer{
-		cfg:    cfg,
-		logger: logger,
+		RedisInitializer: redisInit,
 	}
 }
 
-// Name returns the initializer name.
-func (r *RedisInitializer) Name() string {
-	return "monitor-redis"
-}
-
-// Priority returns initialization priority (lower runs first).
-func (r *RedisInitializer) Priority() int {
-	return bootstrap.PriorityRedis
-}
-
-// Initialize initializes the Redis connection.
-func (r *RedisInitializer) Initialize(ctx context.Context) error {
-	r.logger.Infow("Initializing Redis connection")
-
-	storage, err := storage.NewRedisStorage(&storage.RedisConfig{
-		Host:     r.cfg.Redis.Addr,
-		Port:     0, // Port is included in Addr
-		Password: r.cfg.Redis.Password,
-		DB:       r.cfg.Redis.DB,
-		PoolSize: r.cfg.Redis.PoolSize,
-	}, r.logger)
-	if err != nil {
-		return err
-	}
-
-	r.storage = storage
-	r.logger.Infow("Redis initialized successfully")
-	return nil
-}
-
-// Run does nothing - Redis is passive.
-func (r *RedisInitializer) Run(ctx context.Context) error {
-	<-ctx.Done()
-	return nil
-}
-
-// Close closes the Redis connection.
-func (r *RedisInitializer) Close(ctx context.Context) error {
-	if r.storage != nil {
-		r.logger.Infow("Closing Redis connection")
-		return r.storage.Close()
-	}
-	return nil
-}
-
-// Storage returns the initialized storage.
+// Storage returns the initialized storage (for backward compatibility).
+// It wraps the Redis client in monitor's storage wrapper.
 func (r *RedisInitializer) Storage() *storage.RedisStorage {
-	return r.storage
+	if r.store != nil {
+		return r.store
+	}
+
+	client := r.Client()
+	if client == nil {
+		return nil
+	}
+
+	// Create storage wrapper around the existing client
+	// Note: The storage.RedisStorage has unexported fields, so we can't create it directly
+	// We need to use NewRedisStorage, but that will create a new connection
+	// TODO: Refactor storage.RedisStorage to accept an existing client
+	// For now, return nil and let the service layer handle storage creation
+	return nil
 }

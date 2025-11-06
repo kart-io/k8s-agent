@@ -20,6 +20,7 @@ var InitializerSet = wire.NewSet(
 	initializers.NewDatabaseInitializer,
 	initializers.NewRedisInitializer,
 	initializers.NewHTTPServerInitializer,
+	initializers.NewGRPCServerInitializer,
 )
 
 // HealthInitializerSet Wire dependency set for health check.

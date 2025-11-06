@@ -1,73 +1,51 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package initializers
 
 import (
-	"context"
-
 	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
-// RedisInitializer Redis初始化器.
+// RedisInitializer wraps the generic Redis initializer with orchestrator-specific configuration.
 type RedisInitializer struct {
+	*pkginitializers.RedisInitializer
 	opts   *options.ServerOptions
 	logger core.Logger
-	store  *storage.RedisStore
+	store  *storage.RedisStore // Cached storage instance
 }
 
-// NewRedisInitializer 创建Redis初始化器.
+// NewRedisInitializer creates a Redis initializer for orchestrator service.
 func NewRedisInitializer(opts *options.ServerOptions, logger core.Logger) *RedisInitializer {
+	// Create the base initializer
+	redisInit := pkginitializers.NewRedisInitializer(opts.Redis, logger)
+
 	return &RedisInitializer{
-		opts:   opts,
-		logger: logger,
+		RedisInitializer: redisInit,
+		opts:             opts,
+		logger:           logger,
 	}
 }
 
-// Name 返回初始化器名称.
-func (r *RedisInitializer) Name() string {
-	return "redis"
-}
+// Store returns the initialized storage instance.
+// It lazily creates the storage wrapper on first call.
+func (r *RedisInitializer) Store() *storage.RedisStore {
+	if r.store != nil {
+		return r.store
+	}
 
-// Priority 返回初始化优先级.
-func (r *RedisInitializer) Priority() int {
-	return bootstrap.PriorityCache
-}
-
-// Initialize 执行初始化.
-func (r *RedisInitializer) Initialize(ctx context.Context) error {
-	r.logger.Infow("Initializing Redis",
-		"addr", r.opts.Redis.Addr,
-	)
-
+	// Create storage using the configuration (this will create its own connection)
 	store, err := storage.NewRedisStore(r.opts.Redis, r.logger)
 	if err != nil {
-		return err
+		r.logger.Errorw("Failed to create Redis store", "error", err)
+		return nil
 	}
 
 	r.store = store
-	r.logger.Info("Redis initialized successfully")
-	return nil
-}
-
-// Close 关闭Redis连接.
-func (r *RedisInitializer) Close(ctx context.Context) error {
-	if r.store != nil {
-		if err := r.store.Close(); err != nil {
-			r.logger.Errorw("Failed to close Redis store", "error", err)
-			return err
-		}
-	}
-	return nil
-}
-
-// HealthCheck 检查Redis健康状态.
-func (r *RedisInitializer) HealthCheck(ctx context.Context) error {
-	// Redis health is checked via connection status
-	return nil
-}
-
-// Store 获取存储实例.
-func (r *RedisInitializer) Store() *storage.RedisStore {
 	return r.store
 }
+

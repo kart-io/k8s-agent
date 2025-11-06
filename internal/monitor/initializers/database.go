@@ -1,77 +1,64 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package initializers
 
 import (
-	"context"
-
 	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
-	"github.com/kart-io/k8s-agent/pkg/bootstrap"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
-// DatabaseInitializer handles database initialization.
+// DatabaseInitializer wraps the generic database initializer with monitor-specific configuration.
 type DatabaseInitializer struct {
-	cfg     *options.ServerOptions
-	logger  core.Logger
-	storage *storage.PostgresStorage
+	*pkginitializers.DatabaseInitializer
+	opts  *options.ServerOptions
+	logger core.Logger
+	store *storage.PostgresStorage // Cached storage instance
 }
 
-// NewDatabaseInitializer creates a new database initializer.
+// NewDatabaseInitializer creates a database initializer for monitor service.
 func NewDatabaseInitializer(cfg *options.ServerOptions, logger core.Logger) *DatabaseInitializer {
+	// Create the base initializer
+	dbInit := pkginitializers.NewDatabaseInitializer(cfg.Database, logger)
+
+	// Configure auto-migration if enabled
+	// Note: Monitor models should be defined in internal/monitor/models package
+	// When models are created, uncomment the following:
+	// if cfg.Database.AutoMigrate {
+	//     dbInit.WithAutoMigrate(&models.Metric{}, &models.Alert{}, ...)
+	// }
+
 	return &DatabaseInitializer{
-		cfg:    cfg,
-		logger: logger,
+		DatabaseInitializer: dbInit,
+		opts:                cfg,
+		logger:              logger,
 	}
 }
 
-// Name returns the initializer name.
-func (d *DatabaseInitializer) Name() string {
-	return "monitor-database"
-}
-
-// Priority returns initialization priority (lower runs first).
-func (d *DatabaseInitializer) Priority() int {
-	return bootstrap.PriorityDatabase
-}
-
-// Initialize initializes the database connection.
-func (d *DatabaseInitializer) Initialize(ctx context.Context) error {
-	d.logger.Infow("Initializing database connection")
-
-	storage, err := storage.NewPostgresStorage(d.cfg.Database, d.logger)
-	if err != nil {
-		return err
-	}
-
-	d.storage = storage
-	d.logger.Infow("Database initialized successfully")
-	return nil
-}
-
-// Run does nothing - database is passive.
-func (d *DatabaseInitializer) Run(ctx context.Context) error {
-	<-ctx.Done()
-	return nil
-}
-
-// Close closes the database connection.
-func (d *DatabaseInitializer) Close(ctx context.Context) error {
-	if d.storage != nil {
-		d.logger.Infow("Closing database connection")
-		return d.storage.Close()
-	}
-	return nil
-}
-
-// Storage returns the initialized storage.
-// Deprecated: Use Store() instead for consistency across services.
+// Storage returns the initialized storage (for backward compatibility).
+// It lazily creates the storage wrapper on first call.
 func (d *DatabaseInitializer) Storage() *storage.PostgresStorage {
-	return d.storage
+	if d.store != nil {
+		return d.store
+	}
+
+	// Create storage using the configuration (this will create its own connection)
+	store, err := storage.NewPostgresStorage(d.opts.Database, d.logger)
+	if err != nil {
+		d.logger.Errorw("Failed to create Postgres storage", "error", err)
+		return nil
+	}
+
+	d.store = store
+	return d.store
 }
 
 // Store returns the initialized storage instance.
 // This is the standard method name across all database initializers.
 func (d *DatabaseInitializer) Store() interface{} {
-	return d.storage
+	return d.Storage()
 }
 

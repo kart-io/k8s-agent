@@ -67,10 +67,10 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 	h.logger.Infow("Setting up gateway service routes")
 
 	// Global middleware
-	if h.cfg.CORS.Enabled {
+	if h.cfg.CORS != nil && h.cfg.CORS.Enabled {
 		engine.Use(middleware.CORS())
 	}
-	if h.cfg.RateLimit.Enabled {
+	if h.cfg.RateLimit != nil && h.cfg.RateLimit.Enable {
 		engine.Use(middleware.RateLimit())
 	}
 
@@ -198,7 +198,7 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 	}
 
 	// Metrics endpoint
-	if h.cfg.Metrics.Enabled {
+	if h.cfg.Metrics != nil && h.cfg.Metrics.Enabled {
 		engine.GET(h.cfg.Metrics.Path, handler.MetricsHandler)
 	}
 
@@ -216,9 +216,9 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 		"users", "GET/POST/PUT/DELETE /api/v1/users",
 		"roles", "GET/POST/PUT/DELETE /api/v1/roles",
 		"permissions", "GET/POST/PUT/DELETE /api/v1/permissions",
-		"metrics", h.cfg.Metrics.Enabled,
-		"cors", h.cfg.CORS.Enabled,
-		"rate_limit", h.cfg.RateLimit.Enabled,
+		"metrics", h.cfg.Metrics != nil && h.cfg.Metrics.Enabled,
+		"cors", h.cfg.CORS != nil && h.cfg.CORS.Enabled,
+		"rate_limit", h.cfg.RateLimit != nil && h.cfg.RateLimit.Enable,
 	)
 
 	return nil

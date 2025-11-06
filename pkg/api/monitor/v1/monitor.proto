@@ -1,0 +1,416 @@
+// monitor/monitor.proto
+// Monitor Service API 定义 - 监控和告警服务
+
+syntax = "proto3";
+
+package monitor.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "google/api/annotations.proto";
+import "common/pagination/v1/pagination.proto";
+
+option go_package = "github.com/kart-io/k8s-agent/pkg/api/monitor/v1;monitorv1";
+
+// ============================================================================
+// Monitor Service - 监控服务
+// ============================================================================
+
+service MonitorService {
+  // 获取监控概览
+  rpc GetMetricsSummary(GetMetricsSummaryRequest) returns (MetricsSummary) {
+    option (google.api.http) = {
+      get: "/api/v1/monitor/summary"
+    };
+  }
+
+  // 获取Agent指标
+  rpc GetAgentMetrics(GetAgentMetricsRequest) returns (GetAgentMetricsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/monitor/agents/metrics"
+    };
+  }
+
+  // 查询指标数据
+  rpc QueryMetrics(QueryMetricsRequest) returns (QueryMetricsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/monitor/query"
+      body: "*"
+    };
+  }
+
+  // 获取告警
+  rpc GetAlert(GetAlertRequest) returns (Alert) {
+    option (google.api.http) = {
+      get: "/api/v1/monitor/alerts/{alert_id}"
+    };
+  }
+
+  // 列出告警
+  rpc ListAlerts(ListAlertsRequest) returns (ListAlertsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/monitor/alerts"
+    };
+  }
+
+  // 创建告警
+  rpc CreateAlert(CreateAlertRequest) returns (Alert) {
+    option (google.api.http) = {
+      post: "/api/v1/monitor/alerts"
+      body: "*"
+    };
+  }
+
+  // 更新告警
+  rpc UpdateAlert(UpdateAlertRequest) returns (Alert) {
+    option (google.api.http) = {
+      put: "/api/v1/monitor/alerts/{alert_id}"
+      body: "*"
+    };
+  }
+
+  // 删除告警
+  rpc DeleteAlert(DeleteAlertRequest) returns (DeleteAlertResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/monitor/alerts/{alert_id}"
+    };
+  }
+
+  // 确认告警
+  rpc AcknowledgeAlert(AcknowledgeAlertRequest) returns (AcknowledgeAlertResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/monitor/alerts/{alert_id}/acknowledge"
+      body: "*"
+    };
+  }
+}
+
+// 获取监控概览请求
+message GetMetricsSummaryRequest {}
+
+// 监控概览
+message MetricsSummary {
+  int64 total_agents = 1;
+  int64 active_agents = 2;
+  int64 total_clusters = 3;
+  int64 active_alerts = 4;
+  double avg_cpu_usage = 5;
+  double avg_memory_usage = 6;
+  double avg_disk_usage = 7;
+  google.protobuf.Timestamp last_updated = 8;
+}
+
+// 获取Agent指标请求
+message GetAgentMetricsRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+  optional string agent_id = 2;
+  optional string cluster_id = 3;
+}
+
+// 获取Agent指标响应
+message GetAgentMetricsResponse {
+  repeated AgentMetrics metrics = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// Agent指标
+message AgentMetrics {
+  string agent_id = 1;
+  string agent_name = 2;
+  string cluster_id = 3;
+  double cpu_usage = 4;  // CPU使用率 (%)
+  double memory_usage = 5;  // 内存使用率 (%)
+  double disk_usage = 6;  // 磁盘使用率 (%)
+  int64 network_in = 7;  // 网络入流量 (bytes/s)
+  int64 network_out = 8;  // 网络出流量 (bytes/s)
+  google.protobuf.Timestamp collected_at = 9;
+}
+
+// 查询指标请求
+message QueryMetricsRequest {
+  string metric_name = 1;  // 指标名称
+  map<string, string> labels = 2;  // 标签过滤
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  optional string aggregation = 5;  // 聚合方式：avg, sum, min, max
+  optional string interval = 6;  // 时间间隔：1m, 5m, 1h
+}
+
+// 查询指标响应
+message QueryMetricsResponse {
+  string metric_name = 1;
+  repeated MetricDataPoint data_points = 2;
+}
+
+// 指标数据点
+message MetricDataPoint {
+  google.protobuf.Timestamp timestamp = 1;
+  double value = 2;
+  map<string, string> labels = 3;
+}
+
+// ============================================================================
+// Alert Management - 告警管理
+// ============================================================================
+
+// 告警信息
+message Alert {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  AlertSeverity severity = 4;
+  AlertStatus status = 5;
+  string source = 6;  // 告警来源
+  map<string, string> labels = 7;
+  map<string, string> annotations = 8;
+  google.protobuf.Timestamp triggered_at = 9;
+  google.protobuf.Timestamp resolved_at = 10;
+  google.protobuf.Timestamp acknowledged_at = 11;
+  string acknowledged_by = 12;
+}
+
+// 告警严重级别
+enum AlertSeverity {
+  ALERT_SEVERITY_UNSPECIFIED = 0;
+  CRITICAL = 1;  // 严重
+  WARNING = 2;   // 警告
+  INFO = 3;      // 信息
+}
+
+// 告警状态
+enum AlertStatus {
+  ALERT_STATUS_UNSPECIFIED = 0;
+  FIRING = 1;       // 触发中
+  RESOLVED = 2;     // 已解决
+  ACKNOWLEDGED = 3; // 已确认
+  SILENCED = 4;     // 已静默
+}
+
+// 获取告警请求
+message GetAlertRequest {
+  string alert_id = 1;
+}
+
+// 列出告警请求
+message ListAlertsRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+  optional AlertSeverity severity = 2;
+  optional AlertStatus status = 3;
+  optional string source = 4;
+}
+
+// 列出告警响应
+message ListAlertsResponse {
+  repeated Alert alerts = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 创建告警请求
+message CreateAlertRequest {
+  string name = 1;
+  string description = 2;
+  AlertSeverity severity = 3;
+  string source = 4;
+  map<string, string> labels = 5;
+  map<string, string> annotations = 6;
+}
+
+// 更新告警请求
+message UpdateAlertRequest {
+  string alert_id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional AlertSeverity severity = 4;
+  optional AlertStatus status = 5;
+}
+
+// 删除告警请求
+message DeleteAlertRequest {
+  string alert_id = 1;
+}
+
+// 删除告警响应
+message DeleteAlertResponse {
+  string message = 1;
+}
+
+// 确认告警请求
+message AcknowledgeAlertRequest {
+  string alert_id = 1;
+  string acknowledged_by = 2;
+  optional string comment = 3;
+}
+
+// 确认告警响应
+message AcknowledgeAlertResponse {
+  string message = 1;
+}
+
+// ============================================================================
+// Alert Rule Management - 告警规则管理
+// ============================================================================
+
+service AlertRuleService {
+  // 获取告警规则
+  rpc GetAlertRule(GetAlertRuleRequest) returns (AlertRule) {
+    option (google.api.http) = {
+      get: "/api/v1/monitor/alert-rules/{rule_id}"
+    };
+  }
+
+  // 列出告警规则
+  rpc ListAlertRules(ListAlertRulesRequest) returns (ListAlertRulesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/monitor/alert-rules"
+    };
+  }
+
+  // 创建告警规则
+  rpc CreateAlertRule(CreateAlertRuleRequest) returns (AlertRule) {
+    option (google.api.http) = {
+      post: "/api/v1/monitor/alert-rules"
+      body: "*"
+    };
+  }
+
+  // 更新告警规则
+  rpc UpdateAlertRule(UpdateAlertRuleRequest) returns (AlertRule) {
+    option (google.api.http) = {
+      put: "/api/v1/monitor/alert-rules/{rule_id}"
+      body: "*"
+    };
+  }
+
+  // 删除告警规则
+  rpc DeleteAlertRule(DeleteAlertRuleRequest) returns (DeleteAlertRuleResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/monitor/alert-rules/{rule_id}"
+    };
+  }
+
+  // 启用/禁用告警规则
+  rpc ToggleAlertRule(ToggleAlertRuleRequest) returns (AlertRule) {
+    option (google.api.http) = {
+      post: "/api/v1/monitor/alert-rules/{rule_id}/toggle"
+      body: "*"
+    };
+  }
+}
+
+// 告警规则
+message AlertRule {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string expr = 4;  // PromQL表达式
+  string duration = 5;  // 持续时间，如: 5m
+  AlertSeverity severity = 6;
+  bool enabled = 7;
+  map<string, string> labels = 8;
+  map<string, string> annotations = 9;
+  repeated string notification_channels = 10;  // 通知渠道
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// 获取告警规则请求
+message GetAlertRuleRequest {
+  string rule_id = 1;
+}
+
+// 列出告警规则请求
+message ListAlertRulesRequest {
+  common.pagination.v1.PaginationRequest pagination = 1;
+  optional bool enabled = 2;
+}
+
+// 列出告警规则响应
+message ListAlertRulesResponse {
+  repeated AlertRule rules = 1;
+  common.pagination.v1.PaginationMetadata pagination = 2;
+}
+
+// 创建告警规则请求
+message CreateAlertRuleRequest {
+  string name = 1;
+  string description = 2;
+  string expr = 3;
+  string duration = 4;
+  AlertSeverity severity = 5;
+  map<string, string> labels = 6;
+  map<string, string> annotations = 7;
+  repeated string notification_channels = 8;
+}
+
+// 更新告警规则请求
+message UpdateAlertRuleRequest {
+  string rule_id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string expr = 4;
+  optional string duration = 5;
+  optional AlertSeverity severity = 6;
+  map<string, string> labels = 7;
+  map<string, string> annotations = 8;
+  repeated string notification_channels = 9;
+}
+
+// 删除告警规则请求
+message DeleteAlertRuleRequest {
+  string rule_id = 1;
+}
+
+// 删除告警规则响应
+message DeleteAlertRuleResponse {
+  string message = 1;
+}
+
+// 启用/禁用告警规则请求
+message ToggleAlertRuleRequest {
+  string rule_id = 1;
+  bool enabled = 2;
+}
+
+// ============================================================================
+// Metrics Collector Service - 指标收集服务（供Agent使用）
+// ============================================================================
+
+service MetricsCollectorService {
+  // 上报指标（流式）
+  rpc ReportMetrics(stream MetricData) returns (ReportMetricsResponse) {}
+
+  // 获取采集器配置
+  rpc GetCollectorConfig(GetCollectorConfigRequest) returns (CollectorConfig) {
+    option (google.api.http) = {
+      get: "/api/v1/monitor/collector/config"
+    };
+  }
+}
+
+// 指标数据
+message MetricData {
+  string agent_id = 1;
+  string metric_name = 2;
+  double value = 3;
+  map<string, string> labels = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// 上报指标响应
+message ReportMetricsResponse {
+  int32 received_count = 1;
+  string message = 2;
+}
+
+// 获取采集器配置请求
+message GetCollectorConfigRequest {
+  string agent_id = 1;
+}
+
+// 采集器配置
+message CollectorConfig {
+  int32 interval_seconds = 1;  // 采集间隔（秒）
+  repeated string enabled_metrics = 2;  // 启用的指标
+  map<string, string> labels = 3;  // 全局标签
+}
+

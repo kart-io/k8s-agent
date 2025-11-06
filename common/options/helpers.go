@@ -252,63 +252,6 @@ func Join(prefixes ...string) string {
 	return result
 }
 
-// DefaultString 返回默认字符串（如果值为空）
-func DefaultString(value, defaultValue string) string {
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
-// DefaultInt 返回默认整数（如果值为0）
-func DefaultInt(value, defaultValue int) int {
-	if value == 0 {
-		return defaultValue
-	}
-	return value
-}
-
-// DefaultInt64 返回默认 int64（如果值为0）
-func DefaultInt64(value, defaultValue int64) int64 {
-	if value == 0 {
-		return defaultValue
-	}
-	return value
-}
-
-// ClampInt 将整数限制在指定范围内
-func ClampInt(value, min, max int) int {
-	if value < min {
-		return min
-	}
-	if value > max {
-		return max
-	}
-	return value
-}
-
-// ClampFloat64 将浮点数限制在指定范围内
-func ClampFloat64(value, min, max float64) float64 {
-	if value < min {
-		return min
-	}
-	if value > max {
-		return max
-	}
-	return value
-}
-
-// MergeMaps 合并多个 map，后面的 map 会覆盖前面的同名键
-func MergeMaps(maps ...map[string]string) map[string]string {
-	result := make(map[string]string)
-	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-	return result
-}
-
 // ContainsString 检查字符串切片是否包含指定字符串
 func ContainsString(slice []string, str string) bool {
 	for _, s := range slice {
@@ -317,17 +260,6 @@ func ContainsString(slice []string, str string) bool {
 		}
 	}
 	return false
-}
-
-// RemoveString 从字符串切片中移除指定字符串
-func RemoveString(slice []string, str string) []string {
-	result := make([]string, 0, len(slice))
-	for _, s := range slice {
-		if s != str {
-			result = append(result, s)
-		}
-	}
-	return result
 }
 
 // CreateListener 创建网络监听器

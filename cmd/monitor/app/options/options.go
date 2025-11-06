@@ -12,6 +12,7 @@ import (
 // 实现 pkg/app.Options 接口
 type ServerOptions struct {
 	Server   *commonoptions.ServerOptions   `json:"server" mapstructure:"server"`
+	GRPC     *commonoptions.GRPCOptions     `json:"grpc" mapstructure:"grpc"`
 	Logging  *commonoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
 	Health   *commonoptions.HealthOptions   `json:"health" mapstructure:"health"`
 	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
@@ -67,6 +68,7 @@ type SlackAlertConfig struct {
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
+		GRPC:     commonoptions.NewGRPCOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
 		Health:   commonoptions.NewHealthOptions(),
 		Database: commonoptions.NewDatabaseOptions(),
