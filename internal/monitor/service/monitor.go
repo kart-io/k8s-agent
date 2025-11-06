@@ -13,12 +13,12 @@ import (
 )
 
 type MonitorService struct {
-	db    *storage.PostgresStorage
+	db    *storage.MySQLStorage
 	redis *storage.RedisStorage
 	log   core.Logger
 }
 
-func NewMonitorService(db *storage.PostgresStorage, redis *storage.RedisStorage, logger core.Logger) *MonitorService {
+func NewMonitorService(db *storage.MySQLStorage, redis *storage.RedisStorage, logger core.Logger) *MonitorService {
 	return &MonitorService{
 		db:    db,
 		redis: redis,

@@ -14,7 +14,7 @@ import (
 
 // Registry manages agent lifecycle and state.
 type Registry struct {
-	store  *storage.PostgresStore
+	store  *storage.MySQLStore
 	cache  *storage.RedisStore
 	logger core.Logger
 	mu     sync.RWMutex
@@ -35,7 +35,7 @@ type Registry struct {
 
 // NewRegistry creates a new agent registry.
 func NewRegistry(
-	store *storage.PostgresStore,
+	store *storage.MySQLStore,
 	cache *storage.RedisStore,
 	logger core.Logger,
 ) *Registry {

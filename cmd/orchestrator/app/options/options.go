@@ -24,6 +24,11 @@ const (
 	defaultAITimeout   = 30 * time.Second
 	defaultMaxRetries  = 3
 	defaultHTTPTimeout = 30 * time.Second
+
+	// Default workflow timeout settings
+	defaultGlobalTimeout      = 30 * time.Minute
+	defaultStepDefaultTimeout = 5 * time.Minute
+	defaultWorkflowMaxRetries = 3
 )
 
 // ServerOptions contains the configuration options for the orchestrator server.
@@ -46,6 +51,8 @@ type ServerOptions struct {
 	Metrics *commonoptions.MetricsOptions `json:"metrics" mapstructure:"metrics"`
 	// AI options for configuring AI service integration.
 	AI *AIOptions `json:"ai" mapstructure:"ai"`
+	// Workflow options for configuring workflow timeout settings.
+	Workflow *WorkflowOptions `json:"workflow" mapstructure:"workflow"`
 }
 
 // AIOptions contains AI service configuration options.
@@ -60,7 +67,68 @@ type AIOptions struct {
 	MaxRetries int `json:"max_retries" mapstructure:"max_retries"`
 }
 
-// NewAIOptions creates default AIOptions.
+// WorkflowOptions contains workflow timeout configuration options.
+type WorkflowOptions struct {
+	// GlobalTimeout is the maximum time a workflow can run.
+	GlobalTimeout time.Duration `json:"global_timeout" mapstructure:"global_timeout"`
+	// StepDefaultTimeout is the default timeout for workflow steps.
+	StepDefaultTimeout time.Duration `json:"step_default_timeout" mapstructure:"step_default_timeout"`
+	// RetryOnTimeout indicates whether to retry workflows that timeout.
+	RetryOnTimeout bool `json:"retry_on_timeout" mapstructure:"retry_on_timeout"`
+	// MaxRetries is the maximum number of retry attempts for timed-out workflows.
+	MaxRetries int `json:"max_retries" mapstructure:"max_retries"`
+}
+
+// NewWorkflowOptions creates default WorkflowOptions.
+func NewWorkflowOptions() *WorkflowOptions {
+	return &WorkflowOptions{
+		GlobalTimeout:      defaultGlobalTimeout,
+		StepDefaultTimeout: defaultStepDefaultTimeout,
+		RetryOnTimeout:     true,
+		MaxRetries:         defaultWorkflowMaxRetries,
+	}
+}
+
+// AddFlags adds flags for workflow options.
+func (o *WorkflowOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.DurationVar(&o.GlobalTimeout, "workflow.global-timeout", o.GlobalTimeout,
+		"Maximum time a workflow can run")
+	fs.DurationVar(&o.StepDefaultTimeout, "workflow.step-default-timeout", o.StepDefaultTimeout,
+		"Default timeout for workflow steps")
+	fs.BoolVar(&o.RetryOnTimeout, "workflow.retry-on-timeout", o.RetryOnTimeout,
+		"Whether to retry workflows that timeout")
+	fs.IntVar(&o.MaxRetries, "workflow.max-retries", o.MaxRetries,
+		"Maximum number of retry attempts for timed-out workflows")
+}
+
+// Validate validates workflow options.
+func (o *WorkflowOptions) Validate() error {
+	if o.GlobalTimeout <= 0 {
+		o.GlobalTimeout = defaultGlobalTimeout
+	}
+	if o.StepDefaultTimeout <= 0 {
+		o.StepDefaultTimeout = defaultStepDefaultTimeout
+	}
+	if o.MaxRetries < 0 {
+		o.MaxRetries = 0
+	}
+	return nil
+}
+
+// Complete fills in any fields not set that are required to have valid data.
+func (o *WorkflowOptions) Complete() error {
+	if o.GlobalTimeout == 0 {
+		o.GlobalTimeout = defaultGlobalTimeout
+	}
+	if o.StepDefaultTimeout == 0 {
+		o.StepDefaultTimeout = defaultStepDefaultTimeout
+	}
+	if o.MaxRetries == 0 {
+		o.MaxRetries = defaultWorkflowMaxRetries
+	}
+	return nil
+}
+
 func NewAIOptions() *AIOptions {
 	return &AIOptions{
 		ReasoningServiceURL: "http://localhost:8083", // Reasoning service 端口
@@ -119,6 +187,7 @@ func NewServerOptions() *ServerOptions {
 		Health:   commonoptions.NewHealthOptions(),
 		Metrics:  commonoptions.NewMetricsOptions(),
 		AI:       NewAIOptions(),
+		Workflow: NewWorkflowOptions(),
 	}
 }
 

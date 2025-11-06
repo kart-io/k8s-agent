@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/kart-io/k8s-agent/internal/auth/service"
@@ -24,200 +22,109 @@ func NewRoleHandler(roleService *service.RoleService) *RoleHandler {
 // List retrieves all roles
 // GET /api/v1/roles.
 func (h *RoleHandler) List(c *gin.Context) {
+	handler := WithNoRequest(h.listLogic)
+	handler(c)
+}
+
+// listLogic contains the core business logic for listing roles
+func (h *RoleHandler) listLogic(c *gin.Context) (*map[string]interface{}, error) {
 	roles, err := h.roleService.List()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	return &map[string]interface{}{
 		"items": roles,
-	})
+	}, nil
 }
 
 // GetByID retrieves a role by ID
 // GET /api/v1/roles/:id.
 func (h *RoleHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "Role ID is required",
-		})
-		return
-	}
+	handler := WithURIParams(h.getByIDLogic)
+	handler(c)
+}
 
-	role, err := h.roleService.GetByID(id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "Not Found",
-			"code":    404,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, role)
+// getByIDLogic contains the core business logic for getting role by ID
+func (h *RoleHandler) getByIDLogic(c *gin.Context, params *struct {
+	ID string `uri:"id" binding:"required"`
+}) (*types.Role, error) {
+	return h.roleService.GetByID(params.ID)
 }
 
 // Create creates a new role
 // POST /api/v1/roles.
 func (h *RoleHandler) Create(c *gin.Context) {
-	var req types.RoleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": err.Error(),
-		})
-		return
-	}
+	handler := WithJSONRequestCreated(h.createLogic)
+	handler(c)
+}
 
-	role, err := h.roleService.Create(&req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusCreated, role)
+// createLogic contains the core business logic for creating a role
+func (h *RoleHandler) createLogic(c *gin.Context, req *types.RoleRequest) (*types.Role, error) {
+	return h.roleService.Create(req)
 }
 
 // Update updates a role
 // PUT /api/v1/roles/:id.
 func (h *RoleHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "Role ID is required",
-		})
-		return
-	}
+	handler := WithURIAndJSONRequest(h.updateLogic)
+	handler(c)
+}
 
-	var req types.RoleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := h.roleService.Update(id, &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Role updated successfully",
-	})
+// updateLogic contains the core business logic for updating a role
+func (h *RoleHandler) updateLogic(c *gin.Context, req *struct {
+	ID   string `uri:"id" binding:"required"`
+	Body types.RoleRequest
+}) error {
+	return h.roleService.Update(req.ID, &req.Body)
 }
 
 // Delete deletes a role
 // DELETE /api/v1/roles/:id.
 func (h *RoleHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "Role ID is required",
-		})
-		return
-	}
+	handler := WithURIParamsNoResponse(h.deleteLogic)
+	handler(c)
+}
 
-	if err := h.roleService.Delete(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Role deleted successfully",
-	})
+// deleteLogic contains the core business logic for deleting a role
+func (h *RoleHandler) deleteLogic(c *gin.Context, params *struct {
+	ID string `uri:"id" binding:"required"`
+}) error {
+	return h.roleService.Delete(params.ID)
 }
 
 // AssignPermissions assigns permissions to a role
 // POST /api/v1/roles/:id/permissions.
 func (h *RoleHandler) AssignPermissions(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "Role ID is required",
-		})
-		return
-	}
+	handler := WithURIAndJSONRequestNoResponse(h.assignPermissionsLogic)
+	handler(c)
+}
 
-	var req struct {
-		PermissionIDs []string `json:"permission_ids" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := h.roleService.AssignPermissions(id, req.PermissionIDs); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Permissions assigned successfully",
-	})
+// assignPermissionsLogic contains the core business logic for assigning permissions
+func (h *RoleHandler) assignPermissionsLogic(c *gin.Context, req *struct {
+	ID            string   `uri:"id" binding:"required"`
+	PermissionIDs []string `json:"permission_ids" binding:"required"`
+}) error {
+	return h.roleService.AssignPermissions(req.ID, req.PermissionIDs)
 }
 
 // GetPermissions retrieves permissions for a role
 // GET /api/v1/roles/:id/permissions.
 func (h *RoleHandler) GetPermissions(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "Role ID is required",
-		})
-		return
-	}
+	handler := WithURIParams(h.getPermissionsLogic)
+	handler(c)
+}
 
-	permissions, err := h.roleService.GetPermissions(id)
+// getPermissionsLogic contains the core business logic for getting role permissions
+func (h *RoleHandler) getPermissionsLogic(c *gin.Context, params *struct {
+	ID string `uri:"id" binding:"required"`
+}) (*map[string]interface{}, error) {
+	permissions, err := h.roleService.GetPermissions(params.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	return &map[string]interface{}{
 		"permissions": permissions,
-	})
+	}, nil
 }

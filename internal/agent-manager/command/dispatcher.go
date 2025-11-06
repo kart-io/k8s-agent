@@ -18,7 +18,7 @@ import (
 
 // Dispatcher handles command dispatch and tracking.
 type Dispatcher struct {
-	store    *storage.PostgresStore
+	store    *storage.MySQLStore
 	cache    *storage.RedisStore
 	registry *agent.Registry
 	nats     *nats.Server
@@ -42,7 +42,7 @@ type Dispatcher struct {
 
 // NewDispatcher creates a new command dispatcher.
 func NewDispatcher(
-	store *storage.PostgresStore,
+	store *storage.MySQLStore,
 	cache *storage.RedisStore,
 	registry *agent.Registry,
 	natsServer *nats.Server,

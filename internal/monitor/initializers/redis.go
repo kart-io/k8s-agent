@@ -15,7 +15,8 @@ import (
 // Note: Monitor uses a custom storage layer (storage.RedisStorage) for metrics caching.
 type RedisInitializer struct {
 	*pkginitializers.RedisInitializer
-	store *storage.RedisStorage // Cached storage instance
+	logger core.Logger                // Logger for this wrapper
+	store  *storage.RedisStorage // Cached storage instance
 }
 
 // NewRedisInitializer creates a Redis initializer for monitor service.
@@ -25,6 +26,7 @@ func NewRedisInitializer(cfg *options.ServerOptions, logger core.Logger) *RedisI
 
 	return &RedisInitializer{
 		RedisInitializer: redisInit,
+		logger:           logger,
 	}
 }
 
@@ -40,10 +42,15 @@ func (r *RedisInitializer) Storage() *storage.RedisStorage {
 		return nil
 	}
 
-	// Create storage wrapper around the existing client
-	// Note: The storage.RedisStorage has unexported fields, so we can't create it directly
-	// We need to use NewRedisStorage, but that will create a new connection
-	// TODO: Refactor storage.RedisStorage to accept an existing client
-	// For now, return nil and let the service layer handle storage creation
-	return nil
+	// Use the existing Redis client from the base initializer
+	// This avoids creating duplicate Redis connections
+	store, err := storage.NewRedisStorageWithClient(client, r.logger)
+	if err != nil {
+		r.logger.Errorw("Failed to create Redis storage wrapper", "error", err)
+		return nil
+	}
+
+	r.store = store
+	r.logger.Infow("Monitor storage initialized with reused Redis connection")
+	return r.store
 }

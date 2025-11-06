@@ -28,17 +28,15 @@ func withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, defaultDBTimeout)
 }
 
-// PostgresStore implements MySQL storage
-// Note: Kept the name for backward compatibility, but now using MySQL.
-type PostgresStore struct {
+// MySQLStore implements MySQL storage
+type MySQLStore struct {
 	db          *gorm.DB
 	logger      core.Logger
 	mysqlClient *commondb.MySQLClient
 }
 
-// NewPostgresStore creates a new MySQL store using common/db
-// Note: Kept the name for backward compatibility, but now using MySQL.
-func NewPostgresStore(opts *options.DatabaseOptions, log core.Logger) (*PostgresStore, error) {
+// NewMySQLStore creates a new MySQL store using common/db
+func NewMySQLStore(opts *options.DatabaseOptions, log core.Logger) (*MySQLStore, error) {
 	// 直接使用 db 包创建 MySQL 客户端
 	mysqlClient, err := commondb.NewMySQL(log,
 		commondb.WithHost(opts.Host),
@@ -55,7 +53,7 @@ func NewPostgresStore(opts *options.DatabaseOptions, log core.Logger) (*Postgres
 		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}
 
-	store := &PostgresStore{
+	store := &MySQLStore{
 		db:          mysqlClient.DB,
 		logger:      log,
 		mysqlClient: mysqlClient,
@@ -69,7 +67,7 @@ func NewPostgresStore(opts *options.DatabaseOptions, log core.Logger) (*Postgres
 	return store, nil
 }
 
-func (s *PostgresStore) migrate() error {
+func (s *MySQLStore) migrate() error {
 	return s.db.AutoMigrate(
 		&types.Workflow{},
 		&types.WorkflowExecution{},
@@ -82,13 +80,13 @@ func (s *PostgresStore) migrate() error {
 }
 
 // Workflow operations.
-func (s *PostgresStore) SaveWorkflow(ctx context.Context, workflow *types.Workflow) error {
+func (s *MySQLStore) SaveWorkflow(ctx context.Context, workflow *types.Workflow) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	return s.db.WithContext(ctx).Save(workflow).Error
 }
 
-func (s *PostgresStore) GetWorkflow(ctx context.Context, id string) (*types.Workflow, error) {
+func (s *MySQLStore) GetWorkflow(ctx context.Context, id string) (*types.Workflow, error) {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
@@ -99,7 +97,7 @@ func (s *PostgresStore) GetWorkflow(ctx context.Context, id string) (*types.Work
 	return &workflow, nil
 }
 
-func (s *PostgresStore) ListWorkflows(ctx context.Context) ([]*types.Workflow, error) {
+func (s *MySQLStore) ListWorkflows(ctx context.Context) ([]*types.Workflow, error) {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
@@ -111,13 +109,13 @@ func (s *PostgresStore) ListWorkflows(ctx context.Context) ([]*types.Workflow, e
 }
 
 // WorkflowExecution operations.
-func (s *PostgresStore) SaveWorkflowExecution(ctx context.Context, execution *types.WorkflowExecution) error {
+func (s *MySQLStore) SaveWorkflowExecution(ctx context.Context, execution *types.WorkflowExecution) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	return s.db.WithContext(ctx).Save(execution).Error
 }
 
-func (s *PostgresStore) GetWorkflowExecution(ctx context.Context, id string) (*types.WorkflowExecution, error) {
+func (s *MySQLStore) GetWorkflowExecution(ctx context.Context, id string) (*types.WorkflowExecution, error) {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
@@ -128,7 +126,7 @@ func (s *PostgresStore) GetWorkflowExecution(ctx context.Context, id string) (*t
 	return &execution, nil
 }
 
-func (s *PostgresStore) UpdateWorkflowExecutionStatus(ctx context.Context, id string, status types.ExecutionStatus) error {
+func (s *MySQLStore) UpdateWorkflowExecutionStatus(ctx context.Context, id string, status types.ExecutionStatus) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
@@ -138,13 +136,13 @@ func (s *PostgresStore) UpdateWorkflowExecutionStatus(ctx context.Context, id st
 }
 
 // Strategy operations.
-func (s *PostgresStore) SaveStrategy(ctx context.Context, strategy *types.Strategy) error {
+func (s *MySQLStore) SaveStrategy(ctx context.Context, strategy *types.Strategy) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	return s.db.WithContext(ctx).Save(strategy).Error
 }
 
-func (s *PostgresStore) GetStrategy(ctx context.Context, id string) (*types.Strategy, error) {
+func (s *MySQLStore) GetStrategy(ctx context.Context, id string) (*types.Strategy, error) {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
@@ -155,7 +153,7 @@ func (s *PostgresStore) GetStrategy(ctx context.Context, id string) (*types.Stra
 	return &strategy, nil
 }
 
-func (s *PostgresStore) ListStrategies(ctx context.Context, enabledOnly bool) ([]*types.Strategy, error) {
+func (s *MySQLStore) ListStrategies(ctx context.Context, enabledOnly bool) ([]*types.Strategy, error) {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
@@ -170,14 +168,14 @@ func (s *PostgresStore) ListStrategies(ctx context.Context, enabledOnly bool) ([
 	return strategies, nil
 }
 
-func (s *PostgresStore) Close() error {
+func (s *MySQLStore) Close() error {
 	if s.mysqlClient != nil {
 		return s.mysqlClient.Close()
 	}
 	return nil
 }
 
-func (s *PostgresStore) Health(ctx context.Context) error {
+func (s *MySQLStore) Health(ctx context.Context) error {
 	if s.mysqlClient != nil {
 		return s.mysqlClient.Health(ctx)
 	}

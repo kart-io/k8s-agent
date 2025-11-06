@@ -74,8 +74,8 @@ func NewHTTPServerInitializer(
 func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 	h.logger.Infow("Setting up auth service routes")
 
-	// Create PostgresDB wrapper (for compatibility with existing handlers)
-	dbConn := &storage.PostgresDB{DB: h.dbInit.DB()}
+	// Create MySQLDB wrapper (for compatibility with existing handlers)
+	dbConn := &storage.MySQLDB{DB: h.dbInit.DB()}
 
 	// Initialize services (user, role, permission services)
 	userService := service.NewUserService(dbConn)
@@ -118,6 +118,7 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 	{
 		v1.POST("/login", authHandler.LoginHandler)
 		v1.POST("/logout", jwtMiddleware.JWTAuth(), authHandler.LogoutHandler)
+		v1.POST("/refresh", authHandler.RefreshTokenHandler) // No auth required - uses refresh token
 		v1.GET("/me", jwtMiddleware.JWTAuth(), authHandler.GetCurrentUserHandler)
 		v1.GET("/codes", jwtMiddleware.JWTAuth(), authHandler.GetAccessCodesHandler)
 	}
@@ -175,6 +176,7 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 		"health", "GET /health",
 		"auth_login", "POST /api/v1/auth/login",
 		"auth_logout", "POST /api/v1/auth/logout",
+		"auth_refresh", "POST /api/v1/auth/refresh",
 		"users", "GET/POST/PUT/DELETE /api/v1/users",
 		"roles", "GET/POST/PUT/DELETE /api/v1/roles",
 		"permissions", "GET/POST/PUT/DELETE /api/v1/permissions",

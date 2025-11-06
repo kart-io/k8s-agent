@@ -14,11 +14,11 @@ import (
 
 // PermissionService handles permission management business logic.
 type PermissionService struct {
-	db *storage.PostgresDB
+	db *storage.MySQLDB
 }
 
 // NewPermissionService creates a new permission service.
-func NewPermissionService(db *storage.PostgresDB) *PermissionService {
+func NewPermissionService(db *storage.MySQLDB) *PermissionService {
 	return &PermissionService{db: db}
 }
 

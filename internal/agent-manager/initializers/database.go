@@ -11,7 +11,7 @@ import (
 // DatabaseInitializer wraps the generic database initializer with service-specific configuration.
 type DatabaseInitializer struct {
 	*pkginitializers.DatabaseInitializer
-	store *storage.PostgresStore
+	store *storage.MySQLStore
 }
 
 // NewDatabaseInitializer creates a database initializer for agent-manager service.
@@ -39,9 +39,9 @@ func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *Da
 }
 
 // Store returns the storage instance (creates on first call).
-func (d *DatabaseInitializer) Store() *storage.PostgresStore {
+func (d *DatabaseInitializer) Store() *storage.MySQLStore {
 	if d.store == nil && d.Client() != nil {
-		d.store = &storage.PostgresStore{
+		d.store = &storage.MySQLStore{
 			MySQLClient: d.Client(),
 		}
 	}

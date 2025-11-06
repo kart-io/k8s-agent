@@ -13,20 +13,20 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
 
-// PostgresRepository implements Repository using PostgreSQL via GORM.
-type PostgresRepository struct {
+// MySQLRepository implements Repository using MySQL via GORM.
+type MySQLRepository struct {
 	db *gorm.DB
 }
 
-// NewPostgresRepository creates a new PostgreSQL-based audit repository.
-func NewPostgresRepository(db *gorm.DB) *PostgresRepository {
-	return &PostgresRepository{
+// NewMySQLRepository creates a new MySQL-based audit repository.
+func NewMySQLRepository(db *gorm.DB) *MySQLRepository {
+	return &MySQLRepository{
 		db: db,
 	}
 }
 
 // CreateEvent inserts a new audit event with hash chain validation.
-func (r *PostgresRepository) CreateEvent(ctx context.Context, event *types.ForcedLogoutEvent) error {
+func (r *MySQLRepository) CreateEvent(ctx context.Context, event *types.ForcedLogoutEvent) error {
 	// Use a transaction to ensure atomicity
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Insert the event
@@ -38,7 +38,7 @@ func (r *PostgresRepository) CreateEvent(ctx context.Context, event *types.Force
 }
 
 // GetEvent retrieves a single audit event by event_id.
-func (r *PostgresRepository) GetEvent(ctx context.Context, eventID string) (*types.ForcedLogoutEvent, error) {
+func (r *MySQLRepository) GetEvent(ctx context.Context, eventID string) (*types.ForcedLogoutEvent, error) {
 	var event types.ForcedLogoutEvent
 	if err := r.db.WithContext(ctx).Where("event_id = ?", eventID).First(&event).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -50,7 +50,7 @@ func (r *PostgresRepository) GetEvent(ctx context.Context, eventID string) (*typ
 }
 
 // ListEvents retrieves filtered audit events with pagination.
-func (r *PostgresRepository) ListEvents(ctx context.Context, filter AuditFilter) (*AuditEventListResponse, error) {
+func (r *MySQLRepository) ListEvents(ctx context.Context, filter AuditFilter) (*AuditEventListResponse, error) {
 	// Build query with filters
 	query := r.db.WithContext(ctx).Model(&types.ForcedLogoutEvent{})
 
@@ -111,7 +111,7 @@ func (r *PostgresRepository) ListEvents(ctx context.Context, filter AuditFilter)
 }
 
 // ExportEvents returns audit events in specified format (JSON/CSV).
-func (r *PostgresRepository) ExportEvents(ctx context.Context, filter AuditFilter, format ExportFormat) ([]byte, error) {
+func (r *MySQLRepository) ExportEvents(ctx context.Context, filter AuditFilter, format ExportFormat) ([]byte, error) {
 	// Remove pagination limits for export (but cap at reasonable max)
 	filter.Limit = 10000
 	filter.Offset = 0
@@ -133,7 +133,7 @@ func (r *PostgresRepository) ExportEvents(ctx context.Context, filter AuditFilte
 }
 
 // exportJSON converts events to JSON format.
-func (r *PostgresRepository) exportJSON(events []types.ForcedLogoutEvent) ([]byte, error) {
+func (r *MySQLRepository) exportJSON(events []types.ForcedLogoutEvent) ([]byte, error) {
 	data, err := json.MarshalIndent(events, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal events to JSON: %w", err)
@@ -142,7 +142,7 @@ func (r *PostgresRepository) exportJSON(events []types.ForcedLogoutEvent) ([]byt
 }
 
 // exportCSV converts events to CSV format.
-func (r *PostgresRepository) exportCSV(events []types.ForcedLogoutEvent) ([]byte, error) {
+func (r *MySQLRepository) exportCSV(events []types.ForcedLogoutEvent) ([]byte, error) {
 	var buf strings.Builder
 	writer := csv.NewWriter(&buf)
 
@@ -187,7 +187,7 @@ func (r *PostgresRepository) exportCSV(events []types.ForcedLogoutEvent) ([]byte
 }
 
 // GetLastHash retrieves the hash of the most recent audit event.
-func (r *PostgresRepository) GetLastHash(ctx context.Context) (string, error) {
+func (r *MySQLRepository) GetLastHash(ctx context.Context) (string, error) {
 	var event types.ForcedLogoutEvent
 	if err := r.db.WithContext(ctx).
 		Select("current_hash").
@@ -203,7 +203,7 @@ func (r *PostgresRepository) GetLastHash(ctx context.Context) (string, error) {
 }
 
 // ValidateHashChain verifies the integrity of the entire hash chain.
-func (r *PostgresRepository) ValidateHashChain(ctx context.Context) error {
+func (r *MySQLRepository) ValidateHashChain(ctx context.Context) error {
 	// Retrieve all events ordered by timestamp
 	var events []types.ForcedLogoutEvent
 	if err := r.db.WithContext(ctx).

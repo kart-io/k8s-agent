@@ -23,7 +23,7 @@ func TestNewK8sClusterService(t *testing.T) {
 		}
 	}()
 
-	storage := storage.NewMySQLStorageWithDB(db, nil)
+	storage := storage.NewMySQLStorageForTesting(db, nil)
 	service := NewK8sClusterService(storage)
 
 	assert.NotNil(t, service)
@@ -42,7 +42,7 @@ func TestListClusters(t *testing.T) {
 	}()
 
 	// 创建 storage
-	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
+	storageInstance := storage.NewMySQLStorageForTesting(db, nil)
 	service := NewK8sClusterService(storageInstance)
 
 	// 设置期望的 SQL 查询
@@ -101,7 +101,7 @@ func TestGetCluster(t *testing.T) {
 				}
 			}()
 
-			storageInstance := storage.NewMySQLStorageWithDB(db, nil)
+			storageInstance := storage.NewMySQLStorageForTesting(db, nil)
 			service := NewK8sClusterService(storageInstance)
 
 			if !tt.wantErr {
@@ -151,7 +151,7 @@ func TestDeleteCluster(t *testing.T) {
 		}
 	}()
 
-	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
+	storageInstance := storage.NewMySQLStorageForTesting(db, nil)
 	service := NewK8sClusterService(storageInstance)
 
 	clusterID := "cluster-to-delete"
@@ -207,7 +207,7 @@ func BenchmarkListClusters(b *testing.B) {
 		_ = db.Close()
 	}()
 
-	storageInstance := storage.NewMySQLStorageWithDB(db, nil)
+	storageInstance := storage.NewMySQLStorageForTesting(db, nil)
 	service := NewK8sClusterService(storageInstance)
 
 	// 设置期望

@@ -187,3 +187,44 @@ func (r *RedisRepository) BulkRevokeSessions(ctx context.Context, jtis []string,
 
 	return nil
 }
+
+// StoreRefreshToken stores a refresh token in Redis with user association.
+func (r *RedisRepository) StoreRefreshToken(ctx context.Context, jti, userID string, ttl time.Duration) error {
+	key := fmt.Sprintf("refresh_token:%s", jti)
+	return r.client.Set(ctx, key, userID, ttl).Err()
+}
+
+// GetRefreshTokenOwner retrieves the user ID associated with a refresh token JTI.
+func (r *RedisRepository) GetRefreshTokenOwner(ctx context.Context, jti string) (string, error) {
+	key := fmt.Sprintf("refresh_token:%s", jti)
+	userID, err := r.client.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return "", fmt.Errorf("refresh token not found or expired")
+	}
+	if err != nil {
+		return "", err
+	}
+	return userID, nil
+}
+
+// RevokeRefreshToken removes a refresh token from Redis (token rotation).
+func (r *RedisRepository) RevokeRefreshToken(ctx context.Context, jti string) error {
+	key := fmt.Sprintf("refresh_token:%s", jti)
+	return r.client.Del(ctx, key).Err()
+}
+
+// BlacklistRefreshToken adds a refresh token to the blacklist.
+func (r *RedisRepository) BlacklistRefreshToken(ctx context.Context, jti string, ttl time.Duration) error {
+	key := fmt.Sprintf("blacklist:refresh:%s", jti)
+	return r.client.Set(ctx, key, "1", ttl).Err()
+}
+
+// IsRefreshTokenBlacklisted checks if a refresh token JTI is blacklisted.
+func (r *RedisRepository) IsRefreshTokenBlacklisted(ctx context.Context, jti string) (bool, error) {
+	key := fmt.Sprintf("blacklist:refresh:%s", jti)
+	exists, err := r.client.Exists(ctx, key).Result()
+	if err != nil {
+		return false, fmt.Errorf("check blacklisted: %w", err)
+	}
+	return exists == 1, nil
+}

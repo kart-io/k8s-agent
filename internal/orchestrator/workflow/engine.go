@@ -16,35 +16,69 @@ import (
 
 // Engine manages workflow execution.
 type Engine struct {
-	store    *storage.PostgresStore
+	store    *storage.MySQLStore
 	cache    *storage.RedisStore
 	executor *Executor
 	logger   core.Logger
 
+	// Timeout configuration
+	globalTimeout      time.Duration
+	stepDefaultTimeout time.Duration
+	retryOnTimeout     bool
+	maxRetries         int
+
 	// Execution tracking
 	mu         sync.RWMutex
 	executions map[string]*types.WorkflowExecution
+	cancelFuncs map[string]context.CancelFunc // Cancel functions for running workflows
 
 	// Metrics
 	executionsStarted   int64
 	executionsCompleted int64
 	executionsFailed    int64
+	executionsTimedOut  int64
 }
 
 // NewEngine creates a new workflow engine.
 func NewEngine(
-	store *storage.PostgresStore,
+	store *storage.MySQLStore,
 	cache *storage.RedisStore,
 	executor *Executor,
 	logger core.Logger,
 ) *Engine {
 	return &Engine{
-		store:      store,
-		cache:      cache,
-		executor:   executor,
-		logger:     logger,
-		executions: make(map[string]*types.WorkflowExecution),
+		store:              store,
+		cache:              cache,
+		executor:           executor,
+		logger:             logger,
+		globalTimeout:      30 * time.Minute, // Default 30 minutes
+		stepDefaultTimeout: 5 * time.Minute,  // Default 5 minutes
+		retryOnTimeout:     true,
+		maxRetries:         3,
+		executions:         make(map[string]*types.WorkflowExecution),
+		cancelFuncs:        make(map[string]context.CancelFunc),
 	}
+}
+
+// SetTimeoutConfig sets timeout configuration for the engine.
+func (e *Engine) SetTimeoutConfig(globalTimeout, stepDefaultTimeout time.Duration, retryOnTimeout bool, maxRetries int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if globalTimeout > 0 {
+		e.globalTimeout = globalTimeout
+	}
+	if stepDefaultTimeout > 0 {
+		e.stepDefaultTimeout = stepDefaultTimeout
+	}
+	e.retryOnTimeout = retryOnTimeout
+	e.maxRetries = maxRetries
+
+	e.logger.Info("Workflow timeout configuration updated",
+		"global_timeout", globalTimeout,
+		"step_default_timeout", stepDefaultTimeout,
+		"retry_on_timeout", retryOnTimeout,
+		"max_retries", maxRetries)
 }
 
 // StartWorkflow starts a new workflow execution.
@@ -109,12 +143,26 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 		"execution_id", executionID,
 		"total_started", currentStats)
 
+	// Create context with timeout for workflow execution
+	workflowTimeout := e.globalTimeout
+	if workflow.Timeout > 0 {
+		workflowTimeout = workflow.Timeout
+	}
+
+	workflowCtx, cancel := context.WithTimeout(context.Background(), workflowTimeout)
+
+	// Store cancel function for potential cancellation
+	e.mu.Lock()
+	e.cancelFuncs[executionID] = cancel
+	e.mu.Unlock()
+
 	// Start execution asynchronously
-	go e.executeWorkflow(context.Background(), workflow, execution)
+	go e.executeWorkflow(workflowCtx, workflow, execution)
 
 	e.logger.Info("Workflow execution started",
 		"execution_id", execution.ID,
-		"workflow_id", workflowID)
+		"workflow_id", workflowID,
+		"timeout", workflowTimeout)
 
 	return execution, nil
 }
@@ -122,8 +170,13 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 // executeWorkflow executes a workflow.
 func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, execution *types.WorkflowExecution) {
 	defer func() {
+		// Cleanup tracking
 		e.mu.Lock()
 		delete(e.executions, execution.ID)
+		if cancel, ok := e.cancelFuncs[execution.ID]; ok {
+			cancel() // Cancel the context
+			delete(e.cancelFuncs, execution.ID)
+		}
 		e.mu.Unlock()
 	}()
 
@@ -136,8 +189,18 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 		// Continue execution despite update failure
 	}
 
-	// Execute steps in sequence
+	// Execute steps in sequence with timeout monitoring
 	for i, step := range workflow.Steps {
+		// Check context for timeout or cancellation
+		select {
+		case <-ctx.Done():
+			// Context cancelled or timed out
+			e.handleWorkflowTimeout(ctx, execution)
+			return
+		default:
+			// Continue execution
+		}
+
 		e.logger.Info("Executing workflow step",
 			"execution_id", execution.ID,
 			"step_id", step.ID,
@@ -151,9 +214,15 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 			continue
 		}
 
-		// Execute step
-		stepExec, err := e.executeStep(ctx, execution, step)
+		// Execute step with timeout
+		stepExec, err := e.executeStepWithTimeout(ctx, execution, step)
 		if err != nil {
+			// Check if error is due to context cancellation/timeout
+			if ctx.Err() != nil {
+				e.handleWorkflowTimeout(ctx, execution)
+				return
+			}
+
 			e.handleStepFailure(ctx, execution, step, err)
 			return
 		}
@@ -196,6 +265,26 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 
 	// All steps completed successfully
 	e.completeExecution(ctx, execution, types.ExecutionStatusCompleted, "")
+}
+
+// executeStepWithTimeout executes a single workflow step with timeout.
+func (e *Engine) executeStepWithTimeout(ctx context.Context, execution *types.WorkflowExecution, step types.WorkflowStep) (*types.StepExecution, error) {
+	// Determine step timeout
+	stepTimeout := e.stepDefaultTimeout
+	if step.Timeout > 0 {
+		stepTimeout = step.Timeout
+	}
+
+	// Create context with timeout for this step
+	stepCtx, cancel := context.WithTimeout(ctx, stepTimeout)
+	defer cancel()
+
+	e.logger.Debug("Executing step with timeout",
+		"step_id", step.ID,
+		"timeout", stepTimeout)
+
+	// Execute step
+	return e.executeStep(stepCtx, execution, step)
 }
 
 // executeStep executes a single workflow step.
@@ -368,13 +457,72 @@ func (e *Engine) handleStepFailure(ctx context.Context, execution *types.Workflo
 }
 
 // executeFailureBranch executes failure branch.
-func (e *Engine) executeFailureBranch(ctx context.Context, workflow *types.Workflow, execution *types.WorkflowExecution, step types.WorkflowStep) {
-	// TODO: Implement failure branch execution
+func (e *Engine) executeFailureBranch(ctx context.Context, workflow *types.Workflow, execution *types.WorkflowExecution, failedStep types.WorkflowStep) {
 	e.logger.Info("Executing failure branch",
 		"execution_id", execution.ID,
-		"step_id", step.ID)
+		"failed_step_id", failedStep.ID,
+		"failure_steps", failedStep.OnFailure)
 
-	e.completeExecution(ctx, execution, types.ExecutionStatusFailed, "Failure branch executed")
+	// Execute each step in the failure branch
+	for _, stepID := range failedStep.OnFailure {
+		// Find the step in the workflow
+		var nextStep *types.WorkflowStep
+		for _, s := range workflow.Steps {
+			if s.ID == stepID {
+				nextStep = &s
+				break
+			}
+		}
+
+		if nextStep == nil {
+			e.logger.Warn("Failure branch step not found in workflow",
+				"step_id", stepID,
+				"execution_id", execution.ID)
+			continue
+		}
+
+		e.logger.Info("Executing failure branch step",
+			"execution_id", execution.ID,
+			"step_id", nextStep.ID,
+			"step_name", nextStep.Name)
+
+		// Execute the failure handling step
+		stepExec, err := e.executeStepWithTimeout(ctx, execution, *nextStep)
+		if err != nil {
+			e.logger.Error("Failure branch step execution error",
+				"execution_id", execution.ID,
+				"step_id", nextStep.ID,
+				"error", err)
+			// Continue to next failure step even if this one fails
+			continue
+		}
+
+		// Add step execution to history
+		execution.StepExecutions = append(execution.StepExecutions, *stepExec)
+
+		// Update context with step output
+		if stepExec.Output != nil {
+			for k, v := range stepExec.Output {
+				execution.Context[fmt.Sprintf("step_%s_%s", nextStep.ID, k)] = v
+			}
+		}
+
+		// Save progress
+		if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+			e.logger.Error("Failed to save workflow execution progress",
+				"execution_id", execution.ID,
+				"error", err)
+		}
+
+		e.logger.Info("Failure branch step completed",
+			"execution_id", execution.ID,
+			"step_id", nextStep.ID,
+			"status", stepExec.Status)
+	}
+
+	// After executing all failure branch steps, mark workflow as failed
+	e.completeExecution(ctx, execution, types.ExecutionStatusFailed,
+		fmt.Sprintf("Step %s failed, failure branch executed", failedStep.ID))
 }
 
 // completeExecution completes workflow execution.
@@ -450,11 +598,136 @@ func (e *Engine) GetStatistics() map[string]interface{} {
 	defer e.mu.RUnlock()
 
 	return map[string]interface{}{
-		"active_executions":    len(e.executions),
-		"executions_started":   e.executionsStarted,
-		"executions_completed": e.executionsCompleted,
-		"executions_failed":    e.executionsFailed,
+		"active_executions":     len(e.executions),
+		"executions_started":    e.executionsStarted,
+		"executions_completed":  e.executionsCompleted,
+		"executions_failed":     e.executionsFailed,
+		"executions_timed_out":  e.executionsTimedOut,
+		"global_timeout":        e.globalTimeout.String(),
+		"step_default_timeout":  e.stepDefaultTimeout.String(),
+		"retry_on_timeout":      e.retryOnTimeout,
+		"max_retries":           e.maxRetries,
 	}
+}
+
+// handleWorkflowTimeout handles workflow timeout.
+func (e *Engine) handleWorkflowTimeout(ctx context.Context, execution *types.WorkflowExecution) {
+	e.logger.Warn("Workflow execution timed out",
+		"execution_id", execution.ID,
+		"duration", time.Since(execution.StartedAt))
+
+	// Perform cleanup operations
+	e.cleanupExecution(ctx, execution)
+
+	// Update metrics
+	e.mu.Lock()
+	e.executionsTimedOut++
+	e.mu.Unlock()
+
+	// Check if we should retry
+	if e.retryOnTimeout && execution.Context != nil {
+		retryCount, _ := execution.Context["retry_count"].(int)
+		if retryCount < e.maxRetries {
+			e.logger.Info("Scheduling workflow retry after timeout",
+				"execution_id", execution.ID,
+				"retry_count", retryCount+1,
+				"max_retries", e.maxRetries)
+
+			// Update retry count in context
+			execution.Context["retry_count"] = retryCount + 1
+			execution.Context["previous_timeout"] = true
+
+			// Complete current execution as timeout
+			e.completeExecution(ctx, execution, types.ExecutionStatusTimeout,
+				fmt.Sprintf("Workflow timed out after %s (retry %d/%d)",
+					time.Since(execution.StartedAt), retryCount+1, e.maxRetries))
+
+			// Note: Retry scheduling would be handled by an external scheduler
+			// For now, we just mark the execution as timed out with retry info
+			return
+		}
+	}
+
+	// Complete execution as timeout (no retry)
+	e.completeExecution(ctx, execution, types.ExecutionStatusTimeout,
+		fmt.Sprintf("Workflow timed out after %s", time.Since(execution.StartedAt)))
+}
+
+// cleanupExecution performs cleanup operations for a timed-out or cancelled execution.
+func (e *Engine) cleanupExecution(ctx context.Context, execution *types.WorkflowExecution) {
+	e.logger.Info("Performing cleanup for execution",
+		"execution_id", execution.ID,
+		"status", execution.Status)
+
+	// 1. Release any locks or resources held by the execution
+	// (This would be service-specific - add as needed)
+
+	// 2. Cancel any in-flight HTTP requests
+	// (Already handled by context cancellation)
+
+	// 3. Update execution status to indicate cleanup in progress
+	execution.Context["cleanup_started"] = time.Now()
+
+	// 4. Mark any incomplete steps as cancelled
+	for i := range execution.StepExecutions {
+		if execution.StepExecutions[i].Status == types.ExecutionStatusRunning {
+			now := time.Now()
+			execution.StepExecutions[i].Status = types.ExecutionStatusCancelled
+			execution.StepExecutions[i].CompletedAt = &now
+			execution.StepExecutions[i].Error = "Cancelled due to workflow timeout"
+		}
+	}
+
+	// 5. Save cleanup state
+	if err := e.store.SaveWorkflowExecution(context.Background(), execution); err != nil {
+		e.logger.Error("Failed to save execution cleanup state",
+			"execution_id", execution.ID,
+			"error", err)
+	}
+
+	e.logger.Info("Cleanup completed for execution",
+		"execution_id", execution.ID)
+}
+
+// CancelExecutionWithCleanup cancels a running execution and performs cleanup.
+func (e *Engine) CancelExecutionWithCleanup(ctx context.Context, executionID string, reason string) error {
+	e.mu.Lock()
+	execution, ok := e.executions[executionID]
+	cancel, hasCancel := e.cancelFuncs[executionID]
+	e.mu.Unlock()
+
+	if !ok {
+		return fmt.Errorf("execution not found or not running")
+	}
+
+	e.logger.Info("Cancelling workflow execution",
+		"execution_id", executionID,
+		"reason", reason)
+
+	// Cancel the context
+	if hasCancel {
+		cancel()
+	}
+
+	// Perform cleanup
+	e.cleanupExecution(ctx, execution)
+
+	// Update execution status
+	execution.Status = types.ExecutionStatusCancelled
+	completedAt := time.Now()
+	execution.CompletedAt = &completedAt
+	execution.Duration = completedAt.Sub(execution.StartedAt)
+	execution.Error = reason
+
+	// Save final state
+	if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+		e.logger.Error("Failed to save cancelled execution state",
+			"execution_id", executionID,
+			"error", err)
+		return fmt.Errorf("failed to save cancelled state: %w", err)
+	}
+
+	return nil
 }
 
 // Helper functions

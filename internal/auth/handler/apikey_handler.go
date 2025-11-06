@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"net/http"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 
@@ -24,65 +24,47 @@ func NewAPIKeyHandler(apikeyService *service.APIKeyService) *APIKeyHandler {
 // List retrieves user's API keys (secrets are masked)
 // GET /api/v1/api-keys.
 func (h *APIKeyHandler) List(c *gin.Context) {
+	handler := WithNoRequest(h.listLogic)
+	handler(c)
+}
+
+// listLogic contains the core business logic for listing API keys
+func (h *APIKeyHandler) listLogic(c *gin.Context) (*map[string]interface{}, error) {
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Unauthorized",
-			"code":    401,
-			"details": "User ID not found in context",
-		})
-		return
+		return nil, errors.New("user ID not found in context")
 	}
 
 	keys, err := h.apikeyService.List(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	return &map[string]interface{}{
 		"items": keys,
-	})
+	}, nil
 }
 
 // Create creates a new API key
 // POST /api/v1/api-keys.
 func (h *APIKeyHandler) Create(c *gin.Context) {
+	handler := WithJSONRequestCreated(h.createLogic)
+	handler(c)
+}
+
+// createLogic contains the core business logic for creating an API key
+func (h *APIKeyHandler) createLogic(c *gin.Context, req *types.APIKeyCreateRequest) (*map[string]interface{}, error) {
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Unauthorized",
-			"code":    401,
-			"details": "User ID not found in context",
-		})
-		return
+		return nil, errors.New("user ID not found in context")
 	}
 
-	var req types.APIKeyCreateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	keyWithSecret, err := h.apikeyService.Create(userID, &req)
+	keyWithSecret, err := h.apikeyService.Create(userID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	return &map[string]interface{}{
 		"id":          keyWithSecret.ID,
 		"name":        keyWithSecret.Name,
 		"key":         keyWithSecret.Key,
@@ -91,42 +73,24 @@ func (h *APIKeyHandler) Create(c *gin.Context) {
 		"expires_at":  keyWithSecret.ExpiresAt,
 		"created_at":  keyWithSecret.CreatedAt,
 		"warning":     "Save the secret now. You won't be able to see it again!",
-	})
+	}, nil
 }
 
 // Delete deletes an API key
 // DELETE /api/v1/api-keys/:id.
 func (h *APIKeyHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "API key ID is required",
-		})
-		return
-	}
+	handler := WithURIParamsNoResponse(h.deleteLogic)
+	handler(c)
+}
 
+// deleteLogic contains the core business logic for deleting an API key
+func (h *APIKeyHandler) deleteLogic(c *gin.Context, params *struct {
+	ID string `uri:"id" binding:"required"`
+}) error {
 	userID := c.GetString("user_id")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Unauthorized",
-			"code":    401,
-			"details": "User ID not found in context",
-		})
-		return
+		return errors.New("user ID not found in context")
 	}
 
-	if err := h.apikeyService.Delete(id, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "API key deleted successfully",
-	})
+	return h.apikeyService.Delete(params.ID, userID)
 }

@@ -12,14 +12,14 @@ import (
 
 // Manager manages diagnostic strategies.
 type Manager struct {
-	store  *storage.PostgresStore
+	store  *storage.MySQLStore
 	engine *workflow.Engine
 	logger core.Logger
 }
 
 // NewManager creates a new strategy manager.
 func NewManager(
-	store *storage.PostgresStore,
+	store *storage.MySQLStore,
 	engine *workflow.Engine,
 	logger core.Logger,
 ) *Manager {

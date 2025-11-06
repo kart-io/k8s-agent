@@ -47,6 +47,10 @@ func (w *WorkflowInitializer) Initialize(ctx context.Context) error {
 	w.logger.Infow("Initializing workflow engine",
 		"agent_manager_url", w.opts.AI.AgentManagerURL,
 		"reasoning_service_url", w.opts.AI.ReasoningServiceURL,
+		"global_timeout", w.opts.Workflow.GlobalTimeout,
+		"step_default_timeout", w.opts.Workflow.StepDefaultTimeout,
+		"retry_on_timeout", w.opts.Workflow.RetryOnTimeout,
+		"max_retries", w.opts.Workflow.MaxRetries,
 	)
 
 	// 创建执行器
@@ -62,6 +66,14 @@ func (w *WorkflowInitializer) Initialize(ctx context.Context) error {
 		w.redisInit.Store(),
 		executor,
 		w.logger,
+	)
+
+	// 设置超时配置
+	w.engine.SetTimeoutConfig(
+		w.opts.Workflow.GlobalTimeout,
+		w.opts.Workflow.StepDefaultTimeout,
+		w.opts.Workflow.RetryOnTimeout,
+		w.opts.Workflow.MaxRetries,
 	)
 
 	w.logger.Info("Workflow engine initialized successfully")

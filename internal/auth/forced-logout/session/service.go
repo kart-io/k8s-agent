@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
@@ -189,4 +190,45 @@ func parseDeviceName(userAgent string) string {
 	}
 
 	return fmt.Sprintf("%s on %s", browser, os)
+}
+
+// StoreRefreshToken stores a refresh token in Redis with user association.
+func (s *Service) StoreRefreshToken(ctx context.Context, jti, userID string, ttl time.Duration) error {
+	// Delegate to repository (assumes RedisRepository has this method)
+	if redisRepo, ok := s.repo.(*RedisRepository); ok {
+		return redisRepo.StoreRefreshToken(ctx, jti, userID, ttl)
+	}
+	return fmt.Errorf("repository does not support refresh token storage")
+}
+
+// GetRefreshTokenOwner retrieves the user ID associated with a refresh token JTI.
+func (s *Service) GetRefreshTokenOwner(ctx context.Context, jti string) (string, error) {
+	if redisRepo, ok := s.repo.(*RedisRepository); ok {
+		return redisRepo.GetRefreshTokenOwner(ctx, jti)
+	}
+	return "", fmt.Errorf("repository does not support refresh token retrieval")
+}
+
+// RevokeRefreshToken removes a refresh token from Redis (token rotation).
+func (s *Service) RevokeRefreshToken(ctx context.Context, jti string) error {
+	if redisRepo, ok := s.repo.(*RedisRepository); ok {
+		return redisRepo.RevokeRefreshToken(ctx, jti)
+	}
+	return fmt.Errorf("repository does not support refresh token revocation")
+}
+
+// BlacklistRefreshToken adds a refresh token to the blacklist.
+func (s *Service) BlacklistRefreshToken(ctx context.Context, jti string, ttl time.Duration) error {
+	if redisRepo, ok := s.repo.(*RedisRepository); ok {
+		return redisRepo.BlacklistRefreshToken(ctx, jti, ttl)
+	}
+	return fmt.Errorf("repository does not support refresh token blacklisting")
+}
+
+// IsRefreshTokenBlacklisted checks if a refresh token JTI is blacklisted.
+func (s *Service) IsRefreshTokenBlacklisted(ctx context.Context, jti string) (bool, error) {
+	if redisRepo, ok := s.repo.(*RedisRepository); ok {
+		return redisRepo.IsRefreshTokenBlacklisted(ctx, jti)
+	}
+	return false, fmt.Errorf("repository does not support refresh token blacklist check")
 }

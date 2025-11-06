@@ -18,11 +18,11 @@ import (
 
 // APIKeyService handles API key management business logic.
 type APIKeyService struct {
-	db *storage.PostgresDB
+	db *storage.MySQLDB
 }
 
 // NewAPIKeyService creates a new API key service.
-func NewAPIKeyService(db *storage.PostgresDB) *APIKeyService {
+func NewAPIKeyService(db *storage.MySQLDB) *APIKeyService {
 	return &APIKeyService{db: db}
 }
 

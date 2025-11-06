@@ -48,7 +48,7 @@ type ServerOptions struct {
 	// Components
 	Registry   *agent.Registry
 	Dispatcher *command.Dispatcher
-	Store      *storage.PostgresStore
+	Store      *storage.MySQLStore
 }
 
 // NewServer creates a new gRPC server.

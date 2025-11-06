@@ -25,7 +25,7 @@ type Server struct {
 	registry       *agent.Registry
 	eventProcessor *event.Processor
 	dispatcher     *command.Dispatcher
-	store          *storage.PostgresStore
+	store          *storage.MySQLStore
 	cache          *storage.RedisStore
 
 	// State
@@ -38,7 +38,7 @@ func NewServer(
 	registry *agent.Registry,
 	eventProcessor *event.Processor,
 	dispatcher *command.Dispatcher,
-	store *storage.PostgresStore,
+	store *storage.MySQLStore,
 	cache *storage.RedisStore,
 	logger core.Logger,
 ) *Server {

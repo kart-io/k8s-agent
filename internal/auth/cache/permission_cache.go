@@ -25,11 +25,11 @@ const (
 // PermissionCache handles permission caching in Redis.
 type PermissionCache struct {
 	redis *storage.RedisClient
-	db    *storage.PostgresDB
+	db    *storage.MySQLDB
 }
 
 // NewPermissionCache creates a new permission cache.
-func NewPermissionCache(redis *storage.RedisClient, db *storage.PostgresDB) *PermissionCache {
+func NewPermissionCache(redis *storage.RedisClient, db *storage.MySQLDB) *PermissionCache {
 	return &PermissionCache{
 		redis: redis,
 		db:    db,

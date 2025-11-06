@@ -19,12 +19,12 @@ import (
 type CommandServiceServer struct {
 	agentv1.UnimplementedCommandServiceServer
 	dispatcher *command.Dispatcher
-	store      *storage.PostgresStore
+	store      *storage.MySQLStore
 	logger     core.Logger
 }
 
 // NewCommandServiceServer creates a new CommandServiceServer instance.
-func NewCommandServiceServer(dispatcher *command.Dispatcher, store *storage.PostgresStore, logger core.Logger) *CommandServiceServer {
+func NewCommandServiceServer(dispatcher *command.Dispatcher, store *storage.MySQLStore, logger core.Logger) *CommandServiceServer {
 	return &CommandServiceServer{
 		dispatcher: dispatcher,
 		store:      store,

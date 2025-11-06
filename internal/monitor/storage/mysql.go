@@ -12,14 +12,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-type PostgresStorage struct {
+type MySQLStorage struct {
 	db          *sql.DB
 	log         core.Logger
 	mysqlClient *commondb.MySQLClient
 }
 
-// NewPostgresStorage creates a new storage using common/db.
-func NewPostgresStorage(opts *options.DatabaseOptions, logger core.Logger) (*PostgresStorage, error) {
+// NewMySQLStorage creates a new storage using common/db.
+func NewMySQLStorage(opts *options.DatabaseOptions, logger core.Logger) (*MySQLStorage, error) {
 	// 直接使用 db 包创建 MySQL 客户端
 	mysqlClient, err := commondb.NewMySQL(logger,
 		commondb.WithHost(opts.Host),
@@ -42,7 +42,7 @@ func NewPostgresStorage(opts *options.DatabaseOptions, logger core.Logger) (*Pos
 		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
 	}
 
-	storage := &PostgresStorage{
+	storage := &MySQLStorage{
 		db:          sqlDB,
 		log:         logger,
 		mysqlClient: mysqlClient,
@@ -56,7 +56,7 @@ func NewPostgresStorage(opts *options.DatabaseOptions, logger core.Logger) (*Pos
 	return storage, nil
 }
 
-func (s *PostgresStorage) initSchema() error {
+func (s *MySQLStorage) initSchema() error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS metrics_summary (
 		id INT AUTO_INCREMENT PRIMARY KEY,
@@ -143,10 +143,10 @@ func (s *PostgresStorage) initSchema() error {
 	return err
 }
 
-func (s *PostgresStorage) Close() error {
+func (s *MySQLStorage) Close() error {
 	return s.db.Close()
 }
 
-func (s *PostgresStorage) DB() *sql.DB {
+func (s *MySQLStorage) DB() *sql.DB {
 	return s.db
 }

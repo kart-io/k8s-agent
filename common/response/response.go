@@ -79,6 +79,50 @@ func ServiceUnavailable(c *gin.Context, message string, err error) {
 	Error(c, http.StatusServiceUnavailable, 503, message, err)
 }
 
+// Auth service specific error codes
+const (
+	CodeSuccess           = 0
+	CodeBadRequest        = 400
+	CodeUnauthorized      = 401
+	CodeForbidden         = 403
+	CodeNotFound          = 404
+	CodeConflict          = 409
+	CodeInternalError     = 500
+	CodeDatabaseError     = 5001
+	CodeValidationError   = 4001
+	CodeAuthenticationErr = 4011
+	CodePermissionDenied  = 4031
+)
+
+// ValidationError sends a 400 validation error
+func ValidationError(c *gin.Context, message string) {
+	Error(c, http.StatusBadRequest, CodeValidationError, message, nil)
+}
+
+// AuthenticationError sends a 401 authentication error
+func AuthenticationError(c *gin.Context, message string) {
+	Error(c, http.StatusUnauthorized, CodeAuthenticationErr, message, nil)
+}
+
+// PermissionDenied sends a 403 permission denied error
+func PermissionDenied(c *gin.Context, message string) {
+	Error(c, http.StatusForbidden, CodePermissionDenied, message, nil)
+}
+
+// DatabaseError sends a 500 database error
+func DatabaseError(c *gin.Context, message string) {
+	Error(c, http.StatusInternalServerError, CodeDatabaseError, message, nil)
+}
+
+// Created sends a created response (201)
+func Created(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusCreated, APIResponse{
+		Code:    CodeSuccess,
+		Message: "created",
+		Data:    data,
+	})
+}
+
 // ListResponse 列表响应结构
 type ListResponse struct {
 	Items interface{} `json:"items"`
@@ -90,5 +134,34 @@ func SuccessList(c *gin.Context, items interface{}, total int64) {
 	Success(c, ListResponse{
 		Items: items,
 		Total: total,
+	})
+}
+
+// PaginatedResponse represents paginated response
+type PaginatedResponse struct {
+	Items      interface{} `json:"items"`
+	Total      int64       `json:"total"`
+	Page       int         `json:"page"`
+	PageSize   int         `json:"page_size"`
+	TotalPages int         `json:"total_pages"`
+}
+
+// Paginated sends a paginated response
+func Paginated(c *gin.Context, data interface{}, total int64, page int, pageSize int) {
+	totalPages := int(total) / pageSize
+	if int(total)%pageSize > 0 {
+		totalPages++
+	}
+
+	c.JSON(http.StatusOK, APIResponse{
+		Code:    CodeSuccess,
+		Message: "success",
+		Data: PaginatedResponse{
+			Items:      data,
+			Total:      total,
+			Page:       page,
+			PageSize:   pageSize,
+			TotalPages: totalPages,
+		},
 	})
 }

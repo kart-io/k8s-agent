@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/kart-io/k8s-agent/internal/auth/service"
@@ -24,154 +22,95 @@ func NewPermissionHandler(permissionService *service.PermissionService) *Permiss
 // List retrieves all permissions with optional filtering
 // GET /api/v1/permissions.
 func (h *PermissionHandler) List(c *gin.Context) {
-	typeFilter := c.Query("type")
-	statusFilter := c.Query("status")
+	handler := WithQueryParams(h.listLogic)
+	handler(c)
+}
 
-	permissions, err := h.permissionService.List(typeFilter, statusFilter)
+// listLogic contains the core business logic for listing permissions
+func (h *PermissionHandler) listLogic(c *gin.Context, params *struct {
+	Type   string `form:"type"`
+	Status string `form:"status"`
+}) (*map[string]interface{}, error) {
+	permissions, err := h.permissionService.List(params.Type, params.Status)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	return &map[string]interface{}{
 		"items": permissions,
-	})
+	}, nil
 }
 
 // GetTree retrieves permission tree
 // GET /api/v1/permissions/tree.
 func (h *PermissionHandler) GetTree(c *gin.Context) {
+	handler := WithNoRequest(h.getTreeLogic)
+	handler(c)
+}
+
+// getTreeLogic contains the core business logic for getting permission tree
+func (h *PermissionHandler) getTreeLogic(c *gin.Context) (*map[string]interface{}, error) {
 	tree, err := h.permissionService.GetTree()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	return &map[string]interface{}{
 		"tree": tree,
-	})
+	}, nil
 }
 
 // GetByID retrieves a permission by ID
 // GET /api/v1/permissions/:id.
 func (h *PermissionHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "Permission ID is required",
-		})
-		return
-	}
+	handler := WithURIParams(h.getByIDLogic)
+	handler(c)
+}
 
-	permission, err := h.permissionService.GetByID(id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "Not Found",
-			"code":    404,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, permission)
+// getByIDLogic contains the core business logic for getting permission by ID
+func (h *PermissionHandler) getByIDLogic(c *gin.Context, params *struct {
+	ID string `uri:"id" binding:"required"`
+}) (*types.Permission, error) {
+	return h.permissionService.GetByID(params.ID)
 }
 
 // Create creates a new permission
 // POST /api/v1/permissions.
 func (h *PermissionHandler) Create(c *gin.Context) {
-	var req types.PermissionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": err.Error(),
-		})
-		return
-	}
+	handler := WithJSONRequestCreated(h.createLogic)
+	handler(c)
+}
 
-	permission, err := h.permissionService.Create(&req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusCreated, permission)
+// createLogic contains the core business logic for creating a permission
+func (h *PermissionHandler) createLogic(c *gin.Context, req *types.PermissionRequest) (*types.Permission, error) {
+	return h.permissionService.Create(req)
 }
 
 // Update updates a permission
 // PUT /api/v1/permissions/:id.
 func (h *PermissionHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "Permission ID is required",
-		})
-		return
-	}
+	handler := WithURIAndJSONRequest(h.updateLogic)
+	handler(c)
+}
 
-	var req types.PermissionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := h.permissionService.Update(id, &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Permission updated successfully",
-	})
+// updateLogic contains the core business logic for updating a permission
+func (h *PermissionHandler) updateLogic(c *gin.Context, req *struct {
+	ID   string `uri:"id" binding:"required"`
+	Body types.PermissionRequest
+}) error {
+	return h.permissionService.Update(req.ID, &req.Body)
 }
 
 // Delete deletes a permission
 // DELETE /api/v1/permissions/:id.
 func (h *PermissionHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad Request",
-			"code":    400,
-			"details": "Permission ID is required",
-		})
-		return
-	}
+	handler := WithURIParamsNoResponse(h.deleteLogic)
+	handler(c)
+}
 
-	if err := h.permissionService.Delete(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Internal Server Error",
-			"code":    500,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Permission deleted successfully",
-	})
+// deleteLogic contains the core business logic for deleting a permission
+func (h *PermissionHandler) deleteLogic(c *gin.Context, params *struct {
+	ID string `uri:"id" binding:"required"`
+}) error {
+	return h.permissionService.Delete(params.ID)
 }

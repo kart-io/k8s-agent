@@ -10,27 +10,33 @@ import (
 
 // NATSOptions NATS消息队列配置
 type NATSOptions struct {
-	URL              string        `mapstructure:"url" yaml:"url" json:"url"`
-	ClusterID        string        `mapstructure:"cluster_id" yaml:"cluster_id" json:"cluster_id"`
-	MaxReconnect     int           `mapstructure:"max_reconnect" yaml:"max_reconnect" json:"max_reconnect"`
-	ReconnectWait    time.Duration `mapstructure:"reconnect_wait" yaml:"reconnect_wait" json:"reconnect_wait"`
-	PingInterval     time.Duration `mapstructure:"ping_interval" yaml:"ping_interval" json:"ping_interval"`
-	MaxPingsOut      int           `mapstructure:"max_pings_out" yaml:"max_pings_out" json:"max_pings_out"`
-	EnableJetStream  bool          `mapstructure:"enable_jetstream" yaml:"enable_jetstream" json:"enable_jetstream"`
-	ReconnectBufSize int           `mapstructure:"reconnect_buf_size" yaml:"reconnect_buf_size" json:"reconnect_buf_size"`
+	URL                   string        `mapstructure:"url" yaml:"url" json:"url"`
+	ClusterID             string        `mapstructure:"cluster_id" yaml:"cluster_id" json:"cluster_id"`
+	MaxReconnect          int           `mapstructure:"max_reconnect" yaml:"max_reconnect" json:"max_reconnect"`
+	ReconnectWait         time.Duration `mapstructure:"reconnect_wait" yaml:"reconnect_wait" json:"reconnect_wait"`
+	PingInterval          time.Duration `mapstructure:"ping_interval" yaml:"ping_interval" json:"ping_interval"`
+	MaxPingsOut           int           `mapstructure:"max_pings_out" yaml:"max_pings_out" json:"max_pings_out"`
+	EnableJetStream       bool          `mapstructure:"enable_jetstream" yaml:"enable_jetstream" json:"enable_jetstream"`
+	ReconnectBufSize      int           `mapstructure:"reconnect_buf_size" yaml:"reconnect_buf_size" json:"reconnect_buf_size"`
+	ReconnectDelayMax     time.Duration `mapstructure:"reconnect_delay_max" yaml:"reconnect_delay_max" json:"reconnect_delay_max"`
+	ReconnectDelayInitial time.Duration `mapstructure:"reconnect_delay_initial" yaml:"reconnect_delay_initial" json:"reconnect_delay_initial"`
+	ReconnectBackoffFactor float64      `mapstructure:"reconnect_backoff_factor" yaml:"reconnect_backoff_factor" json:"reconnect_backoff_factor"`
 }
 
 // NewNATSOptions 创建默认的NATS配置
 func NewNATSOptions() *NATSOptions {
 	return &NATSOptions{
-		URL:              "nats://localhost:4222",
-		ClusterID:        "",
-		MaxReconnect:     10,
-		ReconnectWait:    2 * time.Second,
-		PingInterval:     20 * time.Second,
-		MaxPingsOut:      2,
-		EnableJetStream:  false,
-		ReconnectBufSize: 1024 * 1024,
+		URL:                   "nats://localhost:4222",
+		ClusterID:             "",
+		MaxReconnect:          10,
+		ReconnectWait:         2 * time.Second,
+		PingInterval:          20 * time.Second,
+		MaxPingsOut:           2,
+		EnableJetStream:       false,
+		ReconnectBufSize:      1024 * 1024,
+		ReconnectDelayInitial: 1 * time.Second,  // 初始延迟 1 秒
+		ReconnectDelayMax:     30 * time.Second, // 最大延迟 30 秒
+		ReconnectBackoffFactor: 2.0,             // 每次重连延迟翻倍
 	}
 }
 
@@ -62,6 +68,9 @@ func (o *NATSOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&o.MaxPingsOut, "nats.max-pings-out", o.MaxPingsOut, "NATS maximum outstanding pings")
 	fs.BoolVar(&o.EnableJetStream, "nats.enable-jetstream", o.EnableJetStream, "Enable NATS JetStream")
 	fs.IntVar(&o.ReconnectBufSize, "nats.reconnect-buf-size", o.ReconnectBufSize, "NATS reconnect buffer size")
+	fs.DurationVar(&o.ReconnectDelayInitial, "nats.reconnect-delay-initial", o.ReconnectDelayInitial, "NATS initial reconnect delay")
+	fs.DurationVar(&o.ReconnectDelayMax, "nats.reconnect-delay-max", o.ReconnectDelayMax, "NATS maximum reconnect delay")
+	fs.Float64Var(&o.ReconnectBackoffFactor, "nats.reconnect-backoff-factor", o.ReconnectBackoffFactor, "NATS reconnect backoff factor")
 }
 
 // ApplyTo 将配置应用到目标接口
@@ -121,6 +130,24 @@ func (o *NATSOptions) Complete() error {
 		o.ReconnectBufSize = 1024 * 1024 // 1MB
 	}
 
+	// 验证新增的重连参数
+	if o.ReconnectDelayInitial <= 0 {
+		o.ReconnectDelayInitial = 1 * time.Second
+	}
+
+	if o.ReconnectDelayMax <= 0 {
+		o.ReconnectDelayMax = 30 * time.Second
+	}
+
+	// 确保最大延迟不小于初始延迟
+	if o.ReconnectDelayMax < o.ReconnectDelayInitial {
+		o.ReconnectDelayMax = o.ReconnectDelayInitial
+	}
+
+	if o.ReconnectBackoffFactor < 1.0 {
+		o.ReconnectBackoffFactor = 2.0
+	}
+
 	return nil
 }
 
@@ -177,5 +204,26 @@ func WithNATSEnableJetStream(enable bool) func(*NATSOptions) {
 func WithNATSReconnectBufSize(size int) func(*NATSOptions) {
 	return func(o *NATSOptions) {
 		o.ReconnectBufSize = size
+	}
+}
+
+// WithNATSReconnectDelayInitial 设置初始重连延迟时间
+func WithNATSReconnectDelayInitial(delay time.Duration) func(*NATSOptions) {
+	return func(o *NATSOptions) {
+		o.ReconnectDelayInitial = delay
+	}
+}
+
+// WithNATSReconnectDelayMax 设置最大重连延迟时间
+func WithNATSReconnectDelayMax(delay time.Duration) func(*NATSOptions) {
+	return func(o *NATSOptions) {
+		o.ReconnectDelayMax = delay
+	}
+}
+
+// WithNATSReconnectBackoffFactor 设置重连退避因子
+func WithNATSReconnectBackoffFactor(factor float64) func(*NATSOptions) {
+	return func(o *NATSOptions) {
+		o.ReconnectBackoffFactor = factor
 	}
 }

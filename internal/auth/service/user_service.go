@@ -15,11 +15,11 @@ import (
 
 // UserService handles user management business logic.
 type UserService struct {
-	db *storage.PostgresDB
+	db *storage.MySQLDB
 }
 
 // NewUserService creates a new user service.
-func NewUserService(db *storage.PostgresDB) *UserService {
+func NewUserService(db *storage.MySQLDB) *UserService {
 	return &UserService{db: db}
 }
 

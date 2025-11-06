@@ -14,16 +14,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
-// PostgresDB wraps GORM database connection
-// Note: Kept the name for backward compatibility, but now using MySQL.
-type PostgresDB struct {
+// MySQLDB wraps GORM database connection
+type MySQLDB struct {
 	DB     *gorm.DB
 	Logger core.Logger
 }
 
-// NewPostgresDB creates a new MySQL connection using GORM
-// Note: Kept the name for backward compatibility, but now using MySQL.
-func NewPostgresDB(cfg *commonoptions.DatabaseOptions, log core.Logger) (*PostgresDB, error) {
+// NewMySQLDB creates a new MySQL connection using GORM
+func NewMySQLDB(cfg *commonoptions.DatabaseOptions, log core.Logger) (*MySQLDB, error) {
 	// Build connection string (DSN) for MySQL
 	// Format: user:password@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
 	dsn := fmt.Sprintf(
@@ -85,14 +83,14 @@ func NewPostgresDB(cfg *commonoptions.DatabaseOptions, log core.Logger) (*Postgr
 		log.Infow("GORM AutoMigrate disabled (production mode)")
 	}
 
-	return &PostgresDB{
+	return &MySQLDB{
 		DB:     db,
 		Logger: log,
 	}, nil
 }
 
 // Close closes the database connection.
-func (p *PostgresDB) Close() error {
+func (p *MySQLDB) Close() error {
 	sqlDB, err := p.DB.DB()
 	if err != nil {
 		return err

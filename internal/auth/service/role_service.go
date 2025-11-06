@@ -14,11 +14,11 @@ import (
 
 // RoleService handles role management business logic.
 type RoleService struct {
-	db *storage.PostgresDB
+	db *storage.MySQLDB
 }
 
 // NewRoleService creates a new role service.
-func NewRoleService(db *storage.PostgresDB) *RoleService {
+func NewRoleService(db *storage.MySQLDB) *RoleService {
 	return &RoleService{db: db}
 }
 

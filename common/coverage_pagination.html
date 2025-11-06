@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>pagination: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/kart-io/k8s-agent/common/pagination/pagination.go (97.3%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package pagination
+
+import (
+        "strconv"
+
+        "github.com/gin-gonic/gin"
+)
+
+const (
+        // DefaultPage 默认页码
+        DefaultPage = 1
+        // DefaultPageSize 默认每页数量
+        DefaultPageSize = 10
+        // MaxPageSize 最大每页数量
+        MaxPageSize = 100
+)
+
+// Params 分页参数
+type Params struct {
+        Page     int    `json:"page" form:"page"`
+        PageSize int    `json:"pageSize" form:"pageSize"`
+        Sort     string `json:"sort" form:"sort"`           // 排序字段
+        Order    string `json:"order" form:"order"`         // asc 或 desc
+}
+
+// GetOffset 计算偏移量
+func (p *Params) GetOffset() int <span class="cov8" title="1">{
+        if p.Page &lt;= 0 </span><span class="cov8" title="1">{
+                p.Page = DefaultPage
+        }</span>
+        <span class="cov8" title="1">return (p.Page - 1) * p.GetPageSize()</span>
+}
+
+// GetPageSize 获取每页数量
+func (p *Params) GetPageSize() int <span class="cov8" title="1">{
+        if p.PageSize &lt;= 0 </span><span class="cov8" title="1">{
+                return DefaultPageSize
+        }</span>
+        <span class="cov8" title="1">if p.PageSize &gt; MaxPageSize </span><span class="cov8" title="1">{
+                return MaxPageSize
+        }</span>
+        <span class="cov8" title="1">return p.PageSize</span>
+}
+
+// GetLimit 获取限制数量
+func (p *Params) GetLimit() int <span class="cov8" title="1">{
+        return p.GetPageSize()
+}</span>
+
+// Parse 从 Gin Context 中解析分页参数
+func Parse(c *gin.Context) *Params <span class="cov8" title="1">{
+        page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+        pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+        sort := c.DefaultQuery("sort", "created_at")
+        order := c.DefaultQuery("order", "desc")
+
+        // Validate order
+        if order != "asc" &amp;&amp; order != "desc" </span><span class="cov8" title="1">{
+                order = "desc"
+        }</span>
+
+        <span class="cov8" title="1">return &amp;Params{
+                Page:     page,
+                PageSize: pageSize,
+                Sort:     sort,
+                Order:    order,
+        }</span>
+}
+
+// ParseWithDefaults 解析分页参数（自定义默认值）
+func ParseWithDefaults(c *gin.Context, defaultPage, defaultPageSize int) *Params <span class="cov8" title="1">{
+        page, _ := strconv.Atoi(c.DefaultQuery("page", strconv.Itoa(defaultPage)))
+        pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", strconv.Itoa(defaultPageSize)))
+        sort := c.DefaultQuery("sort", "created_at")
+        order := c.DefaultQuery("order", "desc")
+
+        // Validate order
+        if order != "asc" &amp;&amp; order != "desc" </span><span class="cov0" title="0">{
+                order = "desc"
+        }</span>
+
+        <span class="cov8" title="1">return &amp;Params{
+                Page:     page,
+                PageSize: pageSize,
+                Sort:     sort,
+                Order:    order,
+        }</span>
+}
+
+// Response 分页响应结构
+type Response struct {
+        Items      interface{} `json:"items"`
+        Total      int64       `json:"total"`
+        Page       int         `json:"page"`
+        PageSize   int         `json:"pageSize"`
+        TotalPages int         `json:"totalPages"` // 总页数
+}
+
+// NewResponse 创建分页响应
+func NewResponse(items interface{}, total int64, params *Params) *Response <span class="cov8" title="1">{
+        return &amp;Response{
+                Items:      items,
+                Total:      total,
+                Page:       params.Page,
+                PageSize:   params.GetPageSize(),
+                TotalPages: CalculateTotalPages(total, params.GetPageSize()),
+        }
+}</span>
+
+// CalculateTotalPages 计算总页数
+func CalculateTotalPages(total int64, pageSize int) int <span class="cov8" title="1">{
+        if pageSize &lt;= 0 </span><span class="cov8" title="1">{
+                return 0
+        }</span>
+        <span class="cov8" title="1">totalPages := int(total) / pageSize
+        if int(total)%pageSize &gt; 0 </span><span class="cov8" title="1">{
+                totalPages++
+        }</span>
+        <span class="cov8" title="1">return totalPages</span>
+}
+
+// BuildOrderBy 构建 ORDER BY SQL 子句
+// allowedFields: 允许排序的字段映射（key: 请求字段名, value: 数据库字段名）
+func BuildOrderBy(params *Params, allowedFields map[string]string) string <span class="cov8" title="1">{
+        // 检查排序字段是否允许
+        field, ok := allowedFields[params.Sort]
+        if !ok </span><span class="cov8" title="1">{
+                // 如果字段不允许，默认使用 created_at
+                field = "created_at"
+        }</span>
+
+        <span class="cov8" title="1">order := "DESC"
+        if params.Order == "asc" </span><span class="cov8" title="1">{
+                order = "ASC"
+        }</span>
+
+        <span class="cov8" title="1">return field + " " + order</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

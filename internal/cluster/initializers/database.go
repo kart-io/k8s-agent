@@ -45,17 +45,22 @@ func (d *DatabaseInitializer) GetStorage() *storage.MySQLStorage {
 		return d.store
 	}
 
-	// Create storage using the configuration (this will create its own connection)
-	// TODO: This is not ideal as it creates a new connection instead of reusing
-	// the one from DatabaseInitializer. A better approach would be to refactor
-	// MySQLStorage to accept an existing connection.
-	store, err := storage.NewMySQLStorage(d.opts.Database, d.logger)
+	// Use the existing GORM DB connection from the base initializer
+	// This avoids creating duplicate database connections
+	gormDB := d.DatabaseInitializer.DB()
+	if gormDB == nil {
+		d.logger.Errorw("GORM DB not initialized")
+		return nil
+	}
+
+	store, err := storage.NewMySQLStorageWithDB(gormDB, d.logger)
 	if err != nil {
 		d.logger.Errorw("Failed to create MySQL storage", "error", err)
 		return nil
 	}
 
 	d.store = store
+	d.logger.Infow("Cluster storage initialized with reused database connection")
 	return d.store
 }
 

@@ -34,7 +34,7 @@ const (
 
 // Processor handles event processing and routing.
 type Processor struct {
-	store  *storage.PostgresStore
+	store  *storage.MySQLStore
 	cache  *storage.RedisStore
 	nats   *nats.Conn
 	logger core.Logger
@@ -64,7 +64,7 @@ type EventEnricher interface {
 
 // NewProcessor creates a new event processor.
 func NewProcessor(
-	store *storage.PostgresStore,
+	store *storage.MySQLStore,
 	cache *storage.RedisStore,
 	natsConn *nats.Conn,
 	logger core.Logger,
@@ -262,7 +262,7 @@ func (f *DuplicateFilter) ShouldProcess(event *types.Event) bool {
 
 // ClusterEnricher enriches events with cluster information.
 type ClusterEnricher struct {
-	store *storage.PostgresStore
+	store *storage.MySQLStore
 }
 
 func (e *ClusterEnricher) Enrich(ctx context.Context, event *types.Event) error {

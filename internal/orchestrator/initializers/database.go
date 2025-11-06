@@ -16,7 +16,7 @@ type DatabaseInitializer struct {
 	*pkginitializers.DatabaseInitializer
 	opts   *options.ServerOptions
 	logger core.Logger
-	store  *storage.PostgresStore // Cached storage instance
+	store  *storage.MySQLStore // Cached storage instance
 }
 
 // NewDatabaseInitializer creates a database initializer for orchestrator service.
@@ -40,15 +40,15 @@ func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *Da
 
 // Store returns the initialized storage instance.
 // It lazily creates the storage wrapper on first call.
-func (d *DatabaseInitializer) Store() *storage.PostgresStore {
+func (d *DatabaseInitializer) Store() *storage.MySQLStore {
 	if d.store != nil {
 		return d.store
 	}
 
 	// Create storage using the configuration (this will create its own connection)
-	store, err := storage.NewPostgresStore(d.opts.Database, d.logger)
+	store, err := storage.NewMySQLStore(d.opts.Database, d.logger)
 	if err != nil {
-		d.logger.Errorw("Failed to create Postgres store", "error", err)
+		d.logger.Errorw("Failed to create MySQL store", "error", err)
 		return nil
 	}
 

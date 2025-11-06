@@ -23,14 +23,14 @@ type WorkflowServiceServer struct {
 	orchestratorv1.UnimplementedWorkflowServiceServer
 
 	engine *workflow.Engine
-	store  *storage.PostgresStore
+	store  *storage.MySQLStore
 	logger core.Logger
 }
 
 // NewWorkflowServiceServer creates a new WorkflowServiceServer.
 func NewWorkflowServiceServer(
 	engine *workflow.Engine,
-	store *storage.PostgresStore,
+	store *storage.MySQLStore,
 	logger core.Logger,
 ) *WorkflowServiceServer {
 	return &WorkflowServiceServer{

@@ -126,6 +126,9 @@ func (n *NATSInitializer) Priority() int {
 func (n *NATSInitializer) Initialize(ctx context.Context) error {
 	n.logger.Infow("Initializing NATS server",
 		"url", n.opts.NATS.URL,
+		"max_reconnect", n.opts.NATS.MaxReconnect,
+		"reconnect_delay_initial", n.opts.NATS.ReconnectDelayInitial.String(),
+		"reconnect_delay_max", n.opts.NATS.ReconnectDelayMax.String(),
 	)
 
 	n.natsServer = nats.NewServer(
@@ -137,6 +140,9 @@ func (n *NATSInitializer) Initialize(ctx context.Context) error {
 		nats.WithReconnectWait(n.opts.NATS.ReconnectWait),
 		nats.WithPingInterval(n.opts.NATS.PingInterval),
 		nats.WithMaxPingsOut(n.opts.NATS.MaxPingsOut),
+		nats.WithReconnectDelayInitial(n.opts.NATS.ReconnectDelayInitial),
+		nats.WithReconnectDelayMax(n.opts.NATS.ReconnectDelayMax),
+		nats.WithReconnectBackoffFactor(n.opts.NATS.ReconnectBackoffFactor),
 	)
 
 	// 启动 NATS 服务器
@@ -219,7 +225,10 @@ func (d *DispatcherInitializer) Initialize(ctx context.Context) error {
 		d.logger,
 	)
 
-	d.logger.Infow("Command dispatcher initialized successfully")
+	// Wire up command result handler: NATS server calls dispatcher's HandleCommandResult
+	d.natsInit.Server().SetCommandResultHandler(d.dispatcher.HandleCommandResult)
+
+	d.logger.Infow("Command dispatcher initialized successfully with NATS result handler")
 	return nil
 }
 

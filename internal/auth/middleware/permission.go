@@ -10,7 +10,7 @@ import (
 )
 
 // RequirePermission checks if user has specific permission.
-func RequirePermission(db *storage.PostgresDB, permissionCode string) gin.HandlerFunc {
+func RequirePermission(db *storage.MySQLDB, permissionCode string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("user_id")
 		if userID == "" {
@@ -50,7 +50,7 @@ func RequirePermission(db *storage.PostgresDB, permissionCode string) gin.Handle
 }
 
 // RequireRole checks if user has specific role.
-func RequireRole(db *storage.PostgresDB, roleCode string) gin.HandlerFunc {
+func RequireRole(db *storage.MySQLDB, roleCode string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("user_id")
 		if userID == "" {
@@ -90,7 +90,7 @@ func RequireRole(db *storage.PostgresDB, roleCode string) gin.HandlerFunc {
 }
 
 // checkUserPermission verifies if user has a specific permission.
-func checkUserPermission(db *storage.PostgresDB, userID, permissionCode string) (bool, error) {
+func checkUserPermission(db *storage.MySQLDB, userID, permissionCode string) (bool, error) {
 	var count int64
 	err := db.DB.Model(&model.Permission{}).
 		Joins("JOIN role_permissions ON permissions.id = role_permissions.permission_id").
@@ -105,7 +105,7 @@ func checkUserPermission(db *storage.PostgresDB, userID, permissionCode string) 
 }
 
 // checkUserRole verifies if user has a specific role.
-func checkUserRole(db *storage.PostgresDB, userID, roleCode string) (bool, error) {
+func checkUserRole(db *storage.MySQLDB, userID, roleCode string) (bool, error) {
 	var count int64
 	err := db.DB.Model(&model.Role{}).
 		Joins("JOIN user_roles ON roles.id = user_roles.role_id").

@@ -48,6 +48,13 @@ ai:
   timeout: 30s
   max_retries: 3
 
+# Workflow timeout configuration
+workflow:
+  global_timeout: 30m          # Maximum time a workflow can run (default: 30 minutes)
+  step_default_timeout: 5m     # Default timeout for workflow steps (default: 5 minutes)
+  retry_on_timeout: true       # Whether to retry workflows that timeout
+  max_retries: 3               # Maximum number of retry attempts for timed-out workflows
+
 # Logging
 logging:
   level: "info"

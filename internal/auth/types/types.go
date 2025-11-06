@@ -82,10 +82,25 @@ type LoginRequest struct {
 
 // LoginResponse represents a login response.
 type LoginResponse struct {
-	Token     string    `json:"token"`
-	JTI       string    `json:"jti"` // JWT ID for session tracking
-	ExpiresAt time.Time `json:"expires_at"`
-	User      *UserInfo `json:"user"`
+	Token        string    `json:"token"`
+	RefreshToken string    `json:"refresh_token"` // New refresh token
+	JTI          string    `json:"jti"`           // JWT ID for session tracking
+	ExpiresAt    time.Time `json:"expires_at"`
+	ExpiresIn    int       `json:"expires_in"` // Token lifetime in seconds
+	User         *UserInfo `json:"user"`
+}
+
+// RefreshTokenRequest represents a token refresh request.
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+// RefreshTokenResponse represents a token refresh response.
+type RefreshTokenResponse struct {
+	AccessToken   string    `json:"access_token"`
+	RefreshToken  string    `json:"refresh_token"` // New refresh token (rotated)
+	ExpiresAt     time.Time `json:"expires_at"`
+	ExpiresIn     int       `json:"expires_in"` // Token lifetime in seconds
 }
 
 // UserInfo represents user information (without sensitive data).

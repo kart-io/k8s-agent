@@ -17,12 +17,15 @@ import (
 
 // ServerOptions NATS Server 配置选项.
 type ServerOptions struct {
-	url             string
-	maxReconnect    int
-	reconnectWait   time.Duration
-	pingInterval    time.Duration
-	maxPingsOut     int
-	enableJetStream bool
+	url                    string
+	maxReconnect           int
+	reconnectWait          time.Duration
+	pingInterval           time.Duration
+	maxPingsOut            int
+	enableJetStream        bool
+	reconnectDelayMax      time.Duration // 最大重连延迟时间（指数退避上限）
+	reconnectDelayInitial  time.Duration // 初始重连延迟时间
+	reconnectBackoffFactor float64       // 重连退避因子（每次重连后延迟增加的倍数）
 }
 
 // ServerOption NATS Server 配置选项函数.
@@ -70,17 +73,44 @@ func WithEnableJetStream(enable bool) ServerOption {
 	}
 }
 
+// WithReconnectDelayMax 设置最大重连延迟时间（指数退避上限）.
+func WithReconnectDelayMax(d time.Duration) ServerOption {
+	return func(o *ServerOptions) {
+		o.reconnectDelayMax = d
+	}
+}
+
+// WithReconnectDelayInitial 设置初始重连延迟时间.
+func WithReconnectDelayInitial(d time.Duration) ServerOption {
+	return func(o *ServerOptions) {
+		o.reconnectDelayInitial = d
+	}
+}
+
+// WithReconnectBackoffFactor 设置重连退避因子.
+func WithReconnectBackoffFactor(factor float64) ServerOption {
+	return func(o *ServerOptions) {
+		o.reconnectBackoffFactor = factor
+	}
+}
+
 // defaultServerOptions 返回默认 NATS Server 配置.
 func defaultServerOptions() *ServerOptions {
 	return &ServerOptions{
-		url:             "nats://localhost:4222",
-		maxReconnect:    10,
-		reconnectWait:   2 * time.Second,
-		pingInterval:    20 * time.Second,
-		maxPingsOut:     2,
-		enableJetStream: false,
+		url:                    "nats://localhost:4222",
+		maxReconnect:           10,
+		reconnectWait:          2 * time.Second,
+		pingInterval:           20 * time.Second,
+		maxPingsOut:            2,
+		enableJetStream:        false,
+		reconnectDelayInitial:  1 * time.Second,  // 初始延迟 1 秒
+		reconnectDelayMax:      30 * time.Second, // 最大延迟 30 秒
+		reconnectBackoffFactor: 2.0,              // 每次重连延迟翻倍
 	}
 }
+
+// CommandResultHandler is a callback for handling command results.
+type CommandResultHandler func(ctx context.Context, result *types.CommandResult) error
 
 // Server manages NATS server connection and subscriptions.
 type Server struct {
@@ -89,14 +119,22 @@ type Server struct {
 	options *ServerOptions
 
 	// Components
-	registry       *agent.Registry
-	eventProcessor *event.Processor
+	registry              *agent.Registry
+	eventProcessor        *event.Processor
+	commandResultHandler  CommandResultHandler // Handler for command results
 
 	// Subscriptions
 	subscriptions []*nats.Subscription
 	mu            sync.RWMutex
 	stopCh        chan struct{}
 	wg            sync.WaitGroup
+
+	// Reconnection state
+	reconnectCount     int64  // 重连次数计数器
+	reconnectSuccess   int64  // 重连成功计数器
+	reconnectFailed    int64  // 重连失败计数器
+	lastReconnectTime  time.Time
+	currentReconnectDelay time.Duration // 当前重连延迟时间
 
 	// Metrics
 	messagesReceived int64
@@ -120,12 +158,20 @@ func NewServer(
 	}
 
 	return &Server{
-		options:        options,
-		registry:       registry,
-		eventProcessor: eventProcessor,
-		logger:         logger.With("component", "nats-server"),
-		stopCh:         make(chan struct{}),
+		options:               options,
+		registry:              registry,
+		eventProcessor:        eventProcessor,
+		logger:                logger.With("component", "nats-server"),
+		stopCh:                make(chan struct{}),
+		currentReconnectDelay: options.reconnectDelayInitial, // 初始化重连延迟
 	}
+}
+
+// SetCommandResultHandler sets the handler for command results.
+func (s *Server) SetCommandResultHandler(handler CommandResultHandler) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.commandResultHandler = handler
 }
 
 // Start starts the NATS server and subscriptions.
@@ -189,6 +235,9 @@ func (s *Server) connect() error {
 		nats.DisconnectErrHandler(s.handleDisconnect),
 		nats.ReconnectHandler(s.handleReconnect),
 		nats.ErrorHandler(s.handleError),
+		nats.ClosedHandler(s.handleClosed),
+		// 使用自定义重连延迟函数实现指数退避
+		nats.CustomReconnectDelay(s.customReconnectDelay),
 	}
 
 	conn, err := nats.Connect(s.options.url, opts...)
@@ -505,11 +554,31 @@ func (s *Server) handleResult(msg *nats.Msg) {
 		return
 	}
 
-	// TODO: Process command result
 	s.logger.Infow("Command result received",
 		"command_id", result.CommandID,
 		"cluster_id", result.ClusterID,
 		"status", result.Status)
+
+	// Process command result through handler
+	s.mu.RLock()
+	handler := s.commandResultHandler
+	s.mu.RUnlock()
+
+	if handler != nil {
+		ctx := context.Background()
+		if err := handler(ctx, &result); err != nil {
+			s.logger.Errorw("Failed to process command result",
+				"command_id", result.CommandID,
+				"error", err)
+			s.errorCount++
+			return
+		}
+		s.logger.Debugw("Command result processed successfully",
+			"command_id", result.CommandID)
+	} else {
+		s.logger.Warnw("No command result handler configured - result not processed",
+			"command_id", result.CommandID)
+	}
 }
 
 // PublishCommand publishes a command to an agent.
@@ -553,21 +622,84 @@ func (s *Server) sendResponse(msg *nats.Msg, response interface{}) {
 
 // Connection event handlers
 
+// customReconnectDelay 实现指数退避重连策略.
+func (s *Server) customReconnectDelay(attempts int) time.Duration {
+	// 计算指数退避延迟: 初始延迟 * (2^(attempts-1))
+	// 使用 float64 计算指数，然后转换回 time.Duration
+	baseDelay := float64(s.options.reconnectDelayInitial)
+	exponentialFactor := float64(uint(1) << uint(attempts-1)) // 2^(attempts-1)
+
+	delay := time.Duration(baseDelay * exponentialFactor)
+
+	// 应用退避因子
+	if s.options.reconnectBackoffFactor > 1.0 {
+		delay = time.Duration(float64(delay) * s.options.reconnectBackoffFactor)
+	}
+
+	// 限制最大延迟
+	if delay > s.options.reconnectDelayMax {
+		delay = s.options.reconnectDelayMax
+	}
+
+	// 更新当前重连延迟
+	s.currentReconnectDelay = delay
+
+	s.logger.Infow("Calculating reconnect delay",
+		"attempt", attempts,
+		"delay", delay.String(),
+		"max_delay", s.options.reconnectDelayMax.String(),
+	)
+
+	return delay
+}
+
 func (s *Server) handleDisconnect(conn *nats.Conn, err error) {
+	s.reconnectCount++
 	s.logger.Warnw("Disconnected from NATS",
 		"error", err,
-		"url", s.options.url)
+		"url", s.options.url,
+		"reconnect_count", s.reconnectCount,
+		"next_delay", s.currentReconnectDelay.String(),
+	)
 }
 
 func (s *Server) handleReconnect(conn *nats.Conn) {
+	s.reconnectSuccess++
+	s.lastReconnectTime = time.Now()
+
+	// 重连成功后重置延迟为初始值
+	s.currentReconnectDelay = s.options.reconnectDelayInitial
+
 	s.logger.Infow("Reconnected to NATS",
-		"url", conn.ConnectedUrl())
+		"url", conn.ConnectedUrl(),
+		"reconnect_count", s.reconnectCount,
+		"success_count", s.reconnectSuccess,
+	)
+
+	// 重连成功后需要恢复订阅
+	if err := s.resubscribeAll(); err != nil {
+		s.logger.Errorw("Failed to resubscribe after reconnection", "error", err)
+	}
+}
+
+func (s *Server) handleClosed(conn *nats.Conn) {
+	s.logger.Warnw("NATS connection closed",
+		"reconnect_count", s.reconnectCount,
+		"success_count", s.reconnectSuccess,
+		"failed_count", s.reconnectFailed,
+	)
 }
 
 func (s *Server) handleError(conn *nats.Conn, sub *nats.Subscription, err error) {
+	subject := "unknown"
+	if sub != nil {
+		subject = sub.Subject
+	}
+
 	s.logger.Errorw("NATS error",
 		"error", err,
-		"subject", sub.Subject)
+		"subject", subject,
+	)
 	s.errorCount++
 }
 
@@ -585,9 +717,32 @@ func (s *Server) connectionMonitor() {
 		case <-ticker.C:
 			if s.conn == nil || !s.conn.IsConnected() {
 				s.logger.Warn("NATS connection lost, attempting reconnect")
+				s.reconnectFailed++
 			}
 		}
 	}
+}
+
+// resubscribeAll 重新订阅所有主题（在重连成功后调用）.
+func (s *Server) resubscribeAll() error {
+	s.logger.Infow("Resubscribing to all subjects after reconnection")
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 清除旧的订阅（这些订阅已经失效）
+	s.subscriptions = nil
+
+	// 重新建立所有订阅
+	if err := s.setupSubscriptions(); err != nil {
+		return fmt.Errorf("failed to setup subscriptions: %w", err)
+	}
+
+	s.logger.Infow("Successfully resubscribed to all subjects",
+		"subscription_count", len(s.subscriptions),
+	)
+
+	return nil
 }
 
 // GetStatistics returns server statistics.
@@ -601,12 +756,17 @@ func (s *Server) GetStatistics() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"connected":          connected,
-		"connected_url":      connectedURL,
-		"messages_received":  s.messagesReceived,
-		"messages_sent":      s.messagesSent,
-		"error_count":        s.errorCount,
-		"subscription_count": len(s.subscriptions),
+		"connected":            connected,
+		"connected_url":        connectedURL,
+		"messages_received":    s.messagesReceived,
+		"messages_sent":        s.messagesSent,
+		"error_count":          s.errorCount,
+		"subscription_count":   len(s.subscriptions),
+		"reconnect_count":      s.reconnectCount,
+		"reconnect_success":    s.reconnectSuccess,
+		"reconnect_failed":     s.reconnectFailed,
+		"last_reconnect_time":  s.lastReconnectTime,
+		"current_reconnect_delay": s.currentReconnectDelay.String(),
 	}
 }
 

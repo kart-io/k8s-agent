@@ -105,7 +105,7 @@ func (a *AuditServiceInitializer) Initialize(ctx context.Context) error {
 	a.logger.Infow("Initializing Audit service")
 
 	// 创建 audit repository
-	auditRepo := audit.NewPostgresRepository(a.dbInit.DB())
+	auditRepo := audit.NewMySQLRepository(a.dbInit.DB())
 	a.service = audit.NewService(auditRepo)
 
 	a.logger.Infow("Audit service initialized successfully")
@@ -162,7 +162,7 @@ func (n *NotificationServiceInitializer) Initialize(ctx context.Context) error {
 	n.logger.Infow("Initializing Notification service")
 
 	// 创建 notification repository
-	notificationRepo := notification.NewPostgresRepository(n.dbInit.DB())
+	notificationRepo := notification.NewMySQLRepository(n.dbInit.DB())
 
 	// 创建 template engine
 	templateEngine, err := notification.NewTemplateEngine(n.cfg.Email.TemplateDir)
