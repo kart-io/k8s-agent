@@ -1,9 +1,10 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
-	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
+	
 	forcedlogout "github.com/kart-io/k8s-agent/internal/auth/forced-logout"
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/audit"
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/notification"
@@ -14,7 +15,7 @@ import (
 
 // SessionServiceInitializer Session 服务初始化器.
 type SessionServiceInitializer struct {
-	cfg       *options.ServerOptions
+	cfg       *commonapp.StandardOptions
 	logger    core.Logger
 	dbInit    *DatabaseInitializer
 	redisInit *RedisInitializer
@@ -23,7 +24,7 @@ type SessionServiceInitializer struct {
 
 // NewSessionServiceInitializer 创建 Session 服务初始化器.
 func NewSessionServiceInitializer(
-	cfg *options.ServerOptions,
+	cfg *commonapp.StandardOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	redisInit *RedisInitializer,
@@ -71,7 +72,7 @@ func (s *SessionServiceInitializer) Service() *session.Service {
 
 // AuditServiceInitializer Audit 服务初始化器.
 type AuditServiceInitializer struct {
-	cfg     *options.ServerOptions
+	cfg     *commonapp.StandardOptions
 	logger  core.Logger
 	dbInit  *DatabaseInitializer
 	service *audit.Service
@@ -79,7 +80,7 @@ type AuditServiceInitializer struct {
 
 // NewAuditServiceInitializer 创建 Audit 服务初始化器.
 func NewAuditServiceInitializer(
-	cfg *options.ServerOptions,
+	cfg *commonapp.StandardOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 ) *AuditServiceInitializer {
@@ -125,7 +126,7 @@ func (a *AuditServiceInitializer) Service() *audit.Service {
 
 // NotificationServiceInitializer Notification 服务初始化器.
 type NotificationServiceInitializer struct {
-	cfg       *options.ServerOptions
+	cfg       *commonapp.StandardOptions
 	logger    core.Logger
 	dbInit    *DatabaseInitializer
 	emailInit *EmailClientInitializer
@@ -134,7 +135,7 @@ type NotificationServiceInitializer struct {
 
 // NewNotificationServiceInitializer 创建 Notification 服务初始化器.
 func NewNotificationServiceInitializer(
-	cfg *options.ServerOptions,
+	cfg *commonapp.StandardOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	emailInit *EmailClientInitializer,
@@ -194,7 +195,7 @@ func (n *NotificationServiceInitializer) Service() *notification.Service {
 
 // ForcedLogoutServiceInitializer ForcedLogout 服务初始化器.
 type ForcedLogoutServiceInitializer struct {
-	cfg              *options.ServerOptions
+	cfg              *commonapp.StandardOptions
 	logger           core.Logger
 	sessionInit      *SessionServiceInitializer
 	auditInit        *AuditServiceInitializer
@@ -204,7 +205,7 @@ type ForcedLogoutServiceInitializer struct {
 
 // NewForcedLogoutServiceInitializer 创建 ForcedLogout 服务初始化器.
 func NewForcedLogoutServiceInitializer(
-	cfg *options.ServerOptions,
+	cfg *commonapp.StandardOptions,
 	logger core.Logger,
 	sessionInit *SessionServiceInitializer,
 	auditInit *AuditServiceInitializer,

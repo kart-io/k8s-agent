@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -12,10 +11,19 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
+const (
+	// UserAgent is the userAgent name when starting agent-manager server.
+	UserAgent = "aetherius-agent-manager"
+)
+
 // Execute runs the agent-manager command.
 func Execute() {
-	// Create configuration options
-	opts := options.NewServerOptions()
+	// Create configuration options using StandardOptions
+	opts := commonapp.NewStandardOptions("Agent Manager", UserAgent).
+		WithDatabase().
+		WithRedis().
+		WithNATS().
+		WithMetrics()
 
 	// Create application instance
 	app := &AgentManagerApp{}
@@ -36,7 +44,7 @@ func Execute() {
 
 // AgentManagerApp implements commonapp.Application interface.
 type AgentManagerApp struct {
-	opts   *options.ServerOptions // 直接使用ServerOptions
+	opts   *commonapp.StandardOptions // 使用 StandardOptions
 	logger core.Logger
 
 	// Component initializers
@@ -57,8 +65,8 @@ func (a *AgentManagerApp) Name() string {
 
 // Initialize initializes the application.
 func (a *AgentManagerApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 直接保存ServerOptions，不需要转换
-	a.opts = opts.(*options.ServerOptions)
+	// 保存 StandardOptions
+	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

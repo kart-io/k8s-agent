@@ -1,16 +1,17 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
-	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	
 	"github.com/kart-io/k8s-agent/internal/orchestrator/strategy"
 	"github.com/kart-io/logger/core"
 )
 
 // StrategyInitializer 策略管理器初始化器.
 type StrategyInitializer struct {
-	opts         *options.ServerOptions
+	opts         *commonapp.StandardOptions
 	logger       core.Logger
 	dbInit       *DatabaseInitializer
 	workflowInit *WorkflowInitializer
@@ -19,7 +20,7 @@ type StrategyInitializer struct {
 
 // NewStrategyInitializer 创建策略管理器初始化器.
 func NewStrategyInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	workflowInit *WorkflowInitializer,

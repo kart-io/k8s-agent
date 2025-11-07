@@ -1,24 +1,25 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
 	"github.com/nats-io/nats.go"
 
-	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
 )
 
 // NATSInitializer NATS初始化器.
 type NATSInitializer struct {
-	opts   *options.ServerOptions
+	opts   *commonapp.StandardOptions
 	logger core.Logger
 	conn   *nats.Conn
 }
 
 // NewNATSInitializer 创建NATS初始化器.
-func NewNATSInitializer(opts *options.ServerOptions, logger core.Logger) *NATSInitializer {
+func NewNATSInitializer(opts *commonapp.StandardOptions, logger core.Logger) *NATSInitializer {
 	return &NATSInitializer{
 		opts:   opts,
 		logger: logger,

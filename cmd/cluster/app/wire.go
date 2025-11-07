@@ -9,7 +9,7 @@ package app
 
 import (
 	"github.com/google/wire"
-	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 )
@@ -25,11 +25,11 @@ var InitializerSet = wire.NewSet(
 // HealthInitializerSet Wire dependency set for health check.
 var HealthInitializerSet = wire.NewSet(
 	pkginitializers.NewHealthCheckInitializer,
-	wire.FieldsOf(new(*options.ServerOptions), "Health"),
+	wire.FieldsOf(new(*commonapp.StandardOptions), "Health"),
 )
 
 // InitializeClusterComponents automatically injects all components using Wire.
-func InitializeClusterComponents(opts *options.ServerOptions) (*ClusterComponents, error) {
+func InitializeClusterComponents(opts *commonapp.StandardOptions) (*ClusterComponents, error) {
 	wire.Build(
 		InitializerSet,
 		HealthInitializerSet,

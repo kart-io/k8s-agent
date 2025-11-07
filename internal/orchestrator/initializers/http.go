@@ -1,13 +1,14 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
-	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	orchestratorv1 "github.com/kart-io/k8s-agent/pkg/api/orchestrator/v1"
 	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -17,7 +18,7 @@ import (
 // HTTPServerInitializer initializes the HTTP server with gRPC-Gateway
 // 使用 common/initializers 的标准 HTTP 服务器初始化器.
 type HTTPServerInitializer struct {
-	opts     *options.ServerOptions
+	opts     *commonapp.StandardOptions
 	logger   core.Logger
 	grpcInit *GRPCServerInitializer
 
@@ -28,7 +29,7 @@ type HTTPServerInitializer struct {
 
 // NewHTTPServerInitializer creates a new HTTP server initializer.
 func NewHTTPServerInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	grpcInit *GRPCServerInitializer,
 ) *HTTPServerInitializer {

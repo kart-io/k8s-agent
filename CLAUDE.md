@@ -2,6 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL: Command Execution Rules
+
+**ALL make commands MUST be run from the repository root directory.** The project uses a modular Makefile system, and running commands from service subdirectories will fail. Never `cd` into service directories to run make commands.
+
+```bash
+# ✅ CORRECT - Run from repository root
+make build
+make go.build.agent-manager
+make run-orchestrator
+
+# ❌ WRONG - Never do this
+cd cmd/agent-manager && make build  # This will fail!
+```
+
+## Custom Claude Commands (SpecKit Workflow)
+
+This repository includes custom `/speckit.*` commands for structured feature development:
+
+- `/speckit.specify [feature]` - Create feature specification from description
+- `/speckit.plan` - Generate implementation plan from spec
+- `/speckit.tasks` - Generate actionable task list from plan
+- `/speckit.implement` - Execute tasks from task list
+- `/speckit.clarify` - Identify underspecified areas and gather requirements
+- `/speckit.analyze` - Cross-artifact consistency analysis
+- `/speckit.checklist` - Generate custom feature checklist
+- `/speckit.constitution` - Create/update project constitution
+
+These commands provide a structured workflow from feature idea → specification → planning → implementation. See `.claude/commands/speckit.*.md` for details.
+
 ## Project Overview
 
 **Aetherius** is an enterprise-grade intelligent Kubernetes operations platform (智能 Kubernetes 运维平台) with AI-driven fault diagnosis and automated remediation. The system is a **monorepo** with a modular build system, using a 4-layer architecture combining event-driven design with AI technology to create a complete operational loop from data collection to intelligent analysis.
@@ -33,7 +62,7 @@ Layer 4: Reasoning Service (AI 智能层)
 ### Layer 1: Collect Agent
 
 - **Purpose**: Edge data collection deployed in each K8s cluster
-- **Tech**: Go 1.25+, client-go, NATS
+- **Tech**: Go 1.25.0, client-go, NATS
 - **Functions**: K8s event monitoring (85+ event types), resource metrics collection, secure command execution
 - **Entry Point**: `cmd/collect-agent/`
 - **Implementation**: `internal/collect-agent/`
@@ -41,7 +70,7 @@ Layer 4: Reasoning Service (AI 智能层)
 ### Layer 2: Agent Manager
 
 - **Purpose**: Central control plane managing all agents
-- **Tech**: Go 1.25+, MySQL, Redis, NATS, Gin
+- **Tech**: Go 1.25.0, MySQL, Redis, NATS, Gin
 - **Functions**: Agent lifecycle management, event aggregation/routing, command scheduling, multi-cluster management
 - **API Port**: 8080
 - **Entry Point**: `cmd/agent-manager/`
@@ -50,7 +79,7 @@ Layer 4: Reasoning Service (AI 智能层)
 ### Layer 3: Orchestrator Service
 
 - **Purpose**: Workflow orchestration for automated diagnosis and remediation
-- **Tech**: Go 1.25+, MySQL, Redis, NATS
+- **Tech**: Go 1.25.0, MySQL, Redis, NATS
 - **Functions**: Workflow engine, diagnostic strategies, 6 step types (Command/AI/Decision/Remediation/Notification/Wait), AI integration
 - **API Port**: 8081
 - **Entry Point**: `cmd/orchestrator/`
@@ -59,7 +88,7 @@ Layer 4: Reasoning Service (AI 智能层)
 ### Layer 4: Reasoning Service
 
 - **Purpose**: AI-driven root cause analysis and intelligent recommendations
-- **Tech**: Go 1.25+, Gin, Neo4j, OpenAI/Gemini/DeepSeek API
+- **Tech**: Go 1.25.0, Gin, Neo4j, OpenAI/Gemini/DeepSeek API
 - **Functions**: Root cause analysis, recommendation engine (30+ rules), prediction engine, knowledge graph (Neo4j), continuous learning
 - **API Port**: 8082
 - **Entry Point**: `cmd/reasoning/`
@@ -68,20 +97,22 @@ Layer 4: Reasoning Service (AI 智能层)
 ### Supporting Services
 
 - **Auth Service**: JWT authentication, session management, forced logout functionality
-  - Tech: Go 1.25, Gin, JWT, Redis, MySQL
+  - Tech: Go 1.25.0, Gin, JWT, Redis, MySQL
   - Entry Point: `cmd/auth/`
   - Implementation: `internal/auth/`
 
 - **Gateway Service**: API gateway with Traefik integration
+  - Tech: Go 1.25.0
   - Entry Point: `cmd/gateway/`
   - Implementation: `internal/gateway/`
 
 - **Monitor Service**: Monitoring and metrics collection
+  - Tech: Go 1.25.0
   - Entry Point: `cmd/monitor/`
   - Implementation: `internal/monitor/`
 
 - **Cluster Service**: Multi-cluster management
-  - Tech: Go 1.25+, MySQL, Gin
+  - Tech: Go 1.25.0, MySQL, Gin
   - Entry Point: `cmd/cluster/`
   - Implementation: `internal/cluster/`
   - Architecture: **Bootstrap Mode** (upgraded from Runner mode on 2025-10-30)
@@ -259,9 +290,9 @@ The project follows a strict separation between generic utilities and project-sp
 
 ## Common Development Commands
 
-The project uses a **modular Makefile system** (inspired by OneX) with rules split across `scripts/make-rules/*.mk` files. All commands should be run from the repository root.
+The project uses a **modular Makefile system** (inspired by OneX) with rules split across `scripts/make-rules/*.mk` files.
 
-**IMPORTANT**: Always run make commands from the repository root directory, never from individual service directories.
+**⚠️ CRITICAL**: **ALL** make commands MUST be run from the repository root directory. The build system is centralized and will not work from service subdirectories. This is not optional - it's a fundamental requirement of the monorepo architecture.
 
 ### Command Format Guide
 
@@ -451,17 +482,21 @@ cd deployments/k8s/overlays/dev && kubectl apply -k .
 ### Database Operations
 
 ```bash
-# Start database dependencies only
+# Start database dependencies only (from root directory)
 make db-setup
 
 # Reset all databases
 make db-reset
 
-# Connect to MySQL
+# Connect to MySQL (use the full docker-compose path)
 docker-compose -f deployments/docker-compose/docker-compose.yaml exec mysql mysql -u aetherius -p
+# Or from deployments/docker-compose directory:
+cd deployments/docker-compose && docker-compose exec mysql mysql -u aetherius -p
 
 # Connect to Redis
 make redis-cli
+# Or directly:
+docker-compose -f deployments/docker-compose/docker-compose.yaml exec redis redis-cli
 ```
 
 ### Dependency Management
@@ -625,7 +660,7 @@ k8s-agent/
 
 ### Backend (Go Services)
 
-- **Go Version**: 1.25.0+ (workspace), services may specify minimum 1.21+
+- **Go Version**: 1.25.0 (required by workspace go.mod, not just minimum)
 - **Web Framework**: Gin v1.11.0
 - **Messaging**: NATS 2.10+
 - **Database**: MySQL 8.0+ (migrated from PostgreSQL)
@@ -1176,27 +1211,35 @@ api/proto/
 ### Important Notes
 
 1. **Monorepo Build**: All services built from root directory using modular Makefile
-2. **No Service-Level Makefiles**: Build orchestration is centralized in root Makefile
+2. **No Service-Level Makefiles**: Build orchestration is centralized in root Makefile - there are NO Makefiles in cmd/ or internal/ directories
 3. **Shared Dependencies**: All services use same dependency versions from root go.mod
 4. **Local Development**: Use `make run-<service>` from root, not `cd <service> && make run`
+5. **Command Execution**: **NEVER** `cd` into service directories to run make commands - all commands must be run from repository root
 
 ## Quick Start for New Developers
 
 ```bash
-# 1. Install prerequisites (Go 1.25+, Docker, golangci-lint)
+# NOTE: All commands below are run from the repository root directory
+
+# 1. Install prerequisites (Go 1.25.0, Docker, golangci-lint)
 make dev-setup
 
 # 2. Start dependencies (MySQL, Redis, NATS, Neo4j)
 cd deployments/docker-compose
 docker-compose up -d mysql redis nats neo4j
+cd ../..  # Back to root
 
 # 3. Build all services (outputs to _output/bin/)
-cd ../..  # Back to root
 make build
 
 # 4. Run services (each in separate terminal, all from root directory)
+# Terminal 1 (from root):
 make run-agent-manager
+
+# Terminal 2 (from root):
 make run-orchestrator
+
+# Terminal 3 (from root):
 make run-reasoning
 
 # 5. Verify services are healthy
@@ -1306,8 +1349,8 @@ curl http://localhost:8080/debug/pprof/goroutine?debug=1
   - `pkg/` - Business logic (Aetherius-specific, contains domain models and workflows)
   - `internal/` - Service implementations (private, not exported)
 - **Modular Makefile**: Build system uses `scripts/make-rules/*.mk` pattern from OneX project
-- **Go 1.25.0**: Workspace requires Go 1.25.0+, uses modern Go features
-- **Database**: MySQL 8.0+ (migrated from PostgreSQL)
+- **Go 1.25.0**: Workspace requires exactly Go 1.25.0 (as specified in go.mod), uses modern Go features
+- **Database**: MySQL 8.0+ (migrated from PostgreSQL on 2025-01-15)
 - **Logging**: Transitioning to `github.com/kart-io/logger` (dual-engine Zap/Slog)
 - **Version Injection**: Uses `github.com/kart-io/version` for build-time version information
 - **Reasoning Service**: Fully implemented in Go with AI API integration (OpenAI/Gemini/DeepSeek)
@@ -1620,10 +1663,13 @@ func TestAgentManagerAPI(t *testing.T) {
 ## Documentation
 
 - [README.md](README.md) - Project overview and quick start
-- [docs/architecture/SYSTEM_ARCHITECTURE.md](docs/architecture/SYSTEM_ARCHITECTURE.md) - Detailed architecture
+- [docs/architecture/SYSTEM_ARCHITECTURE.md](docs/architecture/SYSTEM_ARCHITECTURE.md) - Detailed system architecture
+- [BACKEND_MANAGEMENT_ARCHITECTURE.md](BACKEND_MANAGEMENT_ARCHITECTURE.md) - Backend management architecture (API Gateway, services, database)
+- [docs/CODE_REORGANIZATION.md](docs/CODE_REORGANIZATION.md) - Code organization migration plan (internal/pkg → pkg)
 - [deployments/docker-compose/README.md](deployments/docker-compose/README.md) - Docker Compose deployment
 - [deployments/k8s/README.md](deployments/k8s/README.md) - Kubernetes deployment
 - Service-specific READMEs in each service directory
+- [.claude/commands/](/.claude/commands/) - Custom Claude Code commands for structured workflows
 
 ## Feature Implementation Status
 

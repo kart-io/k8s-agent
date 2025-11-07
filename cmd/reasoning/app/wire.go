@@ -9,7 +9,7 @@ package app
 
 import (
 	"github.com/google/wire"
-	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 )
@@ -19,17 +19,17 @@ var InitializerSet = wire.NewSet(
 	ProvideLogger,
 	initializers.NewLLMInitializer,
 	initializers.NewUnifiedServerInitializer,
-	wire.FieldsOf(new(*options.ServerOptions), "LLM"),
+	wire.FieldsOf(new(*commonapp.StandardOptions), "LLM"),
 )
 
 // HealthInitializerSet Wire dependency set for health check.
 var HealthInitializerSet = wire.NewSet(
 	pkginitializers.NewHealthCheckInitializer,
-	wire.FieldsOf(new(*options.ServerOptions), "Health"),
+	wire.FieldsOf(new(*commonapp.StandardOptions), "Health"),
 )
 
 // InitializeReasoningComponents automatically injects all components using Wire.
-func InitializeReasoningComponents(opts *options.ServerOptions) (*ReasoningComponents, error) {
+func InitializeReasoningComponents(opts *commonapp.StandardOptions) (*ReasoningComponents, error) {
 	wire.Build(
 		InitializerSet,
 		HealthInitializerSet,

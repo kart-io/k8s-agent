@@ -1,12 +1,13 @@
 package initializers
 
 import (
+        commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
+	
 	"github.com/kart-io/k8s-agent/internal/monitor/handler"
 	monitormiddleware "github.com/kart-io/k8s-agent/internal/monitor/middleware"
 	"github.com/kart-io/k8s-agent/internal/monitor/service"
@@ -18,7 +19,7 @@ import (
 // HTTPServerInitializer wraps the common HTTP server initializer.
 type HTTPServerInitializer struct {
 	*pkginitializers.HTTPServerInitializer
-	cfg           *options.ServerOptions
+	cfg           *commonapp.StandardOptions
 	logger        core.Logger
 	dbInit        *DatabaseInitializer
 	redisInit     *RedisInitializer
@@ -27,7 +28,7 @@ type HTTPServerInitializer struct {
 
 // NewHTTPServerInitializer creates a new HTTP server initializer.
 func NewHTTPServerInitializer(
-	cfg *options.ServerOptions,
+	cfg *commonapp.StandardOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	redisInit *RedisInitializer,

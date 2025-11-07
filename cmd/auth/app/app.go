@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
+	// Removed: options package
 	"github.com/kart-io/k8s-agent/internal/auth/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -16,10 +16,16 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
+const (
+	// UserAgent is the User-Agent string for the auth service.
+	UserAgent = "aetherius-auth"
+)
+
 // Execute runs the auth service command.
 func Execute() {
 	// Create configuration options
-	opts := options.NewServerOptions()
+	opts := commonapp.NewStandardOptions("Auth", UserAgent).
+		WithDatabase().WithRedis().WithJWT().WithEmail()
 
 	// Create application instance
 	app := &AuthApp{}
@@ -40,7 +46,7 @@ func Execute() {
 
 // AuthApp implements commonapp.Application interface.
 type AuthApp struct {
-	opts   *options.ServerOptions // 直接使用 ServerOptions，不转换
+	opts   *commonapp.StandardOptions // 直接使用 ServerOptions，不转换
 	logger core.Logger
 
 	// Component initializers
@@ -63,7 +69,7 @@ func (a *AuthApp) Name() string {
 // Initialize initializes the application.
 func (a *AuthApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// 直接保存 ServerOptions，不需要转换
-	a.opts = opts.(*options.ServerOptions)
+	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

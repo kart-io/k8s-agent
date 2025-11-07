@@ -1,12 +1,13 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 	"fmt"
 
 	"google.golang.org/grpc"
 
-	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/service"
 	orchestratorv1 "github.com/kart-io/k8s-agent/pkg/api/orchestrator/v1"
@@ -17,7 +18,7 @@ import (
 // GRPCServerInitializer initializes the gRPC server
 // 使用 common/initializers 的标准 gRPC 服务器初始化器.
 type GRPCServerInitializer struct {
-	opts         *options.ServerOptions
+	opts         *commonapp.StandardOptions
 	logger       core.Logger
 	workflowInit *WorkflowInitializer
 	dbInit       *DatabaseInitializer
@@ -29,7 +30,7 @@ type GRPCServerInitializer struct {
 
 // NewGRPCServerInitializer creates a new gRPC server initializer.
 func NewGRPCServerInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	workflowInit *WorkflowInitializer,
 	dbInit *DatabaseInitializer,

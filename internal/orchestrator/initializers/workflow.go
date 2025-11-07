@@ -1,16 +1,17 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
-	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	
 	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
 	"github.com/kart-io/logger/core"
 )
 
 // WorkflowInitializer 工作流引擎初始化器.
 type WorkflowInitializer struct {
-	opts      *options.ServerOptions
+	opts      *commonapp.StandardOptions
 	logger    core.Logger
 	dbInit    *DatabaseInitializer
 	redisInit *RedisInitializer
@@ -19,7 +20,7 @@ type WorkflowInitializer struct {
 
 // NewWorkflowInitializer 创建工作流引擎初始化器.
 func NewWorkflowInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	redisInit *RedisInitializer,

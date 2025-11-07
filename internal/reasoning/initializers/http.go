@@ -1,6 +1,7 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 	"fmt"
 	"net/http"
@@ -8,14 +9,14 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
-	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
+	
 	reasoningv1 "github.com/kart-io/k8s-agent/pkg/api/reasoning/v1"
 	"github.com/kart-io/logger/core"
 )
 
 // HTTPServerInitializer initializes the HTTP server with gRPC-Gateway.
 type HTTPServerInitializer struct {
-	opts     *options.ServerOptions
+	opts     *commonapp.StandardOptions
 	logger   core.Logger
 	grpcInit *GRPCServerInitializer
 
@@ -25,7 +26,7 @@ type HTTPServerInitializer struct {
 
 // NewHTTPServerInitializer creates a new HTTP server initializer.
 func NewHTTPServerInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	grpcInit *GRPCServerInitializer,
 ) *HTTPServerInitializer {

@@ -1,10 +1,11 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
+	
 	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
 	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 	grpcserver "github.com/kart-io/k8s-agent/internal/reasoning/grpc"
@@ -14,7 +15,7 @@ import (
 
 // GRPCServerInitializer initializes the gRPC server.
 type GRPCServerInitializer struct {
-	opts    *options.ServerOptions
+	opts    *commonapp.StandardOptions
 	logger  core.Logger
 	llmInit *LLMInitializer
 
@@ -24,7 +25,7 @@ type GRPCServerInitializer struct {
 
 // NewGRPCServerInitializer creates a new gRPC server initializer.
 func NewGRPCServerInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	llmInit *LLMInitializer,
 ) *GRPCServerInitializer {

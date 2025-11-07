@@ -1,24 +1,25 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
-	"github.com/kart-io/k8s-agent/cmd/collect-agent/app/options"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/agent"
+	"github.com/kart-io/k8s-agent/internal/collect-agent/types"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
 )
 
 // AgentInitializer handles agent initialization and lifecycle.
 type AgentInitializer struct {
-	cfg      *options.ServerOptions
+	cfg      *commonapp.StandardOptions
 	logger   core.Logger
 	agent    *agent.Agent
 	stopChan chan struct{}
 }
 
 // NewAgentInitializer creates a new agent initializer.
-func NewAgentInitializer(cfg *options.ServerOptions, logger core.Logger) *AgentInitializer {
+func NewAgentInitializer(cfg *commonapp.StandardOptions, logger core.Logger) *AgentInitializer {
 	return &AgentInitializer{
 		cfg:      cfg,
 		logger:   logger,
@@ -40,8 +41,21 @@ func (a *AgentInitializer) Priority() int {
 func (a *AgentInitializer) Initialize(ctx context.Context) error {
 	a.logger.Infow("Initializing collect agent")
 
-	// Convert Options to AgentConfig
-	agentConfig := a.cfg.ToAgentConfig()
+	// Convert StandardOptions to AgentConfig
+	agentConfig := &types.AgentConfig{
+		ClusterID:         a.cfg.Agent.ClusterID,
+		ClusterName:       a.cfg.Agent.ClusterName,
+		CentralEndpoint:   a.cfg.Agent.CentralEndpoint,
+		ReconnectDelay:    a.cfg.Agent.ReconnectDelay,
+		HeartbeatInterval: a.cfg.Agent.HeartbeatInterval,
+		MetricsInterval:   a.cfg.Agent.MetricsInterval,
+		BufferSize:        a.cfg.Agent.BufferSize,
+		MaxRetries:        a.cfg.Agent.MaxRetries,
+		LogLevel:          a.cfg.Logging.Level,
+		EnableMetrics:     a.cfg.Agent.EnableMetrics,
+		EnableEvents:      a.cfg.Agent.EnableEvents,
+		HealthPort:        a.cfg.Health.Port,
+	}
 
 	// Create agent instance
 	agentInstance, err := agent.New(agentConfig, a.logger)

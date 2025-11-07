@@ -1,10 +1,11 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
+	
 	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
 	"github.com/kart-io/k8s-agent/internal/reasoning/config"
 	"github.com/kart-io/k8s-agent/internal/reasoning/handler"
@@ -15,7 +16,7 @@ import (
 // UnifiedServerInitializer initializes the unified server (both gRPC and HTTP using Kratos).
 // This follows the OneX architecture pattern where a single handler serves both protocols.
 type UnifiedServerInitializer struct {
-	opts    *options.ServerOptions
+	opts    *commonapp.StandardOptions
 	logger  core.Logger
 	llmInit *LLMInitializer
 
@@ -25,7 +26,7 @@ type UnifiedServerInitializer struct {
 
 // NewUnifiedServerInitializer creates a new unified server initializer.
 func NewUnifiedServerInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	llmInit *LLMInitializer,
 ) *UnifiedServerInitializer {

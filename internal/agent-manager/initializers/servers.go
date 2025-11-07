@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 
-	"github.com/kart-io/k8s-agent/cmd/agent-manager/app/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	// "github.com/kart-io/k8s-agent/common/middleware" // TODO: Re-enable when needed.
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/api"
@@ -24,7 +24,7 @@ import (
 type HTTPServerInitializer struct {
 	standardInit *commoninitializers.HTTPServerInitializer
 	logger       core.Logger
-	opts         *options.ServerOptions
+	opts         *commonapp.StandardOptions
 	apiServer    *api.Server // Reused for its handler methods and dependency injection
 
 	// Dependencies for handlers
@@ -37,7 +37,7 @@ type HTTPServerInitializer struct {
 
 // NewHTTPServerInitializer creates a new HTTP server initializer.
 func NewHTTPServerInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	registry *RegistryInitializer,
 	dispatcher *DispatcherInitializer,
@@ -187,7 +187,7 @@ func (h *HTTPServerInitializer) Close(ctx context.Context) error {
 type GRPCServerInitializer struct {
 	standardInit *commoninitializers.GRPCServerInitializer
 	logger       core.Logger
-	opts         *options.ServerOptions
+	opts         *commonapp.StandardOptions
 
 	// Dependencies for services
 	registry   *RegistryInitializer
@@ -197,7 +197,7 @@ type GRPCServerInitializer struct {
 
 // NewGRPCServerInitializer creates a new gRPC server initializer.
 func NewGRPCServerInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	registry *RegistryInitializer,
 	dispatcher *DispatcherInitializer,

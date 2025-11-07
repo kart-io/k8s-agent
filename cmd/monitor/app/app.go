@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -12,10 +11,19 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
+const (
+	// UserAgent is the User-Agent string for the monitor service.
+	UserAgent = "aetherius-monitor"
+)
+
 // Execute runs the monitor command.
 func Execute() {
-	// Create configuration options
-	opts := options.NewServerOptions()
+	// Create configuration options using StandardOptions
+	opts := commonapp.NewStandardOptions("Monitor", UserAgent).
+		WithDatabase().
+		WithRedis().
+		WithPrometheus().
+		WithAlert()
 
 	// Create application instance
 	app := &MonitorApp{}
@@ -36,7 +44,7 @@ func Execute() {
 
 // MonitorApp implements commonapp.Application interface.
 type MonitorApp struct {
-	opts   *options.ServerOptions // 使用 ServerOptions
+	opts   *commonapp.StandardOptions // Use StandardOptions
 	logger core.Logger
 
 	// Component initializers
@@ -54,7 +62,7 @@ func (a *MonitorApp) Name() string {
 // Initialize initializes the application.
 func (a *MonitorApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// 保存 ServerOptions
-	a.opts = opts.(*options.ServerOptions)
+	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

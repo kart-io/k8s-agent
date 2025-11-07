@@ -5,8 +5,8 @@
 package app
 
 import (
-	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
 	"github.com/kart-io/k8s-agent/internal/monitor/initializers"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
@@ -38,7 +38,7 @@ func NewMonitorComponents(
 }
 
 // ProvideLogger provides logger from options.
-func ProvideLogger(opts *options.ServerOptions) (core.Logger, error) {
+func ProvideLogger(opts *commonapp.StandardOptions) (core.Logger, error) {
 	return opts.InitLogger()
 }
 

@@ -9,7 +9,7 @@ package app
 
 import (
 	"github.com/google/wire"
-	"github.com/kart-io/k8s-agent/cmd/collect-agent/app/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/initializers"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 )
@@ -23,11 +23,11 @@ var InitializerSet = wire.NewSet(
 // HealthInitializerSet Wire dependency set for health check.
 var HealthInitializerSet = wire.NewSet(
 	pkginitializers.NewHealthCheckInitializer,
-	wire.FieldsOf(new(*options.ServerOptions), "Health"),
+	wire.FieldsOf(new(*commonapp.StandardOptions), "Health"),
 )
 
 // InitializeCollectAgentComponents automatically injects all components using Wire.
-func InitializeCollectAgentComponents(opts *options.ServerOptions) (*CollectAgentComponents, error) {
+func InitializeCollectAgentComponents(opts *commonapp.StandardOptions) (*CollectAgentComponents, error) {
 	wire.Build(
 		InitializerSet,
 		HealthInitializerSet,

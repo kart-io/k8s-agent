@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
 )
 
@@ -26,16 +26,22 @@ type Config struct {
 	Logging     commonoptions.LoggingOptions
 }
 
-// NewConfigFromOptions creates a Config from ServerOptions
-func NewConfigFromOptions(opts *options.ServerOptions) *Config {
+// NewConfigFromOptions creates a Config from StandardOptions
+func NewConfigFromOptions(opts *commonapp.StandardOptions) *Config {
+	// Get LLM options, use defaults if not set
+	llm := commonoptions.LLMOptions{}
+	if opts.LLM != nil {
+		llm = *opts.LLM
+	}
+
 	return &Config{
 		Server:      *opts.Server,
-		LLM:         *opts.LLM,
-		Memory:      *opts.Memory,
-		Analysis:    *opts.Analysis,
-		Prediction:  *opts.Prediction,
-		Learning:    *opts.Learning,
-		Performance: *opts.Performance,
+		LLM:         llm,
+		Memory:      commonoptions.MemoryOptions{}, // Use defaults
+		Analysis:    commonoptions.AnalysisOptions{},
+		Prediction:  commonoptions.PredictionOptions{},
+		Learning:    commonoptions.LearningOptions{},
+		Performance: commonoptions.PerformanceOptions{},
 		Logging:     *opts.Logging,
 	}
 }

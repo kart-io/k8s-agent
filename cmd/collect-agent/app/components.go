@@ -5,7 +5,7 @@
 package app
 
 import (
-	"github.com/kart-io/k8s-agent/cmd/collect-agent/app/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/internal/collect-agent/initializers"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
@@ -29,6 +29,6 @@ func NewCollectAgentComponents(
 }
 
 // ProvideLogger provides logger from options.
-func ProvideLogger(opts *options.ServerOptions) (core.Logger, error) {
+func ProvideLogger(opts *commonapp.StandardOptions) (core.Logger, error) {
 	return opts.InitLogger()
 }

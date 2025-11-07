@@ -5,7 +5,8 @@
 package initializers
 
 import (
-	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	
 	"github.com/kart-io/k8s-agent/internal/cluster/storage"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
@@ -14,13 +15,13 @@ import (
 // DatabaseInitializer wraps the generic database initializer with cluster-specific configuration.
 type DatabaseInitializer struct {
 	*pkginitializers.DatabaseInitializer
-	opts   *options.ServerOptions
+	opts   *commonapp.StandardOptions
 	logger core.Logger
 	store  *storage.MySQLStorage // Cached storage instance
 }
 
 // NewDatabaseInitializer creates a database initializer for cluster service.
-func NewDatabaseInitializer(opts *options.ServerOptions, logger core.Logger) *DatabaseInitializer {
+func NewDatabaseInitializer(opts *commonapp.StandardOptions, logger core.Logger) *DatabaseInitializer {
 	// Create the base initializer
 	dbInit := pkginitializers.NewDatabaseInitializer(opts.Database, logger)
 

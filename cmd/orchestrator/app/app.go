@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	// Removed: options package
 	"github.com/kart-io/k8s-agent/internal/orchestrator/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -12,10 +12,17 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
+const (
+	// UserAgent is the User-Agent string for the orchestrator service.
+	UserAgent = "aetherius-orchestrator"
+)
+
 // Execute runs the orchestrator command.
 func Execute() {
 	// Create configuration options
-	opts := options.NewServerOptions()
+	opts := commonapp.NewStandardOptions("Orchestrator", UserAgent).
+		WithDatabase().WithRedis().WithNATS().WithMetrics().
+		WithAI().WithWorkflow()
 
 	// Create application instance
 	app := &OrchestratorApp{}
@@ -36,7 +43,7 @@ func Execute() {
 
 // OrchestratorApp implements commonapp.Application interface.
 type OrchestratorApp struct {
-	opts   *options.ServerOptions // 直接使用ServerOptions
+	opts   *commonapp.StandardOptions // Use StandardOptions
 	logger core.Logger
 
 	// Component initializers
@@ -58,8 +65,8 @@ func (a *OrchestratorApp) Name() string {
 
 // Initialize initializes the application.
 func (a *OrchestratorApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 直接保存ServerOptions，不需要转换
-	a.opts = opts.(*options.ServerOptions)
+	// Save StandardOptions
+	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

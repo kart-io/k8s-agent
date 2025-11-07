@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/reasoning/app/options"
+	// Removed: options package
 	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -16,10 +16,16 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
+const (
+	// UserAgent is the User-Agent string for the reasoning service.
+	UserAgent = "aetherius-reasoning"
+)
+
 // Execute runs the reasoning service command.
 func Execute() {
 	// Create configuration options
-	opts := options.NewServerOptions()
+	opts := commonapp.NewStandardOptions("Reasoning", UserAgent).
+		WithLLM()
 
 	// Create application instance
 	app := &ReasoningApp{}
@@ -40,7 +46,7 @@ func Execute() {
 
 // ReasoningApp implements commonapp.Application interface.
 type ReasoningApp struct {
-	opts   *options.ServerOptions // 直接使用ServerOptions
+	opts   *commonapp.StandardOptions // 直接使用ServerOptions
 	logger core.Logger
 
 	// Component initializers
@@ -57,7 +63,7 @@ func (a *ReasoningApp) Name() string {
 // Initialize initializes the application.
 func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// 直接保存ServerOptions，不需要转换
-	a.opts = opts.(*options.ServerOptions)
+	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

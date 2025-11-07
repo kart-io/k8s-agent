@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/collect-agent/app/options"
+	// Removed: options package
 	"github.com/kart-io/k8s-agent/internal/collect-agent/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -12,10 +12,17 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
+const (
+	// UserAgent is the User-Agent string for the collect-agent service.
+	UserAgent = "aetherius-collect-agent"
+)
+
 // Execute runs the collect-agent command.
 func Execute() {
 	// Create configuration options
-	opts := options.NewServerOptions()
+	opts := commonapp.NewStandardOptions("Collect Agent", UserAgent).
+		WithNATS().
+		WithAgent()
 
 	// Create application instance
 	app := &CollectAgentApp{}
@@ -36,7 +43,7 @@ func Execute() {
 
 // CollectAgentApp implements commonapp.Application interface.
 type CollectAgentApp struct {
-	opts   *options.ServerOptions // 使用 ServerOptions
+	opts   *commonapp.StandardOptions // 使用 ServerOptions
 	logger core.Logger
 
 	// Component initializers
@@ -52,7 +59,7 @@ func (a *CollectAgentApp) Name() string {
 // Initialize initializes the application.
 func (a *CollectAgentApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// 保存 ServerOptions
-	a.opts = opts.(*options.ServerOptions)
+	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

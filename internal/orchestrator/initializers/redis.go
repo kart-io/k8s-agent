@@ -5,7 +5,8 @@
 package initializers
 
 import (
-	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	
 	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
@@ -14,13 +15,13 @@ import (
 // RedisInitializer wraps the generic Redis initializer with orchestrator-specific configuration.
 type RedisInitializer struct {
 	*pkginitializers.RedisInitializer
-	opts   *options.ServerOptions
+	opts   *commonapp.StandardOptions
 	logger core.Logger
 	store  *storage.RedisStore // Cached storage instance
 }
 
 // NewRedisInitializer creates a Redis initializer for orchestrator service.
-func NewRedisInitializer(opts *options.ServerOptions, logger core.Logger) *RedisInitializer {
+func NewRedisInitializer(opts *commonapp.StandardOptions, logger core.Logger) *RedisInitializer {
 	// Create the base initializer
 	redisInit := pkginitializers.NewRedisInitializer(opts.Redis, logger)
 

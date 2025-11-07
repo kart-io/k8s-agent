@@ -1,16 +1,17 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
-	"github.com/kart-io/k8s-agent/cmd/orchestrator/app/options"
+	
 	"github.com/kart-io/k8s-agent/internal/orchestrator/subscriber"
 	"github.com/kart-io/logger/core"
 )
 
 // SubscriberInitializer 事件订阅器初始化器.
 type SubscriberInitializer struct {
-	opts         *options.ServerOptions
+	opts         *commonapp.StandardOptions
 	logger       core.Logger
 	natsInit     *NATSInitializer
 	strategyInit *StrategyInitializer
@@ -19,7 +20,7 @@ type SubscriberInitializer struct {
 
 // NewSubscriberInitializer 创建事件订阅器初始化器.
 func NewSubscriberInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	natsInit *NATSInitializer,
 	strategyInit *StrategyInitializer,

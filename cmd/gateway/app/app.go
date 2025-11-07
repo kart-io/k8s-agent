@@ -12,9 +12,14 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
+const (
+	// UserAgent is the User-Agent string for the gateway service.
+	UserAgent = "aetherius-gateway"
+)
+
 // Execute runs the gateway command.
 func Execute() {
-	// Create configuration options
+	// Create configuration options using gateway's custom options
 	opts := options.NewServerOptions()
 
 	// Create application instance
@@ -36,7 +41,7 @@ func Execute() {
 
 // GatewayApp implements commonapp.Application interface.
 type GatewayApp struct {
-	opts   *options.ServerOptions // 使用 ServerOptions
+	opts   *options.ServerOptions // Gateway's custom options with Routes config
 	logger core.Logger
 
 	// Component initializers
@@ -52,7 +57,7 @@ func (a *GatewayApp) Name() string {
 
 // Initialize initializes the application.
 func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 保存 ServerOptions
+	// Save ServerOptions
 	a.opts = opts.(*options.ServerOptions)
 
 	// Initialize logger

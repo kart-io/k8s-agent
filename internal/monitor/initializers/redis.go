@@ -5,7 +5,8 @@
 package initializers
 
 import (
-	"github.com/kart-io/k8s-agent/cmd/monitor/app/options"
+        commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
@@ -20,7 +21,7 @@ type RedisInitializer struct {
 }
 
 // NewRedisInitializer creates a Redis initializer for monitor service.
-func NewRedisInitializer(cfg *options.ServerOptions, logger core.Logger) *RedisInitializer {
+func NewRedisInitializer(cfg *commonapp.StandardOptions, logger core.Logger) *RedisInitializer {
 	// Create the base initializer
 	redisInit := pkginitializers.NewRedisInitializer(cfg.Redis, logger)
 

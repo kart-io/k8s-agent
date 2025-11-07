@@ -1,11 +1,12 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
+	
 	"github.com/kart-io/k8s-agent/internal/auth/handler"
 	"github.com/kart-io/k8s-agent/internal/auth/middleware"
 	"github.com/kart-io/k8s-agent/internal/auth/routes"
@@ -19,7 +20,7 @@ import (
 // 使用标准化的 common/server 框架替代手动服务器管理
 type HTTPServerInitializer struct {
 	*pkginitializers.HTTPServerInitializer
-	cfg              *options.ServerOptions
+	cfg              *commonapp.StandardOptions
 	logger           core.Logger
 	dbInit           *DatabaseInitializer
 	redisInit        *RedisInitializer
@@ -33,7 +34,7 @@ type HTTPServerInitializer struct {
 
 // NewHTTPServerInitializer creates a new HTTP server initializer using common/server framework.
 func NewHTTPServerInitializer(
-	cfg *options.ServerOptions,
+	cfg *commonapp.StandardOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	redisInit *RedisInitializer,

@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/cmd/cluster/app/options"
+	// Removed: options package
 	"github.com/kart-io/k8s-agent/internal/cluster/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
@@ -16,10 +16,16 @@ import (
 	"github.com/kart-io/logger/core"
 )
 
+const (
+	// UserAgent is the User-Agent string for the cluster service.
+	UserAgent = "aetherius-cluster"
+)
+
 // Execute runs the cluster service command.
 func Execute() {
 	// Create configuration options
-	opts := options.NewServerOptions()
+	opts := commonapp.NewStandardOptions("Cluster", UserAgent).
+		WithDatabase().WithJWT()
 
 	// Create application instance
 	app := &ClusterApp{}
@@ -40,7 +46,7 @@ func Execute() {
 
 // ClusterApp implements commonapp.Application interface.
 type ClusterApp struct {
-	opts   *options.ServerOptions // 直接使用ServerOptions
+	opts   *commonapp.StandardOptions // 直接使用ServerOptions
 	logger core.Logger
 
 	// Component initializers
@@ -57,7 +63,7 @@ func (a *ClusterApp) Name() string {
 // Initialize initializes the application.
 func (a *ClusterApp) Initialize(ctx context.Context, opts commonapp.Options) error {
 	// 直接保存ServerOptions，不需要转换
-	a.opts = opts.(*options.ServerOptions)
+	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
 	logger, err := a.opts.InitLogger()

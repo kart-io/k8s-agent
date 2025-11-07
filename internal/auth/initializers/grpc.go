@@ -1,11 +1,12 @@
 package initializers
 
 import (
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
 	"google.golang.org/grpc"
 
-	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
+	
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	authgrpc "github.com/kart-io/k8s-agent/internal/auth/grpc"
 	"github.com/kart-io/k8s-agent/internal/auth/service"
@@ -19,7 +20,7 @@ import (
 // GRPCServerInitializer gRPC服务器初始化器
 type GRPCServerInitializer struct {
 	standardInit *commoninitializers.GRPCServerInitializer
-	opts         *options.ServerOptions
+	opts         *commonapp.StandardOptions
 	logger       core.Logger
 
 	// 依赖的初始化器
@@ -40,7 +41,7 @@ type GRPCServerInitializer struct {
 
 // NewGRPCServerInitializer 创建gRPC服务器初始化器
 func NewGRPCServerInitializer(
-	opts *options.ServerOptions,
+	opts *commonapp.StandardOptions,
 	logger core.Logger,
 	dbInit *DatabaseInitializer,
 	redisInit *RedisInitializer,

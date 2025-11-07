@@ -8,15 +8,15 @@ package app
 
 import (
 	"github.com/google/wire"
-	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
 	"github.com/kart-io/k8s-agent/internal/auth/initializers"
+	"github.com/kart-io/k8s-agent/pkg/app"
 	initializers2 "github.com/kart-io/k8s-agent/pkg/initializers"
 )
 
 // Injectors from wire.go:
 
 // InitializeAuthComponents automatically injects all components using Wire.
-func InitializeAuthComponents(opts *options.ServerOptions) (*AuthComponents, error) {
+func InitializeAuthComponents(opts *app.StandardOptions) (*AuthComponents, error) {
 	logger, err := ProvideLogger(opts)
 	if err != nil {
 		return nil, err
@@ -54,4 +54,4 @@ var ServerProviderSet = wire.NewSet(
 )
 
 // HealthProviderSet Wire dependency set for health check.
-var HealthProviderSet = wire.NewSet(initializers2.NewHealthCheckInitializer, wire.FieldsOf(new(*options.ServerOptions), "Health"))
+var HealthProviderSet = wire.NewSet(initializers2.NewHealthCheckInitializer, wire.FieldsOf(new(*app.StandardOptions), "Health"))
