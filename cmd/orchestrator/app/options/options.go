@@ -36,7 +36,7 @@ type ServerOptions struct {
 	// Server options for configuring HTTP server related options.
 	Server *commonoptions.ServerOptions `json:"server" mapstructure:"server"`
 	// Database options for configuring MySQL database related options.
-	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
+	Database *commonoptions.MySQLOptions `json:"database" mapstructure:"database"`
 	// Redis options for configuring Redis related options.
 	Redis *commonoptions.RedisOptions `json:"redis" mapstructure:"redis"`
 	// NATS options for configuring NATS message queue related options.
@@ -179,7 +179,7 @@ var _ commonapp.Options = (*ServerOptions)(nil)
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
-		Database: commonoptions.NewDatabaseOptions(),
+		Database: commonoptions.NewMySQLOptions(),
 		Redis:    commonoptions.NewRedisOptions(),
 		NATS:     commonoptions.NewNATSOptions(),
 		GRPC:     commonoptions.NewGRPCOptions(),

@@ -36,7 +36,7 @@ type MySQLStore struct {
 }
 
 // NewMySQLStore creates a new MySQL store using common/db
-func NewMySQLStore(opts *options.DatabaseOptions, log core.Logger) (*MySQLStore, error) {
+func NewMySQLStore(opts *options.MySQLOptions, log core.Logger) (*MySQLStore, error) {
 	// 直接使用 db 包创建 MySQL 客户端
 	mysqlClient, err := commondb.NewMySQL(log,
 		commondb.WithHost(opts.Host),

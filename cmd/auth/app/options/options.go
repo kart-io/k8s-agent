@@ -26,7 +26,7 @@ type ServerOptions struct {
 	// GRPC options for configuring gRPC server related options.
 	GRPC *commonoptions.GRPCOptions `json:"grpc" mapstructure:"grpc"`
 	// Database options for configuring MySQL database related options.
-	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
+	Database *commonoptions.MySQLOptions `json:"database" mapstructure:"database"`
 	// Redis options for configuring Redis related options.
 	Redis *commonoptions.RedisOptions `json:"redis" mapstructure:"redis"`
 	// JWT options for configuring JWT authentication related options.
@@ -49,7 +49,7 @@ func NewServerOptions() *ServerOptions {
 	o := &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
 		GRPC:     commonoptions.NewGRPCOptions(),
-		Database: commonoptions.NewDatabaseOptions(),
+		Database: commonoptions.NewMySQLOptions(),
 		Redis:    commonoptions.NewRedisOptions(),
 		JWT:      commonoptions.NewJWTOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),

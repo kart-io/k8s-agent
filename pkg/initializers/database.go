@@ -21,7 +21,7 @@ import (
 // - 健康检查
 // - 优雅关闭.
 type DatabaseInitializer struct {
-	opts   *options.DatabaseOptions
+	opts   *options.MySQLOptions
 	logger core.Logger
 	client *db.MySQLClient
 
@@ -39,7 +39,7 @@ type DatabaseInitializer struct {
 // 返回：
 //   - *DatabaseInitializer: 数据库初始化器实例
 func NewDatabaseInitializer(
-	opts *options.DatabaseOptions,
+	opts *options.MySQLOptions,
 	logger core.Logger,
 ) *DatabaseInitializer {
 	return &DatabaseInitializer{

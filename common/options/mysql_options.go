@@ -9,8 +9,8 @@ import (
 	"github.com/kart-io/k8s-agent/common/options/validation"
 )
 
-// DatabaseOptions 数据库配置
-type DatabaseOptions struct {
+// MySQLOptions MySQL 数据库配置
+type MySQLOptions struct {
 	Host            string        `mapstructure:"host" yaml:"host" json:"host"`
 	Port            int           `mapstructure:"port" yaml:"port" json:"port"`
 	User            string        `mapstructure:"user" yaml:"user" json:"user"`
@@ -24,9 +24,9 @@ type DatabaseOptions struct {
 	AutoMigrate     bool          `mapstructure:"auto_migrate" yaml:"auto_migrate" json:"auto_migrate"`
 }
 
-// NewDatabaseOptions 创建默认的数据库配置
-func NewDatabaseOptions() *DatabaseOptions {
-	return &DatabaseOptions{
+// NewMySQLOptions 创建默认的 MySQL 数据库配置
+func NewMySQLOptions() *MySQLOptions {
+	return &MySQLOptions{
 		Host:            "localhost",
 		Port:            3306,
 		User:            "root",
@@ -42,55 +42,55 @@ func NewDatabaseOptions() *DatabaseOptions {
 }
 
 // Validate 验证配置
-func (o *DatabaseOptions) Validate() error {
+func (o *MySQLOptions) Validate() error {
 	// 使用通用验证器
-	if err := validation.ValidateRequired(o.Host, "database host"); err != nil {
+	if err := validation.ValidateRequired(o.Host, "MySQL host"); err != nil {
 		return err
 	}
 
-	if err := validation.ValidatePort(o.Port, "database"); err != nil {
+	if err := validation.ValidatePort(o.Port, "MySQL"); err != nil {
 		return err
 	}
 
-	if err := validation.ValidateRequired(o.User, "database user"); err != nil {
+	if err := validation.ValidateRequired(o.User, "MySQL user"); err != nil {
 		return err
 	}
 
-	if err := validation.ValidateRequired(o.Database, "database name"); err != nil {
+	if err := validation.ValidateRequired(o.Database, "MySQL database name"); err != nil {
 		return err
 	}
 
-	if err := validation.ValidateConnectionPool(o.MaxOpenConns, o.MaxIdleConns, "database"); err != nil {
+	if err := validation.ValidateConnectionPool(o.MaxOpenConns, o.MaxIdleConns, "MySQL"); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// DSN 返回数据库连接字符串
-func (o *DatabaseOptions) DSN() string {
+// DSN 返回 MySQL 连接字符串
+func (o *MySQLOptions) DSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		o.User, o.Password, o.Host, o.Port, o.Database)
 }
 
 // AddFlags 添加命令行参数
-func (o *DatabaseOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.Host, "db.host", o.Host, "Database host address")
-	fs.IntVar(&o.Port, "db.port", o.Port, "Database port")
-	fs.StringVar(&o.User, "db.user", o.User, "Database user")
-	fs.StringVar(&o.Password, "db.password", o.Password, "Database password")
-	fs.StringVar(&o.Database, "db.database", o.Database, "Database name")
-	fs.StringVar(&o.SSLMode, "db.ssl-mode", o.SSLMode, "Database SSL mode")
+func (o *MySQLOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.Host, "db.host", o.Host, "MySQL host address")
+	fs.IntVar(&o.Port, "db.port", o.Port, "MySQL port")
+	fs.StringVar(&o.User, "db.user", o.User, "MySQL user")
+	fs.StringVar(&o.Password, "db.password", o.Password, "MySQL password")
+	fs.StringVar(&o.Database, "db.database", o.Database, "MySQL database name")
+	fs.StringVar(&o.SSLMode, "db.ssl-mode", o.SSLMode, "MySQL SSL mode")
 	fs.IntVar(&o.MaxOpenConns, "db.max-open-conns", o.MaxOpenConns, "Maximum number of open connections")
 	fs.IntVar(&o.MaxIdleConns, "db.max-idle-conns", o.MaxIdleConns, "Maximum number of idle connections")
 	fs.DurationVar(&o.ConnMaxLifetime, "db.conn-max-lifetime", o.ConnMaxLifetime, "Maximum connection lifetime")
 	fs.StringVar(&o.LogLevel, "db.log-level", o.LogLevel, "GORM log level (silent, error, warn, info)")
-	fs.BoolVar(&o.AutoMigrate, "db.auto-migrate", o.AutoMigrate, "Enable automatic database migration")
+	fs.BoolVar(&o.AutoMigrate, "db.auto-migrate", o.AutoMigrate, "Enable automatic MySQL database migration")
 }
 
 // ApplyTo 将配置应用到目标接口
 // 接受一个函数切片指针，将配置转换为 db.MySQLOption 函数选项
-func (o *DatabaseOptions) ApplyTo(target interface{}) error {
+func (o *MySQLOptions) ApplyTo(target interface{}) error {
 	if target == nil {
 		return nil
 	}
@@ -118,7 +118,7 @@ func (o *DatabaseOptions) ApplyTo(target interface{}) error {
 
 // Complete 完成配置初始化
 // 设置默认值和计算派生值
-func (o *DatabaseOptions) Complete() error {
+func (o *MySQLOptions) Complete() error {
 	// 如果 Host 为空，设置默认值
 	if o.Host == "" {
 		o.Host = "localhost"
@@ -168,7 +168,7 @@ func (o *DatabaseOptions) Complete() error {
 //	    log.Fatal(err)
 //	}
 //	defer dbClient.Close()
-func (o *DatabaseOptions) NewDB(log interface{}) (interface{}, error) {
+func (o *MySQLOptions) NewDB(log interface{}) (interface{}, error) {
 	// 导入 db 包会产生循环依赖，这里返回错误提示用户直接使用 db.NewMySQL()
 	// 这个方法主要是为了与 OneX 风格保持一致，实际使用时推荐:
 	//   import "github.com/kart-io/k8s-agent/common/db"

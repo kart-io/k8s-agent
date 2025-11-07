@@ -15,7 +15,7 @@ k8s-agent 项目统一配置包，采用 Options 模式设计。
 config/
 ├── options.go           # 接口定义
 ├── server_options.go    # HTTP 服务器配置
-├── database_options.go  # 数据库配置
+├── database_options.go  # MySQL 数据库配置
 ├── redis_options.go     # Redis 配置
 ├── nats_options.go      # NATS 消息队列配置
 ├── logging_options.go   # 日志配置
@@ -48,14 +48,14 @@ if err := opts.Validate(); err != nil {
 }
 ```
 
-### DatabaseOptions - 数据库配置
+### MySQLOptions - MySQL 数据库配置
 
 ```go
 // 创建默认配置
-opts := config.NewDatabaseOptions()
+opts := config.NewMySQLOptions()
 
 // 使用 Options 模式
-opts := config.NewDatabaseOptions()
+opts := config.NewMySQLOptions()
 config.WithDBHost("mysql.example.com")(opts)
 config.WithDBPort(3306)(opts)
 config.WithDBUser("app_user")(opts)
@@ -194,7 +194,7 @@ import (
 
 type ServiceConfig struct {
     Server   *config.ServerOptions   `yaml:"server"`
-    Database *config.DatabaseOptions `yaml:"database"`
+    Database *config.MySQLOptions `yaml:"database"`
     Redis    *config.RedisOptions    `yaml:"redis"`
     NATS     *config.NATSOptions     `yaml:"nats"`
     Logging  *config.LoggingOptions  `yaml:"logging"`
@@ -207,7 +207,7 @@ func main() {
     // 创建配置
     cfg := &ServiceConfig{
         Server:   config.NewServerOptions(),
-        Database: config.NewDatabaseOptions(),
+        Database: config.NewMySQLOptions(),
         Redis:    config.NewRedisOptions(),
         NATS:     config.NewNATSOptions(),
         Logging:  config.NewLoggingOptions(),
@@ -282,7 +282,7 @@ import (
 
 type AppConfig struct {
     Server   config.ServerOptions   `mapstructure:"server"`
-    Database config.DatabaseOptions `mapstructure:"database"`
+    Database config.MySQLOptions `mapstructure:"database"`
     Redis    config.RedisOptions    `mapstructure:"redis"`
     Logging  config.LoggingOptions  `mapstructure:"logging"`
 }
@@ -355,7 +355,7 @@ func main() {
 - `WithIdleTimeout(time.Duration)` - 设置空闲超时
 - `WithGracefulStop(time.Duration)` - 设置优雅停机时间
 
-### DatabaseOptions (10个)
+### MySQLOptions (10个)
 - `WithDBHost(string)` - 设置数据库地址
 - `WithDBPort(int)` - 设置数据库端口
 - `WithDBUser(string)` - 设置用户名
@@ -426,7 +426,7 @@ func main() {
 | 配置类型 | 主要默认值 |
 |---------|-----------|
 | ServerOptions | port: 8080, mode: release |
-| DatabaseOptions | host: localhost, port: 3306 |
+| MySQLOptions | host: localhost, port: 3306 |
 | RedisOptions | addr: localhost:6379, db: 0 |
 | NATSOptions | url: nats://localhost:4222 |
 | LoggingOptions | level: info, format: json |

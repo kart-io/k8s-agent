@@ -21,7 +21,7 @@ type MySQLDB struct {
 }
 
 // NewMySQLDB creates a new MySQL connection using GORM
-func NewMySQLDB(cfg *commonoptions.DatabaseOptions, log core.Logger) (*MySQLDB, error) {
+func NewMySQLDB(cfg *commonoptions.MySQLOptions, log core.Logger) (*MySQLDB, error) {
 	// Build connection string (DSN) for MySQL
 	// Format: user:password@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
 	dsn := fmt.Sprintf(

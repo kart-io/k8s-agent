@@ -17,7 +17,7 @@ import (
 type ServerOptions struct {
 	Server   *commonoptions.ServerOptions   `json:"server" mapstructure:"server"`
 	GRPC     *commonoptions.GRPCOptions     `json:"grpc" mapstructure:"grpc"`
-	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
+	Database *commonoptions.MySQLOptions `json:"database" mapstructure:"database"`
 	JWT      *commonoptions.JWTOptions      `json:"jwt" mapstructure:"jwt"`
 	Logging  *commonoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
 	Health   *commonoptions.HealthOptions   `json:"health" mapstructure:"health"`
@@ -28,7 +28,7 @@ func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
 		GRPC:     commonoptions.NewGRPCOptions(),
-		Database: commonoptions.NewDatabaseOptions(),
+		Database: commonoptions.NewMySQLOptions(),
 		JWT:      commonoptions.NewJWTOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
 		Health:   commonoptions.NewHealthOptions(),

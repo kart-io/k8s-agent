@@ -687,7 +687,7 @@ import "github.com/kart-io/k8s-agent/common/config"
 
 type Config struct {
     Server   config.ServerOptions
-    Database config.DatabaseOptions
+    Database config.MySQLOptions
     Redis    config.RedisOptions
     NATS     config.NATSOptions
     // Service-specific options...
@@ -1022,7 +1022,7 @@ import (
 
 type Config struct {
     Server   config.ServerOptions   `mapstructure:"server"`
-    Database config.DatabaseOptions `mapstructure:"database"`
+    Database config.MySQLOptions `mapstructure:"database"`
     Redis    config.RedisOptions    `mapstructure:"redis"`
     NATS     config.NATSOptions     `mapstructure:"nats"`
     // Service-specific fields
@@ -1370,7 +1370,7 @@ import (
 
 type Config struct {
     Server   options.ServerOptions   `mapstructure:"server"`
-    Database options.DatabaseOptions `mapstructure:"database"`
+    Database options.MySQLOptions `mapstructure:"database"`
     Redis    options.RedisOptions    `mapstructure:"redis"`
     NATS     options.NATSOptions     `mapstructure:"nats"`
     // Service-specific fields...

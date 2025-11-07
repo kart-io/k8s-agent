@@ -139,7 +139,7 @@ const (
 type ServerOptions struct {
 	// 基础配置（必需）
 	Server   *commonoptions.ServerOptions   `json:"server" mapstructure:"server"`
-	Database *commonoptions.DatabaseOptions `json:"database" mapstructure:"database"`
+	Database *commonoptions.MySQLOptions `json:"database" mapstructure:"database"`
 	Redis    *commonoptions.RedisOptions    `json:"redis" mapstructure:"redis"`
 	Logging  *commonoptions.LoggingOptions  `json:"logging" mapstructure:"logging"`
 	Health   *commonoptions.HealthOptions   `json:"health" mapstructure:"health"`
@@ -165,7 +165,7 @@ func NewServerOptions() *ServerOptions {
 
 	return &ServerOptions{
 		Server:   commonoptions.NewServerOptions(),
-		Database: commonoptions.NewDatabaseOptions(),
+		Database: commonoptions.NewMySQLOptions(),
 		Redis:    commonoptions.NewRedisOptions(),
 		Logging:  commonoptions.NewLoggingOptions(),
 		Health:   healthOpts,
@@ -578,7 +578,7 @@ import (
 
 // DatabaseInitializer 数据库初始化器
 type DatabaseInitializer struct {
-	opts   *commonoptions.DatabaseOptions
+	opts   *commonoptions.MySQLOptions
 	logger core.Logger
 	db     *gorm.DB
 }
@@ -587,7 +587,7 @@ type DatabaseInitializer struct {
 var _ bootstrap.Initializer = (*DatabaseInitializer)(nil)
 
 // NewDatabaseInitializer creates a new DatabaseInitializer
-func NewDatabaseInitializer(opts *commonoptions.DatabaseOptions, logger core.Logger) *DatabaseInitializer {
+func NewDatabaseInitializer(opts *commonoptions.MySQLOptions, logger core.Logger) *DatabaseInitializer {
 	return &DatabaseInitializer{
 		opts:   opts,
 		logger: logger,

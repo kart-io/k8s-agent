@@ -45,7 +45,7 @@ import (
 
 // 创建数据库初始化器
 dbInit := initializers.NewDatabaseInitializer(
-    dbOptions,    // *options.DatabaseOptions
+    dbOptions,    // *options.MySQLOptions
     logger,       // core.Logger
 )
 
@@ -194,7 +194,7 @@ func NewMyServiceApp() *MyServiceApp {
 
 func (app *MyServiceApp) Initialize(ctx context.Context) error {
     // 1. 加载配置
-    dbOptions := options.NewDatabaseOptions()
+    dbOptions := options.NewMySQLOptions()
     redisOptions := options.NewRedisOptions()
     natsOptions := options.NewNATSOptions()
 

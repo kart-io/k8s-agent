@@ -202,7 +202,7 @@ clusterID := opts.GetClusterID()
 type ServiceOptions struct {
     Logging   *options.LoggingOptions   // 日志配置
     Agent     *options.AgentOptions     // Agent 配置
-    Database  *options.DatabaseOptions  // 数据库配置(如需要)
+    Database  *options.MySQLOptions  // MySQL 数据库配置(如需要)
     Redis     *options.RedisOptions     // Redis 配置(如需要)
 }
 ```

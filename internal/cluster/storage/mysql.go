@@ -23,7 +23,7 @@ type MySQLStorage struct {
 // NewMySQLStorage creates a new MySQL storage using common/db.
 // This method creates its own database connection and should only be used
 // when a connection is not already available.
-func NewMySQLStorage(opts *options.DatabaseOptions, logger core.Logger) (*MySQLStorage, error) {
+func NewMySQLStorage(opts *options.MySQLOptions, logger core.Logger) (*MySQLStorage, error) {
 	// 直接使用 db 包创建 MySQL 客户端
 	mysqlClient, err := commondb.NewMySQL(logger,
 		commondb.WithHost(opts.Host),
