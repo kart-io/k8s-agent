@@ -20,6 +20,7 @@ type AuthComponents struct {
 	Audit        *initializers.AuditServiceInitializer
 	Notification *initializers.NotificationServiceInitializer
 	ForcedLogout *initializers.ForcedLogoutServiceInitializer
+	GRPC         *initializers.GRPCServerInitializer // gRPC 服务器
 	HTTP         *initializers.HTTPServerInitializer
 	Health       *pkginitializers.HealthCheckInitializer
 }
@@ -33,6 +34,7 @@ func NewAuthComponents(
 	audit *initializers.AuditServiceInitializer,
 	notification *initializers.NotificationServiceInitializer,
 	forcedLogout *initializers.ForcedLogoutServiceInitializer,
+	grpc *initializers.GRPCServerInitializer, // gRPC 初始化器
 	http *initializers.HTTPServerInitializer,
 	health *pkginitializers.HealthCheckInitializer,
 ) *AuthComponents {
@@ -44,6 +46,7 @@ func NewAuthComponents(
 		Audit:        audit,
 		Notification: notification,
 		ForcedLogout: forcedLogout,
+		GRPC:         grpc,
 		HTTP:         http,
 		Health:       health,
 	}

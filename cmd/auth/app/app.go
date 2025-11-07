@@ -106,6 +106,7 @@ func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	bs.Register(components.Audit)
 	bs.Register(components.Notification)
 	bs.Register(components.ForcedLogout)
+	bs.Register(components.GRPC) // gRPC 服务器
 	bs.Register(components.HTTP)
 	bs.Register(components.Health)
 

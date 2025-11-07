@@ -7,6 +7,9 @@ import (
 
 	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
 	commonserver "github.com/kart-io/k8s-agent/common/server"
+	authgrpc "github.com/kart-io/k8s-agent/internal/auth/grpc"
+	"github.com/kart-io/k8s-agent/internal/auth/service"
+	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	authv1 "github.com/kart-io/k8s-agent/pkg/api/auth/v1"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -23,6 +26,16 @@ type GRPCServerInitializer struct {
 	dbInit      *DatabaseInitializer
 	redisInit   *RedisInitializer
 	sessionInit *SessionServiceInitializer
+
+	// 共享的存储层包装实例（供 HTTP 初始化器复用）
+	mysqlDB     *storage.MySQLDB
+	redisClient *storage.RedisClient
+
+	// 共享的 Service 实例（供 HTTP 初始化器复用）
+	authService       *service.AuthService
+	userService       *service.UserService
+	roleService       *service.RoleService
+	permissionService *service.PermissionService
 }
 
 // NewGRPCServerInitializer 创建gRPC服务器初始化器
@@ -68,20 +81,43 @@ func (g *GRPCServerInitializer) Initialize(ctx context.Context) error {
 	// 由于Auth服务结构复杂（多个Handler），需要重构为统一Service层
 	// 当前先创建基础框架
 
+	// 创建并保存存储层包装实例（供 HTTP 初始化器复用）
+	g.mysqlDB = &storage.MySQLDB{
+		DB:     g.dbInit.DB(),
+		Logger: g.logger,
+	}
+	g.redisClient = &storage.RedisClient{
+		Client: g.redisInit.Client(),
+	}
+
+	// 创建Service层实例（使用保存的包装实例，供 HTTP 初始化器复用）
+	g.authService = service.NewAuthService(g.mysqlDB, g.redisClient, g.opts, g.logger)
+	g.userService = service.NewUserService(g.mysqlDB, g.logger)
+	g.roleService = service.NewRoleService(g.mysqlDB, g.logger)
+	g.permissionService = service.NewPermissionService(g.mysqlDB, g.logger)
+
+	// 创建gRPC服务器实例（使用保存的实例）
+	authGRPC := authgrpc.NewAuthServiceServer(g.authService, g.logger)
+	userGRPC := authgrpc.NewUserServiceServer(g.userService, g.logger)
+	roleGRPC := authgrpc.NewRoleServiceServer(g.roleService, g.logger)
+	permissionGRPC := authgrpc.NewPermissionServiceServer(g.permissionService, g.logger)
+	sessionGRPC := authgrpc.NewSessionServiceServer(g.sessionInit.Service(), g.logger)
+
 	serverConfig := &commoninitializers.GRPCServerConfig{
 		Name:     g.Name(),
 		Priority: g.Priority(),
 		Config:   g.opts.GRPC,
 		ServiceRegister: func(s *grpc.Server) error {
-			// TODO: 注册gRPC服务
-			// authv1.RegisterAuthServiceServer(s, authService)
-			// authv1.RegisterUserServiceServer(s, userService)
-			// authv1.RegisterRoleServiceServer(s, roleService)
-			// authv1.RegisterPermissionServiceServer(s, permissionService)
-			// authv1.RegisterSessionServiceServer(s, sessionService)
+			// 注册所有gRPC服务
+			authv1.RegisterAuthServiceServer(s, authGRPC)
+			authv1.RegisterUserServiceServer(s, userGRPC)
+			authv1.RegisterRoleServiceServer(s, roleGRPC)
+			authv1.RegisterPermissionServiceServer(s, permissionGRPC)
+			authv1.RegisterSessionServiceServer(s, sessionGRPC)
 
-			g.logger.Info("gRPC services registered (TODO: implement service handlers)")
-			_ = authv1.UnimplementedAuthServiceServer{}
+			g.logger.Infow("All gRPC services registered successfully",
+				"services", []string{"Auth", "User", "Role", "Permission", "Session"},
+			)
 			return nil
 		},
 	}
@@ -104,4 +140,34 @@ func (g *GRPCServerInitializer) GetServer() commonserver.Server {
 		return nil
 	}
 	return g.standardInit.GetServer()
+}
+
+// AuthService 返回共享的 AuthService 实例
+func (g *GRPCServerInitializer) AuthService() *service.AuthService {
+	return g.authService
+}
+
+// UserService 返回共享的 UserService 实例
+func (g *GRPCServerInitializer) UserService() *service.UserService {
+	return g.userService
+}
+
+// RoleService 返回共享的 RoleService 实例
+func (g *GRPCServerInitializer) RoleService() *service.RoleService {
+	return g.roleService
+}
+
+// PermissionService 返回共享的 PermissionService 实例
+func (g *GRPCServerInitializer) PermissionService() *service.PermissionService {
+	return g.permissionService
+}
+
+// GetMySQLDB 返回共享的 MySQLDB 包装实例
+func (g *GRPCServerInitializer) GetMySQLDB() *storage.MySQLDB {
+	return g.mysqlDB
+}
+
+// GetRedisClient 返回共享的 RedisClient 包装实例
+func (g *GRPCServerInitializer) GetRedisClient() *storage.RedisClient {
+	return g.redisClient
 }

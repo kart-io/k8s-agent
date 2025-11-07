@@ -10,7 +10,6 @@ import (
 	"github.com/kart-io/k8s-agent/internal/auth/middleware"
 	"github.com/kart-io/k8s-agent/internal/auth/routes"
 	"github.com/kart-io/k8s-agent/internal/auth/service"
-	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
@@ -29,6 +28,7 @@ type HTTPServerInitializer struct {
 	notificationInit *NotificationServiceInitializer
 	forcedLogoutInit *ForcedLogoutServiceInitializer
 	emailInit        *EmailClientInitializer
+	grpcInit         *GRPCServerInitializer // gRPC 初始化器依赖（用于共享 Service 实例）
 }
 
 // NewHTTPServerInitializer creates a new HTTP server initializer using common/server framework.
@@ -42,6 +42,7 @@ func NewHTTPServerInitializer(
 	notificationInit *NotificationServiceInitializer,
 	forcedLogoutInit *ForcedLogoutServiceInitializer,
 	emailInit *EmailClientInitializer,
+	grpcInit *GRPCServerInitializer, // 新增参数：gRPC 初始化器
 ) *HTTPServerInitializer {
 	h := &HTTPServerInitializer{
 		cfg:              cfg,
@@ -53,6 +54,7 @@ func NewHTTPServerInitializer(
 		notificationInit: notificationInit,
 		forcedLogoutInit: forcedLogoutInit,
 		emailInit:        emailInit,
+		grpcInit:         grpcInit, // 保存 gRPC 初始化器引用
 	}
 
 	// Create standard HTTP server config
@@ -74,27 +76,27 @@ func NewHTTPServerInitializer(
 func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 	h.logger.Infow("Setting up auth service routes")
 
-	// Create MySQLDB wrapper (for compatibility with existing handlers)
-	dbConn := &storage.MySQLDB{DB: h.dbInit.DB()}
+	// 从 gRPC 初始化器获取共享的 Service 实例
+	// 这些 Service 在 gRPC 初始化时已创建，HTTP 和 gRPC 共享同一实例
+	authService := h.grpcInit.AuthService()
+	userService := h.grpcInit.UserService()
+	roleService := h.grpcInit.RoleService()
+	permissionService := h.grpcInit.PermissionService()
 
-	// Initialize services (user, role, permission services)
-	userService := service.NewUserService(dbConn)
-	roleService := service.NewRoleService(dbConn)
-	permissionService := service.NewPermissionService(dbConn)
+	// 从 gRPC 初始化器获取共享的存储层包装实例
+	// APIKeyService 仅在 HTTP 中使用，使用共享的 MySQLDB 包装创建
+	mysqlDB := h.grpcInit.GetMySQLDB()
+	apikeyService := service.NewAPIKeyService(mysqlDB)
 
-	// Initialize handlers
-	authHandler := handler.NewAuthHandler(
-		h.dbInit.DB(),
-		h.cfg.JWT.Secret,
-		h.cfg.JWT.ExpiresHours,
-		h.sessionInit.Service(),
-	)
+	// Initialize handlers (HTTP adapters)
+	authHandler := handler.NewAuthHandler(authService)
 	sessionHandler := handler.NewSessionHandler(h.sessionInit.Service())
 	forcedLogoutHandler := handler.NewForcedLogoutHandler(h.forcedLogoutInit.Service())
 	auditHandler := handler.NewAuditHandler(h.auditInit.Service())
 	userHandler := handler.NewUserHandler(userService)
 	roleHandler := handler.NewRoleHandler(roleService)
 	permissionHandler := handler.NewPermissionHandler(permissionService)
+	apikeyHandler := handler.NewAPIKeyHandler(apikeyService)
 
 	// Initialize middleware
 	jwtMiddleware := middleware.NewJWTMiddleware(h.cfg.JWT.Secret, h.sessionInit.Service())
@@ -121,6 +123,7 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 		v1.POST("/refresh", authHandler.RefreshTokenHandler) // No auth required - uses refresh token
 		v1.GET("/me", jwtMiddleware.JWTAuth(), authHandler.GetCurrentUserHandler)
 		v1.GET("/codes", jwtMiddleware.JWTAuth(), authHandler.GetAccessCodesHandler)
+		v1.GET("/menus", jwtMiddleware.JWTAuth(), authHandler.GetMenusHandler)
 	}
 
 	// Register user management routes
@@ -160,6 +163,15 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 		permissionRoutes.DELETE("/:id", permissionHandler.Delete)
 	}
 
+	// Register API Key management routes
+	apikeyRoutes := engine.Group("/api/v1/api-keys")
+	apikeyRoutes.Use(jwtMiddleware.JWTAuth())
+	{
+		apikeyRoutes.GET("", apikeyHandler.List)
+		apikeyRoutes.POST("", apikeyHandler.Create)
+		apikeyRoutes.DELETE("/:id", apikeyHandler.Delete)
+	}
+
 	// Register forced logout routes
 	forcedLogoutRoutes := routes.NewForcedLogoutRoutes(
 		sessionHandler,
@@ -177,9 +189,11 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 		"auth_login", "POST /api/v1/auth/login",
 		"auth_logout", "POST /api/v1/auth/logout",
 		"auth_refresh", "POST /api/v1/auth/refresh",
+		"auth_menus", "GET /api/v1/auth/menus",
 		"users", "GET/POST/PUT/DELETE /api/v1/users",
 		"roles", "GET/POST/PUT/DELETE /api/v1/roles",
 		"permissions", "GET/POST/PUT/DELETE /api/v1/permissions",
+		"api_keys", "GET/POST/DELETE /api/v1/api-keys",
 		"sessions", "Forced logout routes registered",
 	)
 

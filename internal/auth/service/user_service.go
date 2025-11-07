@@ -1,30 +1,41 @@
 package service
 
 import (
-	"errors"
-	"fmt"
+	stderrors "errors"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
+	"github.com/kart-io/logger/core"
 )
 
 // UserService handles user management business logic.
 type UserService struct {
-	db *storage.MySQLDB
+	db     *storage.MySQLDB
+	logger core.Logger
 }
 
 // NewUserService creates a new user service.
-func NewUserService(db *storage.MySQLDB) *UserService {
-	return &UserService{db: db}
+func NewUserService(db *storage.MySQLDB, logger core.Logger) *UserService {
+	return &UserService{
+		db:     db,
+		logger: logger.With("component", "user-service"),
+	}
 }
 
 // List retrieves users with pagination and filtering.
 func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*types.PaginatedResponse, error) {
+	s.logger.Infow("List users request",
+		"page", params.Page,
+		"page_size", params.PageSize,
+		"status_filter", statusFilter,
+	)
+
 	// Set defaults
 	if params.Page <= 0 {
 		params.Page = 1
@@ -54,14 +65,16 @@ func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*t
 	// Get total count
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
-		return nil, fmt.Errorf("failed to count users: %w", err)
+		s.logger.Errorw("List users failed: count error", "error", err)
+		return nil, errors.NewDatabaseError(err)
 	}
 
 	// Query with pagination and sorting
 	var modelUsers []model.User
-	orderClause := fmt.Sprintf("%s %s", params.Sort, params.Order)
+	orderClause := params.Sort + " " + params.Order
 	if err := query.Order(orderClause).Limit(params.PageSize).Offset(offset).Find(&modelUsers).Error; err != nil {
-		return nil, fmt.Errorf("failed to query users: %w", err)
+		s.logger.Errorw("List users failed: query error", "error", err)
+		return nil, errors.NewDatabaseError(err)
 	}
 
 	// Convert model.User to types.User
@@ -85,6 +98,13 @@ func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*t
 		totalPages++
 	}
 
+	s.logger.Infow("List users successful",
+		"total", total,
+		"page", params.Page,
+		"page_size", params.PageSize,
+		"returned", len(users),
+	)
+
 	return &types.PaginatedResponse{
 		Items:      users,
 		Total:      total,
@@ -96,15 +116,21 @@ func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*t
 
 // GetByID retrieves a user by ID.
 func (s *UserService) GetByID(id string) (*types.User, error) {
+	s.logger.Infow("Get user by ID request", "user_id", id)
+
 	var user model.User
 	err := s.db.DB.Where("id = ?", id).First(&user).Error
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("user not found")
+	if stderrors.Is(err, gorm.ErrRecordNotFound) {
+		s.logger.Warnw("Get user failed: user not found", "user_id", id)
+		return nil, errors.ErrNotFound.WithMessage("user not found").KV("user_id", id)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to query user: %w", err)
+		s.logger.Errorw("Get user failed: database error", "user_id", id, "error", err)
+		return nil, errors.NewDatabaseError(err)
 	}
+
+	s.logger.Infow("Get user successful", "user_id", id, "username", user.Username)
 
 	return &types.User{
 		ID:        user.ID,
@@ -121,10 +147,13 @@ func (s *UserService) GetByID(id string) (*types.User, error) {
 
 // Create creates a new user.
 func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) {
+	s.logger.Infow("Create user request", "username", req.Username, "email", req.Email)
+
 	// Hash password
 	hashedPassword, err := crypto.HashPassword(req.Password)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
+		s.logger.Errorw("Create user failed: password hashing error", "username", req.Username, "error", err)
+		return nil, errors.ErrInternalError.WithMessage("failed to hash password")
 	}
 
 	// Generate user ID
@@ -146,7 +175,7 @@ func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) 
 	err = s.db.DB.Transaction(func(tx *gorm.DB) error {
 		// Insert user
 		if err := tx.Create(user).Error; err != nil {
-			return fmt.Errorf("failed to insert user: %w", err)
+			return errors.NewDatabaseError(err)
 		}
 
 		// Assign roles
@@ -158,35 +187,47 @@ func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) 
 					RoleID: roleID,
 				}
 				if err := tx.Create(&userRole).Error; err != nil {
-					return fmt.Errorf("failed to assign role: %w", err)
+					return errors.NewDatabaseError(err)
 				}
 			}
 		} else {
 			// Assign default 'user' role
 			var defaultRole model.Role
 			if err := tx.Where("code = ?", "user").First(&defaultRole).Error; err != nil {
-				return fmt.Errorf("failed to find default role: %w", err)
+				return errors.ErrNotFound.WithMessage("default role not found")
 			}
 			userRole := model.UserRole{
 				UserID: userID,
 				RoleID: defaultRole.ID,
 			}
 			if err := tx.Create(&userRole).Error; err != nil {
-				return fmt.Errorf("failed to assign default role: %w", err)
+				return errors.NewDatabaseError(err)
 			}
 		}
 
 		return nil
 	})
 	if err != nil {
+		s.logger.Errorw("Create user failed: transaction error",
+			"username", req.Username,
+			"error", err,
+		)
 		return nil, err
 	}
+
+	s.logger.Infow("Create user successful",
+		"user_id", userID,
+		"username", req.Username,
+		"roles_count", len(req.RoleIDs),
+	)
 
 	return s.GetByID(userID)
 }
 
 // Update updates user information.
 func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
+	s.logger.Infow("Update user request", "user_id", id)
+
 	// Build update data map for non-empty fields
 	updateData := make(map[string]interface{})
 
@@ -211,10 +252,10 @@ func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
 		// Update user
 		result := tx.Model(&model.User{}).Where("id = ?", id).Updates(updateData)
 		if result.Error != nil {
-			return fmt.Errorf("failed to update user: %w", result.Error)
+			return errors.NewDatabaseError(result.Error)
 		}
 		if result.RowsAffected == 0 {
-			return fmt.Errorf("user not found")
+			return errors.ErrNotFound.WithMessage("user not found").KV("user_id", id)
 		}
 
 		// Update roles if provided
@@ -226,49 +267,65 @@ func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
 			// Load roles by IDs
 			var roles []model.Role
 			if err := tx.Where("id IN ?", req.RoleIDs).Find(&roles).Error; err != nil {
-				return fmt.Errorf("failed to find roles: %w", err)
+				return errors.NewDatabaseError(err)
 			}
 
 			// Replace associations
 			if err := tx.Model(&user).Association("Roles").Replace(roles); err != nil {
-				return fmt.Errorf("failed to update roles: %w", err)
+				return errors.NewDatabaseError(err)
 			}
 		}
 
 		return nil
 	})
 
-	return err
+	if err != nil {
+		s.logger.Errorw("Update user failed", "user_id", id, "error", err)
+		return err
+	}
+
+	s.logger.Infow("Update user successful", "user_id", id)
+	return nil
 }
 
 // Delete soft deletes a user (sets status to 0).
 func (s *UserService) Delete(id string) error {
+	s.logger.Infow("Delete user request", "user_id", id)
+
 	result := s.db.DB.Model(&model.User{}).Where("id = ?", id).Update("status", 0)
 	if result.Error != nil {
-		return fmt.Errorf("failed to delete user: %w", result.Error)
+		s.logger.Errorw("Delete user failed: database error", "user_id", id, "error", result.Error)
+		return errors.NewDatabaseError(result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("user not found")
+		s.logger.Warnw("Delete user failed: user not found", "user_id", id)
+		return errors.ErrNotFound.WithMessage("user not found").KV("user_id", id)
 	}
 
+	s.logger.Infow("Delete user successful", "user_id", id)
 	return nil
 }
 
 // AssignRoles assigns roles to a user.
 func (s *UserService) AssignRoles(userID string, roleIDs []string) error {
+	s.logger.Infow("Assign roles request", "user_id", userID, "roles_count", len(roleIDs))
+
 	var user model.User
 	user.ID = userID
 
 	// Load roles by IDs
 	var roles []model.Role
 	if err := s.db.DB.Where("id IN ?", roleIDs).Find(&roles).Error; err != nil {
-		return fmt.Errorf("failed to find roles: %w", err)
+		s.logger.Errorw("Assign roles failed: database error", "user_id", userID, "error", err)
+		return errors.NewDatabaseError(err)
 	}
 
 	// Use GORM Association to replace roles
 	if err := s.db.DB.Model(&user).Association("Roles").Replace(roles); err != nil {
-		return fmt.Errorf("failed to assign roles: %w", err)
+		s.logger.Errorw("Assign roles failed: association error", "user_id", userID, "error", err)
+		return errors.NewDatabaseError(err)
 	}
 
+	s.logger.Infow("Assign roles successful", "user_id", userID, "roles_count", len(roles))
 	return nil
 }

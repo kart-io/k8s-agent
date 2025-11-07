@@ -31,10 +31,11 @@ var ServiceProviderSet = wire.NewSet(
 	initializers.NewForcedLogoutServiceInitializer,
 )
 
-// ServerProviderSet Wire dependency set for HTTP server.
+// ServerProviderSet Wire dependency set for servers (gRPC and HTTP).
 var ServerProviderSet = wire.NewSet(
 	ServiceProviderSet,
-	initializers.NewHTTPServerInitializer,
+	initializers.NewGRPCServerInitializer, // gRPC 服务器（先初始化，创建共享 Service）
+	initializers.NewHTTPServerInitializer, // HTTP 服务器（依赖 gRPC 初始化器）
 )
 
 // HealthProviderSet Wire dependency set for health check.

@@ -2,54 +2,62 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	stderrors "errors"
 	"time"
 
 	"gorm.io/gorm"
 
 	"github.com/kart-io/k8s-agent/cmd/auth/app/options"
+	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/jwt"
 	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
+	"github.com/kart-io/logger/core"
 )
 
 // AuthService handles authentication business logic.
 type AuthService struct {
-	db    *storage.MySQLDB
-	redis *storage.RedisClient
-	cfg   *options.ServerOptions
+	db     *storage.MySQLDB
+	redis  *storage.RedisClient
+	cfg    *options.ServerOptions
+	logger core.Logger
 }
 
 // NewAuthService creates a new auth service.
-func NewAuthService(db *storage.MySQLDB, redis *storage.RedisClient, cfg *options.ServerOptions) *AuthService {
+func NewAuthService(db *storage.MySQLDB, redis *storage.RedisClient, cfg *options.ServerOptions, logger core.Logger) *AuthService {
 	return &AuthService{
-		db:    db,
-		redis: redis,
-		cfg:   cfg,
+		db:     db,
+		redis:  redis,
+		cfg:    cfg,
+		logger: logger.With("component", "auth-service"),
 	}
 }
 
 // Login authenticates a user and returns JWT tokens (access + refresh).
 func (s *AuthService) Login(username, password string) (*types.LoginResponse, error) {
+	s.logger.Infow("Login request", "username", username)
+
 	// Find user by username using GORM with Preload for roles
 	var user model.User
 	err := s.db.DB.Preload("Roles").
 		Where("username = ? AND status = ?", username, 1).
 		First(&user).Error
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("invalid username or password")
+	if stderrors.Is(err, gorm.ErrRecordNotFound) {
+		s.logger.Warnw("Login failed: user not found", "username", username)
+		return nil, errors.ErrUnauthorized.WithMessage("invalid username or password")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to query user: %w", err)
+		s.logger.Errorw("Login failed: database error", "username", username, "error", err)
+		return nil, errors.NewDatabaseError(err)
 	}
 
 	// Verify password
 	if err := crypto.CheckPassword(user.Password, password); err != nil {
-		return nil, fmt.Errorf("invalid username or password")
+		s.logger.Warnw("Login failed: invalid password", "username", username, "user_id", user.ID)
+		return nil, errors.ErrUnauthorized.WithMessage("invalid username or password")
 	}
 
 	// Convert model.Role to types.Role
@@ -68,7 +76,8 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 	// Generate JWT token pair (access + refresh)
 	tokenPair, err := jwt.GenerateTokenPair(user.ID, user.Username, s.cfg.JWT.Secret, s.cfg.JWT.ExpiresHours)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate token pair: %w", err)
+		s.logger.Errorw("Login failed: token generation error", "user_id", user.ID, "error", err)
+		return nil, errors.ErrInternalError.WithMessage("failed to generate token pair")
 	}
 
 	// Store refresh token in Redis
@@ -76,7 +85,8 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 	refreshClaims, _ := jwt.ValidateRefreshToken(tokenPair.RefreshToken, s.cfg.JWT.Secret)
 	refreshTTL := time.Until(tokenPair.RefreshTokenExpiresAt)
 	if err := s.redis.StoreRefreshToken(ctx, refreshClaims.ID, user.ID, refreshTTL); err != nil {
-		return nil, fmt.Errorf("failed to store refresh token: %w", err)
+		s.logger.Errorw("Login failed: redis error", "user_id", user.ID, "error", err)
+		return nil, errors.ErrInternalError.WithMessage("failed to store refresh token")
 	}
 
 	// Build response
@@ -91,6 +101,13 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 
 	// Calculate expires_in (seconds until expiration)
 	expiresIn := int(time.Until(tokenPair.AccessTokenExpiresAt).Seconds())
+
+	s.logger.Infow("Login successful",
+		"user_id", user.ID,
+		"username", username,
+		"roles_count", len(roles),
+		"expires_in", expiresIn,
+	)
 
 	return &types.LoginResponse{
 		Token:        tokenPair.AccessToken,
@@ -107,36 +124,46 @@ func (s *AuthService) Logout(token string) error {
 	// Calculate TTL based on token expiration
 	claims, err := jwt.ValidateToken(token, s.cfg.JWT.Secret)
 	if err != nil {
-		return fmt.Errorf("invalid token: %w", err)
+		s.logger.Warnw("Logout failed: invalid token", "error", err)
+		return errors.ErrUnauthorized.WithMessage("invalid token")
 	}
+
+	s.logger.Infow("Logout request", "user_id", claims.UserID, "jti", claims.ID)
 
 	ttl := time.Until(claims.ExpiresAt.Time)
 	if ttl <= 0 {
 		// Token already expired, no need to blacklist
+		s.logger.Infow("Logout skipped: token already expired", "user_id", claims.UserID)
 		return nil
 	}
 
 	// Add token to Redis blacklist
 	ctx := context.Background()
 	if err := s.redis.BlacklistToken(ctx, token, ttl); err != nil {
-		return fmt.Errorf("failed to blacklist token: %w", err)
+		s.logger.Errorw("Logout failed: redis error", "user_id", claims.UserID, "error", err)
+		return errors.ErrInternalError.WithMessage("failed to blacklist token")
 	}
 
+	s.logger.Infow("Logout successful", "user_id", claims.UserID, "jti", claims.ID)
 	return nil
 }
 
 // GetCurrentUser retrieves user information by user ID.
 func (s *AuthService) GetCurrentUser(userID string) (*types.UserInfo, error) {
+	s.logger.Infow("Get current user request", "user_id", userID)
+
 	var user model.User
 	err := s.db.DB.Preload("Roles").
 		Where("id = ? AND status = ?", userID, 1).
 		First(&user).Error
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("user not found")
+	if stderrors.Is(err, gorm.ErrRecordNotFound) {
+		s.logger.Warnw("Get current user failed: user not found", "user_id", userID)
+		return nil, errors.ErrNotFound.WithMessage("user not found").KV("user_id", userID)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to query user: %w", err)
+		s.logger.Errorw("Get current user failed: database error", "user_id", userID, "error", err)
+		return nil, errors.NewDatabaseError(err)
 	}
 
 	// Convert model.Role to types.Role
@@ -152,6 +179,8 @@ func (s *AuthService) GetCurrentUser(userID string) (*types.UserInfo, error) {
 		}
 	}
 
+	s.logger.Infow("Get current user successful", "user_id", userID, "username", user.Username)
+
 	return &types.UserInfo{
 		ID:       user.ID,
 		Username: user.Username,
@@ -164,6 +193,8 @@ func (s *AuthService) GetCurrentUser(userID string) (*types.UserInfo, error) {
 
 // GetUserMenus builds hierarchical menu tree from user permissions.
 func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
+	s.logger.Infow("Get user menus request", "user_id", userID)
+
 	// Get all menu permissions for the user using GORM Joins
 	var permissions []model.Permission
 	err := s.db.DB.Distinct().
@@ -173,7 +204,8 @@ func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 		Order("permissions.sort").
 		Find(&permissions).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to query menu permissions: %w", err)
+		s.logger.Errorw("Get user menus failed: database error", "user_id", userID, "error", err)
+		return nil, errors.NewDatabaseError(err)
 	}
 
 	// Convert model.Permission to types.MenuItem
@@ -194,7 +226,15 @@ func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 	}
 
 	// Build tree structure
-	return buildMenuTree(menus), nil
+	tree := buildMenuTree(menus)
+
+	s.logger.Infow("Get user menus successful",
+		"user_id", userID,
+		"menus_count", len(menus),
+		"root_menus_count", len(tree),
+	)
+
+	return tree, nil
 }
 
 // buildMenuTree builds hierarchical menu structure.
@@ -226,51 +266,66 @@ func buildMenuTree(menus []*types.MenuItem) []*types.MenuItem {
 func (s *AuthService) RefreshToken(refreshToken string) (*types.RefreshTokenResponse, error) {
 	ctx := context.Background()
 
+	s.logger.Infow("Refresh token request")
+
 	// 1. Validate refresh token
 	claims, err := jwt.ValidateRefreshToken(refreshToken, s.cfg.JWT.Secret)
 	if err != nil {
-		return nil, fmt.Errorf("invalid refresh token: %w", err)
+		s.logger.Warnw("Refresh token failed: invalid token", "error", err)
+		return nil, errors.ErrUnauthorized.WithMessage("invalid refresh token")
 	}
 
 	// 2. Check if refresh token is blacklisted
 	isBlacklisted, err := s.redis.IsRefreshTokenBlacklisted(ctx, claims.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check token blacklist: %w", err)
+		s.logger.Errorw("Refresh token failed: redis error", "jti", claims.ID, "error", err)
+		return nil, errors.ErrInternalError.WithMessage("failed to check token blacklist")
 	}
 	if isBlacklisted {
-		return nil, fmt.Errorf("refresh token has been revoked")
+		s.logger.Warnw("Refresh token failed: token revoked", "jti", claims.ID, "user_id", claims.UserID)
+		return nil, errors.ErrUnauthorized.WithMessage("refresh token has been revoked")
 	}
 
 	// 3. Verify refresh token exists in Redis and matches user
 	storedUserID, err := s.redis.GetRefreshTokenOwner(ctx, claims.ID)
 	if err != nil {
-		return nil, fmt.Errorf("refresh token not found or expired: %w", err)
+		s.logger.Warnw("Refresh token failed: token not found", "jti", claims.ID, "error", err)
+		return nil, errors.ErrUnauthorized.WithMessage("refresh token not found or expired")
 	}
 	if storedUserID != claims.UserID {
-		return nil, fmt.Errorf("refresh token does not belong to the user")
+		s.logger.Warnw("Refresh token failed: user mismatch",
+			"jti", claims.ID,
+			"token_user", claims.UserID,
+			"stored_user", storedUserID,
+		)
+		return nil, errors.ErrUnauthorized.WithMessage("refresh token does not belong to the user")
 	}
 
 	// 4. Verify user still exists and is active
 	var user model.User
 	err = s.db.DB.Where("id = ? AND status = ?", claims.UserID, 1).First(&user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("user not found or disabled")
+	if stderrors.Is(err, gorm.ErrRecordNotFound) {
+		s.logger.Warnw("Refresh token failed: user not found or disabled", "user_id", claims.UserID)
+		return nil, errors.ErrUnauthorized.WithMessage("user not found or disabled")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to query user: %w", err)
+		s.logger.Errorw("Refresh token failed: database error", "user_id", claims.UserID, "error", err)
+		return nil, errors.NewDatabaseError(err)
 	}
 
 	// 5. Generate new token pair (token rotation)
 	newTokenPair, err := jwt.GenerateTokenPair(user.ID, user.Username, s.cfg.JWT.Secret, s.cfg.JWT.ExpiresHours)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate new token pair: %w", err)
+		s.logger.Errorw("Refresh token failed: token generation error", "user_id", user.ID, "error", err)
+		return nil, errors.ErrInternalError.WithMessage("failed to generate new token pair")
 	}
 
 	// 6. Store new refresh token in Redis
 	newRefreshClaims, _ := jwt.ValidateRefreshToken(newTokenPair.RefreshToken, s.cfg.JWT.Secret)
 	refreshTTL := time.Until(newTokenPair.RefreshTokenExpiresAt)
 	if err := s.redis.StoreRefreshToken(ctx, newRefreshClaims.ID, user.ID, refreshTTL); err != nil {
-		return nil, fmt.Errorf("failed to store new refresh token: %w", err)
+		s.logger.Errorw("Refresh token failed: redis error", "user_id", user.ID, "error", err)
+		return nil, errors.ErrInternalError.WithMessage("failed to store new refresh token")
 	}
 
 	// 7. Revoke old refresh token (token rotation)
@@ -280,6 +335,7 @@ func (s *AuthService) RefreshToken(refreshToken string) (*types.RefreshTokenResp
 		if err := s.redis.BlacklistRefreshToken(ctx, claims.ID, oldTokenTTL); err != nil {
 			// Log error but don't fail the refresh operation
 			// The old token will naturally expire
+			s.logger.Warnw("Failed to blacklist old refresh token", "jti", claims.ID, "error", err)
 		}
 	}
 	// Also delete from active tokens
@@ -287,6 +343,13 @@ func (s *AuthService) RefreshToken(refreshToken string) (*types.RefreshTokenResp
 
 	// 8. Calculate expires_in
 	expiresIn := int(time.Until(newTokenPair.AccessTokenExpiresAt).Seconds())
+
+	s.logger.Infow("Refresh token successful",
+		"user_id", user.ID,
+		"old_jti", claims.ID,
+		"new_jti", newRefreshClaims.ID,
+		"expires_in", expiresIn,
+	)
 
 	return &types.RefreshTokenResponse{
 		AccessToken:  newTokenPair.AccessToken,
