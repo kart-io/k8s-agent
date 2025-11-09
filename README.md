@@ -224,7 +224,7 @@ make run
 
 ### 环境要求
 
-- **Go**: 1.21+
+- **Go**: 1.25.0 (required by workspace go.mod)
 - **Docker**: 20.10+
 - **Kubernetes**: 1.23+
 - **MySQL**: 8.0+
@@ -232,50 +232,136 @@ make run
 - **NATS**: 2.10+
 - **Neo4j**: 5+ (可选)
 
-### 本地开发
+### 📚 完整 Makefile 使用指南
 
-1. **启动依赖服务**:
+本项目使用模块化 Makefile 系统，所有命令必须从仓库根目录运行。
 
-```bash
-cd deployments/docker-compose
-docker-compose up -d mysql redis nats neo4j
-```
+**查看完整使用案例**: [docs/MAKEFILE_USAGE_EXAMPLES.md](docs/MAKEFILE_USAGE_EXAMPLES.md)
 
-2. **运行各个服务**:
+该文档包含：
+- ✅ 所有 make 命令的详细使用案例
+- ✅ 常见开发场景的完整示例
+- ✅ 故障排除和最佳实践
+- ✅ 从新手入职到生产部署的完整流程
 
-```bash
-# Terminal 1: Agent Manager
-cd agent-manager && make run
+### 快速开始（开发环境）
 
-# Terminal 2: Orchestrator Service
-cd orchestrator-service && make run
+**⚠️ 重要**: 所有命令必须从仓库根目录运行，不要 cd 到子目录！
 
-# Terminal 3: Reasoning Service
-cd reasoning-service-go && make dev
-
-# Terminal 4: Collect Agent (可选)
-cd collect-agent && make run
-```
-
-### 构建镜像
+1. **设置开发环境**:
 
 ```bash
-# Agent Manager
-cd agent-manager
-make docker-build
+# 安装开发工具（golangci-lint, protoc, git hooks 等）
+make dev-setup
 
-# Orchestrator Service
-cd orchestrator-service
-make docker-build
-
-# Reasoning Service
-cd reasoning-service-go
-make docker-build
-
-# Collect Agent
-cd collect-agent
-make docker-build
+# 验证工具安装
+make tools.verify
 ```
+
+2. **启动依赖服务**:
+
+```bash
+# 启动 MySQL, Redis, NATS
+make run-deps
+
+# 验证依赖服务状态
+make run-check-deps
+```
+
+3. **构建所有服务**:
+
+```bash
+# 构建所有服务（输出到 _output/bin/）
+make build
+
+# 或构建特定服务
+make go.build.agent-manager
+make go.build.orchestrator
+make go.build.reasoning
+```
+
+4. **运行服务（每个服务在单独的终端）**:
+
+```bash
+# Terminal 1: 运行 Agent Manager (本地开发配置)
+make run-agent-manager-local
+
+# Terminal 2: 运行 Orchestrator
+make run-orchestrator-local
+
+# Terminal 3: 运行 Reasoning Service
+make run-reasoning-local
+
+# Terminal 4: 运行 Auth Service
+make run-auth-local
+```
+
+5. **验证服务运行**:
+
+```bash
+curl http://localhost:8080/health  # Agent Manager
+curl http://localhost:8081/health  # Orchestrator
+curl http://localhost:8082/health  # Reasoning Service
+```
+
+### 常用开发命令
+
+```bash
+# 代码格式化
+make fmt
+
+# 代码检查（58 个 linters）
+make lint
+
+# 运行测试
+make test
+
+# 测试覆盖率（生成 HTML 报告）
+make test-coverage
+
+# 提交前检查（格式化 + lint + 测试）
+make pre-commit
+
+# 热重载开发（需要 air）
+make dev
+```
+
+### 构建 Docker 镜像
+
+```bash
+# 构建所有服务镜像
+make docker-build
+
+# 构建特定服务镜像
+make docker.build.agent-manager
+make docker.build.orchestrator
+make docker.build.reasoning
+
+# 构建多平台镜像（linux/amd64, linux/arm64）
+make docker-buildx VERSION=v1.2.3
+
+# 构建并推送多平台镜像
+make docker-buildx-push VERSION=v1.2.3
+```
+
+### 查看可用命令
+
+```bash
+# 显示所有可用命令
+make help
+
+# 显示所有 makefile 中的 targets
+make targets
+
+# 显示项目统计信息
+make stats
+```
+
+### 更多示例
+
+完整的使用案例、场景示例和最佳实践请查看:
+- 📖 [Makefile 使用案例大全](docs/MAKEFILE_USAGE_EXAMPLES.md)
+- 📖 [CLAUDE.md](CLAUDE.md) - Claude Code 开发指南
 
 ---
 

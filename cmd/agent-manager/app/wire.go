@@ -9,45 +9,37 @@ package app
 
 import (
 	"github.com/google/wire"
+
 	"github.com/kart-io/k8s-agent/internal/agent-manager/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 )
 
-// BaseProviderSet Wire dependency set for base infrastructure.
-var BaseProviderSet = wire.NewSet(
+// InitializerSet Wire dependency set for all initializers.
+var InitializerSet = wire.NewSet(
 	ProvideLogger,
 	initializers.NewDatabaseInitializer,
 	initializers.NewRedisInitializer,
-)
-
-// BusinessProviderSet Wire dependency set for business logic.
-var BusinessProviderSet = wire.NewSet(
-	BaseProviderSet,
+	initializers.NewServiceInitializer,
 	initializers.NewRegistryInitializer,
 	initializers.NewNATSInitializer,
 	initializers.NewDispatcherInitializer,
-)
-
-// ServerProviderSet Wire dependency set for servers.
-var ServerProviderSet = wire.NewSet(
-	BusinessProviderSet,
 	initializers.NewHTTPServerInitializer,
+	initializers.NewGRPCServerInitializer,
 )
 
-// HealthProviderSet Wire dependency set for health check.
-var HealthProviderSet = wire.NewSet(
+// HealthInitializerSet Wire dependency set for health check.
+var HealthInitializerSet = wire.NewSet(
 	pkginitializers.NewHealthCheckInitializer,
 	wire.FieldsOf(new(*commonapp.StandardOptions), "Health"),
 )
 
-// InitializeAgentManagerComponents automatically injects all components using Wire.
-func InitializeAgentManagerComponents(opts *commonapp.StandardOptions) (*AgentManagerComponents, error) {
+// InitializeAgentManagerContainer automatically injects all components using Wire.
+func InitializeAgentManagerContainer(opts *commonapp.StandardOptions) (*AgentManagerContainer, error) {
 	wire.Build(
-		ServerProviderSet,
-		HealthProviderSet,
-		NewAgentManagerComponents,
+		InitializerSet,
+		HealthInitializerSet,
+		NewAgentManagerContainer,
 	)
 	return nil, nil
 }
-

@@ -7,7 +7,6 @@
 package app
 
 import (
-	"github.com/google/wire"
 	"github.com/kart-io/k8s-agent/internal/monitor/initializers"
 	"github.com/kart-io/k8s-agent/pkg/app"
 	initializers2 "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -15,8 +14,9 @@ import (
 
 // Injectors from wire.go:
 
-// InitializeMonitorComponents automatically injects all components using Wire.
-func InitializeMonitorComponents(opts *app.StandardOptions) (*MonitorComponents, error) {
+// InitializeMonitorContainer automatically injects all components using Wire.
+// Simplified: flat provider list without nested sets.
+func InitializeMonitorContainer(opts *app.StandardOptions) (*MonitorContainer, error) {
 	logger, err := ProvideLogger(opts)
 	if err != nil {
 		return nil, err
@@ -27,16 +27,6 @@ func InitializeMonitorComponents(opts *app.StandardOptions) (*MonitorComponents,
 	grpcServerInitializer := initializers.NewGRPCServerInitializer(opts, logger, databaseInitializer, redisInitializer)
 	healthOptions := opts.Health
 	healthCheckInitializer := initializers2.NewHealthCheckInitializer(healthOptions, logger)
-	monitorComponents := NewMonitorComponents(databaseInitializer, redisInitializer, httpServerInitializer, grpcServerInitializer, healthCheckInitializer)
-	return monitorComponents, nil
+	monitorContainer := NewMonitorContainer(databaseInitializer, redisInitializer, httpServerInitializer, grpcServerInitializer, healthCheckInitializer)
+	return monitorContainer, nil
 }
-
-// wire.go:
-
-// InitializerSet Wire dependency set for all initializers.
-var InitializerSet = wire.NewSet(
-	ProvideLogger, initializers.NewDatabaseInitializer, initializers.NewRedisInitializer, initializers.NewHTTPServerInitializer, initializers.NewGRPCServerInitializer,
-)
-
-// HealthInitializerSet Wire dependency set for health check.
-var HealthInitializerSet = wire.NewSet(initializers2.NewHealthCheckInitializer, wire.FieldsOf(new(*app.StandardOptions), "Health"))

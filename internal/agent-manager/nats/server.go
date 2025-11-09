@@ -119,9 +119,9 @@ type Server struct {
 	options *ServerOptions
 
 	// Components
-	registry              *agent.Registry
-	eventProcessor        *event.Processor
-	commandResultHandler  CommandResultHandler // Handler for command results
+	registry             *agent.Registry
+	eventProcessor       *event.Processor
+	commandResultHandler CommandResultHandler // Handler for command results
 
 	// Subscriptions
 	subscriptions []*nats.Subscription
@@ -130,10 +130,10 @@ type Server struct {
 	wg            sync.WaitGroup
 
 	// Reconnection state
-	reconnectCount     int64  // 重连次数计数器
-	reconnectSuccess   int64  // 重连成功计数器
-	reconnectFailed    int64  // 重连失败计数器
-	lastReconnectTime  time.Time
+	reconnectCount        int64 // 重连次数计数器
+	reconnectSuccess      int64 // 重连成功计数器
+	reconnectFailed       int64 // 重连失败计数器
+	lastReconnectTime     time.Time
 	currentReconnectDelay time.Duration // 当前重连延迟时间
 
 	// Metrics
@@ -756,16 +756,16 @@ func (s *Server) GetStatistics() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"connected":            connected,
-		"connected_url":        connectedURL,
-		"messages_received":    s.messagesReceived,
-		"messages_sent":        s.messagesSent,
-		"error_count":          s.errorCount,
-		"subscription_count":   len(s.subscriptions),
-		"reconnect_count":      s.reconnectCount,
-		"reconnect_success":    s.reconnectSuccess,
-		"reconnect_failed":     s.reconnectFailed,
-		"last_reconnect_time":  s.lastReconnectTime,
+		"connected":               connected,
+		"connected_url":           connectedURL,
+		"messages_received":       s.messagesReceived,
+		"messages_sent":           s.messagesSent,
+		"error_count":             s.errorCount,
+		"subscription_count":      len(s.subscriptions),
+		"reconnect_count":         s.reconnectCount,
+		"reconnect_success":       s.reconnectSuccess,
+		"reconnect_failed":        s.reconnectFailed,
+		"last_reconnect_time":     s.lastReconnectTime,
 		"current_reconnect_delay": s.currentReconnectDelay.String(),
 	}
 }

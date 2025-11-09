@@ -51,7 +51,7 @@ cors:
   expose_headers:
     - Content-Length
   allow_credentials: true
-  max_age: 12h
+  max_age: 43200
 
 # 后端服务配置
 services:
@@ -88,50 +88,9 @@ services:
     health_check: /health
 
 # 路由配置
-routes:
-  # 认证服务路由
-  - path: /api/v1/auth/*
-    service: auth
-    strip_prefix: false
-    auth_required: false
-
-  # Agent 管理路由
-  - path: /api/v1/agents/*
-    service: agent_manager
-    strip_prefix: false
-    auth_required: true
-
-  - path: /api/v1/clusters/*
-    service: agent_manager
-    strip_prefix: false
-    auth_required: true
-
-  - path: /api/v1/events/*
-    service: agent_manager
-    strip_prefix: false
-    auth_required: true
-
-  - path: /api/v1/commands/*
-    service: agent_manager
-    strip_prefix: false
-    auth_required: true
-
-  # 编排服务路由
-  - path: /api/v1/workflows/*
-    service: orchestrator
-    strip_prefix: false
-    auth_required: true
-
-  - path: /api/v1/strategies/*
-    service: orchestrator
-    strip_prefix: false
-    auth_required: true
-
-  # 推理服务路由
-  - path: /api/v1/reasoning/*
-    service: reasoning
-    strip_prefix: false
-    auth_required: true
+routes: []
+# Note: Routes are defined in code in cmd/gateway/app/container.go
+# This configuration section is kept for future custom route overrides
 
 # 健康检查配置
 health_check:

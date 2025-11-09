@@ -103,11 +103,11 @@ func TestCustomReconnectDelayWithBackoffFactor(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		backoffFactor  float64
-		attempts       int
-		expectedMin    time.Duration
-		expectedMax    time.Duration
+		name          string
+		backoffFactor float64
+		attempts      int
+		expectedMin   time.Duration
+		expectedMax   time.Duration
 	}{
 		{
 			name:          "No backoff factor (1.0)",

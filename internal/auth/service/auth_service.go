@@ -7,22 +7,29 @@ import (
 
 	"gorm.io/gorm"
 
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/jwt"
 	"github.com/kart-io/k8s-agent/internal/auth/model"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )
 
 // AuthService handles authentication business logic.
 type AuthService struct {
-	db     *storage.MySQLDB
-	redis  *storage.RedisClient
-	cfg    *commonapp.StandardOptions
-	logger core.Logger
+	db             *storage.MySQLDB
+	redis          *storage.RedisClient
+	cfg            *commonapp.StandardOptions
+	logger         core.Logger
+	sessionService SessionServiceInterface
+}
+
+// SessionServiceInterface defines the interface for session operations.
+type SessionServiceInterface interface {
+	CreateSession(ctx context.Context, session *types.SessionInfo) error
+	ValidateSession(ctx context.Context, jti string) (bool, error)
 }
 
 // NewAuthService creates a new auth service.
@@ -33,6 +40,11 @@ func NewAuthService(db *storage.MySQLDB, redis *storage.RedisClient, cfg *common
 		cfg:    cfg,
 		logger: logger.With("component", "auth-service"),
 	}
+}
+
+// SetSessionService sets the session service dependency (called after initialization).
+func (s *AuthService) SetSessionService(sessionService SessionServiceInterface) {
+	s.sessionService = sessionService
 }
 
 // Login authenticates a user and returns JWT tokens (access + refresh).
@@ -89,6 +101,40 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 		return nil, errors.ErrInternalError.WithMessage("failed to store refresh token")
 	}
 
+	// Parse access token to get JTI and create session
+	accessClaims, err := jwt.ValidateToken(tokenPair.AccessToken, s.cfg.JWT.Secret)
+	if err != nil {
+		s.logger.Errorw("Login failed: failed to parse access token", "user_id", user.ID, "error", err)
+		return nil, errors.ErrInternalError.WithMessage("failed to parse access token")
+	}
+
+	// Create session in Redis for the access token
+	sessionInfo := &types.SessionInfo{
+		JTI:            accessClaims.ID, // Use access token's JTI
+		UserID:         user.ID,
+		Username:       user.Username,
+		Email:          user.Email,
+		IPAddress:      "", // TODO: Get from request context
+		UserAgent:      "", // TODO: Get from request headers
+		DeviceType:     "", // Will be set by session service
+		DeviceName:     "", // Will be set by session service
+		Location:       "", // TODO: Get from IP geolocation
+		LoginAt:        time.Now(),
+		LastActivityAt: time.Now(),
+		ExpiresAt:      tokenPair.AccessTokenExpiresAt,
+	}
+
+	// Only create session if session service is available
+	if s.sessionService != nil {
+		if err := s.sessionService.CreateSession(ctx, sessionInfo); err != nil {
+			s.logger.Errorw("Login failed: failed to create session", "user_id", user.ID, "error", err)
+			return nil, errors.ErrInternalError.WithMessage("failed to create session")
+		}
+		s.logger.Infow("Session created successfully", "jti", accessClaims.ID, "user_id", user.ID)
+	} else {
+		s.logger.Warnw("Session service not available, skipping session creation", "user_id", user.ID)
+	}
+
 	// Build response
 	userInfo := &types.UserInfo{
 		ID:       user.ID,
@@ -112,7 +158,7 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 	return &types.LoginResponse{
 		Token:        tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
-		JTI:          refreshClaims.ID,
+		JTI:          accessClaims.ID, // Use access token's JTI, not refresh token's
 		ExpiresAt:    tokenPair.AccessTokenExpiresAt,
 		ExpiresIn:    expiresIn,
 		User:         userInfo,

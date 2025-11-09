@@ -2,11 +2,11 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
 
-	commondb "github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger/core"
 )
@@ -15,30 +15,19 @@ import (
 type RedisStore struct {
 	client      *redis.Client
 	logger      core.Logger
-	redisClient *commondb.RedisClient
 }
 
 // NewRedisStore creates a new Redis store using common/db.
 func NewRedisStore(opts *options.RedisOptions, log core.Logger) (*RedisStore, error) {
 	// 直接使用 db 包创建 Redis 客户端
-	redisClient, err := commondb.NewRedis(log,
-		commondb.WithAddr(opts.Addr),
-		commondb.WithRedisPassword(opts.Password),
-		commondb.WithRedisDB(opts.DB),
-		commondb.WithRedisPoolSize(opts.PoolSize),
-		commondb.WithRedisMinIdleConns(opts.MinIdleConns),
-		commondb.WithRedisDialTimeout(opts.DialTimeout),
-		commondb.WithRedisReadTimeout(opts.ReadTimeout),
-		commondb.WithRedisWriteTimeout(opts.WriteTimeout),
-	)
+	redisClient, err := opts.ConnectRedis(log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Redis client: %w", err)
 	}
 
 	store := &RedisStore{
-		client:      redisClient.Client,
+		client:      redisClient,
 		logger:      log,
-		redisClient: redisClient,
 	}
 
 	store.logger.Info("Redis store initialized successfully")
@@ -46,15 +35,18 @@ func NewRedisStore(opts *options.RedisOptions, log core.Logger) (*RedisStore, er
 }
 
 func (s *RedisStore) Close() error {
-	if s.redisClient != nil {
-		return s.redisClient.Close()
+	if s.client != nil {
+		return s.client.Close()
 	}
 	return nil
 }
 
 func (s *RedisStore) Health(ctx context.Context) error {
-	if s.redisClient != nil {
-		return s.redisClient.Health(ctx)
+	if s.client != nil {
+		if err := s.client.Ping(ctx).Err(); err != nil {
+			return fmt.Errorf("failed to ping Redis: %w", err)
+		}
+		return nil
 	}
-	return fmt.Errorf("redis client not initialized")
+	return errors.New("redis client not initialized")
 }

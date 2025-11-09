@@ -21,7 +21,7 @@ type ServerOptions struct {
 	GracefulStop time.Duration `mapstructure:"graceful_stop" yaml:"graceful_stop" json:"graceful_stop"`
 
 	// 从 HTTPServerOptions 合并的字段
-	Network        string `mapstructure:"network" yaml:"network" json:"network"`               // 网络类型（tcp, tcp4, tcp6, unix, unixpacket）
+	Network        string `mapstructure:"network" yaml:"network" json:"network"`                            // 网络类型（tcp, tcp4, tcp6, unix, unixpacket）
 	MaxHeaderBytes int    `mapstructure:"max_header_bytes" yaml:"max_header_bytes" json:"max_header_bytes"` // 最大请求头大小（字节）
 }
 
@@ -35,8 +35,8 @@ func NewServerOptions() *ServerOptions {
 		WriteTimeout:   10 * time.Second,
 		IdleTimeout:    60 * time.Second,
 		GracefulStop:   30 * time.Second,
-		Network:        "tcp",     // 默认使用 tcp
-		MaxHeaderBytes: 1 << 20,   // 默认 1 MB
+		Network:        "tcp",   // 默认使用 tcp
+		MaxHeaderBytes: 1 << 20, // 默认 1 MB
 	}
 }
 

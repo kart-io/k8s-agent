@@ -7,16 +7,14 @@ import (
 
 	"gorm.io/gorm"
 
-	commondb "github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger/core"
 )
 
 type MySQLStorage struct {
 	db          *sql.DB
-	gormDB      *gorm.DB // GORM DB for ORM operations
+	mysqlClient *gorm.DB
 	log         core.Logger
-	mysqlClient *commondb.MySQLClient
 	ownedClient bool // Whether this storage owns the client and should close it
 }
 
@@ -25,23 +23,13 @@ type MySQLStorage struct {
 // when a connection is not already available.
 func NewMySQLStorage(opts *options.MySQLOptions, logger core.Logger) (*MySQLStorage, error) {
 	// 直接使用 db 包创建 MySQL 客户端
-	mysqlClient, err := commondb.NewMySQL(logger,
-		commondb.WithHost(opts.Host),
-		commondb.WithPort(opts.Port),
-		commondb.WithUser(opts.User),
-		commondb.WithPassword(opts.Password),
-		commondb.WithDatabase(opts.Database),
-		commondb.WithMaxOpenConns(opts.MaxOpenConns),
-		commondb.WithMaxIdleConns(opts.MaxIdleConns),
-		commondb.WithConnMaxLifetime(opts.ConnMaxLifetime),
-		commondb.WithLogLevel(opts.LogLevel),
-	)
+	mysqlClient, err := opts.ConnectMySQL(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create MySQL client: %w", err)
 	}
 
 	// 获取 *sql.DB
-	sqlDB, err := mysqlClient.DB.DB()
+	sqlDB, err := mysqlClient.DB().DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
 	}
@@ -52,9 +40,8 @@ func NewMySQLStorage(opts *options.MySQLOptions, logger core.Logger) (*MySQLStor
 
 	storage := &MySQLStorage{
 		db:          sqlDB,
-		gormDB:      mysqlClient.DB,
 		log:         logger,
-		mysqlClient: mysqlClient,
+		mysqlClient: mysqlClient.DB(),
 		ownedClient: true, // We own this client
 	}
 
@@ -85,10 +72,9 @@ func NewMySQLStorageWithDB(gormDB *gorm.DB, logger core.Logger) (*MySQLStorage, 
 
 	storage := &MySQLStorage{
 		db:          sqlDB,
-		gormDB:      gormDB,
 		log:         logger,
-		mysqlClient: nil,      // No client since we're reusing connection
-		ownedClient: false,    // We don't own this connection
+		mysqlClient: nil,   // No client since we're reusing connection
+		ownedClient: false, // We don't own this connection
 	}
 
 	// 初始化数据库表结构
@@ -105,7 +91,6 @@ func NewMySQLStorageWithDB(gormDB *gorm.DB, logger core.Logger) (*MySQLStorage, 
 func NewMySQLStorageForTesting(db *sql.DB, logger core.Logger) *MySQLStorage {
 	return &MySQLStorage{
 		db:          db,
-		gormDB:      nil, // No GORM in test mode
 		log:         logger,
 		mysqlClient: nil,
 		ownedClient: false, // Test code owns the connection
@@ -118,15 +103,14 @@ func (s *MySQLStorage) DB() *sql.DB {
 
 // GormDB returns the GORM database instance for ORM operations.
 func (s *MySQLStorage) GormDB() *gorm.DB {
-	return s.gormDB
+	return s.mysqlClient
 }
 
 func (s *MySQLStorage) Close() error {
 	// Only close if we own the client
-	if s.ownedClient && s.mysqlClient != nil {
-		return s.mysqlClient.Close()
+	if s.ownedClient && s.db != nil {
+		return s.db.Close()
 	}
-	// If we're reusing a connection, don't close it
 	return nil
 }
 

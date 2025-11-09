@@ -94,23 +94,23 @@ func (a *MonitorApp) Shutdown(ctx context.Context) error {
 // registerComponents registers all component initializers with bootstrap.
 func (a *MonitorApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	// Use Wire to automatically inject all dependencies
-	components, err := InitializeMonitorComponents(a.opts)
+	container, err := InitializeMonitorContainer(a.opts)
 	if err != nil {
-		return fmt.Errorf("failed to initialize components: %w", err)
+		return fmt.Errorf("failed to initialize container: %w", err)
 	}
 
 	// Register components to Bootstrap
-	bs.Register(components.DB)
-	bs.Register(components.Redis)
-	bs.Register(components.HTTP)
-	bs.Register(components.GRPC)
-	bs.Register(components.Health)
+	bs.Register(container.DB)
+	bs.Register(container.Redis)
+	bs.Register(container.HTTP)
+	bs.Register(container.GRPC)
+	bs.Register(container.Health)
 
 	// Save references for app
-	a.dbInit = components.DB
-	a.redisInit = components.Redis
-	a.httpInit = components.HTTP
-	a.healthInit = components.Health
+	a.dbInit = container.DB
+	a.redisInit = container.Redis
+	a.httpInit = container.HTTP
+	a.healthInit = container.Health
 
 	return nil
 }

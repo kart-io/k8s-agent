@@ -9,32 +9,25 @@ package app
 
 import (
 	"github.com/google/wire"
+
 	"github.com/kart-io/k8s-agent/cmd/gateway/app/options"
-	"github.com/kart-io/k8s-agent/internal/gateway/initializers"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+	"github.com/kart-io/logger/core"
 )
 
-// InitializerSet Wire dependency set for all initializers.
-var InitializerSet = wire.NewSet(
-	ProvideLogger,
-	initializers.NewRedisInitializer,
-	initializers.NewHTTPServerInitializer,
-)
-
-// HealthInitializerSet Wire dependency set for health check.
-var HealthInitializerSet = wire.NewSet(
-	pkginitializers.NewHealthCheckInitializer,
-	wire.FieldsOf(new(*options.ServerOptions), "Health"),
-)
-
-// InitializeGatewayComponents automatically injects all components using Wire.
-func InitializeGatewayComponents(opts *options.ServerOptions) (*GatewayComponents, error) {
+// InitializeGatewayContainer uses Wire to inject dependencies.
+func InitializeGatewayContainer(opts *options.ServerOptions, logger core.Logger) (*GatewayContainer, error) {
 	wire.Build(
-		InitializerSet,
-		HealthInitializerSet,
-		NewGatewayComponents,
+		// Simple initializers (all defined in container.go)
+		NewRedisInitializer,
+		NewHTTPServerInitializer,
+
+		// Health check from pkg
+		pkginitializers.NewHealthCheckInitializer,
+		wire.FieldsOf(new(*options.ServerOptions), "Health"),
+
+		// Bundle all together
+		NewGatewayContainer,
 	)
 	return nil, nil
 }
-
-

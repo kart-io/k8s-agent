@@ -6,7 +6,6 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
@@ -22,7 +21,7 @@ import (
 type RedisInitializer struct {
 	opts   *options.RedisOptions
 	logger core.Logger
-	client *db.RedisClient
+	client *redis.Client
 }
 
 // NewRedisInitializer 创建 Redis 初始化器
@@ -73,40 +72,13 @@ func (r *RedisInitializer) Initialize(ctx context.Context) error {
 	)
 
 	// 直接使用 db 包创建客户端
-	client, err := db.NewRedis(r.logger,
-		db.WithAddr(r.opts.Addr),
-		db.WithRedisPassword(r.opts.Password),
-		db.WithRedisDB(r.opts.DB),
-		db.WithRedisPoolSize(r.opts.PoolSize),
-		db.WithRedisMinIdleConns(r.opts.MinIdleConns),
-		db.WithRedisDialTimeout(r.opts.DialTimeout),
-		db.WithRedisReadTimeout(r.opts.ReadTimeout),
-		db.WithRedisWriteTimeout(r.opts.WriteTimeout),
-	)
+	client, err := r.opts.ConnectRedis(r.logger)
 	if err != nil {
-		return fmt.Errorf("failed to create Redis client: %w", err)
+		return fmt.Errorf("failed to connect to Redis: %w", err)
 	}
 
 	r.client = client
 
-	r.logger.Infow("Redis initialized successfully")
-	return nil
-}
-
-// Close 关闭 Redis 连接
-//
-// 优雅关闭 Redis 连接池，释放所有资源。
-//
-// 参数：
-//   - ctx: 上下文对象（用于超时控制）
-//
-// 返回：
-//   - error: 关闭错误
-func (r *RedisInitializer) Close(ctx context.Context) error {
-	if r.client != nil {
-		r.logger.Infow("Closing Redis connection")
-		return r.client.Close()
-	}
 	return nil
 }
 
@@ -123,7 +95,7 @@ func (r *RedisInitializer) HealthCheck(ctx context.Context) error {
 	if r.client == nil {
 		return fmt.Errorf("redis not initialized")
 	}
-	return r.client.Health(ctx)
+	return r.opts.Health(ctx, r.logger)
 }
 
 // Client 获取 Redis 客户端
@@ -136,7 +108,7 @@ func (r *RedisInitializer) Client() *redis.Client {
 	if r.client == nil {
 		return nil
 	}
-	return r.client.Client
+	return r.client
 }
 
 // RedisClient 获取完整的 Redis 客户端
@@ -145,6 +117,6 @@ func (r *RedisInitializer) Client() *redis.Client {
 //
 // 返回：
 //   - *db.RedisClient: Redis 客户端实例
-func (r *RedisInitializer) RedisClient() *db.RedisClient {
+func (r *RedisInitializer) RedisClient() *redis.Client {
 	return r.client
 }

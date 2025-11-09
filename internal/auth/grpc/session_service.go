@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
 	authv1 "github.com/kart-io/k8s-agent/pkg/api/auth/v1"
 	commonpb "github.com/kart-io/k8s-agent/pkg/api/common/pagination/v1"
-	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
 	"github.com/kart-io/logger/core"
 )
 

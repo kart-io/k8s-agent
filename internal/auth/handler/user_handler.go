@@ -119,7 +119,8 @@ func (h *UserHandler) AssignRoles(c *gin.Context) {
 // assignRolesLogic contains the core business logic for assigning roles
 func (h *UserHandler) assignRolesLogic(c *gin.Context, req *struct {
 	RoleIDs []string `json:"role_ids" binding:"required"`
-}) error {
+},
+) error {
 	id := c.Param("id")
 	if id == "" {
 		return &ValidationError{Message: "User ID is required"}
@@ -141,4 +142,3 @@ type ValidationError struct {
 func (e *ValidationError) Error() string {
 	return e.Message
 }
-

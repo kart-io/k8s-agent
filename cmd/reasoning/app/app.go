@@ -7,12 +7,15 @@ package app
 import (
 	"context"
 	"fmt"
+	"sort"
 
-	// Removed: options package
-	"github.com/kart-io/k8s-agent/internal/reasoning/initializers"
+	"github.com/kart-io/k8s-agent/internal/reasoning/analyzer"
+	"github.com/kart-io/k8s-agent/internal/reasoning/config"
+	"github.com/kart-io/k8s-agent/internal/reasoning/handler"
+	"github.com/kart-io/k8s-agent/internal/reasoning/llm"
+	"github.com/kart-io/k8s-agent/internal/reasoning/server"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
-	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -23,14 +26,11 @@ const (
 
 // Execute runs the reasoning service command.
 func Execute() {
-	// Create configuration options
 	opts := commonapp.NewStandardOptions("Reasoning", UserAgent).
 		WithLLM()
 
-	// Create application instance
 	app := &ReasoningApp{}
 
-	// Use the simplified RunWithBootstrap to run the application
 	commonapp.RunWithBootstrap(
 		app,
 		opts,
@@ -46,13 +46,11 @@ func Execute() {
 
 // ReasoningApp implements commonapp.Application interface.
 type ReasoningApp struct {
-	opts   *commonapp.StandardOptions // 直接使用ServerOptions
+	opts   *commonapp.StandardOptions
 	logger core.Logger
 
-	// Component initializers
-	llmInit           *initializers.LLMInitializer
-	unifiedServerInit *initializers.UnifiedServerInitializer
-	healthInit        *pkginitializers.HealthCheckInitializer
+	// Server component
+	server *server.Server
 }
 
 // Name returns the application name.
@@ -62,7 +60,6 @@ func (a *ReasoningApp) Name() string {
 
 // Initialize initializes the application.
 func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 直接保存ServerOptions，不需要转换
 	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
@@ -72,13 +69,16 @@ func (a *ReasoningApp) Initialize(ctx context.Context, opts commonapp.Options) e
 	}
 	a.logger = logger
 
+	a.logger.Infow("Starting Reasoning Service",
+		"llm_enabled", a.opts.LLM != nil && a.opts.LLM.Enabled,
+	)
+
 	return nil
 }
 
 // Run runs the application.
 func (a *ReasoningApp) Run(ctx context.Context) error {
-	// The bootstrap framework handles running all servers
-	// This method can be used for additional application logic if needed
+	// Bootstrap framework handles running the server
 	<-ctx.Done()
 	return nil
 }
@@ -86,27 +86,136 @@ func (a *ReasoningApp) Run(ctx context.Context) error {
 // Shutdown gracefully shuts down the application.
 func (a *ReasoningApp) Shutdown(ctx context.Context) error {
 	// Bootstrap framework handles component shutdown
-	// This method can be used for additional cleanup if needed
 	return nil
 }
 
 // registerComponents registers all component initializers with bootstrap.
+// This uses direct initialization without Wire for simplicity.
 func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Use Wire to automatically inject all dependencies
-	components, err := InitializeReasoningComponents(a.opts)
+	// Initialize LLM clients
+	llmClients, err := a.initializeLLMClients()
 	if err != nil {
-		return fmt.Errorf("failed to initialize components: %w", err)
+		return fmt.Errorf("failed to initialize LLM clients: %w", err)
 	}
 
-	// Register components to Bootstrap
-	bs.Register(components.LLM)
-	bs.Register(components.UnifiedServer)
-	bs.Register(components.Health)
+	// Create config from options
+	cfg := config.NewConfigFromOptions(a.opts)
 
-	// Save references for app
-	a.llmInit = components.LLM
-	a.unifiedServerInit = components.UnifiedServer
-	a.healthInit = components.Health
+	// Initialize business logic components
+	rootCauseAnalyzer := analyzer.NewRootCauseAnalyzer(cfg, llmClients)
+	reasoningHandler := handler.NewReasoningHandler(rootCauseAnalyzer, a.logger)
+
+	// Initialize unified server (HTTP + gRPC)
+	srv, err := server.NewServer(&server.Config{
+		HTTP:    a.opts.Server,
+		GRPC:    a.opts.GRPC,
+		Handler: reasoningHandler,
+	}, a.logger)
+	if err != nil {
+		return fmt.Errorf("failed to create server: %w", err)
+	}
+
+	a.server = srv
+
+	// Register server as an initializer
+	bs.Register(&ServerInitializer{
+		server: srv,
+		logger: a.logger,
+	})
+
+	a.logger.Infow("Components registered",
+		"http_port", a.opts.Server.Port,
+		"grpc_port", a.opts.GRPC.Port,
+		"llm_providers", len(llmClients),
+	)
 
 	return nil
+}
+
+// initializeLLMClients initializes LLM clients from options.
+func (a *ReasoningApp) initializeLLMClients() ([]llm.Client, error) {
+	if a.opts.LLM == nil || !a.opts.LLM.Enabled {
+		a.logger.Info("LLM support disabled")
+		return nil, nil
+	}
+
+	a.logger.Info("Initializing LLM providers")
+
+	// Sort providers by priority
+	sort.Slice(a.opts.LLM.Providers, func(i, j int) bool {
+		return a.opts.LLM.Providers[i].Priority < a.opts.LLM.Providers[j].Priority
+	})
+
+	var clients []llm.Client
+	for _, providerCfg := range a.opts.LLM.Providers {
+		if providerCfg.APIKey == "" {
+			a.logger.Warnw("Skipping LLM provider - no API key", "provider", providerCfg.Name)
+			continue
+		}
+
+		llmConfig := &llm.Config{
+			Provider:    llm.Provider(providerCfg.Name),
+			APIKey:      providerCfg.APIKey,
+			BaseURL:     providerCfg.BaseURL,
+			Model:       providerCfg.Model,
+			MaxTokens:   providerCfg.MaxTokens,
+			Temperature: providerCfg.Temperature,
+			Timeout:     providerCfg.Timeout,
+		}
+
+		client, err := llm.NewClient(llmConfig)
+		if err != nil {
+			a.logger.Errorw("Failed to initialize LLM provider",
+				"provider", providerCfg.Name,
+				"error", err,
+			)
+			continue
+		}
+
+		clients = append(clients, client)
+		a.logger.Infow("LLM provider initialized",
+			"provider", providerCfg.Name,
+			"model", providerCfg.Model,
+			"priority", providerCfg.Priority,
+		)
+	}
+
+	if len(clients) == 0 {
+		a.logger.Warn("No LLM providers available")
+	}
+
+	return clients, nil
+}
+
+// ServerInitializer wraps the server for bootstrap compatibility.
+type ServerInitializer struct {
+	server *server.Server
+	logger core.Logger
+}
+
+// Name returns the initializer name.
+func (s *ServerInitializer) Name() string {
+	return "UnifiedServer"
+}
+
+// Priority returns the initialization priority.
+func (s *ServerInitializer) Priority() int {
+	return 1000
+}
+
+// Initialize starts the server.
+func (s *ServerInitializer) Initialize(ctx context.Context) error {
+	s.logger.Infow("Starting unified server")
+	go func() {
+		if err := s.server.Start(ctx); err != nil {
+			s.logger.Errorw("Server error", "error", err)
+		}
+	}()
+	return nil
+}
+
+// Shutdown stops the server.
+func (s *ServerInitializer) Shutdown(ctx context.Context) error {
+	s.logger.Infow("Shutting down unified server")
+	return s.server.Stop()
 }

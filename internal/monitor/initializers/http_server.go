@@ -1,29 +1,34 @@
 package initializers
 
 import (
-        commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	
 	"github.com/kart-io/k8s-agent/internal/monitor/handler"
 	monitormiddleware "github.com/kart-io/k8s-agent/internal/monitor/middleware"
 	"github.com/kart-io/k8s-agent/internal/monitor/service"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
 // HTTPServerInitializer wraps the common HTTP server initializer.
+//
+// DESIGN NOTE: This initializer:
+// 1. Embeds pkg/initializers.HTTPServerInitializer for standard HTTP server lifecycle
+// 2. Injects database and Redis dependencies via Wire
+// 3. Creates MonitorService during Initialize() phase
+// 4. Configures routes via setupRoutes() callback
 type HTTPServerInitializer struct {
 	*pkginitializers.HTTPServerInitializer
-	cfg           *commonapp.StandardOptions
-	logger        core.Logger
-	dbInit        *DatabaseInitializer
-	redisInit     *RedisInitializer
-	monitorSvc    *service.MonitorService
+	cfg        *commonapp.StandardOptions
+	logger     core.Logger
+	dbInit     *DatabaseInitializer
+	redisInit  *RedisInitializer
+	monitorSvc *service.MonitorService // Created during initialization
 }
 
 // NewHTTPServerInitializer creates a new HTTP server initializer.
@@ -117,4 +122,3 @@ func (h *HTTPServerInitializer) setupRoutes(engine *gin.Engine) error {
 
 	return nil
 }
-

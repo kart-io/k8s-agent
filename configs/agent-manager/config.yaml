@@ -42,7 +42,7 @@ database:
 # Redis configuration
 redis:
   addr: "localhost:6379"
-  password: ""
+  password: "redis_pass"  # 添加 Redis 密码
   db: 0
   pool_size: 10
   min_idle_conns: 5

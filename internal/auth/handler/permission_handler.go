@@ -30,7 +30,8 @@ func (h *PermissionHandler) List(c *gin.Context) {
 func (h *PermissionHandler) listLogic(c *gin.Context, params *struct {
 	Type   string `form:"type"`
 	Status string `form:"status"`
-}) (*map[string]interface{}, error) {
+},
+) (*map[string]interface{}, error) {
 	permissions, err := h.permissionService.List(params.Type, params.Status)
 	if err != nil {
 		return nil, err
@@ -70,7 +71,8 @@ func (h *PermissionHandler) GetByID(c *gin.Context) {
 // getByIDLogic contains the core business logic for getting permission by ID
 func (h *PermissionHandler) getByIDLogic(c *gin.Context, params *struct {
 	ID string `uri:"id" binding:"required"`
-}) (*types.Permission, error) {
+},
+) (*types.Permission, error) {
 	return h.permissionService.GetByID(params.ID)
 }
 
@@ -97,7 +99,8 @@ func (h *PermissionHandler) Update(c *gin.Context) {
 func (h *PermissionHandler) updateLogic(c *gin.Context, req *struct {
 	ID   string `uri:"id" binding:"required"`
 	Body types.PermissionRequest
-}) error {
+},
+) error {
 	return h.permissionService.Update(req.ID, &req.Body)
 }
 
@@ -111,6 +114,7 @@ func (h *PermissionHandler) Delete(c *gin.Context) {
 // deleteLogic contains the core business logic for deleting a permission
 func (h *PermissionHandler) deleteLogic(c *gin.Context, params *struct {
 	ID string `uri:"id" binding:"required"`
-}) error {
+},
+) error {
 	return h.permissionService.Delete(params.ID)
 }

@@ -165,19 +165,19 @@ func TestParamsGetLimit(t *testing.T) {
 // TestParse tests the Parse function
 func TestParse(t *testing.T) {
 	tests := []struct {
-		name         string
-		queryParams  url.Values
-		expectedPage int
-		expectedSize int
-		expectedSort string
+		name          string
+		queryParams   url.Values
+		expectedPage  int
+		expectedSize  int
+		expectedSort  string
 		expectedOrder string
 	}{
 		{
-			name: "default values",
-			queryParams: url.Values{},
-			expectedPage: 1,
-			expectedSize: 10,
-			expectedSort: "created_at",
+			name:          "default values",
+			queryParams:   url.Values{},
+			expectedPage:  1,
+			expectedSize:  10,
+			expectedSort:  "created_at",
 			expectedOrder: "desc",
 		},
 		{
@@ -188,9 +188,9 @@ func TestParse(t *testing.T) {
 				"sort":     []string{"name"},
 				"order":    []string{"asc"},
 			},
-			expectedPage: 3,
-			expectedSize: 25,
-			expectedSort: "name",
+			expectedPage:  3,
+			expectedSize:  25,
+			expectedSort:  "name",
 			expectedOrder: "asc",
 		},
 		{
@@ -201,9 +201,9 @@ func TestParse(t *testing.T) {
 				"sort":     []string{"id"},
 				"order":    []string{"invalid"},
 			},
-			expectedPage: 1,
-			expectedSize: 10,
-			expectedSort: "id",
+			expectedPage:  1,
+			expectedSize:  10,
+			expectedSort:  "id",
 			expectedOrder: "desc",
 		},
 		{
@@ -212,9 +212,9 @@ func TestParse(t *testing.T) {
 				"page":     []string{"invalid"},
 				"pageSize": []string{"20"},
 			},
-			expectedPage: 0, // strconv.Atoi returns 0 for invalid input
-			expectedSize: 20,
-			expectedSort: "created_at",
+			expectedPage:  0, // strconv.Atoi returns 0 for invalid input
+			expectedSize:  20,
+			expectedSort:  "created_at",
 			expectedOrder: "desc",
 		},
 		{
@@ -223,9 +223,9 @@ func TestParse(t *testing.T) {
 				"page":     []string{"2"},
 				"pageSize": []string{"invalid"},
 			},
-			expectedPage: 2,
-			expectedSize: 0, // strconv.Atoi returns 0 for invalid input
-			expectedSort: "created_at",
+			expectedPage:  2,
+			expectedSize:  0, // strconv.Atoi returns 0 for invalid input
+			expectedSort:  "created_at",
 			expectedOrder: "desc",
 		},
 		{
@@ -233,9 +233,9 @@ func TestParse(t *testing.T) {
 			queryParams: url.Values{
 				"order": []string{"asc"},
 			},
-			expectedPage: 1,
-			expectedSize: 10,
-			expectedSort: "created_at",
+			expectedPage:  1,
+			expectedSize:  10,
+			expectedSort:  "created_at",
 			expectedOrder: "asc",
 		},
 		{
@@ -243,9 +243,9 @@ func TestParse(t *testing.T) {
 			queryParams: url.Values{
 				"order": []string{"desc"},
 			},
-			expectedPage: 1,
-			expectedSize: 10,
-			expectedSort: "created_at",
+			expectedPage:  1,
+			expectedSize:  10,
+			expectedSort:  "created_at",
 			expectedOrder: "desc",
 		},
 	}
@@ -266,12 +266,12 @@ func TestParse(t *testing.T) {
 // TestParseWithDefaults tests the ParseWithDefaults function
 func TestParseWithDefaults(t *testing.T) {
 	tests := []struct {
-		name             string
-		queryParams      url.Values
-		defaultPage      int
-		defaultPageSize  int
-		expectedPage     int
-		expectedSize     int
+		name            string
+		queryParams     url.Values
+		defaultPage     int
+		defaultPageSize int
+		expectedPage    int
+		expectedSize    int
 	}{
 		{
 			name:            "use custom defaults when no query params",
@@ -326,12 +326,12 @@ func TestParseWithDefaults(t *testing.T) {
 // TestNewResponse tests the NewResponse function
 func TestNewResponse(t *testing.T) {
 	tests := []struct {
-		name           string
-		items          interface{}
-		total          int64
-		page           int
-		pageSize       int
-		expectedPages  int
+		name          string
+		items         interface{}
+		total         int64
+		page          int
+		pageSize      int
+		expectedPages int
 	}{
 		{
 			name:          "normal pagination",

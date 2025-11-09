@@ -188,4 +188,3 @@ func (h *AuthHandler) getMenusLogic(c *gin.Context) (*map[string]interface{}, er
 		"menus": menus,
 	}, nil
 }
-

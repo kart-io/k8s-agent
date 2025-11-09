@@ -3,36 +3,35 @@ package initializers
 import (
 	"context"
 
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/agent"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/command"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/event"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/nats"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
 )
 
 // RegistryInitializer Agent Registry 初始化器.
+// Refactored to use ServiceInitializer instead of creating Registry internally.
+// This initializer now only provides delegation methods for backward compatibility.
 type RegistryInitializer struct {
-	opts      *commonapp.StandardOptions
-	logger    core.Logger
-	dbInit    *DatabaseInitializer
-	redisInit *RedisInitializer
-	registry  *agent.Registry
+	opts        *commonapp.StandardOptions
+	logger      core.Logger
+	serviceInit *ServiceInitializer
 }
 
 // NewRegistryInitializer 创建 Registry 初始化器.
+// Now depends on ServiceInitializer to get Registry.
 func NewRegistryInitializer(
 	opts *commonapp.StandardOptions,
 	logger core.Logger,
-	dbInit *DatabaseInitializer,
-	redisInit *RedisInitializer,
+	serviceInit *ServiceInitializer,
 ) *RegistryInitializer {
 	return &RegistryInitializer{
-		opts:      opts,
-		logger:    logger,
-		dbInit:    dbInit,
-		redisInit: redisInit,
+		opts:        opts,
+		logger:      logger,
+		serviceInit: serviceInit,
 	}
 }
 
@@ -47,68 +46,46 @@ func (r *RegistryInitializer) Priority() int {
 }
 
 // Initialize 执行初始化.
+// Registry is now created in ServiceInitializer, so this is a no-op.
 func (r *RegistryInitializer) Initialize(ctx context.Context) error {
-	r.logger.Infow("Initializing agent registry")
-
-	r.registry = agent.NewRegistry(
-		r.dbInit.Store(),
-		r.redisInit.Store(),
-		r.logger,
-	)
-
-	// 启动 Registry 后台任务
-	if err := r.registry.Start(ctx); err != nil {
-		return err
-	}
-
-	r.logger.Infow("Agent registry initialized successfully")
+	r.logger.Infow("RegistryInitializer: delegating to ServiceInitializer (backward compatibility)")
+	// Registry is created and started in ServiceInitializer.Initialize()
 	return nil
 }
 
 // Close 关闭 Registry.
+// Delegated to ServiceInitializer.
 func (r *RegistryInitializer) Close(ctx context.Context) error {
-	if r.registry != nil {
-		r.logger.Infow("Stopping agent registry")
-		return r.registry.Stop()
-	}
+	// Registry cleanup is handled in ServiceInitializer.Close()
 	return nil
 }
 
 // Registry 获取 Registry 实例.
+// Delegated to ServiceInitializer.
 func (r *RegistryInitializer) Registry() *agent.Registry {
-	return r.registry
+	return r.serviceInit.Registry()
 }
 
 // NATSInitializer NATS 服务器初始化器.
+// Refactored to use ServiceInitializer instead of creating EventProcessor internally.
 type NATSInitializer struct {
-	opts       *commonapp.StandardOptions
-	logger     core.Logger
-	registry   *RegistryInitializer
-	eventProc  *event.Processor
-	natsServer *nats.Server
+	opts        *commonapp.StandardOptions
+	logger      core.Logger
+	serviceInit *ServiceInitializer
+	natsServer  *nats.Server
 }
 
 // NewNATSInitializer 创建 NATS 初始化器.
+// Now depends on ServiceInitializer to get Registry and EventProcessor.
 func NewNATSInitializer(
 	opts *commonapp.StandardOptions,
 	logger core.Logger,
-	registry *RegistryInitializer,
-	dbInit *DatabaseInitializer,
-	redisInit *RedisInitializer,
+	serviceInit *ServiceInitializer,
 ) *NATSInitializer {
-	// 创建 event processor
-	eventProc := event.NewProcessor(
-		dbInit.Store(),
-		redisInit.Store(),
-		nil,
-		logger,
-	)
-
 	return &NATSInitializer{
-		opts:      opts,
-		logger:    logger,
-		registry:  registry,
-		eventProc: eventProc,
+		opts:        opts,
+		logger:      logger,
+		serviceInit: serviceInit,
 	}
 }
 
@@ -131,9 +108,13 @@ func (n *NATSInitializer) Initialize(ctx context.Context) error {
 		"reconnect_delay_max", n.opts.NATS.ReconnectDelayMax.String(),
 	)
 
+	// Get Registry and EventProcessor from ServiceInitializer
+	registry := n.serviceInit.Registry()
+	eventProc := n.serviceInit.EventProcessor()
+
 	n.natsServer = nats.NewServer(
-		n.registry.Registry(),
-		n.eventProc,
+		registry,
+		eventProc,
 		n.logger,
 		nats.WithURL(n.opts.NATS.URL),
 		nats.WithMaxReconnect(n.opts.NATS.MaxReconnect),
@@ -169,37 +150,33 @@ func (n *NATSInitializer) Server() *nats.Server {
 }
 
 // EventProcessor 获取事件处理器实例.
+// Delegated to ServiceInitializer.
 func (n *NATSInitializer) EventProcessor() *event.Processor {
-	return n.eventProc
+	return n.serviceInit.EventProcessor()
 }
 
 // DispatcherInitializer Command Dispatcher 初始化器.
+// Refactored to use ServiceInitializer instead of creating Dispatcher internally.
 type DispatcherInitializer struct {
-	opts       *commonapp.StandardOptions
-	logger     core.Logger
-	dbInit     *DatabaseInitializer
-	redisInit  *RedisInitializer
-	registry   *RegistryInitializer
-	natsInit   *NATSInitializer
-	dispatcher *command.Dispatcher
+	opts        *commonapp.StandardOptions
+	logger      core.Logger
+	serviceInit *ServiceInitializer
+	natsInit    *NATSInitializer
 }
 
 // NewDispatcherInitializer 创建 Dispatcher 初始化器.
+// Now depends on ServiceInitializer to get Dispatcher.
 func NewDispatcherInitializer(
 	opts *commonapp.StandardOptions,
 	logger core.Logger,
-	dbInit *DatabaseInitializer,
-	redisInit *RedisInitializer,
-	registry *RegistryInitializer,
+	serviceInit *ServiceInitializer,
 	natsInit *NATSInitializer,
 ) *DispatcherInitializer {
 	return &DispatcherInitializer{
-		opts:      opts,
-		logger:    logger,
-		dbInit:    dbInit,
-		redisInit: redisInit,
-		registry:  registry,
-		natsInit:  natsInit,
+		opts:        opts,
+		logger:      logger,
+		serviceInit: serviceInit,
+		natsInit:    natsInit,
 	}
 }
 
@@ -217,16 +194,11 @@ func (d *DispatcherInitializer) Priority() int {
 func (d *DispatcherInitializer) Initialize(ctx context.Context) error {
 	d.logger.Infow("Initializing command dispatcher")
 
-	d.dispatcher = command.NewDispatcher(
-		d.dbInit.Store(),
-		d.redisInit.Store(),
-		d.registry.Registry(),
-		d.natsInit.Server(),
-		d.logger,
-	)
+	// Get Dispatcher from ServiceInitializer
+	dispatcher := d.serviceInit.Dispatcher()
 
 	// Wire up command result handler: NATS server calls dispatcher's HandleCommandResult
-	d.natsInit.Server().SetCommandResultHandler(d.dispatcher.HandleCommandResult)
+	d.natsInit.Server().SetCommandResultHandler(dispatcher.HandleCommandResult)
 
 	d.logger.Infow("Command dispatcher initialized successfully with NATS result handler")
 	return nil
@@ -238,6 +210,7 @@ func (d *DispatcherInitializer) Close(ctx context.Context) error {
 }
 
 // Dispatcher 获取 Dispatcher 实例.
+// Delegated to ServiceInitializer.
 func (d *DispatcherInitializer) Dispatcher() *command.Dispatcher {
-	return d.dispatcher
+	return d.serviceInit.Dispatcher()
 }

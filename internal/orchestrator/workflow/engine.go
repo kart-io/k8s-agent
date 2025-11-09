@@ -28,8 +28,8 @@ type Engine struct {
 	maxRetries         int
 
 	// Execution tracking
-	mu         sync.RWMutex
-	executions map[string]*types.WorkflowExecution
+	mu          sync.RWMutex
+	executions  map[string]*types.WorkflowExecution
 	cancelFuncs map[string]context.CancelFunc // Cancel functions for running workflows
 
 	// Metrics
@@ -598,15 +598,15 @@ func (e *Engine) GetStatistics() map[string]interface{} {
 	defer e.mu.RUnlock()
 
 	return map[string]interface{}{
-		"active_executions":     len(e.executions),
-		"executions_started":    e.executionsStarted,
-		"executions_completed":  e.executionsCompleted,
-		"executions_failed":     e.executionsFailed,
-		"executions_timed_out":  e.executionsTimedOut,
-		"global_timeout":        e.globalTimeout.String(),
-		"step_default_timeout":  e.stepDefaultTimeout.String(),
-		"retry_on_timeout":      e.retryOnTimeout,
-		"max_retries":           e.maxRetries,
+		"active_executions":    len(e.executions),
+		"executions_started":   e.executionsStarted,
+		"executions_completed": e.executionsCompleted,
+		"executions_failed":    e.executionsFailed,
+		"executions_timed_out": e.executionsTimedOut,
+		"global_timeout":       e.globalTimeout.String(),
+		"step_default_timeout": e.stepDefaultTimeout.String(),
+		"retry_on_timeout":     e.retryOnTimeout,
+		"max_retries":          e.maxRetries,
 	}
 }
 

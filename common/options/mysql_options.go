@@ -6,7 +6,9 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/common/options/validation"
+	"github.com/kart-io/logger/core"
 )
 
 // MySQLOptions MySQL 数据库配置
@@ -168,22 +170,25 @@ func (o *MySQLOptions) Complete() error {
 //	    log.Fatal(err)
 //	}
 //	defer dbClient.Close()
-func (o *MySQLOptions) NewDB(log interface{}) (interface{}, error) {
-	// 导入 db 包会产生循环依赖，这里返回错误提示用户直接使用 db.NewMySQL()
-	// 这个方法主要是为了与 OneX 风格保持一致，实际使用时推荐:
-	//   import "github.com/kart-io/k8s-agent/common/db"
-	//   dbClient, err := db.NewMySQL(log,
-	//       db.WithHost(opts.Host),
-	//       db.WithPort(opts.Port),
-	//       db.WithUser(opts.User),
-	//       db.WithPassword(opts.Password),
-	//       db.WithDatabase(opts.Database),
-	//       db.WithMaxOpenConns(opts.MaxOpenConns),
-	//       db.WithMaxIdleConns(opts.MaxIdleConns),
-	//       db.WithConnMaxLifetime(opts.ConnMaxLifetime),
-	//       db.WithLogLevel(opts.LogLevel),
-	//   )
-	return nil, fmt.Errorf("NewDB() method is a reference implementation. " +
-		"Please use db.NewMySQL() or db.NewMySQLFromDSN() directly to avoid circular dependencies. " +
-		"Example: db.NewMySQL(log, db.WithHost(opts.Host), db.WithPort(opts.Port), ...)")
+func (o *MySQLOptions) ConnectMySQL(log core.Logger) (*db.MySQLClient, error) {
+	// Create db.MySQLOptions using the functional options pattern
+	dbOpts := []db.MySQLOption{
+		db.WithHost(o.Host),
+		db.WithPort(o.Port),
+		db.WithUser(o.User),
+		db.WithPassword(o.Password),
+		db.WithDatabase(o.Database),
+		db.WithMaxOpenConns(o.MaxOpenConns),
+		db.WithMaxIdleConns(o.MaxIdleConns),
+		db.WithConnMaxLifetime(o.ConnMaxLifetime),
+		db.WithLogLevel(o.LogLevel),
+		db.WithCharset("utf8mb4"),
+	}
+
+	// Call NewMySQL with the options
+	client, err := db.NewMySQL(log, dbOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }

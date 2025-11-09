@@ -48,7 +48,8 @@ func (h *RoleHandler) GetByID(c *gin.Context) {
 // getByIDLogic contains the core business logic for getting role by ID
 func (h *RoleHandler) getByIDLogic(c *gin.Context, params *struct {
 	ID string `uri:"id" binding:"required"`
-}) (*types.Role, error) {
+},
+) (*types.Role, error) {
 	return h.roleService.GetByID(params.ID)
 }
 
@@ -75,7 +76,8 @@ func (h *RoleHandler) Update(c *gin.Context) {
 func (h *RoleHandler) updateLogic(c *gin.Context, req *struct {
 	ID   string `uri:"id" binding:"required"`
 	Body types.RoleRequest
-}) error {
+},
+) error {
 	return h.roleService.Update(req.ID, &req.Body)
 }
 
@@ -89,7 +91,8 @@ func (h *RoleHandler) Delete(c *gin.Context) {
 // deleteLogic contains the core business logic for deleting a role
 func (h *RoleHandler) deleteLogic(c *gin.Context, params *struct {
 	ID string `uri:"id" binding:"required"`
-}) error {
+},
+) error {
 	return h.roleService.Delete(params.ID)
 }
 
@@ -104,7 +107,8 @@ func (h *RoleHandler) AssignPermissions(c *gin.Context) {
 func (h *RoleHandler) assignPermissionsLogic(c *gin.Context, req *struct {
 	ID            string   `uri:"id" binding:"required"`
 	PermissionIDs []string `json:"permission_ids" binding:"required"`
-}) error {
+},
+) error {
 	return h.roleService.AssignPermissions(req.ID, req.PermissionIDs)
 }
 
@@ -118,7 +122,8 @@ func (h *RoleHandler) GetPermissions(c *gin.Context) {
 // getPermissionsLogic contains the core business logic for getting role permissions
 func (h *RoleHandler) getPermissionsLogic(c *gin.Context, params *struct {
 	ID string `uri:"id" binding:"required"`
-}) (*map[string]interface{}, error) {
+},
+) (*map[string]interface{}, error) {
 	permissions, err := h.roleService.GetPermissions(params.ID)
 	if err != nil {
 		return nil, err

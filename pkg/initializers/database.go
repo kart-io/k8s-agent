@@ -179,17 +179,7 @@ func (d *DatabaseInitializer) DB() *gorm.DB {
 	if d.client == nil {
 		return nil
 	}
-	return d.client.DB
-}
-
-// Client 获取完整的 MySQL 客户端
-//
-// 返回完整的 MySQLClient 实例，包含了额外的辅助方法。
-//
-// 返回：
-//   - *db.MySQLClient: MySQL 客户端实例
-func (d *DatabaseInitializer) Client() *db.MySQLClient {
-	return d.client
+	return d.client.DB()
 }
 
 // Store 返回数据库存储实例

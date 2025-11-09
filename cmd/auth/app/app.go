@@ -8,8 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	// Removed: options package
-	"github.com/kart-io/k8s-agent/internal/auth/initializers"
+	"github.com/kart-io/k8s-agent/internal/auth/startup"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -46,19 +45,9 @@ func Execute() {
 
 // AuthApp implements commonapp.Application interface.
 type AuthApp struct {
-	opts   *commonapp.StandardOptions // 直接使用 ServerOptions，不转换
-	logger core.Logger
-
-	// Component initializers
-	dbInit           *initializers.DatabaseInitializer
-	redisInit        *initializers.RedisInitializer
-	sessionInit      *initializers.SessionServiceInitializer
-	auditInit        *initializers.AuditServiceInitializer
-	notificationInit *initializers.NotificationServiceInitializer
-	forcedLogoutInit *initializers.ForcedLogoutServiceInitializer
-	emailInit        *initializers.EmailClientInitializer
-	httpInit         *initializers.HTTPServerInitializer
-	healthInit       *pkginitializers.HealthCheckInitializer
+	bootstrap *bootstrap.Bootstrap
+	opts      *commonapp.StandardOptions
+	logger    core.Logger
 }
 
 // Name returns the application name.
@@ -68,7 +57,6 @@ func (a *AuthApp) Name() string {
 
 // Initialize initializes the application.
 func (a *AuthApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// 直接保存 ServerOptions，不需要转换
 	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
@@ -83,49 +71,92 @@ func (a *AuthApp) Initialize(ctx context.Context, opts commonapp.Options) error 
 
 // Run runs the application.
 func (a *AuthApp) Run(ctx context.Context) error {
-	// The bootstrap framework handles running all servers
-	// This method can be used for additional application logic if needed
+	// Bootstrap.Run() is already called by RunWithBootstrap
+	// We just need to wait for the context to be cancelled
 	<-ctx.Done()
-	return nil
+	return ctx.Err()
 }
 
 // Shutdown gracefully shuts down the application.
 func (a *AuthApp) Shutdown(ctx context.Context) error {
-	// Bootstrap framework handles component shutdown
-	// This method can be used for additional cleanup if needed
+	// Bootstrap shutdown is handled automatically
 	return nil
 }
 
 // registerComponents registers all component initializers with bootstrap.
+// This method defines the complete initialization order for the auth service.
 func (a *AuthApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Use Wire to automatically inject all dependencies
-	components, err := InitializeAuthComponents(a.opts)
-	if err != nil {
-		return fmt.Errorf("failed to initialize components: %w", err)
+	a.bootstrap = bs
+
+	// Layer 1: Infrastructure (Priority 300-500)
+	// Database, Redis, and Email client configuration
+	infra := startup.NewInfrastructureInitializers(a.opts, a.logger)
+	bs.Register(infra.Database)
+	bs.Register(infra.Redis)
+	bs.Register(infra.Email)
+
+	// Layer 2: Core Business Services (Priority 600)
+	// Auth, User, Role, Permission, and APIKey services
+	coreServices := startup.NewCoreServicesInitializer(
+		a.opts,
+		a.logger,
+		infra.Database,
+		infra.Redis,
+	)
+	bs.Register(coreServices)
+
+	// Layer 3: Forced Logout Feature Services (Priority 650-680)
+	// Session, Audit, Notification, and ForcedLogout services
+	sessionInit := startup.NewSessionServiceInitializer(a.opts, a.logger, infra.Redis)
+	bs.Register(sessionInit)
+
+	auditInit := startup.NewAuditServiceInitializer(a.logger, infra.Database)
+	bs.Register(auditInit)
+
+	notificationInit := startup.NewNotificationServiceInitializer(
+		a.opts,
+		a.logger,
+		infra.Database,
+		infra.Email,
+	)
+	bs.Register(notificationInit)
+
+	forcedLogoutInit := startup.NewForcedLogoutServiceInitializer(
+		a.logger,
+		sessionInit,
+		auditInit,
+		notificationInit,
+	)
+	bs.Register(forcedLogoutInit)
+
+	// Layer 4: Server Layer (Priority 900-1000)
+	// gRPC and HTTP servers that expose the services
+	if a.opts.GRPC.Enable {
+		grpcInit := startup.NewGRPCServerInitializer(
+			a.opts,
+			a.logger,
+			coreServices,
+			sessionInit,
+		)
+		bs.Register(grpcInit)
 	}
 
-	// Register components to Bootstrap
-	bs.Register(components.DB)
-	bs.Register(components.Redis)
-	bs.Register(components.Session)
-	bs.Register(components.Email)
-	bs.Register(components.Audit)
-	bs.Register(components.Notification)
-	bs.Register(components.ForcedLogout)
-	bs.Register(components.GRPC) // gRPC 服务器
-	bs.Register(components.HTTP)
-	bs.Register(components.Health)
+	httpInit := startup.NewHTTPServerInitializer(
+		a.opts,
+		a.logger,
+		infra,
+		coreServices,
+		sessionInit,
+		auditInit,
+		notificationInit,
+		forcedLogoutInit,
+	)
+	bs.Register(httpInit)
 
-	// Save references for app
-	a.dbInit = components.DB
-	a.redisInit = components.Redis
-	a.sessionInit = components.Session
-	a.emailInit = components.Email
-	a.auditInit = components.Audit
-	a.notificationInit = components.Notification
-	a.forcedLogoutInit = components.ForcedLogout
-	a.httpInit = components.HTTP
-	a.healthInit = components.Health
+	// Layer 5: Monitoring (Priority 2000)
+	// Health check endpoint
+	healthInit := pkginitializers.NewHealthCheckInitializer(a.opts.Health, a.logger)
+	bs.Register(healthInit)
 
 	return nil
 }

@@ -1,31 +1,36 @@
 package initializers
 
 import (
-        commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"context"
 
 	"google.golang.org/grpc"
 
-	
-	monitorv1 "github.com/kart-io/k8s-agent/pkg/api/monitor/v1"
+	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/k8s-agent/internal/monitor/service"
+	monitorv1 "github.com/kart-io/k8s-agent/pkg/api/monitor/v1"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
-	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/logger/core"
 )
 
-// GRPCServerInitializer gRPC服务器初始化器
+// GRPCServerInitializer initializes the gRPC server for monitor service.
+//
+// DESIGN NOTE: This initializer:
+// 1. Wraps pkg/initializers.GRPCServerInitializer for standard gRPC lifecycle
+// 2. Creates three gRPC service implementations (Monitor, AlertRule, MetricsCollector)
+// 3. Registers all services with the gRPC server during initialization
+// 4. Skips initialization if GRPC is disabled in config
 type GRPCServerInitializer struct {
 	standardInit *commoninitializers.GRPCServerInitializer
 	opts         *commonapp.StandardOptions
 	logger       core.Logger
 
-	// 依赖的初始化器
+	// Dependencies (injected by Wire)
 	dbInit    *DatabaseInitializer
 	redisInit *RedisInitializer
 
-	// gRPC服务实现
+	// gRPC service implementations (created during initialization)
 	monitorService          *MonitorGRPCService
 	alertRuleService        *AlertRuleGRPCService
 	metricsCollectorService *MetricsCollectorGRPCService
@@ -368,5 +373,3 @@ func (s *MetricsCollectorGRPCService) GetCollectorConfig(ctx context.Context, re
 		EnabledMetrics:  []string{"cpu", "memory", "disk", "network"},
 	}, nil
 }
-
-

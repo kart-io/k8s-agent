@@ -40,41 +40,7 @@ Failed: 16
 Pass rate: 50.0%
 ```
 
-### 2. find-old-logger.sh
-
-**用途**：查找所有使用旧版 logger 的文件
-
-**使用方法**：
-
-```bash
-./scripts/refactor/find-old-logger.sh
-```
-
-**输出示例**：
-
-```
-======================================
-Finding files using old logger package
-======================================
-
-=== Files using old logger ===
-internal/reasoning/analyzer/analyzer.go
-internal/reasoning/api/handlers.go
-internal/collect-agent/agent/agent.go
-
-=== Count by directory ===
-  5 internal/reasoning/analyzer
-  3 internal/reasoning/api
-  2 internal/collect-agent/agent
-
-=== Count by service ===
-reasoning           : 8 files
-collect-agent       : 2 files
-
-Total files to migrate: 10
-```
-
-### 3. migrate-logger.sh
+### 2. migrate-logger.sh
 
 **用途**：批量迁移服务的日志系统到 kart-io/logger
 
@@ -129,7 +95,7 @@ Next steps:
 4. If everything works, delete backup: rm -rf internal/reasoning.logger-migration-backup-20251030-120000
 ```
 
-### 4. verify-service.sh
+### 3. verify-service.sh
 
 **用途**：验证服务是否符合标准架构
 
@@ -211,20 +177,17 @@ Warnings: 0
 # 1. 检查当前架构状态
 ./scripts/refactor/check-architecture.sh
 
-# 2. 查找需要迁移的文件
-./scripts/refactor/find-old-logger.sh
-
-# 3. 迁移 reasoning 服务的日志
+# 2. 迁移 reasoning 服务的日志
 ./scripts/refactor/migrate-logger.sh reasoning
 
-# 4. 验证迁移结果
+# 3. 验证迁移结果
 ./scripts/refactor/verify-service.sh reasoning
 
-# 5. 迁移 collect-agent 服务
+# 4. 迁移 collect-agent 服务
 ./scripts/refactor/migrate-logger.sh collect-agent
 ./scripts/refactor/verify-service.sh collect-agent
 
-# 6. 最终检查
+# 5. 最终检查
 ./scripts/refactor/check-architecture.sh
 ```
 

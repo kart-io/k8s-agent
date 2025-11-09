@@ -1,397 +1,589 @@
-# pkg/initializers - 通用初始化器库
+# pkg/initializers - Quick Reference Guide
 
-本包提供了一组通用的初始化器，用于简化服务启动过程中的组件初始化。这些初始化器遵循 `pkg/bootstrap` 定义的接口，可以在所有服务中复用。
+**Location**: `/Users/costalong/code/go/src/github.com/kart/k8s-agent/pkg/initializers`
 
-## 目录
+**Purpose**: Centralized infrastructure component initializers that eliminate code duplication across all services.
 
-- [简介](#简介)
-- [可用初始化器](#可用初始化器)
-- [使用指南](#使用指南)
-- [最佳实践](#最佳实践)
-- [迁移指南](#迁移指南)
+**Last Updated**: 2025-11-09 (After Orchestrator & Gateway unification)
 
-## 简介
+## Table of Contents
 
-通用初始化器库解决了以下问题：
+- [Available Initializers](#available-initializers)
+  - [DatabaseInitializer](#1-databaseinitializer)
+  - [RedisInitializer](#2-redisinitializer)
+  - [NATSInitializer](#3-natsinitializer)
+  - [HTTPServerInitializer](#4-httpserverinitializer)
+  - [GRPCServerInitializer](#5-grpcserverinitializer)
+  - [HealthCheckInitializer](#6-healthcheckinitializer)
+- [Usage Patterns](#usage-patterns)
+- [Common Recipes](#common-recipes)
+- [Troubleshooting](#troubleshooting)
+- [Migration Guide](#migration-guide)
+- [Best Practices](#best-practices)
+- [Examples](#examples-in-the-wild)
 
-- 减少重复代码：数据库、Redis、NATS 等基础设施的初始化逻辑在多个服务中重复
-- 统一初始化模式：所有服务使用相同的初始化方式
-- 简化服务创建：新服务只需导入并注册初始化器即可
-- 提高可维护性：基础设施变更只需修改一处
-
-## 可用初始化器
+## Available Initializers
 
 ### 1. DatabaseInitializer
 
-数据库初始化器，负责 MySQL 连接初始化。
+**File**: `database.go`
 
-**功能特性**：
+**When to use**: Service needs MySQL database
 
-- 数据库连接初始化
-- 连接池配置
-- 可选的自动迁移（AutoMigrate）
-- 健康检查
-- 优雅关闭
+**Import**:
+```go
+import pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+```
 
-**优先级**: `bootstrap.PriorityDatabase (300)`
+**Basic Usage**:
+```go
+dbInit := pkginitializers.NewDatabaseInitializer(opts.Database, logger)
 
-**使用示例**：
+// Optional: Enable auto-migration
+dbInit.WithAutoMigrate(&models.User{}, &models.Post{})
+
+// Access database
+db := dbInit.DB()  // *gorm.DB
+client := dbInit.Client()  // *db.MySQLClient
+```
+
+**Methods**:
+- `Initialize(ctx)` - Connect to database
+- `Close(ctx)` - Graceful shutdown
+- `HealthCheck(ctx)` - Check connection health
+- `DB()` - Get GORM DB instance
+- `Client()` - Get MySQL client with helpers
+- `WithAutoMigrate(models...)` - Enable auto-migration
+
+---
+
+### 2. RedisInitializer
+
+**File**: `redis.go`
+
+**When to use**: Service needs Redis cache/sessions
+
+**Basic Usage**:
+```go
+redisInit := pkginitializers.NewRedisInitializer(opts.Redis, logger)
+
+// Access Redis client
+client := redisInit.Client()  // *redis.Client
+redisClient := redisInit.RedisClient()  // *db.RedisClient
+```
+
+**Methods**:
+- `Initialize(ctx)` - Connect to Redis
+- `Close(ctx)` - Graceful shutdown
+- `HealthCheck(ctx)` - Check connection health
+- `Client()` - Get Redis client
+- `RedisClient()` - Get wrapped Redis client
+
+---
+
+### 3. NATSInitializer
+
+**File**: `nats.go`
+
+**When to use**: Service needs message queue
+
+**Basic Usage**:
+```go
+natsInit := pkginitializers.NewNATSInitializer(opts.NATS, logger)
+
+// Publish message
+natsInit.Publish("subject", []byte("data"))
+
+// Subscribe to topic
+sub, err := natsInit.Subscribe("subject.*", func(msg *nats.Msg) {
+    // Handle message
+})
+
+// Access connection
+conn := natsInit.Conn()  // *nats.Conn
+```
+
+**Methods**:
+- `Initialize(ctx)` - Connect to NATS
+- `Close(ctx)` - Graceful drain and shutdown
+- `HealthCheck(ctx)` - Check connection health
+- `Conn()` / `Connection()` - Get NATS connection
+- `Publish(subject, data)` - Publish message
+- `Subscribe(subject, handler)` - Subscribe to topic
+
+**Features**:
+- Auto-reconnect on disconnect
+- Event handlers (disconnect/reconnect/close)
+- Configurable timeouts and buffer sizes
+
+---
+
+### 4. HTTPServerInitializer
+
+**File**: `http_server.go`
+
+**When to use**: Service needs HTTP/REST API server
+
+**Configuration**:
+```go
+type HTTPServerConfig struct {
+    Name       string                     // Initializer name
+    Priority   int                        // Initialization priority
+    Config     *options.ServerOptions     // Server host/port/timeouts
+    RouteSetup func(*gin.Engine) error   // Route setup callback
+    CORS       *options.CORSOptions       // CORS configuration
+    JWT        *options.JWTOptions        // JWT middleware
+    RateLimit  *options.RateLimitOptions  // Rate limiting
+}
+```
+
+**Basic Usage**:
+```go
+func NewHTTPServerInitializer(opts *commonapp.StandardOptions, logger core.Logger) *HTTPServerInitializer {
+    serverConfig := &pkginitializers.HTTPServerConfig{
+        Name:       "my-http-server",
+        Priority:   bootstrap.PriorityHTTP,
+        Config:     opts.Server,
+        RouteSetup: setupRoutes,  // Your route setup function
+        CORS:       opts.CORS,
+        JWT:        opts.JWT,
+    }
+
+    return pkginitializers.NewHTTPServerInitializer(serverConfig, logger)
+}
+
+// Route setup callback
+func setupRoutes(engine *gin.Engine) error {
+    engine.GET("/health", healthHandler)
+    engine.POST("/api/v1/users", createUserHandler)
+    return nil
+}
+```
+
+**Methods**:
+- `Initialize(ctx)` - Create and configure server (calls RouteSetup callback)
+- `Close(ctx)` - Graceful shutdown
+- `GetServer()` - Get server instance (for Bootstrap)
+
+**Middleware Included**:
+- Recovery (panic handler)
+- Logger (request logging)
+- CORS (if configured)
+- JWT (if configured)
+- Rate Limit (if configured)
+- Request ID
+
+---
+
+### 5. GRPCServerInitializer
+
+**File**: `grpc_server.go`
+
+**When to use**: Service needs gRPC API server
+
+**Configuration**:
+```go
+type GRPCServerConfig struct {
+    Name            string                     // Initializer name
+    Priority        int                        // Initialization priority
+    Config          *options.GRPCOptions       // Server host/port
+    ServiceRegister func(*grpc.Server) error  // Service registration callback
+}
+```
+
+**Basic Usage**:
+```go
+func NewGRPCServerInitializer(opts *commonapp.StandardOptions, logger core.Logger) *GRPCServerInitializer {
+    serverConfig := &pkginitializers.GRPCServerConfig{
+        Name:     "my-grpc-server",
+        Priority: bootstrap.PriorityGRPC,
+        Config:   opts.GRPC,
+        ServiceRegister: func(s *grpc.Server) error {
+            myv1.RegisterMyServiceServer(s, myServiceImpl)
+            return nil
+        },
+    }
+
+    return pkginitializers.NewGRPCServerInitializer(serverConfig, logger)
+}
+```
+
+**Methods**:
+- `Initialize(ctx)` - Create and start gRPC server (calls ServiceRegister callback)
+- `Close(ctx)` - Graceful shutdown
+- `GetServer()` - Get server instance (for Bootstrap)
+
+---
+
+### 6. HealthCheckInitializer
+
+**File**: `health.go`
+
+**When to use**: All services (health endpoint)
+
+**Basic Usage**:
+```go
+healthInit := pkginitializers.NewHealthCheckInitializer(opts.Health, logger)
+
+// Bootstrap automatically manages lifecycle
+```
+
+**Methods**:
+- `Initialize(ctx)` - Start health check HTTP server
+- `Shutdown(ctx)` - Stop health check server
+
+**Default Endpoint**: `http://localhost:8090/health` (configurable)
+
+---
+
+## Usage Patterns
+
+### Pattern 1: Direct Usage
+
+**Use when**: Service doesn't need custom storage abstraction
 
 ```go
-import (
-    "github.com/kart-io/k8s-agent/pkg/initializers"
-    "github.com/kart-io/k8s-agent/common/options"
-)
+import pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 
-// 创建数据库初始化器
-dbInit := initializers.NewDatabaseInitializer(
-    dbOptions,    // *options.MySQLOptions
-    logger,       // core.Logger
-)
+type InfrastructureInitializers struct {
+    Database *pkginitializers.DatabaseInitializer
+    Redis    *pkginitializers.RedisInitializer
+    NATS     *pkginitializers.NATSInitializer
+}
 
-// （可选）启用自动迁移
+func NewInfrastructureInitializers(opts *commonapp.StandardOptions, logger core.Logger) *InfrastructureInitializers {
+    return &InfrastructureInitializers{
+        Database: pkginitializers.NewDatabaseInitializer(opts.Database, logger),
+        Redis:    pkginitializers.NewRedisInitializer(opts.Redis, logger),
+        NATS:     pkginitializers.NewNATSInitializer(opts.NATS, logger),
+    }
+}
+
+// Use directly
+func (i *InfrastructureInitializers) GetDB() *gorm.DB {
+    return i.Database.DB()
+}
+```
+
+**Services using this pattern**: auth, cluster, reasoning, orchestrator (NATS)
+
+---
+
+### Pattern 2: Service-Specific Wrapper
+
+**Use when**:
+- Service has existing storage layer
+- Need additional service-specific methods
+- Backward compatibility required
+
+```go
+import pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+
+type DatabaseInitializer struct {
+    *pkginitializers.DatabaseInitializer  // Embed base
+    store *storage.MySQLStore              // Service-specific wrapper
+}
+
+func NewDatabaseInitializer(opts *commonapp.StandardOptions, logger core.Logger) *DatabaseInitializer {
+    dbInit := pkginitializers.NewDatabaseInitializer(opts.Database, logger)
+
+    // Configure auto-migration
+    if opts.Database.AutoMigrate {
+        dbInit.WithAutoMigrate(&types.Agent{}, &types.Event{})
+    }
+
+    return &DatabaseInitializer{
+        DatabaseInitializer: dbInit,
+    }
+}
+
+// Service-specific method
+func (d *DatabaseInitializer) Store() *storage.MySQLStore {
+    if d.store == nil && d.Client() != nil {
+        d.store = &storage.MySQLStore{
+            MySQLClient: d.Client(),
+        }
+    }
+    return d.store
+}
+```
+
+**Services using this pattern**: agent-manager, monitor, gateway
+
+---
+
+## Common Recipes
+
+### Recipe 1: Database with Auto-Migration
+
+```go
+dbInit := pkginitializers.NewDatabaseInitializer(opts.Database, logger)
 dbInit.WithAutoMigrate(
     &types.Agent{},
     &types.Event{},
     &types.Command{},
 )
-
-// 注册到 bootstrap
-bootstrap.Register(dbInit)
-
-// 获取数据库实例
-db := dbInit.DB()  // *gorm.DB
 ```
 
-### 2. RedisInitializer
-
-Redis 初始化器，负责 Redis 连接初始化。
-
-**功能特性**：
-
-- Redis 连接初始化
-- 连接池配置
-- 健康检查
-- 优雅关闭
-
-**优先级**: `bootstrap.PriorityCache (400)`
-
-**使用示例**：
+### Recipe 2: Optional Redis (Non-Fatal)
 
 ```go
-// 创建 Redis 初始化器
-redisInit := initializers.NewRedisInitializer(
-    redisOptions,  // *options.RedisOptions
-    logger,        // core.Logger
-)
-
-// 注册到 bootstrap
-bootstrap.Register(redisInit)
-
-// 获取 Redis 客户端
-client := redisInit.Client()  // *redis.Client
-```
-
-### 3. NATSInitializer
-
-NATS 初始化器，负责 NATS 消息队列连接初始化。
-
-**功能特性**：
-
-- NATS 连接初始化
-- 自动重连配置
-- 健康检查
-- 优雅关闭（Drain）
-
-**优先级**: `bootstrap.PriorityMQ (500)`
-
-**使用示例**：
-
-```go
-// 创建 NATS 初始化器
-natsInit := initializers.NewNATSInitializer(
-    natsOptions,  // *options.NATSOptions
-    logger,       // core.Logger
-)
-
-// 注册到 bootstrap
-bootstrap.Register(natsInit)
-
-// 获取 NATS 连接
-conn := natsInit.Connection()  // *nats.Conn
-
-// 或使用便捷方法发布/订阅
-natsInit.Publish("subject", data)
-natsInit.Subscribe("subject", handler)
-```
-
-### 4. HealthCheckInitializer
-
-健康检查初始化器，提供独立的健康检查 HTTP 服务器。
-
-**功能特性**：
-
-- 独立的健康检查服务器
-- 提供 `/healthz` 和 `/readyz` 端点
-- 最低优先级初始化
-
-**优先级**: `bootstrap.PriorityLowest (1000)`
-
-**使用示例**：
-
-```go
-// 创建健康检查初始化器
-healthInit := initializers.NewHealthCheckInitializer(
-    ":8091",  // 健康检查端口
-    logger,
-)
-
-// 注册到 bootstrap
-bootstrap.Register(healthInit)
-```
-
-## 使用指南
-
-### 完整示例
-
-以下是一个完整的服务初始化示例：
-
-```go
-package main
-
-import (
-    "context"
-    "fmt"
-
-    "github.com/kart-io/k8s-agent/common/options"
-    "github.com/kart-io/k8s-agent/pkg/bootstrap"
-    "github.com/kart-io/k8s-agent/pkg/initializers"
-    "github.com/kart-io/logger"
-)
-
-type MyServiceApp struct {
-    bootstrap *bootstrap.Bootstrap
-    logger    core.Logger
-
-    // 初始化器
-    dbInit    *initializers.DatabaseInitializer
-    redisInit *initializers.RedisInitializer
-    natsInit  *initializers.NATSInitializer
+type RedisInitializer struct {
+    *pkginitializers.RedisInitializer
+    isAvailable bool
 }
 
-func NewMyServiceApp() *MyServiceApp {
-    // 创建日志
-    log := logger.New(logger.Config{
-        Engine: logger.EngineZap,
-        Level:  logger.LevelInfo,
+func (r *RedisInitializer) Initialize(ctx context.Context) error {
+    if r.RedisInitializer == nil {
+        return nil  // Not configured
+    }
+
+    if err := r.RedisInitializer.Initialize(ctx); err != nil {
+        logger.Warn("Redis unavailable, using fallback")
+        return nil  // Non-fatal
+    }
+
+    r.isAvailable = true
+    return nil
+}
+
+func (r *RedisInitializer) IsAvailable() bool {
+    return r.isAvailable && r.Client() != nil
+}
+```
+
+**Used by**: gateway service
+
+### Recipe 3: HTTP Server with Custom Middleware
+
+```go
+func setupRoutes(engine *gin.Engine) error {
+    // Add custom middleware
+    engine.Use(middleware.CustomAuth())
+    engine.Use(middleware.AuditLog())
+
+    // Register routes
+    api := engine.Group("/api/v1")
+    api.GET("/users", getUsersHandler)
+    api.POST("/users", createUserHandler)
+
+    return nil
+}
+
+serverConfig := &pkginitializers.HTTPServerConfig{
+    Name:       "my-service",
+    Priority:   bootstrap.PriorityHTTP,
+    Config:     opts.Server,
+    RouteSetup: setupRoutes,
+    CORS:       opts.CORS,
+}
+
+httpInit := pkginitializers.NewHTTPServerInitializer(serverConfig, logger)
+```
+
+### Recipe 4: NATS Event Subscriber
+
+```go
+natsInit := pkginitializers.NewNATSInitializer(opts.NATS, logger)
+
+// Subscribe during initialization
+func subscribeToEvents(natsInit *pkginitializers.NATSInitializer) error {
+    _, err := natsInit.Subscribe("events.*", func(msg *nats.Msg) {
+        log.Infow("Received event", "subject", msg.Subject)
+        // Process event
     })
-
-    return &MyServiceApp{
-        bootstrap: bootstrap.New(log),
-        logger:    log,
-    }
-}
-
-func (app *MyServiceApp) Initialize(ctx context.Context) error {
-    // 1. 加载配置
-    dbOptions := options.NewMySQLOptions()
-    redisOptions := options.NewRedisOptions()
-    natsOptions := options.NewNATSOptions()
-
-    // 2. 创建并注册通用初始化器
-
-    // 数据库
-    app.dbInit = initializers.NewDatabaseInitializer(dbOptions, app.logger)
-    app.dbInit.WithAutoMigrate(&MyModel{})
-    app.bootstrap.Register(app.dbInit)
-
-    // Redis
-    app.redisInit = initializers.NewRedisInitializer(redisOptions, app.logger)
-    app.bootstrap.Register(app.redisInit)
-
-    // NATS
-    app.natsInit = initializers.NewNATSInitializer(natsOptions, app.logger)
-    app.bootstrap.Register(app.natsInit)
-
-    // 3. 注册业务特定初始化器
-    // myServiceInit := NewMyServiceInitializer(...)
-    // app.bootstrap.Register(myServiceInit)
-
-    // 4. 执行初始化
-    return app.bootstrap.Initialize(ctx)
-}
-
-func (app *MyServiceApp) Run(ctx context.Context) error {
-    return app.bootstrap.Run(ctx, func() error {
-        // 主业务逻辑
-        app.logger.Info("Service running...")
-        <-ctx.Done()
-        return nil
-    })
-}
-
-func main() {
-    app := NewMyServiceApp()
-
-    ctx := context.Background()
-    if err := app.Initialize(ctx); err != nil {
-        panic(fmt.Sprintf("Failed to initialize: %v", err))
-    }
-
-    if err := app.Run(ctx); err != nil {
-        panic(fmt.Sprintf("Failed to run: %v", err))
-    }
+    return err
 }
 ```
 
-## 最佳实践
-
-### 1. 初始化器生命周期管理
-
-**推荐做法**：
+### Recipe 5: Health Check with Custom Port
 
 ```go
-type MyApp struct {
-    // 将初始化器保存为字段
-    dbInit    *initializers.DatabaseInitializer
-    redisInit *initializers.RedisInitializer
+healthOpts := &options.HealthOptions{
+    Host:    "0.0.0.0",
+    Port:    9090,  // Custom health check port
+    Enabled: true,
 }
 
-func (app *MyApp) registerComponents() {
-    // 创建并注册
-    app.dbInit = initializers.NewDatabaseInitializer(opts, logger)
-    app.bootstrap.Register(app.dbInit)
-
-    // 后续可以直接使用
-    db := app.dbInit.DB()
-}
+healthInit := pkginitializers.NewHealthCheckInitializer(healthOpts, logger)
 ```
 
-**不推荐做法**：
+---
 
+## Troubleshooting
+
+### Issue: "database not initialized"
+
+**Cause**: Trying to access database before `Initialize()` is called
+
+**Solution**: Ensure Bootstrap calls initializers in order
 ```go
-// ❌ 不要创建后丢弃引用
-dbInit := initializers.NewDatabaseInitializer(opts, logger)
-bootstrap.Register(dbInit)
-// 无法在后续代码中获取 DB 实例
-```
-
-### 2. 自动迁移的使用
-
-**开发环境**：
-
-```go
-// 开发环境启用自动迁移
-if config.Environment == "development" {
-    dbInit.WithAutoMigrate(models...)
+if err := bootstrap.Run(ctx); err != nil {
+    log.Fatal(err)
 }
 ```
 
-**生产环境**：
+### Issue: "Redis connection refused"
 
+**Cause**: Redis server not running or incorrect configuration
+
+**Solution**: Check Redis server and configuration
 ```go
-// 生产环境使用专门的迁移工具
-// 不要在生产环境使用 AutoMigrate
-```
-
-### 3. 错误处理
-
-**推荐做法**：
-
-```go
-// 在 Initialize 时检查错误
-if err := app.bootstrap.Initialize(ctx); err != nil {
-    app.logger.Errorw("Initialization failed", "error", err)
-    return fmt.Errorf("failed to initialize: %w", err)
+// For optional Redis, handle gracefully
+if redisInit.Client() == nil {
+    log.Warn("Redis unavailable, using local cache")
+    // Use fallback
 }
 ```
 
-### 4. 健康检查
+### Issue: "NATS disconnected"
 
-**推荐做法**：
+**Cause**: NATS server unavailable or network issues
 
+**Solution**: NATSInitializer has auto-reconnect, check logs
 ```go
-// 使用独立的健康检查端口
-healthInit := initializers.NewHealthCheckInitializer(":8091", logger)
-bootstrap.Register(healthInit)
-
-// 主服务使用不同端口
-// HTTP Server: :8080
-// gRPC Server: :9090
-// Health Check: :8091
+// Health check will show disconnected state
+if err := natsInit.HealthCheck(ctx); err != nil {
+    log.Error("NATS unhealthy", err)
+}
 ```
 
-## 迁移指南
+### Issue: "Port already in use"
 
-### 从服务特定初始化器迁移
+**Cause**: HTTP/gRPC server port conflict
 
-**迁移前**（Agent-Manager）：
+**Solution**: Change port in configuration
+```go
+opts.Server.Port = 8081  // Use different port
+```
+
+---
+
+## Migration Guide
+
+### Before (Custom Initializer):
 
 ```go
-// internal/agent-manager/initializers/database.go
-type DatabaseInitializer struct {
-    opts  *config.Options
+type RedisInitializer struct {
+    opts   *options.RedisOptions
     logger core.Logger
-    store *storage.PostgresStore
+    client *redis.Client
 }
 
-func (d *DatabaseInitializer) Initialize(ctx context.Context) error {
-    mysqlClient, err := db.NewMySQLFromOptions(d.logger, d.opts.Database)
-    // ... 30 行重复代码
+func (r *RedisInitializer) Initialize(ctx context.Context) error {
+    r.client = redis.NewClient(&redis.Options{
+        Addr: r.opts.Addr,
+        // ... 20+ lines of configuration
+    })
+    return r.client.Ping(ctx).Err()
 }
 ```
 
-**迁移后**：
+### After (Using pkg/initializers):
 
 ```go
-// cmd/agent-manager/app/app.go
-import pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
+type RedisInitializer struct {
+    *pkginitializers.RedisInitializer  // Embed
+}
 
-func (app *AgentManagerApp) registerComponents() {
-    // 使用通用初始化器，只需 5 行代码
-    app.dbInit = pkginitializers.NewDatabaseInitializer(
-        app.opts.Database,
-        app.logger,
-    ).WithAutoMigrate(
-        &types.Agent{},
-        &types.Event{},
-    )
-
-    app.bootstrap.Register(app.dbInit)
+func NewRedisInitializer(opts *commonapp.StandardOptions, logger core.Logger) *RedisInitializer {
+    return &RedisInitializer{
+        RedisInitializer: pkginitializers.NewRedisInitializer(opts.Redis, logger),
+    }
 }
 ```
 
-**收益**：
+**Benefits**:
+- 20+ lines → 5 lines
+- Standard configuration
+- Health checks included
+- Graceful shutdown included
 
-- 代码减少：从 30 行减少到 5 行
-- 维护成本降低：80%
-- 一致性：所有服务使用相同的初始化逻辑
+---
 
-### 迁移检查清单
+## Priority Constants
 
-- [ ] 替换 DatabaseInitializer
-- [ ] 替换 RedisInitializer
-- [ ] 替换 NATSInitializer（如果使用）
-- [ ] 更新业务初始化器依赖
-- [ ] 更新测试代码
-- [ ] 运行全量测试
-- [ ] 删除旧的初始化器文件
+```go
+const (
+    PriorityHighest  = 0
+    PriorityDatabase = 200
+    PriorityCache    = 300  // Redis
+    PriorityMQ       = 500  // NATS
+    PriorityHTTP     = 900
+    PriorityGRPC     = 900
+    PriorityLowest   = 9999
+)
+```
 
-## 相关文档
+Lower numbers initialize first.
 
-- [pkg/bootstrap](../bootstrap/) - 初始化器框架
-- [common/options](../../common/options/) - 配置选项
-- [common/db](../../common/db/) - 数据库客户端
-- [docs/INITIALIZERS_ANALYSIS.md](../../docs/INITIALIZERS_ANALYSIS.md) - 初始化器分析报告
+---
 
-## 贡献指南
+## Best Practices
 
-如果需要添加新的通用初始化器，请遵循以下步骤：
+1. **Always use pkg/initializers for common infrastructure**
+   - Database → DatabaseInitializer
+   - Redis → RedisInitializer
+   - NATS → NATSInitializer
+   - HTTP → HTTPServerInitializer
+   - gRPC → GRPCServerInitializer
 
-1. 确保初始化器是通用的，适用于多个服务
-2. 实现 `bootstrap.Initializer` 接口
-3. 实现 `bootstrap.Closer` 接口（可选）
-4. 实现 `bootstrap.HealthChecker` 接口（可选）
-5. 添加完整的文档注释
-6. 添加使用示例
-7. 更新本 README
+2. **Choose the right pattern**
+   - Direct: Simple services without custom storage
+   - Wrapper: Services with existing storage layer
+
+3. **Configure auto-migration carefully**
+   - Only enable in development/test environments
+   - Use migrations for production
+
+4. **Handle optional dependencies gracefully**
+   - Return nil/skip initialization for optional components
+   - Provide fallback mechanisms
+
+5. **Test initialization order**
+   - Use Bootstrap priorities correctly
+   - Test with Bootstrap.Run() in integration tests
+
+6. **Monitor health checks**
+   - All initializers provide HealthCheck()
+   - Aggregate health in service health endpoint
+
+---
+
+## Examples in the Wild
+
+- **agent-manager**: All 5 initializers (Database, Redis, NATS, HTTP, gRPC)
+- **auth**: Database, Redis, HTTP, gRPC
+- **orchestrator**: Database, Redis, NATS, HTTP, gRPC (unified 2025-11-09)
+- **gateway**: Redis (optional), HTTP (unified 2025-11-09)
+- **monitor**: Database, Redis, HTTP, gRPC
+- **collect-agent**: NATS only
+- **reasoning**: HTTP only
+
+See service implementations in `internal/{service}/` directories.
+
+---
+
+## Service Coverage
+
+| Service | Database | Redis | NATS | HTTP | gRPC | Status |
+|---------|----------|-------|------|------|------|--------|
+| agent-manager | ✅ | ✅ | ✅ | ✅ | ✅ | Compliant |
+| orchestrator | ✅ | ✅ | ✅ | ✅ | ✅ | Compliant |
+| auth | ✅ | ✅ | N/A | ✅ | ✅ | Compliant |
+| cluster | ✅ | ✅ | N/A | ✅ | ✅ | Compliant |
+| monitor | ✅ | ✅ | N/A | ✅ | ✅ | Compliant |
+| reasoning | N/A | N/A | N/A | ✅ | N/A | Compliant |
+| collect-agent | N/A | N/A | ✅ | N/A | N/A | Compliant |
+| gateway | N/A | ✅ | N/A | ✅ | N/A | Compliant |
+
+**Result**: 100% coverage - all 8 services use pkg/initializers
+
+---
+
+## Further Reading
+
+- [INITIALIZER_UNIFICATION_SUMMARY.md](../../docs/refactoring/INITIALIZER_UNIFICATION_SUMMARY.md) - Migration history (2025-11-09)
+- [INITIALIZER_AUDIT_REPORT.md](../../docs/refactoring/INITIALIZER_AUDIT_REPORT.md) - Detailed audit report
+- [Bootstrap README](../bootstrap/README.md) - Bootstrap lifecycle management
+- [CLAUDE.md](../../CLAUDE.md) - Project overview

@@ -36,7 +36,7 @@ func TestOptionsValidate(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			name:    "valid memory cache",
+			name: "valid memory cache",
 			options: &Options{
 				Type:          TypeMemory,
 				MemoryMaxSize: 1000,

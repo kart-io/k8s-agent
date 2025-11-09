@@ -10,33 +10,33 @@ import (
 
 // NATSOptions NATS消息队列配置
 type NATSOptions struct {
-	URL                   string        `mapstructure:"url" yaml:"url" json:"url"`
-	ClusterID             string        `mapstructure:"cluster_id" yaml:"cluster_id" json:"cluster_id"`
-	MaxReconnect          int           `mapstructure:"max_reconnect" yaml:"max_reconnect" json:"max_reconnect"`
-	ReconnectWait         time.Duration `mapstructure:"reconnect_wait" yaml:"reconnect_wait" json:"reconnect_wait"`
-	PingInterval          time.Duration `mapstructure:"ping_interval" yaml:"ping_interval" json:"ping_interval"`
-	MaxPingsOut           int           `mapstructure:"max_pings_out" yaml:"max_pings_out" json:"max_pings_out"`
-	EnableJetStream       bool          `mapstructure:"enable_jetstream" yaml:"enable_jetstream" json:"enable_jetstream"`
-	ReconnectBufSize      int           `mapstructure:"reconnect_buf_size" yaml:"reconnect_buf_size" json:"reconnect_buf_size"`
-	ReconnectDelayMax     time.Duration `mapstructure:"reconnect_delay_max" yaml:"reconnect_delay_max" json:"reconnect_delay_max"`
-	ReconnectDelayInitial time.Duration `mapstructure:"reconnect_delay_initial" yaml:"reconnect_delay_initial" json:"reconnect_delay_initial"`
-	ReconnectBackoffFactor float64      `mapstructure:"reconnect_backoff_factor" yaml:"reconnect_backoff_factor" json:"reconnect_backoff_factor"`
+	URL                    string        `mapstructure:"url" yaml:"url" json:"url"`
+	ClusterID              string        `mapstructure:"cluster_id" yaml:"cluster_id" json:"cluster_id"`
+	MaxReconnect           int           `mapstructure:"max_reconnect" yaml:"max_reconnect" json:"max_reconnect"`
+	ReconnectWait          time.Duration `mapstructure:"reconnect_wait" yaml:"reconnect_wait" json:"reconnect_wait"`
+	PingInterval           time.Duration `mapstructure:"ping_interval" yaml:"ping_interval" json:"ping_interval"`
+	MaxPingsOut            int           `mapstructure:"max_pings_out" yaml:"max_pings_out" json:"max_pings_out"`
+	EnableJetStream        bool          `mapstructure:"enable_jetstream" yaml:"enable_jetstream" json:"enable_jetstream"`
+	ReconnectBufSize       int           `mapstructure:"reconnect_buf_size" yaml:"reconnect_buf_size" json:"reconnect_buf_size"`
+	ReconnectDelayMax      time.Duration `mapstructure:"reconnect_delay_max" yaml:"reconnect_delay_max" json:"reconnect_delay_max"`
+	ReconnectDelayInitial  time.Duration `mapstructure:"reconnect_delay_initial" yaml:"reconnect_delay_initial" json:"reconnect_delay_initial"`
+	ReconnectBackoffFactor float64       `mapstructure:"reconnect_backoff_factor" yaml:"reconnect_backoff_factor" json:"reconnect_backoff_factor"`
 }
 
 // NewNATSOptions 创建默认的NATS配置
 func NewNATSOptions() *NATSOptions {
 	return &NATSOptions{
-		URL:                   "nats://localhost:4222",
-		ClusterID:             "",
-		MaxReconnect:          10,
-		ReconnectWait:         2 * time.Second,
-		PingInterval:          20 * time.Second,
-		MaxPingsOut:           2,
-		EnableJetStream:       false,
-		ReconnectBufSize:      1024 * 1024,
-		ReconnectDelayInitial: 1 * time.Second,  // 初始延迟 1 秒
-		ReconnectDelayMax:     30 * time.Second, // 最大延迟 30 秒
-		ReconnectBackoffFactor: 2.0,             // 每次重连延迟翻倍
+		URL:                    "nats://localhost:4222",
+		ClusterID:              "",
+		MaxReconnect:           10,
+		ReconnectWait:          2 * time.Second,
+		PingInterval:           20 * time.Second,
+		MaxPingsOut:            2,
+		EnableJetStream:        false,
+		ReconnectBufSize:       1024 * 1024,
+		ReconnectDelayInitial:  1 * time.Second,  // 初始延迟 1 秒
+		ReconnectDelayMax:      30 * time.Second, // 最大延迟 30 秒
+		ReconnectBackoffFactor: 2.0,              // 每次重连延迟翻倍
 	}
 }
 

@@ -14,8 +14,8 @@ const (
 	PriorityCache       = 400  // Cache connections
 	PriorityNATS        = 500  // NATS message queue
 	PriorityMQ          = 500  // Message queue connections
-	PriorityHTTP        = 1000 // HTTP server
-	PriorityGRPC        = 1100 // gRPC server
+	PriorityGRPC        = 900  // gRPC server (must initialize BEFORE HTTP to create shared services)
+	PriorityHTTP        = 1000 // HTTP server (depends on gRPC initializer for shared services)
 	PriorityApplication = 1500 // Application logic (for background tasks)
 	PriorityHealthCheck = 2000 // Health check server (should initialize last)
 	PriorityLowest      = 2000 // Components that should initialize last

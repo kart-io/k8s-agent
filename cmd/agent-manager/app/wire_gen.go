@@ -15,40 +15,32 @@ import (
 
 // Injectors from wire.go:
 
-// InitializeAgentManagerComponents automatically injects all components using Wire.
-func InitializeAgentManagerComponents(opts *app.StandardOptions) (*AgentManagerComponents, error) {
+// InitializeAgentManagerContainer automatically injects all components using Wire.
+func InitializeAgentManagerContainer(opts *app.StandardOptions) (*AgentManagerContainer, error) {
 	logger, err := ProvideLogger(opts)
 	if err != nil {
 		return nil, err
 	}
 	databaseInitializer := initializers.NewDatabaseInitializer(opts, logger)
 	redisInitializer := initializers.NewRedisInitializer(opts, logger)
-	registryInitializer := initializers.NewRegistryInitializer(opts, logger, databaseInitializer, redisInitializer)
-	natsInitializer := initializers.NewNATSInitializer(opts, logger, registryInitializer, databaseInitializer, redisInitializer)
-	dispatcherInitializer := initializers.NewDispatcherInitializer(opts, logger, databaseInitializer, redisInitializer, registryInitializer, natsInitializer)
-	httpServerInitializer := initializers.NewHTTPServerInitializer(opts, logger, registryInitializer, dispatcherInitializer, databaseInitializer, redisInitializer, natsInitializer)
+	serviceInitializer := initializers.NewServiceInitializer(opts, logger, databaseInitializer, redisInitializer)
+	registryInitializer := initializers.NewRegistryInitializer(opts, logger, serviceInitializer)
+	natsInitializer := initializers.NewNATSInitializer(opts, logger, serviceInitializer)
+	dispatcherInitializer := initializers.NewDispatcherInitializer(opts, logger, serviceInitializer, natsInitializer)
+	httpServerInitializer := initializers.NewHTTPServerInitializer(opts, logger, serviceInitializer, databaseInitializer, redisInitializer)
+	grpcServerInitializer := initializers.NewGRPCServerInitializer(opts, logger, serviceInitializer, databaseInitializer)
 	healthOptions := opts.Health
 	healthCheckInitializer := initializers2.NewHealthCheckInitializer(healthOptions, logger)
-	agentManagerComponents := NewAgentManagerComponents(databaseInitializer, redisInitializer, registryInitializer, natsInitializer, dispatcherInitializer, httpServerInitializer, healthCheckInitializer)
-	return agentManagerComponents, nil
+	agentManagerContainer := NewAgentManagerContainer(databaseInitializer, redisInitializer, serviceInitializer, registryInitializer, natsInitializer, dispatcherInitializer, httpServerInitializer, grpcServerInitializer, healthCheckInitializer)
+	return agentManagerContainer, nil
 }
 
 // wire.go:
 
-// BaseProviderSet Wire dependency set for base infrastructure.
-var BaseProviderSet = wire.NewSet(
-	ProvideLogger, initializers.NewDatabaseInitializer, initializers.NewRedisInitializer,
+// InitializerSet Wire dependency set for all initializers.
+var InitializerSet = wire.NewSet(
+	ProvideLogger, initializers.NewDatabaseInitializer, initializers.NewRedisInitializer, initializers.NewServiceInitializer, initializers.NewRegistryInitializer, initializers.NewNATSInitializer, initializers.NewDispatcherInitializer, initializers.NewHTTPServerInitializer, initializers.NewGRPCServerInitializer,
 )
 
-// BusinessProviderSet Wire dependency set for business logic.
-var BusinessProviderSet = wire.NewSet(
-	BaseProviderSet, initializers.NewRegistryInitializer, initializers.NewNATSInitializer, initializers.NewDispatcherInitializer,
-)
-
-// ServerProviderSet Wire dependency set for servers.
-var ServerProviderSet = wire.NewSet(
-	BusinessProviderSet, initializers.NewHTTPServerInitializer,
-)
-
-// HealthProviderSet Wire dependency set for health check.
-var HealthProviderSet = wire.NewSet(initializers2.NewHealthCheckInitializer, wire.FieldsOf(new(*app.StandardOptions), "Health"))
+// HealthInitializerSet Wire dependency set for health check.
+var HealthInitializerSet = wire.NewSet(initializers2.NewHealthCheckInitializer, wire.FieldsOf(new(*app.StandardOptions), "Health"))

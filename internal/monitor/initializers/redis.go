@@ -5,24 +5,27 @@
 package initializers
 
 import (
-        commonapp "github.com/kart-io/k8s-agent/pkg/app"
-	
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
 // RedisInitializer wraps the generic Redis initializer with monitor-specific configuration.
-// Note: Monitor uses a custom storage layer (storage.RedisStorage) for metrics caching.
+//
+// DESIGN NOTE: This is a thin wrapper that:
+// 1. Embeds pkg/initializers.RedisInitializer for standard lifecycle management
+// 2. Provides Storage() method returning monitor's custom storage.RedisStorage
+// 3. Reuses the Redis client from base initializer (no duplicate connections)
 type RedisInitializer struct {
 	*pkginitializers.RedisInitializer
-	logger core.Logger                // Logger for this wrapper
-	store  *storage.RedisStorage // Cached storage instance
+	logger core.Logger           // Logger for this wrapper
+	store  *storage.RedisStorage // Lazily initialized storage wrapper
 }
 
 // NewRedisInitializer creates a Redis initializer for monitor service.
 func NewRedisInitializer(cfg *commonapp.StandardOptions, logger core.Logger) *RedisInitializer {
-	// Create the base initializer
+	// Create the base initializer with standard Redis configuration
 	redisInit := pkginitializers.NewRedisInitializer(cfg.Redis, logger)
 
 	return &RedisInitializer{

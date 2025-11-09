@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/common/db"
-	"github.com/kart-io/k8s-agent/pkg/types"
+	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/logger/core"
 )
 
@@ -32,19 +32,9 @@ type MySQLStore struct {
 }
 
 // NewMySQLStore creates a new MySQL store
-func NewMySQLStore(config types.DatabaseConfig, log core.Logger) (*MySQLStore, error) {
+func NewMySQLStore(config *options.MySQLOptions, log core.Logger) (*MySQLStore, error) {
 	// Create MySQL client using common package with Options pattern
-	mysqlClient, err := db.NewMySQL(log,
-		db.WithHost(config.Host),
-		db.WithPort(config.Port),
-		db.WithUser(config.User),
-		db.WithPassword(config.Password),
-		db.WithDatabase(config.Database),
-		db.WithMaxOpenConns(config.MaxOpenConns),
-		db.WithMaxIdleConns(config.MaxIdleConns),
-		db.WithConnMaxLifetime(config.ConnMaxLifetime),
-		db.WithLogLevel("info"),
-	)
+	mysqlClient, err := config.ConnectMySQL(log)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +71,7 @@ func NewMySQLStore(config types.DatabaseConfig, log core.Logger) (*MySQLStore, e
 func (s *MySQLStore) SaveAgent(ctx context.Context, agent *types.Agent) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	return s.DB.WithContext(ctx).Save(agent).Error
+	return s.DB().WithContext(ctx).Save(agent).Error
 }
 
 // GetAgent retrieves an agent by ID.
@@ -89,8 +79,8 @@ func (s *MySQLStore) GetAgent(ctx context.Context, id string) (*types.Agent, err
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
-	var agent types.Agent
-	if err := s.DB.WithContext(ctx).First(&agent, "id = ?", id).Error; err != nil {
+	var agent
+	if err := s.DB().WithContext(ctx).First(&agent, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("failed to get agent %s: %w", id, err)
 	}
 	return &agent, nil

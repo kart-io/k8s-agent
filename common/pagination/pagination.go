@@ -19,8 +19,8 @@ const (
 type Params struct {
 	Page     int    `json:"page" form:"page"`
 	PageSize int    `json:"pageSize" form:"pageSize"`
-	Sort     string `json:"sort" form:"sort"`           // 排序字段
-	Order    string `json:"order" form:"order"`         // asc 或 desc
+	Sort     string `json:"sort" form:"sort"`   // 排序字段
+	Order    string `json:"order" form:"order"` // asc 或 desc
 }
 
 // GetOffset 计算偏移量

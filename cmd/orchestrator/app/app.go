@@ -1,11 +1,14 @@
+// Copyright 2024 Kart.IO. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package app
 
 import (
 	"context"
 	"fmt"
 
-	// Removed: options package
-	"github.com/kart-io/k8s-agent/internal/orchestrator/initializers"
+	"github.com/kart-io/k8s-agent/internal/orchestrator/startup"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -43,19 +46,9 @@ func Execute() {
 
 // OrchestratorApp implements commonapp.Application interface.
 type OrchestratorApp struct {
-	opts   *commonapp.StandardOptions // Use StandardOptions
-	logger core.Logger
-
-	// Component initializers
-	dbInit       *initializers.DatabaseInitializer
-	redisInit    *initializers.RedisInitializer
-	natsInit     *initializers.NATSInitializer
-	workflowInit *initializers.WorkflowInitializer
-	strategyInit *initializers.StrategyInitializer
-	subInit      *initializers.SubscriberInitializer
-	grpcInit     *initializers.GRPCServerInitializer
-	httpInit     *initializers.HTTPServerInitializer
-	healthInit   *pkginitializers.HealthCheckInitializer
+	bootstrap *bootstrap.Bootstrap
+	opts      *commonapp.StandardOptions
+	logger    core.Logger
 }
 
 // Name returns the application name.
@@ -65,7 +58,6 @@ func (a *OrchestratorApp) Name() string {
 
 // Initialize initializes the application.
 func (a *OrchestratorApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Save StandardOptions
 	a.opts = opts.(*commonapp.StandardOptions)
 
 	// Initialize logger
@@ -80,48 +72,54 @@ func (a *OrchestratorApp) Initialize(ctx context.Context, opts commonapp.Options
 
 // Run runs the application.
 func (a *OrchestratorApp) Run(ctx context.Context) error {
-	// The bootstrap framework handles running all servers
-	// This method can be used for additional application logic if needed
+	// Bootstrap.Run() is already called by RunWithBootstrap
+	// We just need to wait for the context to be cancelled
 	<-ctx.Done()
-	return nil
+	return ctx.Err()
 }
 
 // Shutdown gracefully shuts down the application.
 func (a *OrchestratorApp) Shutdown(ctx context.Context) error {
-	// Bootstrap framework handles component shutdown
-	// This method can be used for additional cleanup if needed
+	// Bootstrap shutdown is handled automatically
 	return nil
 }
 
 // registerComponents registers all component initializers with bootstrap.
+// This method defines the complete initialization order for the orchestrator service.
 func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Use Wire to automatically inject all dependencies
-	components, err := InitializeOrchestratorComponents(a.opts)
-	if err != nil {
-		return fmt.Errorf("failed to initialize components: %w", err)
+	a.bootstrap = bs
+
+	// Layer 1: Infrastructure (Priority 300-500)
+	// Database, Redis, and NATS configuration
+	infra := startup.NewInfrastructureInitializers(a.opts, a.logger)
+	bs.Register(infra.Database)
+	bs.Register(infra.Redis)
+	bs.Register(infra.NATS)
+
+	// Layer 2: Core Business Services (Priority 600)
+	// Workflow engine, strategy manager, and workflow service
+	coreServices := startup.NewCoreServicesInitializer(a.opts, a.logger, infra)
+	bs.Register(coreServices)
+
+	// Layer 3: Event Processing (Priority 700)
+	// Event subscriber for NATS events
+	eventSubscriber := startup.NewEventSubscriberInitializer(a.logger, infra, coreServices)
+	bs.Register(eventSubscriber)
+
+	// Layer 4: Server Layer (Priority 900-1000)
+	// gRPC and HTTP servers that expose the services
+	if a.opts.GRPC.Enable {
+		grpcInit := startup.NewGRPCServerInitializer(a.opts, a.logger, coreServices)
+		bs.Register(grpcInit)
 	}
 
-	// Register components to Bootstrap in dependency order
-	bs.Register(components.DB)
-	bs.Register(components.Redis)
-	bs.Register(components.NATS)
-	bs.Register(components.Workflow)
-	bs.Register(components.Strategy)
-	bs.Register(components.Subscriber)
-	bs.Register(components.GRPC)
-	bs.Register(components.HTTP)
-	bs.Register(components.Health)
+	httpInit := startup.NewHTTPServerInitializer(a.opts, a.logger, coreServices)
+	bs.Register(httpInit)
 
-	// Save references for app
-	a.dbInit = components.DB
-	a.redisInit = components.Redis
-	a.natsInit = components.NATS
-	a.workflowInit = components.Workflow
-	a.strategyInit = components.Strategy
-	a.subInit = components.Subscriber
-	a.grpcInit = components.GRPC
-	a.httpInit = components.HTTP
-	a.healthInit = components.Health
+	// Layer 5: Monitoring (Priority 2000)
+	// Health check endpoint
+	healthInit := pkginitializers.NewHealthCheckInitializer(a.opts.Health, a.logger)
+	bs.Register(healthInit)
 
 	return nil
 }

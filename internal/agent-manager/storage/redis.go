@@ -9,7 +9,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/kart-io/k8s-agent/common/db"
+	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/pkg/types"
 	"github.com/kart-io/logger/core"
 )
@@ -31,30 +31,20 @@ var rateLimitScript = redis.NewScript(`
 
 // RedisStore implements caching using Redis.
 type RedisStore struct {
-	*db.RedisClient // Embed common Redis client
-	logger          core.Logger
+	client *redis.Client
+	logger core.Logger
 }
 
 // NewRedisStore creates a new Redis store.
-func NewRedisStore(config types.RedisConfig, log core.Logger) (*RedisStore, error) {
-	// Create Redis client using common package with Options pattern
-	redisClient, err := db.NewRedis(log,
-		db.WithAddr(config.Addr),
-		db.WithRedisPassword(config.Password),
-		db.WithRedisDB(config.DB),
-		db.WithRedisPoolSize(config.PoolSize),
-		db.WithRedisMinIdleConns(config.MinIdleConns),
-		db.WithRedisDialTimeout(config.DialTimeout),
-		db.WithRedisReadTimeout(config.ReadTimeout),
-		db.WithRedisWriteTimeout(config.WriteTimeout),
-	)
+func NewRedisStore(config *options.RedisOptions, log core.Logger) (*RedisStore, error) {
+	client, err := config.ConnectRedis(log)
 	if err != nil {
 		return nil, err
 	}
-
+	defer client.Close()
 	store := &RedisStore{
-		RedisClient: redisClient,
-		logger:      log.With("component", "redis"),
+		client: client,
+		logger: log.With("component", "redis"),
 	}
 
 	store.logger.Infow("Redis store initialized", "addr", config.Addr)
@@ -72,13 +62,13 @@ func (s *RedisStore) CacheAgent(ctx context.Context, agent *types.Agent, ttl tim
 		return fmt.Errorf("failed to marshal agent: %w", err)
 	}
 
-	return s.Client.Set(ctx, key, data, ttl).Err()
+	return s.client.Set(ctx, key, data, ttl).Err()
 }
 
 // GetCachedAgent retrieves cached agent information.
 func (s *RedisStore) GetCachedAgent(ctx context.Context, id string) (*types.Agent, error) {
 	key := s.agentKey(id)
-	data, err := s.Client.Get(ctx, key).Bytes()
+	data, err := s.client.Get(ctx, key).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return nil, ErrCacheMiss
@@ -97,7 +87,7 @@ func (s *RedisStore) GetCachedAgent(ctx context.Context, id string) (*types.Agen
 // DeleteCachedAgent removes cached agent information.
 func (s *RedisStore) DeleteCachedAgent(ctx context.Context, id string) error {
 	key := s.agentKey(id)
-	return s.Client.Del(ctx, key).Err()
+	return s.client.Del(ctx, key).Err()
 }
 
 // Agent status tracking
@@ -105,13 +95,13 @@ func (s *RedisStore) DeleteCachedAgent(ctx context.Context, id string) error {
 // SetAgentOnline marks agent as online.
 func (s *RedisStore) SetAgentOnline(ctx context.Context, agentID string, ttl time.Duration) error {
 	key := s.agentStatusKey(agentID)
-	return s.Client.Set(ctx, key, "online", ttl).Err()
+	return s.client.Set(ctx, key, "online", ttl).Err()
 }
 
 // IsAgentOnline checks if agent is online.
 func (s *RedisStore) IsAgentOnline(ctx context.Context, agentID string) (bool, error) {
 	key := s.agentStatusKey(agentID)
-	result, err := s.Client.Exists(ctx, key).Result()
+	result, err := s.client.Exists(ctx, key).Result()
 	if err != nil {
 		return false, err
 	}
@@ -123,7 +113,7 @@ func (s *RedisStore) GetOnlineAgents(ctx context.Context) ([]string, error) {
 	pattern := "agent:status:*"
 	var agentIDs []string
 
-	iter := s.Client.Scan(ctx, 0, pattern, 100).Iterator()
+	iter := s.client.Scan(ctx, 0, pattern, 100).Iterator()
 	for iter.Next(ctx) {
 		key := iter.Val()
 		// Extract agent ID from key "agent:status:{id}"
@@ -150,13 +140,13 @@ func (s *RedisStore) EnqueueCommand(ctx context.Context, clusterID string, cmd *
 		return fmt.Errorf("failed to marshal command: %w", err)
 	}
 
-	return s.Client.LPush(ctx, key, data).Err()
+	return s.client.LPush(ctx, key, data).Err()
 }
 
 // DequeueCommand removes and returns a command from the queue.
 func (s *RedisStore) DequeueCommand(ctx context.Context, clusterID string, timeout time.Duration) (*types.Command, error) {
 	key := s.commandQueueKey(clusterID)
-	result, err := s.Client.BRPop(ctx, timeout, key).Result()
+	result, err := s.client.BRPop(ctx, timeout, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return nil, ErrQueueEmpty
@@ -179,7 +169,7 @@ func (s *RedisStore) DequeueCommand(ctx context.Context, clusterID string, timeo
 // GetCommandQueueLength returns the length of command queue.
 func (s *RedisStore) GetCommandQueueLength(ctx context.Context, clusterID string) (int64, error) {
 	key := s.commandQueueKey(clusterID)
-	return s.Client.LLen(ctx, key).Result()
+	return s.client.LLen(ctx, key).Result()
 }
 
 // Metrics aggregation
@@ -187,19 +177,19 @@ func (s *RedisStore) GetCommandQueueLength(ctx context.Context, clusterID string
 // IncrementEventCounter increments event counter.
 func (s *RedisStore) IncrementEventCounter(ctx context.Context, clusterID, severity string) error {
 	key := s.eventCounterKey(clusterID, severity)
-	return s.Client.Incr(ctx, key).Err()
+	return s.client.Incr(ctx, key).Err()
 }
 
 // GetEventCount returns event count.
 func (s *RedisStore) GetEventCount(ctx context.Context, clusterID, severity string) (int64, error) {
 	key := s.eventCounterKey(clusterID, severity)
-	return s.Client.Get(ctx, key).Int64()
+	return s.client.Get(ctx, key).Int64()
 }
 
 // ResetEventCounters resets event counters.
 func (s *RedisStore) ResetEventCounters(ctx context.Context) error {
 	pattern := "event:count:*"
-	iter := s.Client.Scan(ctx, 0, pattern, 100).Iterator()
+	iter := s.client.Scan(ctx, 0, pattern, 100).Iterator()
 
 	var keys []string
 	for iter.Next(ctx) {
@@ -211,7 +201,7 @@ func (s *RedisStore) ResetEventCounters(ctx context.Context) error {
 	}
 
 	if len(keys) > 0 {
-		return s.Client.Del(ctx, keys...).Err()
+		return s.client.Del(ctx, keys...).Err()
 	}
 
 	return nil
@@ -222,13 +212,13 @@ func (s *RedisStore) ResetEventCounters(ctx context.Context) error {
 // CreateSession creates a new session.
 func (s *RedisStore) CreateSession(ctx context.Context, sessionID, userID string, ttl time.Duration) error {
 	key := s.sessionKey(sessionID)
-	return s.Client.Set(ctx, key, userID, ttl).Err()
+	return s.client.Set(ctx, key, userID, ttl).Err()
 }
 
 // ValidateSession validates a session.
 func (s *RedisStore) ValidateSession(ctx context.Context, sessionID string) (string, error) {
 	key := s.sessionKey(sessionID)
-	userID, err := s.Client.Get(ctx, key).Result()
+	userID, err := s.client.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", fmt.Errorf("session not found")
@@ -241,7 +231,7 @@ func (s *RedisStore) ValidateSession(ctx context.Context, sessionID string) (str
 // DeleteSession deletes a session.
 func (s *RedisStore) DeleteSession(ctx context.Context, sessionID string) error {
 	key := s.sessionKey(sessionID)
-	return s.Client.Del(ctx, key).Err()
+	return s.client.Del(ctx, key).Err()
 }
 
 // Rate limiting
@@ -252,7 +242,7 @@ func (s *RedisStore) CheckRateLimit(ctx context.Context, key string, limit int64
 	rateLimitKey := s.rateLimitKey(key)
 
 	// 使用Lua脚本原子性地执行Incr和Expire
-	count, err := rateLimitScript.Run(ctx, s.Client, []string{rateLimitKey}, int(window.Seconds())).Int64()
+	count, err := rateLimitScript.Run(ctx, s.client, []string{rateLimitKey}, int(window.Seconds())).Int64()
 	if err != nil {
 		return false, fmt.Errorf("failed to execute rate limit script: %w", err)
 	}
@@ -265,13 +255,13 @@ func (s *RedisStore) CheckRateLimit(ctx context.Context, key string, limit int64
 // AcquireLock acquires a distributed lock.
 func (s *RedisStore) AcquireLock(ctx context.Context, lockKey string, ttl time.Duration) (bool, error) {
 	key := s.lockKey(lockKey)
-	return s.Client.SetNX(ctx, key, "locked", ttl).Result()
+	return s.client.SetNX(ctx, key, "locked", ttl).Result()
 }
 
 // ReleaseLock releases a distributed lock.
 func (s *RedisStore) ReleaseLock(ctx context.Context, lockKey string) error {
 	key := s.lockKey(lockKey)
-	return s.Client.Del(ctx, key).Err()
+	return s.client.Del(ctx, key).Err()
 }
 
 // Key generation helpers

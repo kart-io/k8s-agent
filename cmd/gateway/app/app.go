@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/cmd/gateway/app/options"
-	"github.com/kart-io/k8s-agent/internal/gateway/initializers"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -19,13 +18,10 @@ const (
 
 // Execute runs the gateway command.
 func Execute() {
-	// Create configuration options using gateway's custom options
 	opts := options.NewServerOptions()
 
-	// Create application instance
 	app := &GatewayApp{}
 
-	// Use the simplified RunWithBootstrap to run the application
 	commonapp.RunWithBootstrap(
 		app,
 		opts,
@@ -41,12 +37,12 @@ func Execute() {
 
 // GatewayApp implements commonapp.Application interface.
 type GatewayApp struct {
-	opts   *options.ServerOptions // Gateway's custom options with Routes config
+	opts   *options.ServerOptions
 	logger core.Logger
 
-	// Component initializers
-	redisInit  *initializers.RedisInitializer
-	httpInit   *initializers.HTTPServerInitializer
+	// Component initializers (Wire will inject these)
+	redisInit  *RedisInitializer
+	httpInit   *HTTPServerInitializer
 	healthInit *pkginitializers.HealthCheckInitializer
 }
 
@@ -57,10 +53,8 @@ func (a *GatewayApp) Name() string {
 
 // Initialize initializes the application.
 func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-	// Save ServerOptions
 	a.opts = opts.(*options.ServerOptions)
 
-	// Initialize logger
 	logger, err := a.opts.InitLogger()
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
@@ -68,42 +62,37 @@ func (a *GatewayApp) Initialize(ctx context.Context, opts commonapp.Options) err
 	a.logger = logger
 
 	a.logger.Info("Starting Gateway Service...")
-
 	return nil
 }
 
 // Run runs the application.
 func (a *GatewayApp) Run(ctx context.Context) error {
-	// The bootstrap framework handles running all servers
-	// This method can be used for additional application logic if needed
 	<-ctx.Done()
 	return nil
 }
 
 // Shutdown gracefully shuts down the application.
 func (a *GatewayApp) Shutdown(ctx context.Context) error {
-	// Bootstrap framework handles component shutdown
-	// This method can be used for additional cleanup if needed
 	return nil
 }
 
 // registerComponents registers all component initializers with bootstrap.
 func (a *GatewayApp) registerComponents(bs *bootstrap.Bootstrap) error {
-	// Use Wire to automatically inject all dependencies
-	components, err := InitializeGatewayComponents(a.opts)
+	// Use Wire to inject all dependencies
+	container, err := InitializeGatewayContainer(a.opts, a.logger)
 	if err != nil {
-		return fmt.Errorf("failed to initialize components: %w", err)
+		return fmt.Errorf("failed to initialize container: %w", err)
 	}
 
-	// Register components to Bootstrap
-	bs.Register(components.Redis)
-	bs.Register(components.HTTP)
-	bs.Register(components.Health)
+	// Register to Bootstrap
+	bs.Register(container.Redis)
+	bs.Register(container.HTTP)
+	bs.Register(container.Health)
 
-	// Save references for app
-	a.redisInit = components.Redis
-	a.httpInit = components.HTTP
-	a.healthInit = components.Health
+	// Save references
+	a.redisInit = container.Redis
+	a.httpInit = container.HTTP
+	a.healthInit = container.Health
 
 	return nil
 }

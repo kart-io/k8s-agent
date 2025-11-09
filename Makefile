@@ -28,6 +28,7 @@ include scripts/make-rules/lint.mk
 include scripts/make-rules/deploy.mk
 include scripts/make-rules/release.mk
 include scripts/make-rules/swagger.mk
+include scripts/make-rules/run.mk
 
 # ==================================================================================
 # Legacy Compatibility Configuration
@@ -37,6 +38,7 @@ include scripts/make-rules/swagger.mk
 ALL_SERVICES := $(SERVICES)
 BINS ?= $(ALL_SERVICES)
 CMD_DIR := $(ROOT_DIR)/cmd
+CONFIG_DIR := $(ROOT_DIR)/configs
 TOOLS_DIR := $(ROOT_DIR)/tools
 BUILD_DIR := $(ROOT_DIR)/build
 
@@ -156,26 +158,15 @@ rename-project: ## Rename project module path (usage: make rename-project OLD=ol
 	@printf "$(COLOR_YELLOW)⚠ Don't forget to run: make tidy$(COLOR_RESET)\n"
 
 # ==================================================================================
-# Legacy Compatibility Targets (map to new modular targets)
+# Main Targets (Direct usage of modular system)
 # ==================================================================================
 
-##@ Build (Legacy Aliases - prefer go.build.* commands)
+##@ Build
 
 .PHONY: build
-build: go.build ## Build all services (or specific: make build BINS=agent-manager)
+build: go.build ## Build all services
 
-.PHONY: build-all
-build-all: go.build ## Build all services for all platforms
-	@$(MAKE) go.build SERVICES="$(ALL_SERVICES)"
-
-.PHONY: build-%
-build-%: ## [LEGACY] Build specific service - prefer 'make go.build.SERVICE'
-	@$(MAKE) go.build.$*
-
-.PHONY: compile
-compile: build ## Alias for build
-
-##@ Testing (Legacy Aliases - prefer go.test.* commands)
+##@ Testing
 
 .PHONY: test
 test: go.test ## Run all tests
@@ -183,16 +174,7 @@ test: go.test ## Run all tests
 .PHONY: test-coverage
 test-coverage: go.test.coverage ## Run tests with coverage report
 
-.PHONY: test-integration
-test-integration: go.test.integration ## Run integration tests
-
-.PHONY: test-e2e
-test-e2e: ## Run end-to-end tests
-	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Running e2e tests...$(COLOR_RESET)\n"
-	@$(GO) test -v -tags=e2e ./test/e2e/...
-	@printf "$(COLOR_GREEN)✓ E2E tests complete$(COLOR_RESET)\n"
-
-##@ Code Quality (Legacy Aliases - prefer go.* commands)
+##@ Code Quality
 
 .PHONY: fmt
 fmt: go.fmt ## Format code
@@ -203,35 +185,15 @@ lint: go.lint ## Run linters
 .PHONY: vet
 vet: go.vet ## Run go vet
 
-##@ Dependencies (Legacy Aliases)
-
-.PHONY: deps
-deps: go.mod.download go.mod.tidy ## Download and tidy dependencies
-
-.PHONY: deps-verify
-deps-verify: go.mod.verify ## Verify dependencies
-
-##@ Docker (Legacy Aliases - prefer docker.build.* commands)
+##@ Docker
 
 .PHONY: docker
-docker: docker.build ## Build Docker images (specify BINS for specific services)
+docker: docker.build ## Build Docker images
 
 .PHONY: docker-push
 docker-push: docker.push ## Push Docker images
 
-.PHONY: docker-%
-docker-%: ## [LEGACY] Build specific Docker image - prefer 'make docker.build.SERVICE'
-	@$(MAKE) docker.build.$*
-
-##@ Code Generation (Legacy Aliases)
-
-.PHONY: gen
-gen: proto.generate ## Generate all code
-
-.PHONY: gen-proto
-gen-proto: proto.generate ## Generate protobuf code
-
-##@ Cleanup (Legacy)
+##@ Cleanup
 
 .PHONY: clean
 clean: go.clean proto.clean ## Clean build artifacts
@@ -273,21 +235,7 @@ manifests-validate: ## Validate Kubernetes manifests
 dev-setup: tools.install hooks.install ## Setup development environment
 
 # Note: hooks.install target is defined in scripts/make-rules/hooks.mk
-
-.PHONY: dev
-dev: ## Run service with hot reload (requires air)
-	$(call print_target,$@)
-	@if command -v air >/dev/null 2>&1; then \
-		air; \
-	else \
-		$(call print_error,"Air not installed. Run 'make tools.install.air'"); \
-		exit 1; \
-	fi
-
-.PHONY: run-%
-run-%: ## Run specific service (e.g., make run-agent-manager)
-	@printf "$(COLOR_BOLD)$(COLOR_BLUE)Running $*...$(COLOR_RESET)\n"
-	@$(GO) run $(CMD_DIR)/$*/main.go
+# Note: Run targets (run-*, dev, run) are defined in scripts/make-rules/run.mk
 
 # ==================================================================================
 # CI/CD

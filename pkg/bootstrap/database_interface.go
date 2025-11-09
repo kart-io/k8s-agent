@@ -37,5 +37,3 @@ type ComponentProvider interface {
 	// 返回 interface{} 以支持不同类型的组件
 	GetComponent() interface{}
 }
-
-

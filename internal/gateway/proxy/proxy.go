@@ -41,6 +41,17 @@ func NewProxy(logger core.Logger) *Proxy {
 	}
 }
 
+// NewProxyWithServices 创建代理处理器并使用提供的服务配置.
+func NewProxyWithServices(services map[string]types.ServiceConfig, logger core.Logger) *Proxy {
+	return &Proxy{
+		logger: logger,
+		client: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		services: services,
+	}
+}
+
 // HandleRequest 处理代理请求.
 func (p *Proxy) HandleRequest(serviceName string) gin.HandlerFunc {
 	return func(c *gin.Context) {

@@ -57,3 +57,11 @@ type MetricsData struct {
 	AvgLatency      float64          `json:"avg_latency_ms"`
 	ServiceMetrics  map[string]int64 `json:"service_metrics"`
 }
+
+// ServiceStatus represents the health status of a backend service.
+type ServiceStatus struct {
+	Name    string `json:"name"`
+	BaseURL string `json:"base_url"`
+	Healthy bool   `json:"healthy"`
+	Error   string `json:"error,omitempty"`
+}

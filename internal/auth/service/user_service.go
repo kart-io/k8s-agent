@@ -278,7 +278,6 @@ func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
 
 		return nil
 	})
-
 	if err != nil {
 		s.logger.Errorw("Update user failed", "user_id", id, "error", err)
 		return err

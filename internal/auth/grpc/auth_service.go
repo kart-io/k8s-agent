@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	authv1 "github.com/kart-io/k8s-agent/pkg/api/auth/v1"
 	"github.com/kart-io/k8s-agent/internal/auth/service"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
+	authv1 "github.com/kart-io/k8s-agent/pkg/api/auth/v1"
 	"github.com/kart-io/logger/core"
 )
 
@@ -59,11 +59,11 @@ func (s *AuthServiceServer) Login(ctx context.Context, req *authv1.LoginRequest)
 	}
 
 	user := &authv1.User{
-		Id:        uint64(stringToID(loginResp.User.ID)),
-		Username:  loginResp.User.Username,
-		Email:     loginResp.User.Email,
-		Nickname:  loginResp.User.RealName,
-		Roles:     roles,
+		Id:       uint64(stringToID(loginResp.User.ID)),
+		Username: loginResp.User.Username,
+		Email:    loginResp.User.Email,
+		Nickname: loginResp.User.RealName,
+		Roles:    roles,
 	}
 
 	return &authv1.LoginResponse{

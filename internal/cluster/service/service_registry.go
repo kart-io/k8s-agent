@@ -15,14 +15,14 @@ type K8sServiceRegistry struct {
 	ClusterService *K8sClusterService
 
 	// Workload services
-	NamespaceService     *K8sNamespaceService
-	PodService           *K8sPodService
-	DeploymentService    *K8sDeploymentService
-	StatefulSetService   *K8sStatefulSetService
-	DaemonSetService     *K8sDaemonSetService
-	ReplicaSetService    *K8sReplicaSetService
-	JobService           *K8sJobService
-	CronJobService       *K8sCronJobService
+	NamespaceService   *K8sNamespaceService
+	PodService         *K8sPodService
+	DeploymentService  *K8sDeploymentService
+	StatefulSetService *K8sStatefulSetService
+	DaemonSetService   *K8sDaemonSetService
+	ReplicaSetService  *K8sReplicaSetService
+	JobService         *K8sJobService
+	CronJobService     *K8sCronJobService
 
 	// Network services
 	ServiceService       *K8sServiceService
@@ -42,10 +42,10 @@ type K8sServiceRegistry struct {
 	NodeService *K8sNodeService
 
 	// Security & RBAC services
-	ServiceAccountService    *K8sServiceAccountService
-	RoleService              *K8sRoleService
-	RoleBindingService       *K8sRoleBindingService
-	ClusterRoleService       *K8sClusterRoleService
+	ServiceAccountService     *K8sServiceAccountService
+	RoleService               *K8sRoleService
+	RoleBindingService        *K8sRoleBindingService
+	ClusterRoleService        *K8sClusterRoleService
 	ClusterRoleBindingService *K8sClusterRoleBindingService
 
 	// Resource Management services
@@ -67,14 +67,14 @@ func NewK8sServiceRegistry(storage *storage.MySQLStorage) *K8sServiceRegistry {
 		ClusterService: clusterService,
 
 		// Workload services
-		NamespaceService:     NewK8sNamespaceService(storage, clusterService),
-		PodService:           NewK8sPodService(storage, clusterService),
-		DeploymentService:    NewK8sDeploymentService(storage, clusterService),
-		StatefulSetService:   NewK8sStatefulSetService(storage, clusterService),
-		DaemonSetService:     NewK8sDaemonSetService(storage, clusterService),
-		ReplicaSetService:    NewK8sReplicaSetService(storage, clusterService),
-		JobService:           NewK8sJobService(storage, clusterService),
-		CronJobService:       NewK8sCronJobService(storage, clusterService),
+		NamespaceService:   NewK8sNamespaceService(storage, clusterService),
+		PodService:         NewK8sPodService(storage, clusterService),
+		DeploymentService:  NewK8sDeploymentService(storage, clusterService),
+		StatefulSetService: NewK8sStatefulSetService(storage, clusterService),
+		DaemonSetService:   NewK8sDaemonSetService(storage, clusterService),
+		ReplicaSetService:  NewK8sReplicaSetService(storage, clusterService),
+		JobService:         NewK8sJobService(storage, clusterService),
+		CronJobService:     NewK8sCronJobService(storage, clusterService),
 
 		// Network services
 		ServiceService:       NewK8sServiceService(storage, clusterService),
@@ -113,5 +113,3 @@ func NewK8sServiceRegistry(storage *storage.MySQLStorage) *K8sServiceRegistry {
 func (r *K8sServiceRegistry) Count() int {
 	return 30 // Total K8s services
 }
-
-

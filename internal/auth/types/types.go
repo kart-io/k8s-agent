@@ -97,10 +97,10 @@ type RefreshTokenRequest struct {
 
 // RefreshTokenResponse represents a token refresh response.
 type RefreshTokenResponse struct {
-	AccessToken   string    `json:"access_token"`
-	RefreshToken  string    `json:"refresh_token"` // New refresh token (rotated)
-	ExpiresAt     time.Time `json:"expires_at"`
-	ExpiresIn     int       `json:"expires_in"` // Token lifetime in seconds
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"` // New refresh token (rotated)
+	ExpiresAt    time.Time `json:"expires_at"`
+	ExpiresIn    int       `json:"expires_in"` // Token lifetime in seconds
 }
 
 // UserInfo represents user information (without sensitive data).

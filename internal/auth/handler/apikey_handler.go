@@ -86,7 +86,8 @@ func (h *APIKeyHandler) Delete(c *gin.Context) {
 // deleteLogic contains the core business logic for deleting an API key
 func (h *APIKeyHandler) deleteLogic(c *gin.Context, params *struct {
 	ID string `uri:"id" binding:"required"`
-}) error {
+},
+) error {
 	userID := c.GetString("user_id")
 	if userID == "" {
 		return errors.New("user ID not found in context")

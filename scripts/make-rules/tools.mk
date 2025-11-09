@@ -19,6 +19,7 @@ KUBE_LINTER_VERSION ?= 0.6.8
 UPLIFT_VERSION ?= latest
 GO_SWAGGER_VERSION ?= v0.31.0
 GIT_CHGLOG_VERSION ?= v0.15.4
+KUBEBUILDER_VERSION ?= 3.14.0
 
 # Tool binaries
 GOBIN := $(shell go env GOPATH)/bin
@@ -34,9 +35,10 @@ KUBE_LINTER := $(GOBIN)/kube-linter
 UPLIFT := $(GOBIN)/uplift
 SWAGGER := $(GOBIN)/swagger
 GIT_CHGLOG := $(GOBIN)/git-chglog
+KUBEBUILDER := $(GOBIN)/kubebuilder
 
 .PHONY: tools.install
-tools.install: tools.install.golangci-lint tools.install.buf tools.install.protoc-plugins tools.install.air tools.install.mockgen tools.install.kube-linter tools.install.uplift tools.install.swagger tools.install.git-chglog ## Install all development tools
+tools.install: tools.install.golangci-lint tools.install.buf tools.install.protoc-plugins tools.install.air tools.install.mockgen tools.install.kube-linter tools.install.uplift tools.install.swagger tools.install.git-chglog tools.install.kubebuilder ## Install all development tools
 	$(call print_info,"All tools installed successfully")
 
 .PHONY: tools.install.golangci-lint
@@ -132,6 +134,23 @@ tools.install.git-chglog: ## Install git-chglog for changelog generation
 		$(call print_info,"git-chglog already installed"); \
 	fi
 
+.PHONY: tools.install.kubebuilder
+tools.install.kubebuilder: ## Install Kubebuilder for Kubernetes operator development
+	$(call print_target,$@)
+	@if [ ! -f "$(KUBEBUILDER)" ]; then \
+		echo "Installing Kubebuilder $(KUBEBUILDER_VERSION)..."; \
+		OS=$$(uname -s | tr '[:upper:]' '[:lower:]'); \
+		ARCH=$$(uname -m | sed 's/x86_64/amd64/'); \
+		if [ "$$ARCH" = "aarch64" ]; then ARCH="arm64"; fi; \
+		curl -L -o kubebuilder "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KUBEBUILDER_VERSION)/kubebuilder_$${OS}_$${ARCH}"; \
+		chmod +x kubebuilder; \
+		mv kubebuilder $(KUBEBUILDER); \
+		echo "Kubebuilder $(KUBEBUILDER_VERSION) installed to $(KUBEBUILDER)"; \
+	else \
+		INSTALLED_VERSION=$$($(KUBEBUILDER) version 2>/dev/null | grep -oE 'KubeBuilderVersion:"[^"]*"' | cut -d'"' -f2 || echo "unknown"); \
+		echo "Kubebuilder $$INSTALLED_VERSION already installed"; \
+	fi
+
 .PHONY: tools.verify.swagger
 tools.verify.swagger: ## Verify swagger is installed
 	@command -v swagger >/dev/null 2>&1 || $(MAKE) tools.install.swagger
@@ -143,6 +162,10 @@ tools.verify.git-chglog: ## Verify git-chglog is installed
 .PHONY: tools.verify.uplift
 tools.verify.uplift: ## Verify uplift is installed
 	@command -v uplift >/dev/null 2>&1 || $(MAKE) tools.install.uplift
+
+.PHONY: tools.verify.kubebuilder
+tools.verify.kubebuilder: ## Verify kubebuilder is installed
+	@[ -f "$(KUBEBUILDER)" ] || $(MAKE) tools.install.kubebuilder
 
 .PHONY: tools.verify
 tools.verify: ## Verify all tools are installed
@@ -160,6 +183,7 @@ tools.verify: ## Verify all tools are installed
 	@command -v uplift >/dev/null 2>&1 && echo "✓ uplift: $$(uplift version)" || echo "✗ uplift not found"
 	@command -v swagger >/dev/null 2>&1 && echo "✓ swagger: $$(swagger version)" || echo "✗ swagger not found"
 	@command -v git-chglog >/dev/null 2>&1 && echo "✓ git-chglog: $$(git-chglog --version)" || echo "✗ git-chglog not found"
+	@[ -f "$(KUBEBUILDER)" ] && echo "✓ kubebuilder: $$($(KUBEBUILDER) version 2>/dev/null | grep -oE 'KubeBuilderVersion:"[^"]*"' | cut -d'"' -f2 || echo 'installed')" || echo "✗ kubebuilder not found"
 
 .PHONY: tools.clean
 tools.clean: ## Remove all installed tools
@@ -170,7 +194,7 @@ tools.clean: ## Remove all installed tools
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		rm -f $(GOLANGCI_LINT) $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) \
 			$(PROTOC_GEN_GRPC_GATEWAY) $(PROTOC_GEN_OPENAPIV2) $(AIR) $(MOCKGEN) \
-			$(KUBE_LINTER) $(UPLIFT) $(SWAGGER) $(GIT_CHGLOG); \
-		$(call print_success,"All tools removed"); \
+			$(KUBE_LINTER) $(UPLIFT) $(SWAGGER) $(GIT_CHGLOG) $(KUBEBUILDER); \
+		$(call print_info,"All tools removed"); \
 	fi
 

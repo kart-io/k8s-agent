@@ -5,28 +5,31 @@
 package initializers
 
 import (
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/internal/monitor/storage"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
 // DatabaseInitializer wraps the generic database initializer with monitor-specific configuration.
+//
+// DESIGN NOTE: This is a thin wrapper that:
+// 1. Embeds pkg/initializers.DatabaseInitializer for standard lifecycle management
+// 2. Provides Storage() method for backward compatibility with existing monitor code
+// 3. Can be extended with monitor-specific models via WithAutoMigrate() when needed
 type DatabaseInitializer struct {
 	*pkginitializers.DatabaseInitializer
-	opts  *commonapp.StandardOptions
+	opts   *commonapp.StandardOptions
 	logger core.Logger
-	store *storage.MySQLStorage // Cached storage instance
+	store  *storage.MySQLStorage // Lazily initialized storage wrapper
 }
 
 // NewDatabaseInitializer creates a database initializer for monitor service.
 func NewDatabaseInitializer(cfg *commonapp.StandardOptions, logger core.Logger) *DatabaseInitializer {
-	// Create the base initializer
+	// Create the base initializer with standard database configuration
 	dbInit := pkginitializers.NewDatabaseInitializer(cfg.Database, logger)
 
-	// Configure auto-migration if enabled
-	// Note: Monitor models should be defined in internal/monitor/models package
-	// When models are created, uncomment the following:
+	// TODO: Configure auto-migration when monitor models are defined
 	// if cfg.Database.AutoMigrate {
 	//     dbInit.WithAutoMigrate(&models.Metric{}, &models.Alert{}, ...)
 	// }
@@ -61,4 +64,3 @@ func (d *DatabaseInitializer) Storage() *storage.MySQLStorage {
 func (d *DatabaseInitializer) Store() interface{} {
 	return d.Storage()
 }
-

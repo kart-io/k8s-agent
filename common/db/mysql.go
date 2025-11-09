@@ -19,6 +19,7 @@ type MySQLOptions struct {
 	user            string
 	password        string
 	database        string
+	charset         string
 	maxOpenConns    int
 	maxIdleConns    int
 	connMaxLifetime time.Duration
@@ -91,6 +92,13 @@ func WithLogLevel(level string) MySQLOption {
 	}
 }
 
+// WithCharset 设置字符集
+func WithCharset(charset string) MySQLOption {
+	return func(o *MySQLOptions) {
+		o.charset = charset
+	}
+}
+
 // defaultMySQLOptions 返回默认 MySQL 配置
 func defaultMySQLOptions() *MySQLOptions {
 	return &MySQLOptions{
@@ -99,6 +107,7 @@ func defaultMySQLOptions() *MySQLOptions {
 		user:            "root",
 		password:        "",
 		database:        "test",
+		charset:         "utf8mb4",
 		maxOpenConns:    100,
 		maxIdleConns:    10,
 		connMaxLifetime: time.Hour,
@@ -108,12 +117,17 @@ func defaultMySQLOptions() *MySQLOptions {
 
 // MySQLClient MySQL 客户端
 type MySQLClient struct {
-	DB     *gorm.DB
+	db     *gorm.DB
 	logger core.Logger
 }
 
+// DB 返回底层的 gorm.DB 实例
+func (c *MySQLClient) DB() *gorm.DB {
+	return c.db
+}
+
 // NewMySQL 创建 MySQL 连接
-func NewMySQL(log core.Logger, opts ...MySQLOption) (*MySQLClient, error) {
+func  NewMySQL(log core.Logger, opts ...MySQLOption) (*MySQLClient, error) {
 	// 应用默认配置
 	options := defaultMySQLOptions()
 
@@ -122,10 +136,16 @@ func NewMySQL(log core.Logger, opts ...MySQLOption) (*MySQLClient, error) {
 		opt(options)
 	}
 
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		options.user, options.password, options.host, options.port, options.database,
+	// 构建 DSN
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
+		options.user,
+		options.password,
+		options.host,
+		options.port,
+		options.database,
+		options.charset,
 	)
+	log.Infow("Connecting to MySQL", "dsn", dsn)
 
 	// GORM 日志级别
 	gormLogLevel := logger.Silent
@@ -167,16 +187,15 @@ func NewMySQL(log core.Logger, opts ...MySQLOption) (*MySQLClient, error) {
 		"port", options.port,
 		"database", options.database,
 	)
-
 	return &MySQLClient{
-		DB:     db,
+		db:     db,
 		logger: log.With("component", "mysql"),
 	}, nil
 }
 
 // Health 检查数据库健康
 func (c *MySQLClient) Health(ctx context.Context) error {
-	sqlDB, err := c.DB.DB()
+	sqlDB, err := c.db.DB()
 	if err != nil {
 		return fmt.Errorf("failed to get database: %w", err)
 	}
@@ -190,7 +209,7 @@ func (c *MySQLClient) Health(ctx context.Context) error {
 
 // Close 关闭连接
 func (c *MySQLClient) Close() error {
-	sqlDB, err := c.DB.DB()
+	sqlDB, err := c.db.DB()
 	if err != nil {
 		return err
 	}
@@ -207,7 +226,7 @@ func (c *MySQLClient) Shutdown(ctx context.Context) error {
 // AutoMigrate 自动迁移数据库表结构
 func (c *MySQLClient) AutoMigrate(models ...interface{}) error {
 	c.logger.Info("Running database migrations")
-	if err := c.DB.AutoMigrate(models...); err != nil {
+	if err := c.db.AutoMigrate(models...); err != nil {
 		return fmt.Errorf("failed to auto migrate: %w", err)
 	}
 	c.logger.Info("Database migrations completed successfully")
@@ -263,7 +282,7 @@ func NewMySQLFromDSN(log core.Logger, dsn string, opts ...MySQLOption) (*MySQLCl
 	log.Infow("MySQL connected", "dsn", dsn)
 
 	return &MySQLClient{
-		DB:     db,
+		db:     db,
 		logger: log.With("component", "mysql"),
 	}, nil
 }

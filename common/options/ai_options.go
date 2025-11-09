@@ -12,8 +12,8 @@ import (
 
 const (
 	// Default timeout and retry settings
-	defaultAITimeout   = 30 * time.Second
-	defaultMaxRetries  = 3
+	defaultAITimeout  = 30 * time.Second
+	defaultMaxRetries = 3
 )
 
 // AIOptions contains AI service configuration options.

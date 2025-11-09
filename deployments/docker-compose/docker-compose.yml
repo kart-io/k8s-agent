@@ -22,6 +22,27 @@ services:
       timeout: 5s
       retries: 5
 
+  # MySQL - Auth service database
+  mysql:
+    image: mysql:8.0
+    container_name: aetherius-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: user_auth
+      MYSQL_USER: aetherius
+      MYSQL_PASSWORD: aetherius_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - aetherius
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Redis - 缓存
   redis:
     image: redis:7-alpine
@@ -177,6 +198,7 @@ networks:
 
 volumes:
   postgres_data:
+  mysql_data:
   redis_data:
   neo4j_data:
   neo4j_logs:

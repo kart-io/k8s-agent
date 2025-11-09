@@ -7,12 +7,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 
-	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	// "github.com/kart-io/k8s-agent/common/middleware" // TODO: Re-enable when needed.
 	commonserver "github.com/kart-io/k8s-agent/common/server"
 	"github.com/kart-io/k8s-agent/internal/agent-manager/api"
 	agentgrpc "github.com/kart-io/k8s-agent/internal/agent-manager/grpc"
 	agentv1 "github.com/kart-io/k8s-agent/pkg/api/agent/v1"
+	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	// "github.com/kart-io/k8s-agent/pkg/idempotent" // TODO: Re-enable when idempotent middleware is implemented.
 	commoninitializers "github.com/kart-io/k8s-agent/pkg/initializers"
@@ -21,38 +21,34 @@ import (
 )
 
 // HTTPServerInitializer is a wrapper around the common HTTP server initializer.
+// Refactored to follow ServiceInitializer pattern: only depends on ServiceInitializer.
 type HTTPServerInitializer struct {
 	standardInit *commoninitializers.HTTPServerInitializer
 	logger       core.Logger
 	opts         *commonapp.StandardOptions
 	apiServer    *api.Server // Reused for its handler methods and dependency injection
 
-	// Dependencies for handlers
-	registry   *RegistryInitializer
-	dispatcher *DispatcherInitializer
-	dbInit     *DatabaseInitializer
-	redisInit  *RedisInitializer
-	natsInit   *NATSInitializer
+	// Single dependency: ServiceInitializer (delegates service access)
+	serviceInit *ServiceInitializer
+	dbInit      *DatabaseInitializer
+	redisInit   *RedisInitializer
 }
 
 // NewHTTPServerInitializer creates a new HTTP server initializer.
+// Dependencies: ONLY ServiceInitializer (no direct access to Registry/Dispatcher/NATS)
 func NewHTTPServerInitializer(
 	opts *commonapp.StandardOptions,
 	logger core.Logger,
-	registry *RegistryInitializer,
-	dispatcher *DispatcherInitializer,
+	serviceInit *ServiceInitializer,
 	dbInit *DatabaseInitializer,
 	redisInit *RedisInitializer,
-	natsInit *NATSInitializer,
 ) *HTTPServerInitializer {
 	return &HTTPServerInitializer{
-		opts:       opts,
-		logger:     logger,
-		registry:   registry,
-		dispatcher: dispatcher,
-		dbInit:     dbInit,
-		redisInit:  redisInit,
-		natsInit:   natsInit,
+		opts:        opts,
+		logger:      logger,
+		serviceInit: serviceInit,
+		dbInit:      dbInit,
+		redisInit:   redisInit,
 	}
 }
 
@@ -67,6 +63,7 @@ func (h *HTTPServerInitializer) Priority() int {
 func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	// Create the api.Server which holds all dependencies and handler logic.
 	// We will use it to register routes, but not to start the server itself.
+	// Get services from ServiceInitializer (delegation pattern)
 	h.apiServer = api.NewServer(
 		types.ServerConfig{
 			// This config is now managed by the common server,
@@ -74,9 +71,9 @@ func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
 			Host: h.opts.Server.Host,
 			Port: h.opts.Server.Port,
 		},
-		h.registry.Registry(),
-		h.natsInit.EventProcessor(),
-		h.dispatcher.Dispatcher(),
+		h.serviceInit.Registry(),       // Get from ServiceInitializer
+		h.serviceInit.EventProcessor(), // Get from ServiceInitializer
+		h.serviceInit.Dispatcher(),     // Get from ServiceInitializer
 		h.dbInit.Store(),
 		h.redisInit.Store(),
 		h.logger,
@@ -184,31 +181,30 @@ func (h *HTTPServerInitializer) Close(ctx context.Context) error {
 }
 
 // GRPCServerInitializer is a wrapper around the common gRPC server initializer.
+// Refactored to follow ServiceInitializer pattern: only depends on ServiceInitializer.
 type GRPCServerInitializer struct {
 	standardInit *commoninitializers.GRPCServerInitializer
 	logger       core.Logger
 	opts         *commonapp.StandardOptions
 
-	// Dependencies for services
-	registry   *RegistryInitializer
-	dispatcher *DispatcherInitializer
-	dbInit     *DatabaseInitializer
+	// Single dependency: ServiceInitializer (delegates service access)
+	serviceInit *ServiceInitializer
+	dbInit      *DatabaseInitializer
 }
 
 // NewGRPCServerInitializer creates a new gRPC server initializer.
+// Dependencies: ONLY ServiceInitializer (no direct access to Registry/Dispatcher)
 func NewGRPCServerInitializer(
 	opts *commonapp.StandardOptions,
 	logger core.Logger,
-	registry *RegistryInitializer,
-	dispatcher *DispatcherInitializer,
+	serviceInit *ServiceInitializer,
 	dbInit *DatabaseInitializer,
 ) *GRPCServerInitializer {
 	return &GRPCServerInitializer{
-		opts:       opts,
-		logger:     logger,
-		registry:   registry,
-		dispatcher: dispatcher,
-		dbInit:     dbInit,
+		opts:        opts,
+		logger:      logger,
+		serviceInit: serviceInit,
+		dbInit:      dbInit,
 	}
 }
 
@@ -226,9 +222,14 @@ func (g *GRPCServerInitializer) Initialize(ctx context.Context) error {
 		return nil
 	}
 
-	// Create service instances that will handle gRPC requests
-	agentService := agentgrpc.NewAgentServiceServer(g.registry.Registry(), g.logger)
-	commandService := agentgrpc.NewCommandServiceServer(g.dispatcher.Dispatcher(), g.dbInit.Store(), g.logger)
+	// Get services from ServiceInitializer (delegation pattern)
+	// This ensures services are created only once and shared between HTTP/gRPC
+	registry := g.serviceInit.Registry()
+	dispatcher := g.serviceInit.Dispatcher()
+
+	// Create gRPC service servers (protocol wrappers)
+	agentService := agentgrpc.NewAgentServiceServer(registry, g.logger)
+	commandService := agentgrpc.NewCommandServiceServer(dispatcher, g.dbInit.Store(), g.logger)
 
 	serverConfig := &commoninitializers.GRPCServerConfig{
 		Name:     g.Name(),

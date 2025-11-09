@@ -342,12 +342,12 @@ func TestSuccessList(t *testing.T) {
 // TestPaginated tests the Paginated function
 func TestPaginated(t *testing.T) {
 	tests := []struct {
-		name           string
-		data           interface{}
-		total          int64
-		page           int
-		pageSize       int
-		expectedPages  int
+		name          string
+		data          interface{}
+		total         int64
+		page          int
+		pageSize      int
+		expectedPages int
 	}{
 		{
 			name:          "first page",

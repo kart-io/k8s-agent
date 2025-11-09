@@ -7,34 +7,19 @@
 package app
 
 import (
-	"github.com/google/wire"
 	"github.com/kart-io/k8s-agent/cmd/gateway/app/options"
-	"github.com/kart-io/k8s-agent/internal/gateway/initializers"
-	initializers2 "github.com/kart-io/k8s-agent/pkg/initializers"
+	"github.com/kart-io/k8s-agent/pkg/initializers"
+	"github.com/kart-io/logger/core"
 )
 
 // Injectors from wire.go:
 
-// InitializeGatewayComponents automatically injects all components using Wire.
-func InitializeGatewayComponents(opts *options.ServerOptions) (*GatewayComponents, error) {
-	logger, err := ProvideLogger(opts)
-	if err != nil {
-		return nil, err
-	}
-	redisInitializer := initializers.NewRedisInitializer(opts, logger)
-	httpServerInitializer := initializers.NewHTTPServerInitializer(opts, logger, redisInitializer)
+// InitializeGatewayContainer uses Wire to inject dependencies.
+func InitializeGatewayContainer(opts *options.ServerOptions, logger core.Logger) (*GatewayContainer, error) {
+	redisInitializer := NewRedisInitializer(opts, logger)
+	httpServerInitializer := NewHTTPServerInitializer(opts, logger, redisInitializer)
 	healthOptions := opts.Health
-	healthCheckInitializer := initializers2.NewHealthCheckInitializer(healthOptions, logger)
-	gatewayComponents := NewGatewayComponents(redisInitializer, httpServerInitializer, healthCheckInitializer)
-	return gatewayComponents, nil
+	healthCheckInitializer := initializers.NewHealthCheckInitializer(healthOptions, logger)
+	gatewayContainer := NewGatewayContainer(redisInitializer, httpServerInitializer, healthCheckInitializer)
+	return gatewayContainer, nil
 }
-
-// wire.go:
-
-// InitializerSet Wire dependency set for all initializers.
-var InitializerSet = wire.NewSet(
-	ProvideLogger, initializers.NewRedisInitializer, initializers.NewHTTPServerInitializer,
-)
-
-// HealthInitializerSet Wire dependency set for health check.
-var HealthInitializerSet = wire.NewSet(initializers2.NewHealthCheckInitializer, wire.FieldsOf(new(*options.ServerOptions), "Health"))

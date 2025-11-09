@@ -596,7 +596,7 @@ func TestOptionsCompleteAndValidate(t *testing.T) {
 		expectChange bool
 	}{
 		{
-			name: "empty options - complete but fail validation",
+			name:  "empty options - complete but fail validation",
 			input: &Options{
 				// Missing required fields: user, database
 			},

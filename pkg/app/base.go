@@ -87,10 +87,11 @@ func (b *BaseApplication) StandardInitialize(ctx context.Context, opts Options) 
 
 // InitializeHelper 是一个辅助函数，用于实现标准的 Initialize 方法。
 // 用法示例：
-//   func (a *MyApp) Initialize(ctx context.Context, opts commonapp.Options) error {
-//       a.opts = opts.(*options.ServerOptions)
-//       return a.BaseApplication.InitializeHelper(ctx, opts)
-//   }
+//
+//	func (a *MyApp) Initialize(ctx context.Context, opts commonapp.Options) error {
+//	    a.opts = opts.(*options.ServerOptions)
+//	    return a.BaseApplication.InitializeHelper(ctx, opts)
+//	}
 type InitializeHelper struct {
 	*BaseApplication
 }
@@ -101,4 +102,3 @@ func NewInitializeHelper(name string) *InitializeHelper {
 		BaseApplication: NewBaseApplication(name),
 	}
 }
-

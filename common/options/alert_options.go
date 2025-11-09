@@ -14,18 +14,18 @@ import (
 // AlertOptions 告警配置
 // 支持多种告警通道：Email, Webhook, Slack
 type AlertOptions struct {
-	Enabled       bool              `mapstructure:"enabled" yaml:"enabled" json:"enabled"`
-	CheckInterval time.Duration     `mapstructure:"check_interval" yaml:"check_interval" json:"check_interval"`
-	Email         *EmailOptions     `mapstructure:"email" yaml:"email" json:"email,omitempty"`
-	Webhook       *WebhookOptions   `mapstructure:"webhook" yaml:"webhook" json:"webhook,omitempty"`
-	Slack         *SlackOptions     `mapstructure:"slack" yaml:"slack" json:"slack,omitempty"`
+	Enabled       bool            `mapstructure:"enabled" yaml:"enabled" json:"enabled"`
+	CheckInterval time.Duration   `mapstructure:"check_interval" yaml:"check_interval" json:"check_interval"`
+	Email         *EmailOptions   `mapstructure:"email" yaml:"email" json:"email,omitempty"`
+	Webhook       *WebhookOptions `mapstructure:"webhook" yaml:"webhook" json:"webhook,omitempty"`
+	Slack         *SlackOptions   `mapstructure:"slack" yaml:"slack" json:"slack,omitempty"`
 }
 
 // WebhookOptions Webhook 告警配置
 type WebhookOptions struct {
-	Enabled bool          `mapstructure:"enabled" yaml:"enabled" json:"enabled"`
-	URL     string        `mapstructure:"url" yaml:"url" json:"url"`
-	Timeout time.Duration `mapstructure:"timeout" yaml:"timeout" json:"timeout"`
+	Enabled bool              `mapstructure:"enabled" yaml:"enabled" json:"enabled"`
+	URL     string            `mapstructure:"url" yaml:"url" json:"url"`
+	Timeout time.Duration     `mapstructure:"timeout" yaml:"timeout" json:"timeout"`
 	Headers map[string]string `mapstructure:"headers" yaml:"headers" json:"headers,omitempty"`
 }
 

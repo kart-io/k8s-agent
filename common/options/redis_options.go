@@ -1,11 +1,15 @@
 package options
 
 import (
+	"context"
+	"errors"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/pflag"
 
 	"github.com/kart-io/k8s-agent/common/options/validation"
+	"github.com/kart-io/logger/core"
 )
 
 // RedisOptions Redis配置
@@ -197,4 +201,32 @@ func WithRedisWriteTimeout(timeout time.Duration) func(*RedisOptions) {
 	return func(o *RedisOptions) {
 		o.WriteTimeout = timeout
 	}
+}
+
+// 连接redis
+func (o *RedisOptions) ConnectRedis(log core.Logger) (*redis.Client, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:         o.Addr,
+		Password:     o.Password,
+		DB:           o.DB,
+		PoolSize:     o.PoolSize,
+		MinIdleConns: o.MinIdleConns,
+		DialTimeout:  o.DialTimeout,
+		ReadTimeout:  o.ReadTimeout,
+		WriteTimeout: o.WriteTimeout,
+	})
+	return client, nil
+}
+
+// Health 检查 Redis 健康状态
+func (o *RedisOptions) Health(ctx context.Context, log core.Logger) error {
+	client, err := o.ConnectRedis(log)
+	if err != nil {
+		return errors.New("failed to connect to Redis: " + err.Error())
+	}
+	defer client.Close()
+	if err := client.Ping(ctx).Err(); err != nil {
+		return errors.New("failed to ping Redis: " + err.Error())
+	}
+	return nil
 }
