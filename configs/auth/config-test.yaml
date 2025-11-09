@@ -1,0 +1,60 @@
+# Auth Service Test Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  mode: "debug" # debug, release
+  read_timeout: 10s
+  write_timeout: 10s
+
+grpc:
+  enable: true
+  host: "0.0.0.0"
+  port: 9091  # Changed from 9090 to avoid conflict
+
+health:
+  enable: true
+  port: 8088
+
+database:
+  host: "localhost"
+  port: 3306
+  user: "aetherius"
+  password: "aetherius123"
+  database: "aetherius_auth"
+  charset: "utf8mb4"
+  parse_time: true
+  max_idle_conns: 5
+  max_open_conns: 50
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: "redis_pass"
+  db: 0
+  pool_size: 5
+
+jwt:
+  secret: "test-secret-key-for-testing-only"
+  expires_hours: 1  # Shorter expiry for testing
+
+logging:
+  engine: "zap" # zap (default, high-performance), slog (standard library)
+  level: "info" # debug, info, warn, error
+  format: "json" # json, text
+  output: "stdout" # stdout, stderr, or file path
+  otlp:
+    enabled: false # Enable OTLP export for distributed tracing
+    endpoint: "http://localhost:4317" # OTLP collector endpoint
+    insecure: true # Use insecure connection (true for local dev)
+
+# Email notification configuration for forced logout
+email:
+  enabled: false # Set true when SMTP configured
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_user: "notifications@example.com"
+  smtp_password: ""
+  from_address: "noreply@k8s-agent.com"
+  from_name: "K8s Agent Security"
+  template_dir: "templates/email"
