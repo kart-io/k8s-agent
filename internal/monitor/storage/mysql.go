@@ -37,7 +37,8 @@ func NewMySQLStorage(opts *options.MySQLOptions, logger core.Logger) (*MySQLStor
 	}
 
 	// 获取 *sql.DB
-	sqlDB, err := mysqlClient.DB.DB()
+	gormDB := mysqlClient.DB()
+	sqlDB, err := gormDB.DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get sql.DB: %w", err)
 	}
