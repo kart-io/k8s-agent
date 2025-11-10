@@ -127,7 +127,7 @@ func (c *MySQLClient) DB() *gorm.DB {
 }
 
 // NewMySQL 创建 MySQL 连接
-func  NewMySQL(log core.Logger, opts ...MySQLOption) (*MySQLClient, error) {
+func NewMySQL(log core.Logger, opts ...MySQLOption) (*MySQLClient, error) {
 	// 应用默认配置
 	options := defaultMySQLOptions()
 

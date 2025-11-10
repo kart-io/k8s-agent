@@ -8,10 +8,6 @@ bin/
 *.dylib
 *.test
 *.out
-collect-agent/collect-agent
-agent-manager/agent-manager
-orchestrator-service/orchestrator-service
-reasoning-service-go/reasoning-service-go
 
 # Go workspace file
 go.work
@@ -137,7 +133,6 @@ Thumbs.db
 
 # Data directories
 data/
-models/
 *.dump
 
 # Configurations

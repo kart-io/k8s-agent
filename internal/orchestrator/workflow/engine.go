@@ -8,16 +8,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	goredis "github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 
-	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/types"
 	"github.com/kart-io/logger/core"
 )
 
 // Engine manages workflow execution.
 type Engine struct {
-	store    *storage.MySQLStore
-	cache    *storage.RedisStore
+	db       *gorm.DB        // Direct GORM DB access
+	cache    *goredis.Client // Direct Redis client access
 	executor *Executor
 	logger   core.Logger
 
@@ -41,13 +42,13 @@ type Engine struct {
 
 // NewEngine creates a new workflow engine.
 func NewEngine(
-	store *storage.MySQLStore,
-	cache *storage.RedisStore,
+	db *gorm.DB,
+	cache *goredis.Client,
 	executor *Executor,
 	logger core.Logger,
 ) *Engine {
 	return &Engine{
-		store:              store,
+		db:                 db,
 		cache:              cache,
 		executor:           executor,
 		logger:             logger,
@@ -86,9 +87,9 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 	e.logger.Info("🎬 Starting workflow execution",
 		"workflow_id", workflowID)
 
-	// Load workflow definition
-	workflow, err := e.store.GetWorkflow(ctx, workflowID)
-	if err != nil {
+	// Load workflow definition directly from DB
+	var workflow types.Workflow
+	if err := e.db.WithContext(ctx).First(&workflow, "id = ?", workflowID).Error; err != nil {
 		e.logger.Error("❌ Failed to load workflow from database",
 			"workflow_id", workflowID,
 			"error", err)
@@ -121,8 +122,8 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 	e.logger.Info("📝 Created workflow execution instance",
 		"execution_id", executionID)
 
-	// Save execution
-	if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+	// Save execution directly to DB
+	if err := e.db.WithContext(ctx).Save(execution).Error; err != nil {
 		e.logger.Error("❌ Failed to save execution to database",
 			"execution_id", executionID,
 			"error", err)
@@ -157,7 +158,7 @@ func (e *Engine) StartWorkflow(ctx context.Context, workflowID string, triggerEv
 	e.mu.Unlock()
 
 	// Start execution asynchronously
-	go e.executeWorkflow(workflowCtx, workflow, execution)
+	go e.executeWorkflow(workflowCtx, &workflow, execution)
 
 	e.logger.Info("Workflow execution started",
 		"execution_id", execution.ID,
@@ -182,7 +183,9 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 
 	// Update status to running
 	execution.Status = types.ExecutionStatusRunning
-	if err := e.store.UpdateWorkflowExecutionStatus(ctx, execution.ID, types.ExecutionStatusRunning); err != nil {
+	if err := e.db.WithContext(ctx).Model(&types.WorkflowExecution{}).
+		Where("id = ?", execution.ID).
+		Update("status", types.ExecutionStatusRunning).Error; err != nil {
 		e.logger.Errorw("Failed to update workflow execution status to running",
 			"execution_id", execution.ID,
 			"error", err)
@@ -238,7 +241,7 @@ func (e *Engine) executeWorkflow(ctx context.Context, workflow *types.Workflow, 
 		}
 
 		// Save progress
-		if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+		if err := e.db.WithContext(ctx).Save(execution).Error; err != nil {
 			e.logger.Error("Failed to save workflow execution progress",
 				"execution_id", execution.ID,
 				"error", err)
@@ -508,7 +511,7 @@ func (e *Engine) executeFailureBranch(ctx context.Context, workflow *types.Workf
 		}
 
 		// Save progress
-		if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+		if err := e.db.WithContext(ctx).Save(execution).Error; err != nil {
 			e.logger.Error("Failed to save workflow execution progress",
 				"execution_id", execution.ID,
 				"error", err)
@@ -537,7 +540,7 @@ func (e *Engine) completeExecution(ctx context.Context, execution *types.Workflo
 	}
 
 	// Save final state - critical operation
-	if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+	if err := e.db.WithContext(ctx).Save(execution).Error; err != nil {
 		e.logger.Error("CRITICAL: Failed to save final workflow execution state",
 			"execution_id", execution.ID,
 			"status", string(status),
@@ -575,7 +578,7 @@ func (e *Engine) CancelExecution(ctx context.Context, executionID string) error 
 	execution.CompletedAt = &completedAt
 	execution.Duration = completedAt.Sub(execution.StartedAt)
 
-	return e.store.SaveWorkflowExecution(ctx, execution)
+	return e.db.WithContext(ctx).Save(execution).Error
 }
 
 // GetExecution retrieves execution details.
@@ -589,7 +592,11 @@ func (e *Engine) GetExecution(ctx context.Context, executionID string) (*types.W
 	e.mu.RUnlock()
 
 	// Fallback to database
-	return e.store.GetWorkflowExecution(ctx, executionID)
+	var execution types.WorkflowExecution
+	if err := e.db.WithContext(ctx).First(&execution, "id = ?", executionID).Error; err != nil {
+		return nil, fmt.Errorf("failed to get workflow execution %s: %w", executionID, err)
+	}
+	return &execution, nil
 }
 
 // GetStatistics returns engine statistics.
@@ -679,7 +686,7 @@ func (e *Engine) cleanupExecution(ctx context.Context, execution *types.Workflow
 	}
 
 	// 5. Save cleanup state
-	if err := e.store.SaveWorkflowExecution(context.Background(), execution); err != nil {
+	if err := e.db.WithContext(context.Background()).Save(execution).Error; err != nil {
 		e.logger.Error("Failed to save execution cleanup state",
 			"execution_id", execution.ID,
 			"error", err)
@@ -720,7 +727,7 @@ func (e *Engine) CancelExecutionWithCleanup(ctx context.Context, executionID str
 	execution.Error = reason
 
 	// Save final state
-	if err := e.store.SaveWorkflowExecution(ctx, execution); err != nil {
+	if err := e.db.WithContext(ctx).Save(execution).Error; err != nil {
 		e.logger.Error("Failed to save cancelled execution state",
 			"execution_id", executionID,
 			"error", err)

@@ -23,6 +23,7 @@ func NewInfrastructureInitializers(opts *commonapp.StandardOptions, logger core.
 	// Create database initializer with auto-migration
 	dbInit := &DatabaseInitializer{
 		DatabaseInitializer: pkginitializers.NewDatabaseInitializer(opts.Database, logger),
+		logger:              logger,
 	}
 	if opts.Database.AutoMigrate {
 		dbInit.WithAutoMigrate(
@@ -40,6 +41,7 @@ func NewInfrastructureInitializers(opts *commonapp.StandardOptions, logger core.
 	// Create Redis initializer
 	redisInit := &RedisInitializer{
 		RedisInitializer: pkginitializers.NewRedisInitializer(opts.Redis, logger),
+		logger:           logger,
 	}
 
 	return &InfrastructureInitializers{
@@ -48,34 +50,34 @@ func NewInfrastructureInitializers(opts *commonapp.StandardOptions, logger core.
 	}
 }
 
-// DatabaseInitializer wraps the generic database initializer with service-specific configuration.
+// DatabaseInitializer wraps the generic database initializer with service-specific storage.
 type DatabaseInitializer struct {
 	*pkginitializers.DatabaseInitializer
-	store *storage.MySQLStore
+	logger core.Logger
+	store  *storage.MySQLStore
 }
 
-// Store returns the storage instance (creates on first call).
+// Store returns the storage instance (creates on first call using common/storage/mysql.Client).
 func (d *DatabaseInitializer) Store() *storage.MySQLStore {
 	if d.store == nil && d.Client() != nil {
-		d.store = &storage.MySQLStore{
-			MySQLClient: d.Client(),
-		}
+		// ✅ 使用 common/storage/mysql.Client 创建业务 storage
+		d.store = storage.NewMySQLStore(d.Client(), d.logger)
 	}
 	return d.store
 }
 
-// RedisInitializer wraps the generic Redis initializer with service-specific configuration.
+// RedisInitializer wraps the generic Redis initializer with service-specific storage.
 type RedisInitializer struct {
 	*pkginitializers.RedisInitializer
-	store *storage.RedisStore
+	logger core.Logger
+	store  *storage.RedisStore
 }
 
-// Store returns the storage instance (creates on first call).
+// Store returns the storage instance (creates on first call using redis.Client).
 func (r *RedisInitializer) Store() *storage.RedisStore {
-	if r.store == nil && r.RedisClient() != nil {
-		r.store = &storage.RedisStore{
-			Client: r.RedisClient(),
-		}
+	if r.store == nil && r.Client() != nil {
+		// ✅ 使用 redis.Client 创建业务 storage
+		r.store = storage.NewRedisStore(r.Client(), r.logger)
 	}
 	return r.store
 }

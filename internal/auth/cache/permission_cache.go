@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 )
 
 const (

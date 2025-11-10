@@ -49,6 +49,11 @@ type OrchestratorApp struct {
 	bootstrap *bootstrap.Bootstrap
 	opts      *commonapp.StandardOptions
 	logger    core.Logger
+
+	// Infrastructure initializers
+	dbInit    *pkginitializers.DatabaseInitializer
+	redisInit *pkginitializers.RedisInitializer
+	natsInit  *pkginitializers.NATSInitializer
 }
 
 // Name returns the application name.
@@ -90,20 +95,24 @@ func (a *OrchestratorApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	a.bootstrap = bs
 
 	// Layer 1: Infrastructure (Priority 300-500)
-	// Database, Redis, and NATS configuration
-	infra := startup.NewInfrastructureInitializers(a.opts, a.logger)
-	bs.Register(infra.Database)
-	bs.Register(infra.Redis)
-	bs.Register(infra.NATS)
+	// Database, Redis, and NATS configuration - use pkg/initializers directly
+	a.dbInit = pkginitializers.NewDatabaseInitializer(a.opts.Database, a.logger)
+	bs.Register(a.dbInit)
+
+	a.redisInit = pkginitializers.NewRedisInitializer(a.opts.Redis, a.logger)
+	bs.Register(a.redisInit)
+
+	a.natsInit = pkginitializers.NewNATSInitializer(a.opts.NATS, a.logger)
+	bs.Register(a.natsInit)
 
 	// Layer 2: Core Business Services (Priority 600)
 	// Workflow engine, strategy manager, and workflow service
-	coreServices := startup.NewCoreServicesInitializer(a.opts, a.logger, infra)
+	coreServices := startup.NewCoreServicesInitializer(a.opts, a.logger, a.dbInit, a.redisInit)
 	bs.Register(coreServices)
 
 	// Layer 3: Event Processing (Priority 700)
 	// Event subscriber for NATS events
-	eventSubscriber := startup.NewEventSubscriberInitializer(a.logger, infra, coreServices)
+	eventSubscriber := startup.NewEventSubscriberInitializer(a.logger, a.natsInit, coreServices)
 	bs.Register(eventSubscriber)
 
 	// Layer 4: Server Layer (Priority 900-1000)

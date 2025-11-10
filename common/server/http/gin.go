@@ -28,7 +28,7 @@ type GinServer struct {
 //
 // 使用示例:
 //
-//	config := server.NewGinServerConfig(serverOpts).
+//	config := server.NewGinServerOptions(serverOpts).
 //	    WithCORS(corsOpts).
 //	    WithJWT(jwtOpts).
 //	    WithRateLimit(rateLimitOpts)
@@ -38,9 +38,9 @@ type GinServer struct {
 //
 //	httpInit := initializers.NewHTTPServerInitializer(config, logger)
 //	bootstrap.Register(httpInit)
-func NewGinServerFromFullConfig(log core.Logger, config *GinServerConfig) *GinServer {
+func NewGinServerFromFullConfig(log core.Logger, config *GinServerOptions) *GinServer {
 	if config == nil {
-		log.Fatalw("GinServerConfig is required")
+		log.Fatalw("GinServerOptions is required")
 	}
 
 	if config.Server == nil {
@@ -143,7 +143,7 @@ func (s *GinServer) Addr() string {
 
 // GetJWTMiddleware creates a JWT middleware from JWT config
 // Returns nil if no JWT config is provided
-func GetJWTMiddleware(config *GinServerConfig) *middleware.JWTMiddleware {
+func GetJWTMiddleware(config *GinServerOptions) *middleware.JWTMiddleware {
 	if config == nil || config.JWT == nil {
 		return nil
 	}

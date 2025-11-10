@@ -6,8 +6,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/kart-io/k8s-agent/common/db"
 	"github.com/kart-io/k8s-agent/common/options"
+	"github.com/kart-io/k8s-agent/common/storage/mysql"
 	"github.com/kart-io/k8s-agent/pkg/bootstrap"
 	"github.com/kart-io/logger/core"
 )
@@ -23,7 +23,7 @@ import (
 type DatabaseInitializer struct {
 	opts   *options.MySQLOptions
 	logger core.Logger
-	client *db.MySQLClient
+	client *mysql.Client // ✅ 使用 common/storage/mysql.Client
 
 	// 可选的自动迁移
 	autoMigrate bool
@@ -103,18 +103,8 @@ func (d *DatabaseInitializer) Initialize(ctx context.Context) error {
 		"database", d.opts.Database,
 	)
 
-	// 直接使用 db 包创建客户端
-	client, err := db.NewMySQL(d.logger,
-		db.WithHost(d.opts.Host),
-		db.WithPort(d.opts.Port),
-		db.WithUser(d.opts.User),
-		db.WithPassword(d.opts.Password),
-		db.WithDatabase(d.opts.Database),
-		db.WithMaxOpenConns(d.opts.MaxOpenConns),
-		db.WithMaxIdleConns(d.opts.MaxIdleConns),
-		db.WithConnMaxLifetime(d.opts.ConnMaxLifetime),
-		db.WithLogLevel(d.opts.LogLevel),
-	)
+	// 使用 common/storage/mysql 创建客户端
+	client, err := mysql.NewClient(d.opts, d.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create MySQL client: %w", err)
 	}
@@ -123,13 +113,15 @@ func (d *DatabaseInitializer) Initialize(ctx context.Context) error {
 
 	// 执行自动迁移（如果启用）
 	if d.autoMigrate && len(d.models) > 0 {
-		d.logger.Infow("Running database migrations",
-			"models", len(d.models),
+		d.logger.Infow("Running database auto-migration",
+			"models_count", len(d.models),
 		)
 		if err := d.client.AutoMigrate(d.models...); err != nil {
-			return fmt.Errorf("failed to auto-migrate: %w", err)
+			// 初始化失败时关闭连接
+			_ = d.client.Close()
+			return fmt.Errorf("failed to auto-migrate database: %w", err)
 		}
-		d.logger.Infow("Database migrations completed successfully")
+		d.logger.Infow("Database auto-migration completed successfully")
 	}
 
 	d.logger.Infow("Database initialized successfully")
@@ -169,9 +161,10 @@ func (d *DatabaseInitializer) HealthCheck(ctx context.Context) error {
 	return d.client.Health(ctx)
 }
 
-// DB 获取数据库实例
+// DB 获取 GORM 数据库实例
 //
-// 返回 GORM DB 实例，供业务逻辑使用。
+// 返回 GORM DB 实例，供业务逻辑直接使用。
+// 这是推荐的方式，业务服务直接使用 *gorm.DB 而不是通过存储层包装。
 //
 // 返回：
 //   - *gorm.DB: GORM 数据库实例
@@ -182,13 +175,13 @@ func (d *DatabaseInitializer) DB() *gorm.DB {
 	return d.client.DB()
 }
 
-// Store 返回数据库存储实例
+// Client 获取 MySQL 客户端实例
 //
-// 这是标准方法名，用于统一所有数据库初始化器的接口。
-// 返回 interface{} 以支持不同的存储类型。
+// 返回 common/storage/mysql.Client 实例。
+// 如果业务需要访问客户端的额外方法（如 AutoMigrate、Health 等），使用此方法。
 //
 // 返回：
-//   - interface{}: 数据库客户端实例（实际类型为 *db.MySQLClient）
-func (d *DatabaseInitializer) Store() interface{} {
+//   - *mysql.Client: MySQL 客户端实例
+func (d *DatabaseInitializer) Client() *mysql.Client {
 	return d.client
 }

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/common/db"
-	"github.com/kart-io/k8s-agent/common/options"
+	"gorm.io/gorm"
+
+	commonstorage "github.com/kart-io/k8s-agent/common/storage/mysql"
+	"github.com/kart-io/k8s-agent/pkg/types"
 	"github.com/kart-io/logger/core"
 )
 
@@ -26,43 +28,25 @@ func withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 }
 
 // MySQLStore implements storage using MySQL
+// It wraps common/storage/mysql.Client and provides business-specific methods
 type MySQLStore struct {
-	*db.MySQLClient // Embed common MySQL client
-	logger          core.Logger
+	client *commonstorage.Client // ✅ 使用 common/storage/mysql.Client
+	DB     *gorm.DB              // Exposed for backward compatibility with API layer
+	logger core.Logger
 }
 
-// NewMySQLStore creates a new MySQL store
-func NewMySQLStore(config *options.MySQLOptions, log core.Logger) (*MySQLStore, error) {
-	// Create MySQL client using common package with Options pattern
-	mysqlClient, err := config.ConnectMySQL(log)
-	if err != nil {
-		return nil, err
+// NewMySQLStore creates a new MySQL store from common/storage client
+func NewMySQLStore(client *commonstorage.Client, log core.Logger) *MySQLStore {
+	return &MySQLStore{
+		client: client,
+		DB:     client.DB(), // ✅ 暴露 GORM DB 以保持向后兼容
+		logger: log.With("component", "mysql-store"),
 	}
+}
 
-	store := &MySQLStore{
-		MySQLClient: mysqlClient,
-		logger:      log.With("component", "mysql"),
-	}
-
-	// Auto-migrate schemas
-	if err := store.AutoMigrate(
-		&types.Agent{},
-		&types.Event{},
-		&types.Metrics{},
-		&types.Command{},
-		&types.CommandResult{},
-		&types.Cluster{},
-		&types.AlertRule{},
-		&types.Alert{},
-	); err != nil {
-		return nil, err
-	}
-
-	store.logger.Infow("MySQL store initialized",
-		"host", config.Host,
-		"database", config.Database)
-
-	return store, nil
+// Health checks the database health
+func (s *MySQLStore) Health(ctx context.Context) error {
+	return s.client.Health(ctx)
 }
 
 // Agent operations
@@ -71,7 +55,7 @@ func NewMySQLStore(config *options.MySQLOptions, log core.Logger) (*MySQLStore, 
 func (s *MySQLStore) SaveAgent(ctx context.Context, agent *types.Agent) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	return s.DB().WithContext(ctx).Save(agent).Error
+	return s.client.DB().WithContext(ctx).Save(agent).Error
 }
 
 // GetAgent retrieves an agent by ID.
@@ -79,8 +63,8 @@ func (s *MySQLStore) GetAgent(ctx context.Context, id string) (*types.Agent, err
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
-	var agent
-	if err := s.DB().WithContext(ctx).First(&agent, "id = ?", id).Error; err != nil {
+	var agent types.Agent
+	if err := s.client.DB().WithContext(ctx).First(&agent, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("failed to get agent %s: %w", id, err)
 	}
 	return &agent, nil
@@ -92,7 +76,7 @@ func (s *MySQLStore) GetAgentByClusterID(ctx context.Context, clusterID string) 
 	defer cancel()
 
 	var agent types.Agent
-	if err := s.DB.WithContext(ctx).First(&agent, "cluster_id = ?", clusterID).Error; err != nil {
+	if err := s.client.DB().WithContext(ctx).First(&agent, "cluster_id = ?", clusterID).Error; err != nil {
 		return nil, fmt.Errorf("failed to get agent by cluster_id %s: %w", clusterID, err)
 	}
 	return &agent, nil
@@ -104,7 +88,7 @@ func (s *MySQLStore) ListAgents(ctx context.Context, status *types.AgentStatus) 
 	defer cancel()
 
 	var agents []*types.Agent
-	query := s.DB.WithContext(ctx)
+	query := s.client.DB().WithContext(ctx)
 
 	if status != nil {
 		query = query.Where("status = ?", *status)
@@ -121,7 +105,7 @@ func (s *MySQLStore) UpdateAgentStatus(ctx context.Context, id string, status ty
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
-	return s.DB.WithContext(ctx).Model(&types.Agent{}).
+	return s.client.DB().WithContext(ctx).Model(&types.Agent{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"status":     status,
@@ -134,7 +118,7 @@ func (s *MySQLStore) UpdateAgentHeartbeat(ctx context.Context, id string) error 
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
-	return s.DB.WithContext(ctx).Model(&types.Agent{}).
+	return s.client.DB().WithContext(ctx).Model(&types.Agent{}).
 		Where("id = ?", id).
 		Update("last_heartbeat", time.Now()).Error
 }
@@ -144,20 +128,20 @@ func (s *MySQLStore) DeleteAgent(ctx context.Context, id string) error {
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 
-	return s.DB.WithContext(ctx).Delete(&types.Agent{}, "id = ?", id).Error
+	return s.client.DB().WithContext(ctx).Delete(&types.Agent{}, "id = ?", id).Error
 }
 
 // Event operations
 
 // SaveEvent saves an event to the database.
 func (s *MySQLStore) SaveEvent(ctx context.Context, event *types.Event) error {
-	return s.DB.WithContext(ctx).Create(event).Error
+	return s.client.DB().WithContext(ctx).Create(event).Error
 }
 
 // GetEvent retrieves an event by ID.
 func (s *MySQLStore) GetEvent(ctx context.Context, id string) (*types.Event, error) {
 	var event types.Event
-	if err := s.DB.WithContext(ctx).First(&event, "id = ?", id).Error; err != nil {
+	if err := s.client.DB().WithContext(ctx).First(&event, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &event, nil
@@ -166,7 +150,7 @@ func (s *MySQLStore) GetEvent(ctx context.Context, id string) (*types.Event, err
 // ListEvents lists events with filters.
 func (s *MySQLStore) ListEvents(ctx context.Context, filter EventFilter) ([]*types.Event, error) {
 	var events []*types.Event
-	query := s.DB.WithContext(ctx)
+	query := s.client.DB().WithContext(ctx)
 
 	if filter.ClusterID != "" {
 		query = query.Where("cluster_id = ?", filter.ClusterID)
@@ -205,13 +189,13 @@ type EventFilter struct {
 
 // SaveCommand saves a command to the database.
 func (s *MySQLStore) SaveCommand(ctx context.Context, cmd *types.Command) error {
-	return s.DB.WithContext(ctx).Create(cmd).Error
+	return s.client.DB().WithContext(ctx).Create(cmd).Error
 }
 
 // GetCommand retrieves a command by ID.
 func (s *MySQLStore) GetCommand(ctx context.Context, id string) (*types.Command, error) {
 	var cmd types.Command
-	if err := s.DB.WithContext(ctx).First(&cmd, "id = ?", id).Error; err != nil {
+	if err := s.client.DB().WithContext(ctx).First(&cmd, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &cmd, nil
@@ -219,7 +203,7 @@ func (s *MySQLStore) GetCommand(ctx context.Context, id string) (*types.Command,
 
 // UpdateCommandStatus updates command status.
 func (s *MySQLStore) UpdateCommandStatus(ctx context.Context, id string, status types.CommandStatus) error {
-	return s.DB.WithContext(ctx).Model(&types.Command{}).
+	return s.client.DB().WithContext(ctx).Model(&types.Command{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"status":     status,
@@ -229,13 +213,13 @@ func (s *MySQLStore) UpdateCommandStatus(ctx context.Context, id string, status 
 
 // SaveCommandResult saves a command result.
 func (s *MySQLStore) SaveCommandResult(ctx context.Context, result *types.CommandResult) error {
-	return s.DB.WithContext(ctx).Create(result).Error
+	return s.client.DB().WithContext(ctx).Create(result).Error
 }
 
 // GetCommandResult retrieves a command result.
 func (s *MySQLStore) GetCommandResult(ctx context.Context, commandID string) (*types.CommandResult, error) {
 	var result types.CommandResult
-	if err := s.DB.WithContext(ctx).First(&result, "command_id = ?", commandID).Error; err != nil {
+	if err := s.client.DB().WithContext(ctx).First(&result, "command_id = ?", commandID).Error; err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -245,13 +229,13 @@ func (s *MySQLStore) GetCommandResult(ctx context.Context, commandID string) (*t
 
 // SaveCluster saves a cluster to the database.
 func (s *MySQLStore) SaveCluster(ctx context.Context, cluster *types.Cluster) error {
-	return s.DB.WithContext(ctx).Save(cluster).Error
+	return s.client.DB().WithContext(ctx).Save(cluster).Error
 }
 
 // GetCluster retrieves a cluster by ID.
 func (s *MySQLStore) GetCluster(ctx context.Context, id string) (*types.Cluster, error) {
 	var cluster types.Cluster
-	if err := s.DB.WithContext(ctx).First(&cluster, "id = ?", id).Error; err != nil {
+	if err := s.client.DB().WithContext(ctx).First(&cluster, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &cluster, nil
@@ -260,7 +244,7 @@ func (s *MySQLStore) GetCluster(ctx context.Context, id string) (*types.Cluster,
 // ListClusters lists all clusters.
 func (s *MySQLStore) ListClusters(ctx context.Context) ([]*types.Cluster, error) {
 	var clusters []*types.Cluster
-	if err := s.DB.WithContext(ctx).Order("created_at DESC").Find(&clusters).Error; err != nil {
+	if err := s.client.DB().WithContext(ctx).Order("created_at DESC").Find(&clusters).Error; err != nil {
 		return nil, err
 	}
 	return clusters, nil
@@ -268,7 +252,7 @@ func (s *MySQLStore) ListClusters(ctx context.Context) ([]*types.Cluster, error)
 
 // UpdateClusterHealth updates cluster health.
 func (s *MySQLStore) UpdateClusterHealth(ctx context.Context, id string, health types.ClusterHealth) error {
-	return s.DB.WithContext(ctx).Model(&types.Cluster{}).
+	return s.client.DB().WithContext(ctx).Model(&types.Cluster{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"health":     health,
@@ -278,5 +262,5 @@ func (s *MySQLStore) UpdateClusterHealth(ctx context.Context, id string, health 
 
 // DeleteCluster deletes a cluster.
 func (s *MySQLStore) DeleteCluster(ctx context.Context, id string) error {
-	return s.DB.WithContext(ctx).Delete(&types.Cluster{}, "id = ?", id).Error
+	return s.client.DB().WithContext(ctx).Delete(&types.Cluster{}, "id = ?", id).Error
 }

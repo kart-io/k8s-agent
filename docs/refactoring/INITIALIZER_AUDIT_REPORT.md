@@ -404,7 +404,7 @@ func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
     h.proxyHandler = proxy.NewProxy(h.logger)
 
     // Create Gin server config
-    config := commonserver.NewGinServerConfig(h.opts.Server)
+    config := commonserver.NewGinServerOptions(h.opts.Server)
     if h.opts.CORS != nil {
         config.WithCORS(h.opts.CORS)
     }

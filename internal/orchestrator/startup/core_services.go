@@ -12,6 +12,7 @@ import (
 	"github.com/kart-io/k8s-agent/internal/orchestrator/strategy"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -24,9 +25,10 @@ type CoreServices struct {
 
 // CoreServicesInitializer creates all core business services.
 type CoreServicesInitializer struct {
-	opts   *commonapp.StandardOptions
-	logger core.Logger
-	infra  *InfrastructureInitializers
+	opts      *commonapp.StandardOptions
+	logger    core.Logger
+	dbInit    *pkginitializers.DatabaseInitializer
+	redisInit *pkginitializers.RedisInitializer
 
 	services *CoreServices
 }
@@ -35,12 +37,14 @@ type CoreServicesInitializer struct {
 func NewCoreServicesInitializer(
 	opts *commonapp.StandardOptions,
 	logger core.Logger,
-	infra *InfrastructureInitializers,
+	dbInit *pkginitializers.DatabaseInitializer,
+	redisInit *pkginitializers.RedisInitializer,
 ) *CoreServicesInitializer {
 	return &CoreServicesInitializer{
-		opts:   opts,
-		logger: logger,
-		infra:  infra,
+		opts:      opts,
+		logger:    logger,
+		dbInit:    dbInit,
+		redisInit: redisInit,
 	}
 }
 
@@ -65,18 +69,18 @@ func (s *CoreServicesInitializer) Initialize(ctx context.Context) error {
 		"max_retries", s.opts.Workflow.MaxRetries,
 	)
 
-	// Step 1: Get storage instances
-	mysqlStore := s.infra.Database.Store()
-	if mysqlStore == nil {
-		return fmt.Errorf("mysql store not initialized")
+	// Step 1: Get direct DB and Redis clients from pkg/initializers
+	db := s.dbInit.DB()
+	if db == nil {
+		return fmt.Errorf("mysql db not initialized")
 	}
 
-	redisStore := s.infra.Redis.Store()
-	if redisStore == nil {
-		return fmt.Errorf("redis store not initialized")
+	redisClient := s.redisInit.Client()
+	if redisClient == nil {
+		return fmt.Errorf("redis client not initialized")
 	}
 
-	// Step 2: Create workflow engine
+	// Step 2: Create workflow engine with direct clients
 	executor := workflow.NewExecutor(
 		s.opts.AI.AgentManagerURL,
 		s.opts.AI.ReasoningServiceURL,
@@ -84,8 +88,8 @@ func (s *CoreServicesInitializer) Initialize(ctx context.Context) error {
 	)
 
 	workflowEngine := workflow.NewEngine(
-		mysqlStore,
-		redisStore,
+		db,
+		redisClient,
 		executor,
 		s.logger,
 	)
@@ -98,17 +102,17 @@ func (s *CoreServicesInitializer) Initialize(ctx context.Context) error {
 		s.opts.Workflow.MaxRetries,
 	)
 
-	// Step 3: Create strategy manager
+	// Step 3: Create strategy manager with direct DB
 	strategyManager := strategy.NewManager(
-		mysqlStore,
+		db,
 		workflowEngine,
 		s.logger,
 	)
 
-	// Step 4: Create workflow service
+	// Step 4: Create workflow service with direct DB
 	workflowService := service.NewWorkflowServiceServer(
 		workflowEngine,
-		mysqlStore,
+		db,
 		s.logger,
 	)
 

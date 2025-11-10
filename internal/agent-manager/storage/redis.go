@@ -9,7 +9,6 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/kart-io/k8s-agent/common/options"
 	"github.com/kart-io/k8s-agent/pkg/types"
 	"github.com/kart-io/logger/core"
 )
@@ -30,26 +29,23 @@ var rateLimitScript = redis.NewScript(`
 `)
 
 // RedisStore implements caching using Redis.
+// It wraps the standard Redis client with business-specific methods.
 type RedisStore struct {
-	client *redis.Client
+	client *redis.Client // ✅ 直接使用 redis.Client
 	logger core.Logger
 }
 
-// NewRedisStore creates a new Redis store.
-func NewRedisStore(config *options.RedisOptions, log core.Logger) (*RedisStore, error) {
-	client, err := config.ConnectRedis(log)
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
-	store := &RedisStore{
+// NewRedisStore creates a new Redis store from standard Redis client.
+func NewRedisStore(client *redis.Client, log core.Logger) *RedisStore {
+	return &RedisStore{
 		client: client,
-		logger: log.With("component", "redis"),
+		logger: log.With("component", "redis-store"),
 	}
+}
 
-	store.logger.Infow("Redis store initialized", "addr", config.Addr)
-
-	return store, nil
+// Health checks the Redis health
+func (s *RedisStore) Health(ctx context.Context) error {
+	return s.client.Ping(ctx).Err()
 }
 
 // Agent cache operations

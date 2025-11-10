@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 )
 
 // RequirePermission checks if user has specific permission.

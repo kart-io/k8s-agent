@@ -10,9 +10,9 @@ import (
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/jwt"
-	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
 	"github.com/kart-io/logger/core"
 )

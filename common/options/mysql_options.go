@@ -13,33 +13,37 @@ import (
 
 // MySQLOptions MySQL 数据库配置
 type MySQLOptions struct {
-	Host            string        `mapstructure:"host" yaml:"host" json:"host"`
-	Port            int           `mapstructure:"port" yaml:"port" json:"port"`
-	User            string        `mapstructure:"user" yaml:"user" json:"user"`
-	Password        string        `mapstructure:"password" yaml:"password" json:"-"` // 密码不序列化到 JSON
-	Database        string        `mapstructure:"database" yaml:"database" json:"database"`
-	SSLMode         string        `mapstructure:"ssl_mode" yaml:"ssl_mode" json:"ssl_mode"`
-	MaxOpenConns    int           `mapstructure:"max_open_conns" yaml:"max_open_conns" json:"max_open_conns"`
-	MaxIdleConns    int           `mapstructure:"max_idle_conns" yaml:"max_idle_conns" json:"max_idle_conns"`
-	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime" yaml:"conn_max_lifetime" json:"conn_max_lifetime"`
-	LogLevel        string        `mapstructure:"log_level" yaml:"log_level" json:"log_level"` // silent, error, warn, info
-	AutoMigrate     bool          `mapstructure:"auto_migrate" yaml:"auto_migrate" json:"auto_migrate"`
+	Host               string        `mapstructure:"host" yaml:"host" json:"host"`
+	Port               int           `mapstructure:"port" yaml:"port" json:"port"`
+	User               string        `mapstructure:"user" yaml:"user" json:"user"`
+	Password           string        `mapstructure:"password" yaml:"password" json:"-"` // 密码不序列化到 JSON
+	Database           string        `mapstructure:"database" yaml:"database" json:"database"`
+	Charset            string        `mapstructure:"charset" yaml:"charset" json:"charset"`
+	SSLMode            string        `mapstructure:"ssl_mode" yaml:"ssl_mode" json:"ssl_mode"`
+	MaxOpenConns       int           `mapstructure:"max_open_conns" yaml:"max_open_conns" json:"max_open_conns"`
+	MaxIdleConns       int           `mapstructure:"max_idle_conns" yaml:"max_idle_conns" json:"max_idle_conns"`
+	ConnMaxLifetime    time.Duration `mapstructure:"conn_max_lifetime" yaml:"conn_max_lifetime" json:"conn_max_lifetime"`
+	LogLevel           string        `mapstructure:"log_level" yaml:"log_level" json:"log_level"` // silent, error, warn, info
+	SlowQueryThreshold time.Duration `mapstructure:"slow_query_threshold" yaml:"slow_query_threshold" json:"slow_query_threshold"`
+	AutoMigrate        bool          `mapstructure:"auto_migrate" yaml:"auto_migrate" json:"auto_migrate"`
 }
 
 // NewMySQLOptions 创建默认的 MySQL 数据库配置
 func NewMySQLOptions() *MySQLOptions {
 	return &MySQLOptions{
-		Host:            "localhost",
-		Port:            3306,
-		User:            "root",
-		Password:        "",
-		Database:        "test",
-		SSLMode:         "disable",
-		MaxOpenConns:    100,
-		MaxIdleConns:    10,
-		ConnMaxLifetime: 1 * time.Hour,
-		LogLevel:        "silent", // 默认静默模式
-		AutoMigrate:     false,
+		Host:               "localhost",
+		Port:               3306,
+		User:               "root",
+		Password:           "",
+		Database:           "test",
+		Charset:            "utf8mb4",
+		SSLMode:            "disable",
+		MaxOpenConns:       100,
+		MaxIdleConns:       10,
+		ConnMaxLifetime:    1 * time.Hour,
+		LogLevel:           "silent", // 默认静默模式
+		SlowQueryThreshold: 200 * time.Millisecond,
+		AutoMigrate:        false,
 	}
 }
 
@@ -71,8 +75,12 @@ func (o *MySQLOptions) Validate() error {
 
 // DSN 返回 MySQL 连接字符串
 func (o *MySQLOptions) DSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		o.User, o.Password, o.Host, o.Port, o.Database)
+	charset := o.Charset
+	if charset == "" {
+		charset = "utf8mb4"
+	}
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
+		o.User, o.Password, o.Host, o.Port, o.Database, charset)
 }
 
 // AddFlags 添加命令行参数
@@ -82,11 +90,13 @@ func (o *MySQLOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.User, "db.user", o.User, "MySQL user")
 	fs.StringVar(&o.Password, "db.password", o.Password, "MySQL password")
 	fs.StringVar(&o.Database, "db.database", o.Database, "MySQL database name")
+	fs.StringVar(&o.Charset, "db.charset", o.Charset, "MySQL charset")
 	fs.StringVar(&o.SSLMode, "db.ssl-mode", o.SSLMode, "MySQL SSL mode")
 	fs.IntVar(&o.MaxOpenConns, "db.max-open-conns", o.MaxOpenConns, "Maximum number of open connections")
 	fs.IntVar(&o.MaxIdleConns, "db.max-idle-conns", o.MaxIdleConns, "Maximum number of idle connections")
 	fs.DurationVar(&o.ConnMaxLifetime, "db.conn-max-lifetime", o.ConnMaxLifetime, "Maximum connection lifetime")
 	fs.StringVar(&o.LogLevel, "db.log-level", o.LogLevel, "GORM log level (silent, error, warn, info)")
+	fs.DurationVar(&o.SlowQueryThreshold, "db.slow-query-threshold", o.SlowQueryThreshold, "GORM slow query threshold")
 	fs.BoolVar(&o.AutoMigrate, "db.auto-migrate", o.AutoMigrate, "Enable automatic MySQL database migration")
 }
 
@@ -131,6 +141,11 @@ func (o *MySQLOptions) Complete() error {
 		o.Port = 3306
 	}
 
+	// 确保 Charset 不为空
+	if o.Charset == "" {
+		o.Charset = "utf8mb4"
+	}
+
 	// 确保连接池配置合理
 	if o.MaxOpenConns <= 0 {
 		o.MaxOpenConns = 100
@@ -148,6 +163,11 @@ func (o *MySQLOptions) Complete() error {
 	// 确保连接最大生命周期有合理的值
 	if o.ConnMaxLifetime <= 0 {
 		o.ConnMaxLifetime = 1 * time.Hour
+	}
+
+	// 确保 SlowQueryThreshold 有合理的值
+	if o.SlowQueryThreshold <= 0 {
+		o.SlowQueryThreshold = 200 * time.Millisecond
 	}
 
 	return nil

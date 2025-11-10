@@ -168,7 +168,7 @@ func createServer(cfg *config.Config, llmClients []llm.Client, orch *orchestrato
 	}
 
 	// 创建 Gin 服务器配置
-	ginConfig := httpserver.NewGinServerConfig(serverOpts)
+	ginConfig := httpserver.NewGinServerOptions(serverOpts)
 
 	// 创建 Gin 服务器
 	ginServer := httpserver.NewGinServerFromFullConfig(logger, ginConfig)

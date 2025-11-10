@@ -9,6 +9,7 @@ import (
 
 	"github.com/kart-io/k8s-agent/common/loggerutil"
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
+	pkgoptions "github.com/kart-io/k8s-agent/pkg/options"
 	"github.com/kart-io/logger/core"
 )
 
@@ -39,13 +40,13 @@ type StandardOptions struct {
 	Redis      *commonoptions.RedisOptions      `json:"redis,omitempty" mapstructure:"redis"`
 	NATS       *commonoptions.NATSOptions       `json:"nats,omitempty" mapstructure:"nats"`
 	JWT        *commonoptions.JWTOptions        `json:"jwt,omitempty" mapstructure:"jwt"`
-	Email      *commonoptions.EmailOptions      `json:"email,omitempty" mapstructure:"email"`
+	Email      *pkgoptions.EmailOptions         `json:"email,omitempty" mapstructure:"email"`
 	Metrics    *commonoptions.MetricsOptions    `json:"metrics,omitempty" mapstructure:"metrics"`
 	Prometheus *commonoptions.PrometheusOptions `json:"prometheus,omitempty" mapstructure:"prometheus"`
-	Alert      *commonoptions.AlertOptions      `json:"alert,omitempty" mapstructure:"alert"`
-	LLM        *commonoptions.LLMOptions        `json:"llm,omitempty" mapstructure:"llm"`
-	Agent      *commonoptions.AgentOptions      `json:"agent,omitempty" mapstructure:"agent"`
-	AI         *commonoptions.AIOptions         `json:"ai,omitempty" mapstructure:"ai"`
+	Alert      *pkgoptions.AlertOptions         `json:"alert,omitempty" mapstructure:"alert"`
+	LLM        *pkgoptions.LLMOptions           `json:"llm,omitempty" mapstructure:"llm"`
+	Agent      *pkgoptions.AgentOptions         `json:"agent,omitempty" mapstructure:"agent"`
+	AI         *pkgoptions.AIOptions            `json:"ai,omitempty" mapstructure:"ai"`
 	Workflow   *commonoptions.WorkflowOptions   `json:"workflow,omitempty" mapstructure:"workflow"`
 	CORS       *commonoptions.CORSOptions       `json:"cors,omitempty" mapstructure:"cors"`
 	RateLimit  *commonoptions.RateLimitOptions  `json:"rate_limit,omitempty" mapstructure:"rate_limit"`
@@ -109,7 +110,7 @@ func (o *StandardOptions) WithJWT() *StandardOptions {
 // WithEmail 启用邮件发送配置。
 func (o *StandardOptions) WithEmail() *StandardOptions {
 	if o.Email == nil {
-		o.Email = commonoptions.NewEmailOptions()
+		o.Email = pkgoptions.NewEmailOptions()
 	}
 	return o
 }
@@ -125,7 +126,7 @@ func (o *StandardOptions) WithMetrics() *StandardOptions {
 // WithLLM 启用 LLM 配置（AI 模型）。
 func (o *StandardOptions) WithLLM() *StandardOptions {
 	if o.LLM == nil {
-		o.LLM = commonoptions.NewLLMOptions()
+		o.LLM = pkgoptions.NewLLMOptions()
 	}
 	return o
 }
@@ -133,7 +134,7 @@ func (o *StandardOptions) WithLLM() *StandardOptions {
 // WithAgent 启用 Agent 配置（Collect Agent）。
 func (o *StandardOptions) WithAgent() *StandardOptions {
 	if o.Agent == nil {
-		o.Agent = commonoptions.NewAgentOptions()
+		o.Agent = pkgoptions.NewAgentOptions()
 	}
 	return o
 }
@@ -141,7 +142,7 @@ func (o *StandardOptions) WithAgent() *StandardOptions {
 // WithAI 启用 AI 配置（Orchestrator）。
 func (o *StandardOptions) WithAI() *StandardOptions {
 	if o.AI == nil {
-		o.AI = commonoptions.NewAIOptions()
+		o.AI = pkgoptions.NewAIOptions()
 	}
 	return o
 }
@@ -181,7 +182,7 @@ func (o *StandardOptions) WithPrometheus() *StandardOptions {
 // WithAlert 启用告警配置。
 func (o *StandardOptions) WithAlert() *StandardOptions {
 	if o.Alert == nil {
-		o.Alert = commonoptions.NewAlertOptions()
+		o.Alert = pkgoptions.NewAlertOptions()
 	}
 	return o
 }

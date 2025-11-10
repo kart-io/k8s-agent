@@ -9,13 +9,14 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/internal/orchestrator/subscriber"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
 // EventSubscriberInitializer initializes event subscriber.
 type EventSubscriberInitializer struct {
 	logger       core.Logger
-	infra        *InfrastructureInitializers
+	natsInit     *pkginitializers.NATSInitializer
 	coreServices *CoreServicesInitializer
 
 	subscriber *subscriber.Subscriber
@@ -24,12 +25,12 @@ type EventSubscriberInitializer struct {
 // NewEventSubscriberInitializer creates a new event subscriber initializer.
 func NewEventSubscriberInitializer(
 	logger core.Logger,
-	infra *InfrastructureInitializers,
+	natsInit *pkginitializers.NATSInitializer,
 	coreServices *CoreServicesInitializer,
 ) *EventSubscriberInitializer {
 	return &EventSubscriberInitializer{
 		logger:       logger,
-		infra:        infra,
+		natsInit:     natsInit,
 		coreServices: coreServices,
 	}
 }
@@ -49,7 +50,7 @@ func (e *EventSubscriberInitializer) Initialize(ctx context.Context) error {
 	e.logger.Info("Initializing event subscriber")
 
 	// Verify dependencies
-	natsConn := e.infra.NATS.Conn()
+	natsConn := e.natsInit.Conn()
 	if natsConn == nil {
 		return fmt.Errorf("NATS connection not initialized")
 	}

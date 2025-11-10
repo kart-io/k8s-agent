@@ -380,24 +380,37 @@ The project follows a strict separation between generic utilities and project-sp
 - Similar to a third-party library
 - Can be open-sourced as a standalone package
 
-**Contents** (after reorganization):
+**Contents** (after common-to-pkg migration on 2025-11-10):
 - `cache/`: Unified caching interface (memory and Redis backends)
-- `client/`: Common clients (NATS, gRPC, HTTP)
-- `config/`: Configuration management with Options pattern (53 config functions)
+- `config/`: Configuration management with Options pattern
+- `core/`: Core interfaces and types
 - `db/`: Database client wrappers (MySQL, Redis)
 - `errors/`: Standardized error handling
+- `health/`: Health check server
 - `k8sutils/`: Generic Kubernetes resource conversion utilities
-- `logger/`: Legacy logger (should use github.com/kart-io/logger instead)
+- `loggerutil/`: Logger utilities (use github.com/kart-io/logger for actual logging)
+- `metrics/`: Generic metrics collection
 - `middleware/`: Common HTTP middleware (CORS, rate limiting, auth)
 - `mq/`: Message queue abstractions (NATS)
+- `options/`: **Generic option configurations only** (25 files)
+  - Server, MySQL, Redis, NATS, JWT, CORS, Health, Logging, Metrics, Rate Limit, TLS, etc.
+  - Business-specific options moved to pkg/options/
 - `pagination/`: Generic pagination utilities
 - `response/`: Unified API response format
+- `serializers/`: Data serialization utilities
 - `server/`: HTTP/gRPC server wrappers (Gin, gRPC)
+- `storage/`: Storage infrastructure layer
+  - `mysql/`: MySQL/GORM client
+  - `redis/`: Redis client with Lock, RateLimiter, Queue (session.go moved to pkg/auth/)
 - `telemetry/`: OpenTelemetry integration (generic parts)
 - `utils/`: Generic utility functions
 - `validator/`: Data validation utilities
 
-**Note**: `app/` and `types/` have been moved to `pkg/` as they contain business logic.
+**Notes**:
+- `app/` and `types/` have been moved to `pkg/` as they contain business logic
+- `options/agent_options.go`, `ai_options.go`, `alert_options.go`, etc. moved to `pkg/options/`
+- `storage/redis/session.go` moved to `pkg/auth/session.go` (auth domain logic)
+- Queue implementation remains in `common/storage/redis/queue.go` (pure infrastructure)
 
 #### pkg/ - Project-Specific Package (Business Logic)
 
@@ -411,11 +424,15 @@ The project follows a strict separation between generic utilities and project-sp
 
 **Current Contents** (migrated from internal/pkg/ and common/):
 - `app/`: Application startup and command initialization (from common/)
+- `auth/`: Auth domain business logic including SessionManager (from common/storage/redis/)
 - `bootstrap/`: Application bootstrapping logic (from internal/pkg/)
 - `contextx/`: Project-specific context management (from internal/pkg/)
 - `idempotent/`: Business idempotency handling (from internal/pkg/)
 - `initializers/`: **Common infrastructure initializers** (see below)
 - `metrics/`: Project-specific Prometheus metrics (from internal/pkg/)
+- `options/`: **Business-specific option configurations** (from common/options/)
+  - Agent, AI, Alert, Analysis, Email, Feature Gate, Learning, LLM, Prediction options
+  - Generic options (Server, MySQL, Redis, NATS, etc.) remain in common/options/
 - `types/`: Business domain models - Agent, Event, Command, Metrics (from common/)
 - `k8s/`: Kubernetes business logic (created for future use)
 - `agent/`: Agent domain models and business rules (created for future use)
@@ -543,7 +560,9 @@ func (d *DatabaseInitializer) Store() *storage.MySQLStore {
 3. Depends on project domain models (Agent, Workflow, etc.)
 4. Not useful for other projects
 
-**See**: [docs/CODE_REORGANIZATION.md](docs/CODE_REORGANIZATION.md) for detailed reorganization plan
+**See**:
+- [docs/CODE_REORGANIZATION.md](docs/CODE_REORGANIZATION.md) - Detailed reorganization plan
+- [docs/refactoring/COMMON_TO_PKG_MIGRATION.md](docs/refactoring/COMMON_TO_PKG_MIGRATION.md) - Migration report (completed 2025-11-10)
 
 ## Common Development Commands
 

@@ -64,7 +64,7 @@ func (i *HTTPServerInitializer) Initialize(ctx context.Context) error {
 	i.logger.Infow("Initializing HTTP server", "name", i.config.Name)
 
 	// Create Gin server config with middleware options
-	ginConfig := httpserver.NewGinServerConfig(i.config.Config)
+	ginConfig := httpserver.NewGinServerOptions(i.config.Config)
 
 	// Add middleware configurations if provided
 	if i.config.CORS != nil {

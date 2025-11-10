@@ -131,7 +131,7 @@ type HTTPServerInitializer struct {
 
 func (h *HTTPServerInitializer) Initialize(ctx context.Context) error {
     // Custom Gin server creation (~80 LOC)
-    config := commonserver.NewGinServerConfig(h.opts.Server)
+    config := commonserver.NewGinServerOptions(h.opts.Server)
     h.ginServer = commonserver.NewGinServerFromFullConfig(h.logger, config)
     h.setupRoutes(h.ginServer.Engine)
     // ...

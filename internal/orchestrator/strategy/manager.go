@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
+	"gorm.io/gorm"
+
 	"github.com/kart-io/k8s-agent/internal/orchestrator/types"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
 	"github.com/kart-io/logger/core"
@@ -12,19 +13,19 @@ import (
 
 // Manager manages diagnostic strategies.
 type Manager struct {
-	store  *storage.MySQLStore
+	db     *gorm.DB // Direct GORM DB access
 	engine *workflow.Engine
 	logger core.Logger
 }
 
 // NewManager creates a new strategy manager.
 func NewManager(
-	store *storage.MySQLStore,
+	db *gorm.DB,
 	engine *workflow.Engine,
 	logger core.Logger,
 ) *Manager {
 	return &Manager{
-		store:  store,
+		db:     db,
 		engine: engine,
 		logger: logger,
 	}
@@ -36,9 +37,10 @@ func (m *Manager) MatchStrategy(ctx context.Context, event types.InternalEvent) 
 		"event_type", event.Type,
 		"severity", event.Severity)
 
-	// Get all active strategies
-	strategies, err := m.store.ListStrategies(ctx, true)
-	if err != nil {
+	// Get all active strategies directly from DB
+	var strategies []*types.Strategy
+	query := m.db.WithContext(ctx).Where("enabled = ?", true)
+	if err := query.Order("priority DESC").Find(&strategies).Error; err != nil {
 		m.logger.Error("❌ Failed to list strategies from database", "error", err)
 		return nil, fmt.Errorf("failed to list strategies: %w", err)
 	}

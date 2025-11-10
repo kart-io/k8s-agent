@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"gorm.io/gorm"
 
-	"github.com/kart-io/k8s-agent/internal/orchestrator/storage"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/types"
 	"github.com/kart-io/k8s-agent/internal/orchestrator/workflow"
 	paginationv1 "github.com/kart-io/k8s-agent/pkg/api/common/pagination/v1"
@@ -23,19 +23,19 @@ type WorkflowServiceServer struct {
 	orchestratorv1.UnimplementedWorkflowServiceServer
 
 	engine *workflow.Engine
-	store  *storage.MySQLStore
+	db     *gorm.DB // Direct GORM DB access
 	logger core.Logger
 }
 
 // NewWorkflowServiceServer creates a new WorkflowServiceServer.
 func NewWorkflowServiceServer(
 	engine *workflow.Engine,
-	store *storage.MySQLStore,
+	db *gorm.DB,
 	logger core.Logger,
 ) *WorkflowServiceServer {
 	return &WorkflowServiceServer{
 		engine: engine,
-		store:  store,
+		db:     db,
 		logger: logger.With("component", "grpc-workflow-service"),
 	}
 }
@@ -89,8 +89,8 @@ func (s *WorkflowServiceServer) CreateWorkflow(
 		Metadata:    metadata,
 	}
 
-	// Save workflow
-	if err := s.store.SaveWorkflow(ctx, workflow); err != nil {
+	// Save workflow directly to DB
+	if err := s.db.WithContext(ctx).Save(workflow).Error; err != nil {
 		s.logger.Errorw("Failed to save workflow",
 			"error", err,
 		)
@@ -122,8 +122,8 @@ func (s *WorkflowServiceServer) GetWorkflow(
 		"workflow_id", req.WorkflowId,
 	)
 
-	workflow, err := s.store.GetWorkflow(ctx, req.WorkflowId)
-	if err != nil {
+	var workflow types.Workflow
+	if err := s.db.WithContext(ctx).First(&workflow, "id = ?", req.WorkflowId).Error; err != nil {
 		s.logger.Errorw("Failed to get workflow",
 			"workflow_id", req.WorkflowId,
 			"error", err,
@@ -131,7 +131,7 @@ func (s *WorkflowServiceServer) GetWorkflow(
 		return nil, status.Errorf(codes.NotFound, "workflow not found: %v", err)
 	}
 
-	protoWorkflow, err := workflowToProto(workflow)
+	protoWorkflow, err := workflowToProto(&workflow)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to convert workflow: %v", err)
 	}
@@ -148,9 +148,9 @@ func (s *WorkflowServiceServer) ListWorkflows(
 ) (*orchestratorv1.ListWorkflowsResponse, error) {
 	s.logger.Infow("Listing workflows")
 
-	// Get workflows from storage
-	workflows, err := s.store.ListWorkflows(ctx)
-	if err != nil {
+	// Get workflows from database directly
+	var workflows []*types.Workflow
+	if err := s.db.WithContext(ctx).Order("created_at DESC").Find(&workflows).Error; err != nil {
 		s.logger.Errorw("Failed to list workflows",
 			"error", err,
 		)
@@ -253,8 +253,8 @@ func (s *WorkflowServiceServer) GetExecutionStatus(
 		"execution_id", req.ExecutionId,
 	)
 
-	execution, err := s.store.GetWorkflowExecution(ctx, req.ExecutionId)
-	if err != nil {
+	var execution types.WorkflowExecution
+	if err := s.db.WithContext(ctx).First(&execution, "id = ?", req.ExecutionId).Error; err != nil {
 		s.logger.Errorw("Failed to get execution",
 			"execution_id", req.ExecutionId,
 			"error", err,
@@ -262,7 +262,7 @@ func (s *WorkflowServiceServer) GetExecutionStatus(
 		return nil, status.Errorf(codes.NotFound, "execution not found: %v", err)
 	}
 
-	protoExecution, err := executionToProto(execution)
+	protoExecution, err := executionToProto(&execution)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to convert execution: %v", err)
 	}
