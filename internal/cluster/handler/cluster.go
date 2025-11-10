@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/kart-io/k8s-agent/internal/cluster/service"
-	"github.com/kart-io/k8s-agent/internal/cluster/types"
 	"github.com/kart-io/logger/core"
 )
 
@@ -24,14 +23,15 @@ func NewClusterHandler(service *service.ClusterService, logger core.Logger) *Clu
 
 // AddCluster handles POST /api/v1/clusters.
 func (h *ClusterHandler) AddCluster(c *gin.Context) {
-	var cluster types.Cluster
-	if err := c.ShouldBindJSON(&cluster); err != nil {
+	var req service.CreateClusterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		h.log.Errorw("Failed to bind cluster request", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	if err := h.service.AddCluster(c.Request.Context(), &cluster); err != nil {
+	cluster, err := h.service.CreateCluster(c.Request.Context(), &req)
+	if err != nil {
 		h.log.Errorw("Failed to add cluster", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add cluster"})
 		return

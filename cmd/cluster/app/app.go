@@ -15,12 +15,13 @@ import (
 	"google.golang.org/grpc/reflection"
 	"gorm.io/gorm"
 
-	"github.com/kart-io/k8s-agent/common/db"
+	clustergrpc "github.com/kart-io/k8s-agent/internal/cluster/grpc"
 	"github.com/kart-io/k8s-agent/internal/cluster/handler"
 	"github.com/kart-io/k8s-agent/internal/cluster/service"
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
+	clustermodel "github.com/kart-io/k8s-agent/internal/models/cluster"
 	clusterv1 "github.com/kart-io/k8s-agent/pkg/api/cluster/v1"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )
 
@@ -55,9 +56,9 @@ type ClusterApp struct {
 	opts   *commonapp.StandardOptions
 	logger core.Logger
 
-	// Dependencies
+	// Dependencies - using pkg/initializers
+	dbInit             *pkginitializers.DatabaseInitializer
 	db                 *gorm.DB
-	mysqlClient        *db.MySQLClient
 	clusterService     *service.ClusterService
 	k8sServiceRegistry *service.K8sServiceRegistry
 
@@ -140,9 +141,9 @@ func (a *ClusterApp) Shutdown(ctx context.Context) error {
 		a.logger.Infow("gRPC server stopped")
 	}
 
-	// Close database connection
-	if a.mysqlClient != nil {
-		if err := a.mysqlClient.Close(); err != nil {
+	// Close database connection via pkg/initializers
+	if a.dbInit != nil {
+		if err := a.dbInit.Close(ctx); err != nil {
 			a.logger.Errorw("Failed to close database", "error", err)
 		}
 	}
@@ -151,7 +152,7 @@ func (a *ClusterApp) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// initDatabase initializes the database connection.
+// initDatabase initializes the database connection using pkg/initializers.
 func (a *ClusterApp) initDatabase(ctx context.Context) error {
 	a.logger.Infow("Initializing database connection",
 		"host", a.opts.Database.Host,
@@ -159,42 +160,32 @@ func (a *ClusterApp) initDatabase(ctx context.Context) error {
 		"database", a.opts.Database.Database,
 	)
 
-	// Create MySQL client using common/db package
-	client, err := db.NewMySQL(a.logger,
-		db.WithHost(a.opts.Database.Host),
-		db.WithPort(a.opts.Database.Port),
-		db.WithUser(a.opts.Database.User),
-		db.WithPassword(a.opts.Database.Password),
-		db.WithDatabase(a.opts.Database.Database),
-		db.WithMaxOpenConns(a.opts.Database.MaxOpenConns),
-		db.WithMaxIdleConns(a.opts.Database.MaxIdleConns),
-		db.WithConnMaxLifetime(a.opts.Database.ConnMaxLifetime),
-		db.WithLogLevel(a.opts.Database.LogLevel),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create MySQL client: %w", err)
+	// Create database initializer from pkg/initializers with GORM AutoMigrate
+	a.dbInit = pkginitializers.NewDatabaseInitializer(a.opts.Database, a.logger).
+		WithAutoMigrate(&clustermodel.Cluster{})
+
+	// Initialize the database
+	if err := a.dbInit.Initialize(ctx); err != nil {
+		return fmt.Errorf("failed to initialize database: %w", err)
 	}
 
-	a.mysqlClient = client
-	a.db = client.DB
+	// Get GORM DB instance
+	a.db = a.dbInit.DB()
+	if a.db == nil {
+		return fmt.Errorf("failed to get GORM DB instance")
+	}
 
-	a.logger.Infow("Database connected successfully")
+	a.logger.Infow("Database initialized successfully")
 	return nil
 }
 
-// initServices initializes business services.
+// initServices initializes business services with direct GORM DB access.
 func (a *ClusterApp) initServices(ctx context.Context) error {
 	a.logger.Infow("Initializing business services")
 
-	// Initialize storage layer
-	store, err := storage.NewMySQLStorageWithDB(a.db, a.logger)
-	if err != nil {
-		return fmt.Errorf("failed to initialize storage: %w", err)
-	}
-
-	// Initialize business services
-	a.clusterService = service.NewClusterService(store, a.logger)
-	a.k8sServiceRegistry = service.NewK8sServiceRegistry(store)
+	// Create services with direct GORM DB access (no storage wrapper)
+	a.clusterService = service.NewClusterService(a.db, a.logger)
+	a.k8sServiceRegistry = service.NewK8sServiceRegistryWithDB(a.db, a.logger)
 
 	a.logger.Infow("Services initialized",
 		"k8s_services_count", a.k8sServiceRegistry.Count(),
@@ -286,18 +277,12 @@ func (a *ClusterApp) initGRPCServer(ctx context.Context) error {
 	// Create gRPC server
 	a.grpcServer = grpc.NewServer()
 
-	// Register Cluster service
-	clusterGRPCService := &ClusterGRPCService{
-		clusterService: a.clusterService,
-		logger:         a.logger,
-	}
+	// Register Cluster service using the grpc package
+	clusterGRPCService := clustergrpc.NewClusterGRPCService(a.clusterService, a.logger)
 	clusterv1.RegisterClusterServiceServer(a.grpcServer, clusterGRPCService)
 
-	// Register K8s Resource service (note: capital S in K8S)
-	k8sGRPCService := &K8sResourceGRPCService{
-		registry: a.k8sServiceRegistry,
-		logger:   a.logger,
-	}
+	// Register K8s Resource service using the grpc package
+	k8sGRPCService := clustergrpc.NewK8sResourceGRPCService(a.k8sServiceRegistry, a.logger)
 	clusterv1.RegisterK8SResourceServiceServer(a.grpcServer, k8sGRPCService)
 
 	// Register reflection service (useful for debugging)
@@ -318,171 +303,5 @@ func (a *ClusterApp) initGRPCServer(ctx context.Context) error {
 		}
 	}()
 
-	return nil
-}
-
-// ============================================================================
-// gRPC Service Implementations
-// ============================================================================
-
-// ClusterGRPCService implements the gRPC ClusterService interface.
-type ClusterGRPCService struct {
-	clusterv1.UnimplementedClusterServiceServer
-	clusterService *service.ClusterService
-	logger         core.Logger
-}
-
-// GetCluster retrieves cluster information by ID.
-func (s *ClusterGRPCService) GetCluster(ctx context.Context, req *clusterv1.GetClusterRequest) (*clusterv1.Cluster, error) {
-	s.logger.Infow("GetCluster RPC called", "cluster_id", req.ClusterId)
-	// TODO: Call clusterService to get cluster details
-	return &clusterv1.Cluster{
-		Id:   req.ClusterId,
-		Name: "TODO: Implement",
-	}, nil
-}
-
-// ListClusters lists all clusters.
-func (s *ClusterGRPCService) ListClusters(ctx context.Context, req *clusterv1.ListClustersRequest) (*clusterv1.ListClustersResponse, error) {
-	s.logger.Infow("ListClusters RPC called")
-	// TODO: Implement listing logic
-	return &clusterv1.ListClustersResponse{
-		Clusters: []*clusterv1.Cluster{},
-	}, nil
-}
-
-// CreateCluster creates a new cluster.
-func (s *ClusterGRPCService) CreateCluster(ctx context.Context, req *clusterv1.CreateClusterRequest) (*clusterv1.Cluster, error) {
-	s.logger.Infow("CreateCluster RPC called", "name", req.Name)
-	// TODO: Implement creation logic
-	return &clusterv1.Cluster{
-		Name: req.Name,
-	}, nil
-}
-
-// UpdateCluster updates an existing cluster.
-func (s *ClusterGRPCService) UpdateCluster(ctx context.Context, req *clusterv1.UpdateClusterRequest) (*clusterv1.Cluster, error) {
-	s.logger.Infow("UpdateCluster RPC called", "cluster_id", req.ClusterId)
-	// TODO: Implement update logic
-	return &clusterv1.Cluster{
-		Id: req.ClusterId,
-	}, nil
-}
-
-// DeleteCluster deletes a cluster.
-func (s *ClusterGRPCService) DeleteCluster(ctx context.Context, req *clusterv1.DeleteClusterRequest) (*clusterv1.DeleteClusterResponse, error) {
-	s.logger.Infow("DeleteCluster RPC called", "cluster_id", req.ClusterId)
-	// TODO: Implement deletion logic
-	return &clusterv1.DeleteClusterResponse{
-		Message: "Cluster deleted successfully",
-	}, nil
-}
-
-// GetClusterHealth retrieves cluster health status.
-func (s *ClusterGRPCService) GetClusterHealth(ctx context.Context, req *clusterv1.GetClusterHealthRequest) (*clusterv1.ClusterHealth, error) {
-	s.logger.Infow("GetClusterHealth RPC called", "cluster_id", req.ClusterId)
-	health, err := s.clusterService.GetClusterHealth(ctx, req.ClusterId)
-	if err != nil {
-		return nil, err
-	}
-	_ = health // TODO: Convert to Proto message
-	return &clusterv1.ClusterHealth{
-		Status: clusterv1.ClusterStatus_HEALTHY,
-	}, nil
-}
-
-// GetClusterVersion retrieves cluster version information.
-func (s *ClusterGRPCService) GetClusterVersion(ctx context.Context, req *clusterv1.GetClusterVersionRequest) (*clusterv1.ClusterVersion, error) {
-	s.logger.Infow("GetClusterVersion RPC called", "cluster_id", req.ClusterId)
-	// TODO: Implement version query
-	return &clusterv1.ClusterVersion{
-		KubernetesVersion: "TODO",
-	}, nil
-}
-
-// K8sResourceGRPCService implements the gRPC K8sResourceService interface.
-type K8sResourceGRPCService struct {
-	clusterv1.UnimplementedK8SResourceServiceServer
-	registry *service.K8sServiceRegistry
-	logger   core.Logger
-}
-
-// GetResource retrieves a Kubernetes resource.
-func (s *K8sResourceGRPCService) GetResource(ctx context.Context, req *clusterv1.GetResourceRequest) (*clusterv1.Resource, error) {
-	s.logger.Infow("GetResource RPC called",
-		"cluster_id", req.ClusterId,
-		"type", req.ResourceType,
-		"namespace", req.Namespace,
-		"name", req.Name,
-	)
-	// TODO: Implement resource retrieval
-	return &clusterv1.Resource{
-		ClusterId: req.ClusterId,
-		Type:      req.ResourceType,
-		Namespace: req.Namespace,
-		Name:      req.Name,
-	}, nil
-}
-
-// ListResources lists Kubernetes resources.
-func (s *K8sResourceGRPCService) ListResources(ctx context.Context, req *clusterv1.ListResourcesRequest) (*clusterv1.ListResourcesResponse, error) {
-	s.logger.Infow("ListResources RPC called",
-		"cluster_id", req.ClusterId,
-		"type", req.ResourceType,
-	)
-	// TODO: Implement resource listing
-	return &clusterv1.ListResourcesResponse{
-		Resources: []*clusterv1.Resource{},
-	}, nil
-}
-
-// CreateResource creates a new Kubernetes resource.
-func (s *K8sResourceGRPCService) CreateResource(ctx context.Context, req *clusterv1.CreateResourceRequest) (*clusterv1.Resource, error) {
-	s.logger.Infow("CreateResource RPC called",
-		"cluster_id", req.ClusterId,
-		"type", req.ResourceType,
-	)
-	// TODO: Implement resource creation
-	return &clusterv1.Resource{
-		ClusterId: req.ClusterId,
-		Type:      req.ResourceType,
-	}, nil
-}
-
-// UpdateResource updates a Kubernetes resource.
-func (s *K8sResourceGRPCService) UpdateResource(ctx context.Context, req *clusterv1.UpdateResourceRequest) (*clusterv1.Resource, error) {
-	s.logger.Infow("UpdateResource RPC called",
-		"cluster_id", req.ClusterId,
-		"type", req.ResourceType,
-		"name", req.Name,
-	)
-	// TODO: Implement resource update
-	return &clusterv1.Resource{
-		ClusterId: req.ClusterId,
-		Type:      req.ResourceType,
-		Name:      req.Name,
-	}, nil
-}
-
-// DeleteResource deletes a Kubernetes resource.
-func (s *K8sResourceGRPCService) DeleteResource(ctx context.Context, req *clusterv1.DeleteResourceRequest) (*clusterv1.DeleteResourceResponse, error) {
-	s.logger.Infow("DeleteResource RPC called",
-		"cluster_id", req.ClusterId,
-		"type", req.ResourceType,
-		"name", req.Name,
-	)
-	// TODO: Implement resource deletion
-	return &clusterv1.DeleteResourceResponse{
-		Message: "Resource deleted successfully",
-	}, nil
-}
-
-// WatchResources watches Kubernetes resource changes.
-func (s *K8sResourceGRPCService) WatchResources(req *clusterv1.WatchResourcesRequest, stream clusterv1.K8SResourceService_WatchResourcesServer) error {
-	s.logger.Infow("WatchResources RPC called",
-		"cluster_id", req.ClusterId,
-		"type", req.ResourceType,
-	)
-	// TODO: Implement streaming resource watch
 	return nil
 }

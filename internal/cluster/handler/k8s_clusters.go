@@ -6,6 +6,7 @@ import (
 	"github.com/kart-io/k8s-agent/common/pagination"
 	"github.com/kart-io/k8s-agent/common/response"
 	"github.com/kart-io/k8s-agent/common/validator"
+	"github.com/kart-io/k8s-agent/internal/cluster/service"
 	"github.com/kart-io/k8s-agent/internal/cluster/types"
 	"github.com/kart-io/logger"
 )
@@ -28,6 +29,7 @@ func (h *K8sAPIHandler) ListClusters(c *gin.Context) {
 		c.Request.Context(),
 		params.GetOffset(),
 		params.GetLimit(),
+		false, // withStats: 默认不获取统计信息以提升性能
 	)
 	if err != nil {
 		logger.Errorw("Failed to list clusters", "error", err.Error())
@@ -57,7 +59,7 @@ func (h *K8sAPIHandler) GetCluster(c *gin.Context) {
 
 	logger.Infow("Getting cluster details", "cluster_id", req.ClusterID)
 
-	cluster, err := h.clusterService.GetCluster(c.Request.Context(), req.ClusterID)
+	cluster, err := h.clusterService.GetCluster(c.Request.Context(), req.ClusterID, true) // withStats: true 获取详细统计
 	if err != nil {
 		logger.Errorw("Failed to get cluster", "cluster_id", req.ClusterID, "error", err.Error())
 		response.NotFound(c, "Cluster not found", err)
@@ -104,16 +106,17 @@ func (h *K8sAPIHandler) CreateCluster(c *gin.Context) {
 		"region", req.Region,
 	)
 
-	cluster, err := h.clusterService.CreateCluster(
-		c.Request.Context(),
-		req.Name,
-		req.Description,
-		req.Endpoint,
-		req.KubeConfig,
-		req.Region,
-		req.Provider,
-		req.Labels,
-	)
+	// 转换为 service.CreateClusterRequest
+	createReq := &service.CreateClusterRequest{
+		Name:        req.Name,
+		Description: req.Description,
+		Endpoint:    req.Endpoint,
+		KubeConfig:  req.KubeConfig,
+		Region:      req.Region,
+		Provider:    req.Provider,
+	}
+
+	cluster, err := h.clusterService.CreateCluster(c.Request.Context(), createReq)
 	if err != nil {
 		logger.Errorw("Failed to create cluster", "name", req.Name, "error", err.Error())
 		response.InternalError(c, "Failed to create cluster", err)
@@ -147,12 +150,16 @@ func (h *K8sAPIHandler) UpdateCluster(c *gin.Context) {
 
 	logger.Infow("Updating cluster", "cluster_id", req.ClusterID)
 
+	// 转换为 service.UpdateClusterRequest
+	updateReq := &service.UpdateClusterRequest{
+		Name:        req.Name,
+		Description: req.Description,
+	}
+
 	cluster, err := h.clusterService.UpdateCluster(
 		c.Request.Context(),
 		req.ClusterID,
-		req.Name,
-		req.Description,
-		req.Labels,
+		updateReq,
 	)
 	if err != nil {
 		logger.Errorw("Failed to update cluster", "cluster_id", req.ClusterID, "error", err.Error())

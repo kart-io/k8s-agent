@@ -9,9 +9,22 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 
-	"github.com/kart-io/k8s-agent/internal/cluster/storage"
+	"github.com/kart-io/logger"
+	"github.com/kart-io/logger/core"
+	"github.com/kart-io/logger/option"
 )
+
+// newTestLogger creates a logger for testing that discards output
+func newTestLogger() core.Logger {
+	log, _ := logger.New(&option.LogOption{
+		Level:  "error", // Set to error to reduce test output
+		Format: "text",
+	})
+	return log
+}
 
 // TestNewK8sClusterService 测试服务创建.
 func TestNewK8sClusterService(t *testing.T) {
@@ -23,11 +36,17 @@ func TestNewK8sClusterService(t *testing.T) {
 		}
 	}()
 
-	storage := storage.NewMySQLStorageForTesting(db, nil)
-	service := NewK8sClusterService(storage)
+	gormDB, err := gorm.Open(mysql.New(mysql.Config{
+		Conn:                      db,
+		SkipInitializeWithVersion: true,
+	}), &gorm.Config{})
+	require.NoError(t, err)
+
+	log := newTestLogger()
+	service := NewK8sClusterService(gormDB, log)
 
 	assert.NotNil(t, service)
-	assert.NotNil(t, service.storage)
+	assert.NotNil(t, service.db)
 	assert.NotNil(t, service.clients)
 }
 
@@ -41,13 +60,18 @@ func TestListClusters(t *testing.T) {
 		}
 	}()
 
-	// 创建 storage
-	storageInstance := storage.NewMySQLStorageForTesting(db, nil)
-	service := NewK8sClusterService(storageInstance)
+	gormDB, err := gorm.Open(mysql.New(mysql.Config{
+		Conn:                      db,
+		SkipInitializeWithVersion: true,
+	}), &gorm.Config{})
+	require.NoError(t, err)
 
-	// 设置期望的 SQL 查询
+	log := newTestLogger()
+	service := NewK8sClusterService(gormDB, log)
+
+	// 设置期望的 SQL 查询 (GORM 使用小写 count)
 	rows := sqlmock.NewRows([]string{"count"}).AddRow(2)
-	mock.ExpectQuery("SELECT COUNT").WillReturnRows(rows)
+	mock.ExpectQuery("SELECT count\\(\\*\\) FROM `clusters`").WillReturnRows(rows)
 
 	listRows := sqlmock.NewRows([]string{
 		"id", "name", "description", "endpoint", "version",
@@ -58,12 +82,12 @@ func TestListClusters(t *testing.T) {
 		AddRow("cluster-2", "Cluster 2", "Test cluster 2", "https://api2.example.com", "v1.27.0",
 			"healthy", "us-west-1", "aws", time.Now(), time.Now())
 
-	mock.ExpectQuery("SELECT id, name").WillReturnRows(listRows)
+	mock.ExpectQuery("SELECT \\* FROM `clusters`").WillReturnRows(listRows)
 
 	ctx := context.Background()
 
-	// 执行测试（注意：由于 sqlmock 的限制，这里可能需要更详细的设置）
-	clusters, total, err := service.ListClusters(ctx, 0, 10)
+	// 执行测试（注意新增 withStats 参数）
+	clusters, total, err := service.ListClusters(ctx, 0, 10, false)
 
 	// 验证结果
 	assert.NoError(t, err)
@@ -101,8 +125,14 @@ func TestGetCluster(t *testing.T) {
 				}
 			}()
 
-			storageInstance := storage.NewMySQLStorageForTesting(db, nil)
-			service := NewK8sClusterService(storageInstance)
+			gormDB, err := gorm.Open(mysql.New(mysql.Config{
+				Conn:                      db,
+				SkipInitializeWithVersion: true,
+			}), &gorm.Config{})
+			require.NoError(t, err)
+
+			log := newTestLogger()
+			service := NewK8sClusterService(gormDB, log)
 
 			if !tt.wantErr {
 				row := sqlmock.NewRows([]string{
@@ -112,13 +142,16 @@ func TestGetCluster(t *testing.T) {
 					tt.clusterID, "Test Cluster", "Description", "https://api.example.com", "v1.28.0",
 					"healthy", "us-east-1", "aws", time.Now(), time.Now(),
 				)
-				mock.ExpectQuery("SELECT id, name").WithArgs(tt.clusterID).WillReturnRows(row)
+				// GORM adds LIMIT clause automatically, need to expect 2 args
+				mock.ExpectQuery("SELECT \\* FROM `clusters` WHERE id = \\? ORDER BY `clusters`.`id` LIMIT \\?").
+					WithArgs(tt.clusterID, 1).WillReturnRows(row)
 			} else {
-				mock.ExpectQuery("SELECT id, name").WithArgs(tt.clusterID).WillReturnError(sql.ErrNoRows)
+				mock.ExpectQuery("SELECT \\* FROM `clusters` WHERE id = \\? ORDER BY `clusters`.`id` LIMIT \\?").
+					WithArgs(tt.clusterID, 1).WillReturnError(sql.ErrNoRows)
 			}
 
 			ctx := context.Background()
-			_, err = service.GetCluster(ctx, tt.clusterID)
+			_, err = service.GetCluster(ctx, tt.clusterID, false)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -151,15 +184,23 @@ func TestDeleteCluster(t *testing.T) {
 		}
 	}()
 
-	storageInstance := storage.NewMySQLStorageForTesting(db, nil)
-	service := NewK8sClusterService(storageInstance)
+	gormDB, err := gorm.Open(mysql.New(mysql.Config{
+		Conn:                      db,
+		SkipInitializeWithVersion: true,
+	}), &gorm.Config{})
+	require.NoError(t, err)
+
+	log := newTestLogger()
+	service := NewK8sClusterService(gormDB, log)
 
 	clusterID := "cluster-to-delete"
 
 	// 期望执行 DELETE 语句
-	mock.ExpectExec("DELETE FROM clusters WHERE id").
+	mock.ExpectBegin()
+	mock.ExpectExec("DELETE FROM `clusters` WHERE").
 		WithArgs(clusterID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
 
 	ctx := context.Background()
 	err = service.DeleteCluster(ctx, clusterID)
@@ -207,8 +248,16 @@ func BenchmarkListClusters(b *testing.B) {
 		_ = db.Close()
 	}()
 
-	storageInstance := storage.NewMySQLStorageForTesting(db, nil)
-	service := NewK8sClusterService(storageInstance)
+	gormDB, err := gorm.Open(mysql.New(mysql.Config{
+		Conn:                      db,
+		SkipInitializeWithVersion: true,
+	}), &gorm.Config{})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	log := newTestLogger()
+	service := NewK8sClusterService(gormDB, log)
 
 	// 设置期望
 	for i := 0; i < b.N; i++ {
@@ -225,13 +274,13 @@ func BenchmarkListClusters(b *testing.B) {
 				"healthy", "us-east-1", "aws", time.Now(), time.Now(),
 			)
 		}
-		mock.ExpectQuery("SELECT id, name").WillReturnRows(listRows)
+		mock.ExpectQuery("SELECT \\* FROM `clusters`").WillReturnRows(listRows)
 	}
 
 	ctx := context.Background()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _ = service.ListClusters(ctx, 0, 10)
+		_, _, _ = service.ListClusters(ctx, 0, 10, false)
 	}
 }
