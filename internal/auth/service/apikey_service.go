@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
-	"github.com/kart-io/k8s-agent/internal/auth/model"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
@@ -28,13 +28,13 @@ func NewAPIKeyService(db *storage.MySQLDB) *APIKeyService {
 
 // List retrieves API keys for a user (secrets are masked).
 func (s *APIKeyService) List(userID string) ([]types.APIKey, error) {
-	var modelKeys []model.APIKey
+	var modelKeys []authmodel.APIKey
 	err := s.db.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&modelKeys).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to query API keys: %w", err)
 	}
 
-	// Convert model.APIKey to types.APIKey
+	// Convert authmodel.APIKey to types.APIKey
 	keys := make([]types.APIKey, len(modelKeys))
 	for i, k := range modelKeys {
 		keys[i] = types.APIKey{
@@ -76,7 +76,7 @@ func (s *APIKeyService) Create(userID string, req *types.APIKeyCreateRequest) (*
 	}
 
 	// Create API key model
-	modelKey := &model.APIKey{
+	modelKey := &authmodel.APIKey{
 		ID:          keyID,
 		Name:        req.Name,
 		Key:         apiKey,
@@ -96,7 +96,7 @@ func (s *APIKeyService) Create(userID string, req *types.APIKeyCreateRequest) (*
 	}
 
 	// Get the created key
-	var createdKey model.APIKey
+	var createdKey authmodel.APIKey
 	if err := s.db.DB.Where("id = ?", keyID).First(&createdKey).Error; err != nil {
 		return nil, fmt.Errorf("failed to query created API key: %w", err)
 	}
@@ -125,7 +125,7 @@ func (s *APIKeyService) Create(userID string, req *types.APIKeyCreateRequest) (*
 
 // Delete deletes an API key.
 func (s *APIKeyService) Delete(id, userID string) error {
-	result := s.db.DB.Delete(&model.APIKey{}, "id = ? AND user_id = ?", id, userID)
+	result := s.db.DB.Delete(&authmodel.APIKey{}, "id = ? AND user_id = ?", id, userID)
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete API key: %w", result.Error)
 	}
@@ -138,7 +138,7 @@ func (s *APIKeyService) Delete(id, userID string) error {
 
 // Validate validates an API key and secret.
 func (s *APIKeyService) Validate(key, secret string) (*types.APIKey, error) {
-	var modelKey model.APIKey
+	var modelKey authmodel.APIKey
 	err := s.db.DB.Where("key = ? AND status = ?", key, 1).First(&modelKey).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -160,7 +160,7 @@ func (s *APIKeyService) Validate(key, secret string) (*types.APIKey, error) {
 
 	// Update last_used_at
 	now := time.Now()
-	if err := s.db.DB.Model(&model.APIKey{}).Where("id = ?", modelKey.ID).Update("last_used_at", now).Error; err != nil {
+	if err := s.db.DB.Model(&authmodel.APIKey{}).Where("id = ?", modelKey.ID).Update("last_used_at", now).Error; err != nil {
 		// Log error but don't fail the request
 		fmt.Printf("Failed to update last_used_at: %v\n", err)
 	}
@@ -185,7 +185,7 @@ func (s *APIKeyService) Validate(key, secret string) (*types.APIKey, error) {
 
 // CleanupExpired removes expired API keys (background task).
 func (s *APIKeyService) CleanupExpired() (int, error) {
-	result := s.db.DB.Where("expires_at < ?", time.Now()).Delete(&model.APIKey{})
+	result := s.db.DB.Where("expires_at < ?", time.Now()).Delete(&authmodel.APIKey{})
 	if result.Error != nil {
 		return 0, fmt.Errorf("failed to cleanup expired keys: %w", result.Error)
 	}

@@ -1,4 +1,4 @@
-package model
+package auth
 
 // UserRole represents the many-to-many relationship between Users and Roles.
 type UserRole struct {

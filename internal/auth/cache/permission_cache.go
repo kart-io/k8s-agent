@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/internal/auth/model"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 )
@@ -144,7 +144,7 @@ func (pc *PermissionCache) InvalidateAllRoleCaches(ctx context.Context, roleID s
 
 // fetchUserPermissionsFromDB fetches user permissions from database.
 func (pc *PermissionCache) fetchUserPermissionsFromDB(userID string) ([]types.Permission, error) {
-	var modelPerms []model.Permission
+	var modelPerms []authmodel.Permission
 	err := pc.db.DB.Distinct().
 		Joins("INNER JOIN role_permissions ON permissions.id = role_permissions.permission_id").
 		Joins("INNER JOIN user_roles ON role_permissions.role_id = user_roles.role_id").
@@ -155,7 +155,7 @@ func (pc *PermissionCache) fetchUserPermissionsFromDB(userID string) ([]types.Pe
 		return nil, fmt.Errorf("failed to query user permissions: %w", err)
 	}
 
-	// Convert model.Permission to types.Permission
+	// Convert authmodel.Permission to types.Permission
 	permissions := make([]types.Permission, len(modelPerms))
 	for i, p := range modelPerms {
 		perm := types.Permission{
@@ -184,7 +184,7 @@ func (pc *PermissionCache) fetchUserPermissionsFromDB(userID string) ([]types.Pe
 
 // fetchUserRolesFromDB fetches user roles from database.
 func (pc *PermissionCache) fetchUserRolesFromDB(userID string) ([]types.Role, error) {
-	var modelRoles []model.Role
+	var modelRoles []authmodel.Role
 	err := pc.db.DB.
 		Joins("INNER JOIN user_roles ON roles.id = user_roles.role_id").
 		Where("user_roles.user_id = ? AND roles.status = ?", userID, 1).
@@ -194,7 +194,7 @@ func (pc *PermissionCache) fetchUserRolesFromDB(userID string) ([]types.Role, er
 		return nil, fmt.Errorf("failed to query user roles: %w", err)
 	}
 
-	// Convert model.Role to types.Role
+	// Convert authmodel.Role to types.Role
 	roles := make([]types.Role, len(modelRoles))
 	for i, r := range modelRoles {
 		roles[i] = types.Role{
@@ -214,7 +214,7 @@ func (pc *PermissionCache) fetchUserRolesFromDB(userID string) ([]types.Role, er
 
 // fetchRolePermissionsFromDB fetches role permissions from database.
 func (pc *PermissionCache) fetchRolePermissionsFromDB(roleID string) ([]types.Permission, error) {
-	var modelPerms []model.Permission
+	var modelPerms []authmodel.Permission
 	err := pc.db.DB.
 		Joins("INNER JOIN role_permissions ON permissions.id = role_permissions.permission_id").
 		Where("role_permissions.role_id = ? AND permissions.status = ?", roleID, 1).
@@ -224,7 +224,7 @@ func (pc *PermissionCache) fetchRolePermissionsFromDB(roleID string) ([]types.Pe
 		return nil, fmt.Errorf("failed to query role permissions: %w", err)
 	}
 
-	// Convert model.Permission to types.Permission
+	// Convert authmodel.Permission to types.Permission
 	permissions := make([]types.Permission, len(modelPerms))
 	for i, p := range modelPerms {
 		perm := types.Permission{

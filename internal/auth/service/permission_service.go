@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kart-io/k8s-agent/common/errors"
-	"github.com/kart-io/k8s-agent/internal/auth/model"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"github.com/kart-io/logger/core"
@@ -34,7 +34,7 @@ func (s *PermissionService) List(typeFilter, statusFilter string) ([]types.Permi
 		"status_filter", statusFilter,
 	)
 
-	query := s.db.DB.Model(&model.Permission{})
+	query := s.db.DB.Model(&authmodel.Permission{})
 
 	if typeFilter != "" {
 		query = query.Where("type = ?", typeFilter)
@@ -43,13 +43,13 @@ func (s *PermissionService) List(typeFilter, statusFilter string) ([]types.Permi
 		query = query.Where("status = ?", statusFilter)
 	}
 
-	var modelPerms []model.Permission
+	var modelPerms []authmodel.Permission
 	if err := query.Order("sort").Find(&modelPerms).Error; err != nil {
 		s.logger.Errorw("List permissions failed: database error", "error", err)
 		return nil, errors.NewDatabaseError(err)
 	}
 
-	// Convert model.Permission to types.Permission
+	// Convert authmodel.Permission to types.Permission
 	permissions := make([]types.Permission, len(modelPerms))
 	for i, p := range modelPerms {
 		perm := types.Permission{
@@ -82,7 +82,7 @@ func (s *PermissionService) GetTree() ([]*types.PermissionNode, error) {
 	s.logger.Infow("Get permission tree request")
 
 	// Get root permissions (parent_id IS NULL) using GORM Preload
-	var roots []model.Permission
+	var roots []authmodel.Permission
 	err := s.db.DB.Preload("Children").
 		Where("parent_id IS NULL AND status = ?", 1).
 		Order("sort").
@@ -102,8 +102,8 @@ func (s *PermissionService) GetTree() ([]*types.PermissionNode, error) {
 	return tree, nil
 }
 
-// convertToPermissionNode recursively converts model.Permission to types.PermissionNode.
-func convertToPermissionNode(perm *model.Permission) *types.PermissionNode {
+// convertToPermissionNode recursively converts authmodel.Permission to types.PermissionNode.
+func convertToPermissionNode(perm *authmodel.Permission) *types.PermissionNode {
 	node := &types.PermissionNode{
 		ID:       perm.ID,
 		Name:     perm.Name,
@@ -132,7 +132,7 @@ func convertToPermissionNode(perm *model.Permission) *types.PermissionNode {
 func (s *PermissionService) GetByID(id string) (*types.Permission, error) {
 	s.logger.Infow("Get permission by ID request", "permission_id", id)
 
-	var perm model.Permission
+	var perm authmodel.Permission
 	err := s.db.DB.Where("id = ?", id).First(&perm).Error
 
 	if stderrors.Is(err, gorm.ErrRecordNotFound) {
@@ -178,7 +178,7 @@ func (s *PermissionService) Create(req *types.PermissionRequest) (*types.Permiss
 
 	// Check if code already exists
 	var count int64
-	if err := s.db.DB.Model(&model.Permission{}).Where("code = ?", req.Code).Count(&count).Error; err != nil {
+	if err := s.db.DB.Model(&authmodel.Permission{}).Where("code = ?", req.Code).Count(&count).Error; err != nil {
 		s.logger.Errorw("Create permission failed: database error", "permission_code", req.Code, "error", err)
 		return nil, errors.NewDatabaseError(err)
 	}
@@ -190,7 +190,7 @@ func (s *PermissionService) Create(req *types.PermissionRequest) (*types.Permiss
 	// Validate parent exists if provided
 	if req.ParentID != "" {
 		var parentCount int64
-		if err := s.db.DB.Model(&model.Permission{}).Where("id = ?", req.ParentID).Count(&parentCount).Error; err != nil {
+		if err := s.db.DB.Model(&authmodel.Permission{}).Where("id = ?", req.ParentID).Count(&parentCount).Error; err != nil {
 			s.logger.Errorw("Create permission failed: parent validation error", "parent_id", req.ParentID, "error", err)
 			return nil, errors.NewDatabaseError(err)
 		}
@@ -216,7 +216,7 @@ func (s *PermissionService) Create(req *types.PermissionRequest) (*types.Permiss
 		status = *req.Status
 	}
 
-	perm := &model.Permission{
+	perm := &authmodel.Permission{
 		ID:          permID,
 		Name:        req.Name,
 		Code:        req.Code,
@@ -283,7 +283,7 @@ func (s *PermissionService) Update(id string, req *types.PermissionRequest) erro
 		updateData["description"] = req.Description
 	}
 
-	result := s.db.DB.Model(&model.Permission{}).Where("id = ?", id).Updates(updateData)
+	result := s.db.DB.Model(&authmodel.Permission{}).Where("id = ?", id).Updates(updateData)
 	if result.Error != nil {
 		s.logger.Errorw("Update permission failed: update error", "permission_id", id, "error", result.Error)
 		return errors.NewDatabaseError(result.Error)
@@ -303,7 +303,7 @@ func (s *PermissionService) Delete(id string) error {
 
 	// Check if permission is assigned to roles
 	var roleCount int64
-	if err := s.db.DB.Model(&model.RolePermission{}).Where("permission_id = ?", id).Count(&roleCount).Error; err != nil {
+	if err := s.db.DB.Model(&authmodel.RolePermission{}).Where("permission_id = ?", id).Count(&roleCount).Error; err != nil {
 		s.logger.Errorw("Delete permission failed: database error checking role usage", "permission_id", id, "error", err)
 		return errors.NewDatabaseError(err)
 	}
@@ -314,7 +314,7 @@ func (s *PermissionService) Delete(id string) error {
 
 	// Check if permission has children
 	var childCount int64
-	if err := s.db.DB.Model(&model.Permission{}).Where("parent_id = ?", id).Count(&childCount).Error; err != nil {
+	if err := s.db.DB.Model(&authmodel.Permission{}).Where("parent_id = ?", id).Count(&childCount).Error; err != nil {
 		s.logger.Errorw("Delete permission failed: database error checking children", "permission_id", id, "error", err)
 		return errors.NewDatabaseError(err)
 	}
@@ -324,7 +324,7 @@ func (s *PermissionService) Delete(id string) error {
 	}
 
 	// Delete permission
-	result := s.db.DB.Delete(&model.Permission{}, "id = ?", id)
+	result := s.db.DB.Delete(&authmodel.Permission{}, "id = ?", id)
 	if result.Error != nil {
 		s.logger.Errorw("Delete permission failed: delete error", "permission_id", id, "error", result.Error)
 		return errors.NewDatabaseError(result.Error)

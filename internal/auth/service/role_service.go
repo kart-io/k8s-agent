@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kart-io/k8s-agent/common/errors"
-	"github.com/kart-io/k8s-agent/internal/auth/model"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"github.com/kart-io/logger/core"
@@ -31,14 +31,14 @@ func NewRoleService(db *storage.MySQLDB, logger core.Logger) *RoleService {
 func (s *RoleService) List() ([]types.Role, error) {
 	s.logger.Infow("List roles request")
 
-	var modelRoles []model.Role
+	var modelRoles []authmodel.Role
 	err := s.db.DB.Where("status = ?", 1).Order("sort").Find(&modelRoles).Error
 	if err != nil {
 		s.logger.Errorw("List roles failed: database error", "error", err)
 		return nil, errors.NewDatabaseError(err)
 	}
 
-	// Convert model.Role to types.Role
+	// Convert authmodel.Role to types.Role
 	roles := make([]types.Role, len(modelRoles))
 	for i, r := range modelRoles {
 		roles[i] = types.Role{
@@ -61,7 +61,7 @@ func (s *RoleService) List() ([]types.Role, error) {
 func (s *RoleService) GetByID(id string) (*types.Role, error) {
 	s.logger.Infow("Get role by ID request", "role_id", id)
 
-	var role model.Role
+	var role authmodel.Role
 	err := s.db.DB.Where("id = ?", id).First(&role).Error
 
 	if stderrors.Is(err, gorm.ErrRecordNotFound) {
@@ -93,7 +93,7 @@ func (s *RoleService) Create(req *types.RoleRequest) (*types.Role, error) {
 
 	// Check if code already exists
 	var count int64
-	if err := s.db.DB.Model(&model.Role{}).Where("code = ?", req.Code).Count(&count).Error; err != nil {
+	if err := s.db.DB.Model(&authmodel.Role{}).Where("code = ?", req.Code).Count(&count).Error; err != nil {
 		s.logger.Errorw("Create role failed: database error", "role_code", req.Code, "error", err)
 		return nil, errors.NewDatabaseError(err)
 	}
@@ -108,7 +108,7 @@ func (s *RoleService) Create(req *types.RoleRequest) (*types.Role, error) {
 		status = *req.Status
 	}
 
-	role := &model.Role{
+	role := &authmodel.Role{
 		ID:          roleID,
 		Name:        req.Name,
 		Code:        req.Code,
@@ -131,7 +131,7 @@ func (s *RoleService) Update(id string, req *types.RoleRequest) error {
 	s.logger.Infow("Update role request", "role_id", id)
 
 	// Check if role is system role (cannot be modified)
-	var role model.Role
+	var role authmodel.Role
 	if err := s.db.DB.Where("id = ?", id).First(&role).Error; stderrors.Is(err, gorm.ErrRecordNotFound) {
 		s.logger.Warnw("Update role failed: role not found", "role_id", id)
 		return errors.ErrNotFound.WithMessage("role not found").KV("role_id", id)
@@ -161,7 +161,7 @@ func (s *RoleService) Update(id string, req *types.RoleRequest) error {
 		updateData["sort"] = req.Sort
 	}
 
-	result := s.db.DB.Model(&model.Role{}).Where("id = ?", id).Updates(updateData)
+	result := s.db.DB.Model(&authmodel.Role{}).Where("id = ?", id).Updates(updateData)
 	if result.Error != nil {
 		s.logger.Errorw("Update role failed: update error", "role_id", id, "error", result.Error)
 		return errors.NewDatabaseError(result.Error)
@@ -180,7 +180,7 @@ func (s *RoleService) Delete(id string) error {
 	s.logger.Infow("Delete role request", "role_id", id)
 
 	// Check if role is system role
-	var role model.Role
+	var role authmodel.Role
 	if err := s.db.DB.Where("id = ?", id).First(&role).Error; stderrors.Is(err, gorm.ErrRecordNotFound) {
 		s.logger.Warnw("Delete role failed: role not found", "role_id", id)
 		return errors.ErrNotFound.WithMessage("role not found").KV("role_id", id)
@@ -196,7 +196,7 @@ func (s *RoleService) Delete(id string) error {
 
 	// Check if role is assigned to users
 	var userCount int64
-	if err := s.db.DB.Model(&model.UserRole{}).Where("role_id = ?", id).Count(&userCount).Error; err != nil {
+	if err := s.db.DB.Model(&authmodel.UserRole{}).Where("role_id = ?", id).Count(&userCount).Error; err != nil {
 		s.logger.Errorw("Delete role failed: database error checking usage", "role_id", id, "error", err)
 		return errors.NewDatabaseError(err)
 	}
@@ -206,7 +206,7 @@ func (s *RoleService) Delete(id string) error {
 	}
 
 	// Delete role
-	result := s.db.DB.Delete(&model.Role{}, "id = ?", id)
+	result := s.db.DB.Delete(&authmodel.Role{}, "id = ?", id)
 	if result.Error != nil {
 		s.logger.Errorw("Delete role failed: delete error", "role_id", id, "error", result.Error)
 		return errors.NewDatabaseError(result.Error)
@@ -224,11 +224,11 @@ func (s *RoleService) Delete(id string) error {
 func (s *RoleService) AssignPermissions(roleID string, permissionIDs []string) error {
 	s.logger.Infow("Assign permissions request", "role_id", roleID, "permissions_count", len(permissionIDs))
 
-	var role model.Role
+	var role authmodel.Role
 	role.ID = roleID
 
 	// Load permissions by IDs
-	var permissions []model.Permission
+	var permissions []authmodel.Permission
 	if err := s.db.DB.Where("id IN ?", permissionIDs).Find(&permissions).Error; err != nil {
 		s.logger.Errorw("Assign permissions failed: database error", "role_id", roleID, "error", err)
 		return errors.NewDatabaseError(err)
@@ -248,7 +248,7 @@ func (s *RoleService) AssignPermissions(roleID string, permissionIDs []string) e
 func (s *RoleService) GetPermissions(roleID string) ([]types.Permission, error) {
 	s.logger.Infow("Get permissions request", "role_id", roleID)
 
-	var role model.Role
+	var role authmodel.Role
 	err := s.db.DB.Preload("Permissions", "status = ?", 1).
 		Where("id = ?", roleID).
 		First(&role).Error
@@ -262,7 +262,7 @@ func (s *RoleService) GetPermissions(roleID string) ([]types.Permission, error) 
 		return nil, errors.NewDatabaseError(err)
 	}
 
-	// Convert model.Permission to types.Permission
+	// Convert authmodel.Permission to types.Permission
 	permissions := make([]types.Permission, len(role.Permissions))
 	for i, p := range role.Permissions {
 		perm := types.Permission{

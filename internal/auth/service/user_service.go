@@ -8,7 +8,7 @@ import (
 
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
-	"github.com/kart-io/k8s-agent/internal/auth/model"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 	"github.com/kart-io/logger/core"
@@ -56,7 +56,7 @@ func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*t
 	offset := (params.Page - 1) * params.PageSize
 
 	// Build GORM query with filters
-	query := s.db.DB.Model(&model.User{})
+	query := s.db.DB.Model(&authmodel.User{})
 
 	if statusFilter != nil {
 		query = query.Where("status = ?", *statusFilter)
@@ -70,14 +70,14 @@ func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*t
 	}
 
 	// Query with pagination and sorting
-	var modelUsers []model.User
+	var modelUsers []authmodel.User
 	orderClause := params.Sort + " " + params.Order
 	if err := query.Order(orderClause).Limit(params.PageSize).Offset(offset).Find(&modelUsers).Error; err != nil {
 		s.logger.Errorw("List users failed: query error", "error", err)
 		return nil, errors.NewDatabaseError(err)
 	}
 
-	// Convert model.User to types.User
+	// Convert authmodel.User to types.User
 	users := make([]types.User, len(modelUsers))
 	for i, u := range modelUsers {
 		users[i] = types.User{
@@ -118,7 +118,7 @@ func (s *UserService) List(params types.PaginationParams, statusFilter *int) (*t
 func (s *UserService) GetByID(id string) (*types.User, error) {
 	s.logger.Infow("Get user by ID request", "user_id", id)
 
-	var user model.User
+	var user authmodel.User
 	err := s.db.DB.Where("id = ?", id).First(&user).Error
 
 	if stderrors.Is(err, gorm.ErrRecordNotFound) {
@@ -160,7 +160,7 @@ func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) 
 	userID := uuid.New().String()
 
 	// Create user model
-	user := &model.User{
+	user := &authmodel.User{
 		ID:       userID,
 		Username: req.Username,
 		Password: hashedPassword,
@@ -182,7 +182,7 @@ func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) 
 		if len(req.RoleIDs) > 0 {
 			// Assign provided roles
 			for _, roleID := range req.RoleIDs {
-				userRole := model.UserRole{
+				userRole := authmodel.UserRole{
 					UserID: userID,
 					RoleID: roleID,
 				}
@@ -192,11 +192,11 @@ func (s *UserService) Create(req *types.UserCreateRequest) (*types.User, error) 
 			}
 		} else {
 			// Assign default 'user' role
-			var defaultRole model.Role
+			var defaultRole authmodel.Role
 			if err := tx.Where("code = ?", "user").First(&defaultRole).Error; err != nil {
 				return errors.ErrNotFound.WithMessage("default role not found")
 			}
-			userRole := model.UserRole{
+			userRole := authmodel.UserRole{
 				UserID: userID,
 				RoleID: defaultRole.ID,
 			}
@@ -250,7 +250,7 @@ func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
 	// Begin transaction
 	err := s.db.DB.Transaction(func(tx *gorm.DB) error {
 		// Update user
-		result := tx.Model(&model.User{}).Where("id = ?", id).Updates(updateData)
+		result := tx.Model(&authmodel.User{}).Where("id = ?", id).Updates(updateData)
 		if result.Error != nil {
 			return errors.NewDatabaseError(result.Error)
 		}
@@ -261,11 +261,11 @@ func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
 		// Update roles if provided
 		if req.RoleIDs != nil {
 			// Use GORM Association to replace roles
-			var user model.User
+			var user authmodel.User
 			user.ID = id
 
 			// Load roles by IDs
-			var roles []model.Role
+			var roles []authmodel.Role
 			if err := tx.Where("id IN ?", req.RoleIDs).Find(&roles).Error; err != nil {
 				return errors.NewDatabaseError(err)
 			}
@@ -291,7 +291,7 @@ func (s *UserService) Update(id string, req *types.UserUpdateRequest) error {
 func (s *UserService) Delete(id string) error {
 	s.logger.Infow("Delete user request", "user_id", id)
 
-	result := s.db.DB.Model(&model.User{}).Where("id = ?", id).Update("status", 0)
+	result := s.db.DB.Model(&authmodel.User{}).Where("id = ?", id).Update("status", 0)
 	if result.Error != nil {
 		s.logger.Errorw("Delete user failed: database error", "user_id", id, "error", result.Error)
 		return errors.NewDatabaseError(result.Error)
@@ -309,11 +309,11 @@ func (s *UserService) Delete(id string) error {
 func (s *UserService) AssignRoles(userID string, roleIDs []string) error {
 	s.logger.Infow("Assign roles request", "user_id", userID, "roles_count", len(roleIDs))
 
-	var user model.User
+	var user authmodel.User
 	user.ID = userID
 
 	// Load roles by IDs
-	var roles []model.Role
+	var roles []authmodel.Role
 	if err := s.db.DB.Where("id IN ?", roleIDs).Find(&roles).Error; err != nil {
 		s.logger.Errorw("Assign roles failed: database error", "user_id", userID, "error", err)
 		return errors.NewDatabaseError(err)

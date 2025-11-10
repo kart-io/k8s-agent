@@ -10,7 +10,7 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 
 	commonoptions "github.com/kart-io/k8s-agent/common/options"
-	"github.com/kart-io/k8s-agent/internal/auth/model"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/logger/core"
 )
 
@@ -68,12 +68,12 @@ func NewMySQLDB(cfg *commonoptions.MySQLOptions, log core.Logger) (*MySQLDB, err
 
 		// Register all models for auto-migration
 		if err := db.AutoMigrate(
-			&model.User{},
-			&model.Role{},
-			&model.Permission{},
-			&model.APIKey{},
-			&model.UserRole{},
-			&model.RolePermission{},
+			&authmodel.User{},
+			&authmodel.Role{},
+			&authmodel.Permission{},
+			&authmodel.APIKey{},
+			&authmodel.UserRole{},
+			&authmodel.RolePermission{},
 		); err != nil {
 			return nil, fmt.Errorf("failed to run auto migrations: %w", err)
 		}

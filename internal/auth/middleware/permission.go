@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/kart-io/k8s-agent/internal/auth/model"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 )
 
@@ -92,7 +92,7 @@ func RequireRole(db *storage.MySQLDB, roleCode string) gin.HandlerFunc {
 // checkUserPermission verifies if user has a specific permission.
 func checkUserPermission(db *storage.MySQLDB, userID, permissionCode string) (bool, error) {
 	var count int64
-	err := db.DB.Model(&model.Permission{}).
+	err := db.DB.Model(&authmodel.Permission{}).
 		Joins("JOIN role_permissions ON permissions.id = role_permissions.permission_id").
 		Joins("JOIN user_roles ON role_permissions.role_id = user_roles.role_id").
 		Where("user_roles.user_id = ? AND permissions.code = ? AND permissions.status = ?", userID, permissionCode, 1).
@@ -107,7 +107,7 @@ func checkUserPermission(db *storage.MySQLDB, userID, permissionCode string) (bo
 // checkUserRole verifies if user has a specific role.
 func checkUserRole(db *storage.MySQLDB, userID, roleCode string) (bool, error) {
 	var count int64
-	err := db.DB.Model(&model.Role{}).
+	err := db.DB.Model(&authmodel.Role{}).
 		Joins("JOIN user_roles ON roles.id = user_roles.role_id").
 		Where("user_roles.user_id = ? AND roles.code = ? AND roles.status = ?", userID, roleCode, 1).
 		Count(&count).Error

@@ -10,7 +10,7 @@ import (
 	"github.com/kart-io/k8s-agent/common/errors"
 	"github.com/kart-io/k8s-agent/internal/auth/crypto"
 	"github.com/kart-io/k8s-agent/internal/auth/jwt"
-	"github.com/kart-io/k8s-agent/internal/auth/model"
+	authmodel "github.com/kart-io/k8s-agent/internal/models/auth"
 	"github.com/kart-io/k8s-agent/internal/auth/storage"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
@@ -52,7 +52,7 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 	s.logger.Infow("Login request", "username", username)
 
 	// Find user by username using GORM with Preload for roles
-	var user model.User
+	var user authmodel.User
 	err := s.db.DB.Preload("Roles").
 		Where("username = ? AND status = ?", username, 1).
 		First(&user).Error
@@ -72,7 +72,7 @@ func (s *AuthService) Login(username, password string) (*types.LoginResponse, er
 		return nil, errors.ErrUnauthorized.WithMessage("invalid username or password")
 	}
 
-	// Convert model.Role to types.Role
+	// Convert authmodel.Role to types.Role
 	roles := make([]types.Role, len(user.Roles))
 	for i, role := range user.Roles {
 		roles[i] = types.Role{
@@ -198,7 +198,7 @@ func (s *AuthService) Logout(token string) error {
 func (s *AuthService) GetCurrentUser(userID string) (*types.UserInfo, error) {
 	s.logger.Infow("Get current user request", "user_id", userID)
 
-	var user model.User
+	var user authmodel.User
 	err := s.db.DB.Preload("Roles").
 		Where("id = ? AND status = ?", userID, 1).
 		First(&user).Error
@@ -212,7 +212,7 @@ func (s *AuthService) GetCurrentUser(userID string) (*types.UserInfo, error) {
 		return nil, errors.NewDatabaseError(err)
 	}
 
-	// Convert model.Role to types.Role
+	// Convert authmodel.Role to types.Role
 	roles := make([]types.Role, len(user.Roles))
 	for i, role := range user.Roles {
 		roles[i] = types.Role{
@@ -242,7 +242,7 @@ func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 	s.logger.Infow("Get user menus request", "user_id", userID)
 
 	// Get all menu permissions for the user using GORM Joins
-	var permissions []model.Permission
+	var permissions []authmodel.Permission
 	err := s.db.DB.Distinct().
 		Joins("JOIN role_permissions ON role_permissions.permission_id = permissions.id").
 		Joins("JOIN user_roles ON user_roles.role_id = role_permissions.role_id").
@@ -254,7 +254,7 @@ func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 		return nil, errors.NewDatabaseError(err)
 	}
 
-	// Convert model.Permission to types.MenuItem
+	// Convert authmodel.Permission to types.MenuItem
 	var menus []*types.MenuItem
 	for _, perm := range permissions {
 		menu := &types.MenuItem{
@@ -348,7 +348,7 @@ func (s *AuthService) RefreshToken(refreshToken string) (*types.RefreshTokenResp
 	}
 
 	// 4. Verify user still exists and is active
-	var user model.User
+	var user authmodel.User
 	err = s.db.DB.Where("id = ? AND status = ?", claims.UserID, 1).First(&user).Error
 	if stderrors.Is(err, gorm.ErrRecordNotFound) {
 		s.logger.Warnw("Refresh token failed: user not found or disabled", "user_id", claims.UserID)
