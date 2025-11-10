@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/kart-io/k8s-agent/internal/auth/email"
 	"github.com/kart-io/k8s-agent/internal/auth/types"
+	"github.com/kart-io/k8s-agent/pkg/email"
 )
 
 const (

@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/internal/auth/email"
 	forcedlogout "github.com/kart-io/k8s-agent/internal/auth/forced-logout"
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/audit"
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/notification"
 	"github.com/kart-io/k8s-agent/internal/auth/forced-logout/session"
 	commonapp "github.com/kart-io/k8s-agent/pkg/app"
+	"github.com/kart-io/k8s-agent/pkg/email"
 	pkginitializers "github.com/kart-io/k8s-agent/pkg/initializers"
 	"github.com/kart-io/logger/core"
 )

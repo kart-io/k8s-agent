@@ -1,110 +1,9 @@
 package filter
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/gin-gonic/gin"
+	"github.com/kart-io/k8s-agent/pkg/query"
 )
-
-// Filter represents a query filter.
-type Filter struct {
-	Field    string
-	Operator string
-	Value    interface{}
-}
-
-// QueryBuilder helps build SQL WHERE clauses with filters.
-type QueryBuilder struct {
-	filters []Filter
-	args    []interface{}
-}
-
-// NewQueryBuilder creates a new query builder.
-func NewQueryBuilder() *QueryBuilder {
-	return &QueryBuilder{
-		filters: make([]Filter, 0),
-		args:    make([]interface{}, 0),
-	}
-}
-
-// AddFilter adds a filter to the builder.
-func (qb *QueryBuilder) AddFilter(field, operator string, value interface{}) *QueryBuilder {
-	if value == nil || value == "" {
-		return qb
-	}
-	qb.filters = append(qb.filters, Filter{
-		Field:    field,
-		Operator: operator,
-		Value:    value,
-	})
-	return qb
-}
-
-// AddEqualFilter adds an equality filter.
-func (qb *QueryBuilder) AddEqualFilter(field string, value interface{}) *QueryBuilder {
-	return qb.AddFilter(field, "=", value)
-}
-
-// AddLikeFilter adds a LIKE filter (case-insensitive).
-func (qb *QueryBuilder) AddLikeFilter(field string, value string) *QueryBuilder {
-	if value == "" {
-		return qb
-	}
-	return qb.AddFilter(field, "ILIKE", "%"+value+"%")
-}
-
-// AddInFilter adds an IN filter.
-func (qb *QueryBuilder) AddInFilter(field string, values []string) *QueryBuilder {
-	if len(values) == 0 {
-		return qb
-	}
-	return qb.AddFilter(field, "IN", values)
-}
-
-// AddRangeFilter adds range filters (>=, <=).
-func (qb *QueryBuilder) AddRangeFilter(field string, min, max interface{}) *QueryBuilder {
-	if min != nil && min != "" {
-		qb.AddFilter(field, ">=", min)
-	}
-	if max != nil && max != "" {
-		qb.AddFilter(field, "<=", max)
-	}
-	return qb
-}
-
-// Build builds the WHERE clause and returns it with arguments.
-func (qb *QueryBuilder) Build() (string, []interface{}) {
-	if len(qb.filters) == 0 {
-		return "", nil
-	}
-
-	var conditions []string
-	argIndex := 1
-
-	for _, filter := range qb.filters {
-		switch filter.Operator {
-		case "IN":
-			values, ok := filter.Value.([]string)
-			if !ok || len(values) == 0 {
-				continue
-			}
-			placeholders := make([]string, len(values))
-			for i, v := range values {
-				placeholders[i] = fmt.Sprintf("$%d", argIndex)
-				qb.args = append(qb.args, v)
-				argIndex++
-			}
-			conditions = append(conditions, fmt.Sprintf("%s IN (%s)", filter.Field, strings.Join(placeholders, ", ")))
-		default:
-			conditions = append(conditions, fmt.Sprintf("%s %s $%d", filter.Field, filter.Operator, argIndex))
-			qb.args = append(qb.args, filter.Value)
-			argIndex++
-		}
-	}
-
-	return strings.Join(conditions, " AND "), qb.args
-}
 
 // UserFilters extracts user filter parameters from request.
 type UserFilters struct {
@@ -137,7 +36,7 @@ func ExtractUserFilters(c *gin.Context) UserFilters {
 }
 
 // ApplyUserFilters applies user filters to query builder.
-func ApplyUserFilters(qb *QueryBuilder, filters UserFilters) *QueryBuilder {
+func ApplyUserFilters(qb *query.Builder, filters UserFilters) *query.Builder {
 	qb.AddLikeFilter("username", filters.Username)
 	qb.AddLikeFilter("email", filters.Email)
 	qb.AddLikeFilter("real_name", filters.RealName)
@@ -176,7 +75,7 @@ func ExtractRoleFilters(c *gin.Context) RoleFilters {
 }
 
 // ApplyRoleFilters applies role filters to query builder.
-func ApplyRoleFilters(qb *QueryBuilder, filters RoleFilters) *QueryBuilder {
+func ApplyRoleFilters(qb *query.Builder, filters RoleFilters) *query.Builder {
 	qb.AddLikeFilter("name", filters.Name)
 	qb.AddLikeFilter("code", filters.Code)
 	if filters.Status != nil {
@@ -216,7 +115,7 @@ func ExtractPermissionFilters(c *gin.Context) PermissionFilters {
 }
 
 // ApplyPermissionFilters applies permission filters to query builder.
-func ApplyPermissionFilters(qb *QueryBuilder, filters PermissionFilters) *QueryBuilder {
+func ApplyPermissionFilters(qb *query.Builder, filters PermissionFilters) *query.Builder {
 	qb.AddLikeFilter("name", filters.Name)
 	qb.AddLikeFilter("code", filters.Code)
 	qb.AddEqualFilter("type", filters.Type)
