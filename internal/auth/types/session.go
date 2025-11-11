@@ -7,8 +7,10 @@ import (
 )
 
 // Re-export types from pkg/auth/types for backward compatibility
-type SessionInfo = authtypes.SessionInfo
-type RevokedSession = authtypes.RevokedSession
+type (
+	SessionInfo    = authtypes.SessionInfo
+	RevokedSession = authtypes.RevokedSession
+)
 
 // SessionListResponse represents the response for listing user sessions.
 type SessionListResponse struct {

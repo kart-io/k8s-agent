@@ -66,3 +66,5 @@ endef
 # Dynamically get versions from go.mod if available
 GRPC_GATEWAY_VERSION ?= $(call get_go_version,github.com/grpc-ecosystem/grpc-gateway/v2)
 PROTOC_GEN_VALIDATE_VERSION ?= $(call get_go_version,github.com/envoyproxy/protoc-gen-validate)
+
+KUBEBUILDER_VERSION ?= 3.14.0
