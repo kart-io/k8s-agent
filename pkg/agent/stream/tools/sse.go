@@ -248,7 +248,7 @@ func StreamToChunkedTransfer(ctx context.Context, w http.ResponseWriter, source 
 type PollingStreamer struct {
 	sessionID string
 	buffer    []*core.StreamChunk
-	lastIndex int
+	lastIndex int //nolint:unused // For future position tracking
 	timeout   time.Duration
 }
 

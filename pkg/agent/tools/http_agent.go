@@ -50,7 +50,7 @@ func (a *HTTPAgent) Execute(ctx context.Context, input *agentcore.AgentInput) (*
 	method, _ := input.Context["method"].(string)
 	url, _ := input.Context["url"].(string)
 	headers, _ := input.Context["headers"].(map[string]string)
-	body, _ := input.Context["body"]
+	body := input.Context["body"]
 
 	if method == "" {
 		method = "GET"
@@ -87,10 +87,8 @@ func (a *HTTPAgent) Execute(ctx context.Context, input *agentcore.AgentInput) (*
 	}
 
 	// 设置请求头
-	if headers != nil {
-		for k, v := range headers {
-			req.Header.Set(k, v)
-		}
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 	if reqBody != nil && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", "application/json")

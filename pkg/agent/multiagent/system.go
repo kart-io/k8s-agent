@@ -383,7 +383,7 @@ func (s *MultiAgentSystem) executeSequentialTask(ctx context.Context, task *Coll
 	}
 
 	// Execute in sequence
-	var previousOutput interface{} = task.Input
+	previousOutput := task.Input
 
 	for _, agentID := range agents {
 		agent := s.agents[agentID]

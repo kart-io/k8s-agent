@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
+	"strings"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/prompt"
 	"github.com/kart-io/logger"
@@ -93,7 +91,7 @@ func demonstrateBasicPrompts(manager *prompt.DefaultPromptManager, llmClient llm
 }
 
 // Part 2: Different Prompt Strategies
-func demonstratePromptStrategies(manager *prompt.DefaultPromptManager, llmClient llm.LLMProvider, log logger.Logger) {
+func demonstratePromptStrategies(manager *prompt.DefaultPromptManager, llmClient llm.Client, log logger.Logger) {
 	ctx := context.Background()
 
 	// 1. Zero-shot prompt
@@ -203,7 +201,7 @@ Let's think through this step by step:`,
 }
 
 // Part 3: Prompt Chains
-func demonstratePromptChains(manager *prompt.DefaultPromptManager, llmClient llm.LLMProvider, log logger.Logger) {
+func demonstratePromptChains(manager *prompt.DefaultPromptManager, llmClient llm.Client, log logger.Logger) {
 	ctx := context.Background()
 
 	// Create prompts for the chain
@@ -388,7 +386,7 @@ func demonstratePromptOptimization(manager *prompt.DefaultPromptManager, llmClie
 }
 
 // Part 5: Prompt Testing
-func demonstratePromptTesting(manager *prompt.DefaultPromptManager, llmClient llm.LLMProvider, log logger.Logger) {
+func demonstratePromptTesting(manager *prompt.DefaultPromptManager, llmClient llm.Client, log logger.Logger) {
 	// Create test cases
 	testCases := []prompt.TestCase{
 		{

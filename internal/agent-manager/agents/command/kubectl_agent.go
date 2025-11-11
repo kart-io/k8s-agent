@@ -63,13 +63,13 @@ func (a *KubectlAgent) Execute(ctx context.Context, input *agentcore.AgentInput)
 		Type:      "diagnostic",
 		Tool:      "kubectl",
 		Action:    action,
-		Args:      convertStringSlice(args),
+		Args:      args,
 		Timeout:   input.Options.Timeout,
 	}
 
 	// 如果指定了 namespace，添加到参数中
 	if namespace != "" {
-		cmd.Args = append([]interface{}{"-n", namespace}, cmd.Args...)
+		cmd.Args = append([]string{"-n", namespace}, cmd.Args...)
 	}
 
 	a.logger.Info("Executing kubectl command",
@@ -235,13 +235,4 @@ func (a *KubectlAgent) parseEventsOutput(output string) map[string]interface{} {
 		"events": events,
 		"count":  len(events),
 	}
-}
-
-// convertStringSlice 转换字符串切片为 interface{} 切片
-func convertStringSlice(strs []string) []interface{} {
-	result := make([]interface{}, len(strs))
-	for i, s := range strs {
-		result[i] = s
-	}
-	return result
 }

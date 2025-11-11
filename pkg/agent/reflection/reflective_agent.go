@@ -199,7 +199,7 @@ func (a *SelfReflectiveAgent) Execute(ctx context.Context, input *core.AgentInpu
 	if err != nil {
 		experience.Error = err.Error()
 	} else if output != nil {
-		experience.Output = output.Data
+		experience.Output = output.Result
 	}
 
 	// Store experience in memory
@@ -402,10 +402,10 @@ func (a *SelfReflectiveAgent) executeTask(ctx context.Context, input *core.Agent
 
 	// Adjust strategy based on learnings
 	if len(relevantLearnings) > 0 {
-		if input.Options.Metadata == nil {
-			input.Options.Metadata = make(map[string]interface{})
+		if input.Context == nil {
+			input.Context = make(map[string]interface{})
 		}
-		input.Options.Metadata["learnings_applied"] = len(relevantLearnings)
+		input.Context["learnings_applied"] = len(relevantLearnings)
 	}
 
 	// Simulate task execution

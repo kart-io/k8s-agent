@@ -12,13 +12,14 @@ import (
 // ServerOptions HTTP服务器配置
 // 统一了 ServerOptions 和 HTTPServerOptions，包含所有 HTTP 服务器需要的配置
 type ServerOptions struct {
-	Host         string        `mapstructure:"host" yaml:"host" json:"host"`
-	Port         int           `mapstructure:"port" yaml:"port" json:"port"`
-	Mode         string        `mapstructure:"mode" yaml:"mode" json:"mode"` // debug, release, test
-	ReadTimeout  time.Duration `mapstructure:"read_timeout" yaml:"read_timeout" json:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout" yaml:"write_timeout" json:"write_timeout"`
-	IdleTimeout  time.Duration `mapstructure:"idle_timeout" yaml:"idle_timeout" json:"idle_timeout"`
-	GracefulStop time.Duration `mapstructure:"graceful_stop" yaml:"graceful_stop" json:"graceful_stop"`
+	Host               string        `mapstructure:"host" yaml:"host" json:"host"`
+	Port               int           `mapstructure:"port" yaml:"port" json:"port"`
+	Mode               string        `mapstructure:"mode" yaml:"mode" json:"mode"` // debug, release, test
+	ReadTimeout        time.Duration `mapstructure:"read_timeout" yaml:"read_timeout" json:"read_timeout"`
+	WriteTimeout       time.Duration `mapstructure:"write_timeout" yaml:"write_timeout" json:"write_timeout"`
+	IdleTimeout        time.Duration `mapstructure:"idle_timeout" yaml:"idle_timeout" json:"idle_timeout"`
+	ReadHeaderTimeout  time.Duration `mapstructure:"read_header_timeout" yaml:"read_header_timeout" json:"read_header_timeout"` // G112 fix
+	GracefulStop       time.Duration `mapstructure:"graceful_stop" yaml:"graceful_stop" json:"graceful_stop"`
 
 	// 从 HTTPServerOptions 合并的字段
 	Network        string `mapstructure:"network" yaml:"network" json:"network"`                            // 网络类型（tcp, tcp4, tcp6, unix, unixpacket）
@@ -28,15 +29,16 @@ type ServerOptions struct {
 // NewServerOptions 创建默认的服务器配置
 func NewServerOptions() *ServerOptions {
 	return &ServerOptions{
-		Host:           "0.0.0.0",
-		Port:           8080,
-		Mode:           "release",
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		IdleTimeout:    60 * time.Second,
-		GracefulStop:   30 * time.Second,
-		Network:        "tcp",   // 默认使用 tcp
-		MaxHeaderBytes: 1 << 20, // 默认 1 MB
+		Host:              "0.0.0.0",
+		Port:              8080,
+		Mode:              "release",
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second, // G112 fix - prevent Slowloris attacks
+		GracefulStop:      30 * time.Second,
+		Network:           "tcp",   // 默认使用 tcp
+		MaxHeaderBytes:    1 << 20, // 默认 1 MB
 	}
 }
 
@@ -76,6 +78,7 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&o.ReadTimeout, "server.read-timeout", o.ReadTimeout, "Server read timeout")
 	fs.DurationVar(&o.WriteTimeout, "server.write-timeout", o.WriteTimeout, "Server write timeout")
 	fs.DurationVar(&o.IdleTimeout, "server.idle-timeout", o.IdleTimeout, "Server idle timeout")
+	fs.DurationVar(&o.ReadHeaderTimeout, "server.read-header-timeout", o.ReadHeaderTimeout, "Server read header timeout")
 	fs.DurationVar(&o.GracefulStop, "server.graceful-stop", o.GracefulStop, "Server graceful stop timeout")
 	fs.StringVar(&o.Network, "server.network", o.Network, "Network type (tcp, tcp4, tcp6, unix, unixpacket)")
 	fs.IntVar(&o.MaxHeaderBytes, "server.max-header-bytes", o.MaxHeaderBytes, "Maximum request header size in bytes")
@@ -137,6 +140,10 @@ func (o *ServerOptions) Complete() error {
 
 	if o.IdleTimeout <= 0 {
 		o.IdleTimeout = 60 * time.Second
+	}
+
+	if o.ReadHeaderTimeout <= 0 {
+		o.ReadHeaderTimeout = 10 * time.Second // G112 fix - prevent Slowloris attacks
 	}
 
 	if o.GracefulStop <= 0 {

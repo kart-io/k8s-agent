@@ -29,6 +29,7 @@ type K8sMonitoringAgent struct {
 // MetricType defines types of metrics to monitor
 type MetricType string
 
+// MetricType constants define the types of metrics that can be monitored
 const (
 	MetricCPU        MetricType = "cpu"
 	MetricMemory     MetricType = "memory"
@@ -59,6 +60,7 @@ type Alert struct {
 // AlertSeverity defines alert severity levels
 type AlertSeverity string
 
+// AlertSeverity constants define the severity levels for alerts
 const (
 	AlertSeverityCritical AlertSeverity = "critical"
 	AlertSeverityWarning  AlertSeverity = "warning"
@@ -526,6 +528,8 @@ func (a *K8sMonitoringAgent) registerMonitoringTools() error {
 	return nil
 }
 
+// calculateAlertRelevance calculates the relevance score for an alert
+// nolint:unused // This will be used in future alert prioritization
 func (a *K8sMonitoringAgent) calculateAlertRelevance(severity AlertSeverity) float64 {
 	switch severity {
 	case AlertSeverityCritical:
@@ -652,7 +656,7 @@ func (a *K8sMonitoringAgent) Execute(ctx context.Context, input *core.AgentInput
 		result = a.GetCurrentAlerts()
 
 	case "start":
-		go a.Start(ctx)
+		go a.StartMonitoring(ctx)
 		result = "Monitoring started"
 
 	default:

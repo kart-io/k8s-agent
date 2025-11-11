@@ -47,7 +47,7 @@ type PlanResult struct {
 // AgentExecutor executes plans using agents
 type AgentExecutor struct {
 	registry   *AgentRegistry
-	logger     logger.Logger
+	logger     loggercore.Logger
 	executions map[string]*ExecutionState
 	mu         sync.RWMutex
 
@@ -84,7 +84,7 @@ type RetryPolicy struct {
 }
 
 // NewAgentExecutor creates a new agent-based plan executor
-func NewAgentExecutor(logger logger.Logger, opts ...ExecutorOption) *AgentExecutor {
+func NewAgentExecutor(logger loggercore.Logger, opts ...ExecutorOption) *AgentExecutor {
 	e := &AgentExecutor{
 		registry:       NewAgentRegistry(),
 		logger:         logger,
@@ -125,8 +125,8 @@ func WithRetryPolicy(policy RetryPolicy) ExecutorOption {
 // Execute executes a plan
 func (e *AgentExecutor) Execute(ctx context.Context, plan *Plan) (*PlanResult, error) {
 	e.logger.Info("Starting plan execution",
-		logger.String("plan_id", plan.ID),
-		logger.String("goal", plan.Goal))
+		"plan_id", plan.ID,
+		"goal", plan.Goal)
 
 	// Create execution state
 	state := &ExecutionState{
@@ -172,9 +172,9 @@ func (e *AgentExecutor) Execute(ctx context.Context, plan *Plan) (*PlanResult, e
 	}
 
 	e.logger.Info("Plan execution completed",
-		logger.String("plan_id", plan.ID),
-		logger.Bool("success", result.Success),
-		logger.Duration("duration", result.TotalDuration))
+		"plan_id", plan.ID,
+		"success", result.Success,
+		"duration", result.TotalDuration)
 
 	return result, result.Error
 }
@@ -343,8 +343,8 @@ func (e *AgentExecutor) shouldSkipStep(step *Step, state *ExecutionState) bool {
 		for _, depID := range deps {
 			if result, ok := state.StepResults[depID]; ok && !result.Success {
 				e.logger.Info("Skipping step due to failed dependency",
-					logger.String("step", step.ID),
-					logger.String("failed_dep", depID))
+					"step", step.ID,
+					"failed_dep", depID)
 				return true
 			}
 		}
@@ -361,8 +361,8 @@ func (e *AgentExecutor) executeStepWithRetry(ctx context.Context, state *Executi
 	for attempt := 0; attempt <= e.retryPolicy.MaxRetries; attempt++ {
 		if attempt > 0 {
 			e.logger.Info("Retrying step execution",
-				logger.String("step", step.ID),
-				logger.Int("attempt", attempt))
+				"step", step.ID,
+				"attempt", attempt)
 			time.Sleep(retryDelay)
 			retryDelay = time.Duration(float64(retryDelay) * e.retryPolicy.BackoffFactor)
 		}
@@ -393,9 +393,9 @@ func (e *AgentExecutor) executeStep(ctx context.Context, step *Step) *StepResult
 	startTime := time.Now()
 
 	e.logger.Info("Executing step",
-		logger.String("step_id", step.ID),
-		logger.String("name", step.Name),
-		logger.String("type", string(step.Type)))
+		"step_id", step.ID,
+		"name", step.Name,
+		"type", string(step.Type))
 
 	// Mark step as executing
 	step.Status = StepStatusExecuting
@@ -412,14 +412,15 @@ func (e *AgentExecutor) executeStep(ctx context.Context, step *Step) *StepResult
 	}
 
 	// Prepare input for agent
-	input := &core.Input{
-		Data: map[string]interface{}{
+	input := &core.AgentInput{
+		Task:        step.Name,
+		Instruction: step.Description,
+		Context: map[string]interface{}{
 			"step":        step,
 			"description": step.Description,
 			"parameters":  step.Parameters,
 		},
-		Context: ctx,
-		Options: make(map[string]interface{}),
+		Options: core.DefaultAgentOptions(),
 	}
 
 	// Execute with timeout
@@ -440,7 +441,7 @@ func (e *AgentExecutor) executeStep(ctx context.Context, step *Step) *StepResult
 	if err != nil {
 		result.Error = err.Error()
 	} else if output != nil {
-		result.Output = output.Data
+		result.Output = output.Result
 		result.Metadata = output.Metadata
 	}
 
@@ -452,9 +453,9 @@ func (e *AgentExecutor) executeStep(ctx context.Context, step *Step) *StepResult
 	step.Result = result
 
 	e.logger.Info("Step execution completed",
-		logger.String("step_id", step.ID),
-		logger.Bool("success", result.Success),
-		logger.Duration("duration", result.Duration))
+		"step_id", step.ID,
+		"success", result.Success,
+		"duration", result.Duration)
 
 	return result
 }
@@ -538,7 +539,7 @@ func (e *AgentExecutor) isRetryableError(errorMsg string) bool {
 
 // handlePause handles plan pause
 func (e *AgentExecutor) handlePause(ctx context.Context, state *ExecutionState) {
-	e.logger.Info("Plan execution paused", logger.String("plan_id", state.Plan.ID))
+	e.logger.Info("Plan execution paused", "plan_id", state.Plan.ID)
 
 	state.mu.Lock()
 	state.Status = PlanStatusExecuting // Keep as executing, but paused
@@ -547,7 +548,7 @@ func (e *AgentExecutor) handlePause(ctx context.Context, state *ExecutionState) 
 	// Wait for resume or cancel
 	select {
 	case <-state.PauseChan: // Resume
-		e.logger.Info("Plan execution resumed", logger.String("plan_id", state.Plan.ID))
+		e.logger.Info("Plan execution resumed", "plan_id", state.Plan.ID)
 	case <-state.CancelChan: // Cancel
 		// Will be handled in main execution loop
 	case <-ctx.Done():

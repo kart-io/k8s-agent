@@ -93,10 +93,7 @@ func (a *ReasoningApp) Shutdown(ctx context.Context) error {
 // This uses direct initialization without Wire for simplicity.
 func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
 	// Initialize LLM clients
-	llmClients, err := a.initializeLLMClients()
-	if err != nil {
-		return fmt.Errorf("failed to initialize LLM clients: %w", err)
-	}
+	llmClients := a.initializeLLMClients()
 
 	// Create config from options
 	cfg := config.NewConfigFromOptions(a.opts)
@@ -133,10 +130,10 @@ func (a *ReasoningApp) registerComponents(bs *bootstrap.Bootstrap) error {
 }
 
 // initializeLLMClients initializes LLM clients from options.
-func (a *ReasoningApp) initializeLLMClients() ([]llm.Client, error) {
+func (a *ReasoningApp) initializeLLMClients() []llm.Client {
 	if a.opts.LLM == nil || !a.opts.LLM.Enabled {
 		a.logger.Info("LLM support disabled")
-		return nil, nil
+		return nil
 	}
 
 	a.logger.Info("Initializing LLM providers")
@@ -184,7 +181,7 @@ func (a *ReasoningApp) initializeLLMClients() ([]llm.Client, error) {
 		a.logger.Warn("No LLM providers available")
 	}
 
-	return clients, nil
+	return clients
 }
 
 // ServerInitializer wraps the server for bootstrap compatibility.

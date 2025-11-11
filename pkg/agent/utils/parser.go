@@ -34,7 +34,7 @@ func (p *ResponseParser) ExtractJSON() (string, error) {
 	}
 
 	// 尝试提取 {} 包裹的内容
-	bracePattern := regexp.MustCompile("\\{[\\s\\S]*\\}")
+	bracePattern := regexp.MustCompile(`\{[\s\S]*\}`)
 	match := bracePattern.FindString(p.content)
 	if match != "" && json.Valid([]byte(match)) {
 		return match, nil
@@ -104,7 +104,7 @@ func (p *ResponseParser) ExtractList() []string {
 	items := make([]string, 0)
 
 	// 匹配数字列表: 1. item
-	numberPattern := regexp.MustCompile("(?m)^\\d+\\.\\s+(.+)$")
+	numberPattern := regexp.MustCompile(`(?m)^\d+\.\s+(.+)$`)
 	numberMatches := numberPattern.FindAllStringSubmatch(p.content, -1)
 	for _, match := range numberMatches {
 		if len(match) > 1 {
@@ -114,7 +114,7 @@ func (p *ResponseParser) ExtractList() []string {
 
 	// 如果没有数字列表，尝试匹配符号列表: - item 或 * item
 	if len(items) == 0 {
-		bulletPattern := regexp.MustCompile("(?m)^[\\-\\*]\\s+(.+)$")
+		bulletPattern := regexp.MustCompile(`(?m)^[\-\*]\s+(.+)$`)
 		bulletMatches := bulletPattern.FindAllStringSubmatch(p.content, -1)
 		for _, match := range bulletMatches {
 			if len(match) > 1 {

@@ -57,7 +57,7 @@ func (m *BufferMiddleware) Apply(ctx context.Context, source core.StreamOutput) 
 
 			case <-ticker.C:
 				// 检查并调整缓冲区大小
-				stats := reader.Stats()
+				_ = reader.Stats()
 				// 这里可以根据统计信息动态调整缓冲
 
 			default:

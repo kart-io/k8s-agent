@@ -89,12 +89,13 @@ func NewGinServerFromFullConfig(log core.Logger, config *GinServerOptions) *GinS
 	}
 
 	httpServer := &http.Server{
-		Addr:           fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port),
-		Handler:        engine,
-		ReadTimeout:    config.Server.ReadTimeout,
-		WriteTimeout:   config.Server.WriteTimeout,
-		IdleTimeout:    config.Server.IdleTimeout,
-		MaxHeaderBytes: config.Server.MaxHeaderBytes, // 支持新的 MaxHeaderBytes 字段
+		Addr:              fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port),
+		Handler:           engine,
+		ReadTimeout:       config.Server.ReadTimeout,
+		WriteTimeout:      config.Server.WriteTimeout,
+		IdleTimeout:       config.Server.IdleTimeout,
+		ReadHeaderTimeout: config.Server.ReadHeaderTimeout, // G112 fix - prevent Slowloris attacks
+		MaxHeaderBytes:    config.Server.MaxHeaderBytes,    // 支持新的 MaxHeaderBytes 字段
 	}
 
 	return &GinServer{

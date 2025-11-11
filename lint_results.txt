@@ -1,0 +1,31 @@
+[0;34m==> go.lint[0m 
+[0;32mRunning golangci-lint...[0m 
+examples.disabled/planning/main.go:1: : # github.com/kart-io/k8s-agent/examples.disabled/planning
+examples.disabled/planning/main.go:19:27: undefined: logger.Config
+examples.disabled/planning/main.go:20:18: undefined: logger.LevelInfo
+examples.disabled/planning/main.go:21:18: undefined: logger.FormatText
+examples.disabled/planning/main.go:361:76: undefined: llm.Response
+examples.disabled/planning/main.go:389:66: undefined: core.Input
+examples.disabled/planning/main.go:389:80: undefined: core.Output
+examples.disabled/planning/main.go:402:64: undefined: core.Input
+examples.disabled/planning/main.go:402:78: undefined: core.Output
+examples.disabled/planning/main.go:415:68: undefined: core.Input
+examples.disabled/planning/main.go:415:82: undefined: core.Output
+examples.disabled/planning/main.go:21:18: too many errors (typecheck)
+package main
+examples.disabled/prompt_engineering/main.go:1: : # github.com/kart-io/k8s-agent/examples.disabled/prompt_engineering
+examples.disabled/prompt_engineering/main.go:16:27: undefined: logger.Config
+examples.disabled/prompt_engineering/main.go:17:18: undefined: logger.LevelInfo
+examples.disabled/prompt_engineering/main.go:51:82: undefined: llm.LLMProvider
+examples.disabled/prompt_engineering/main.go:51:106: undefined: logger.Logger
+examples.disabled/prompt_engineering/main.go:94:105: undefined: logger.Logger
+examples.disabled/prompt_engineering/main.go:204:101: undefined: logger.Logger
+examples.disabled/prompt_engineering/main.go:301:88: undefined: llm.LLMProvider
+examples.disabled/prompt_engineering/main.go:301:112: undefined: logger.Logger
+examples.disabled/prompt_engineering/main.go:389:102: undefined: logger.Logger
+examples.disabled/prompt_engineering/main.go:473:76: undefined: llm.Response
+examples.disabled/prompt_engineering/main.go:17:18: too many errors (typecheck)
+package main
+2 issues:
+* typecheck: 2
+make: *** [go.lint] Error 1

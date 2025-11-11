@@ -1,3 +1,4 @@
+// Package api provides the HTTP API server implementation for the agent manager service.
 package api
 
 import (
@@ -34,7 +35,7 @@ type Server struct {
 
 // NewServer creates a new API server handler container.
 func NewServer(
-	config types.ServerConfig,
+	_ types.ServerConfig, // Currently unused, will be used for configuration
 	registry *agent.Registry,
 	eventProcessor *event.Processor,
 	dispatcher *command.Dispatcher,
@@ -133,11 +134,9 @@ func (s *Server) HandleListAgents(c *gin.Context) {
 	}
 
 	// Apply limit if specified
-	limit := len(agents)
 	if limitStr := c.Query("limit"); limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit < len(agents) {
-			limit = parsedLimit
-			agents = agents[:limit]
+			agents = agents[:parsedLimit]
 		}
 	}
 

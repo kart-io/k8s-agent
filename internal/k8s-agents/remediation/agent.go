@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
-	"github.com/kart-io/k8s-agent/pkg/k8s"
 )
 
 // K8sRemediationAgent is a Kubernetes-specific agent for automated remediation

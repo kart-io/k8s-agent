@@ -200,7 +200,7 @@ func (s *BackwardChainingStrategy) identifyPrerequisites(goalStep *Step, context
 
 // HierarchicalStrategy creates multi-level plans
 type HierarchicalStrategy struct {
-	maxLevels int
+	maxLevels int //nolint:unused // Will be used for depth control
 }
 
 func (s *HierarchicalStrategy) Name() string {

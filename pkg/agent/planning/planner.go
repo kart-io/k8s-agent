@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/memory"
 )
@@ -137,7 +136,7 @@ type PlanConstraints struct {
 // SmartPlanner uses LLM and memory to create intelligent plans
 type SmartPlanner struct {
 	llm        llm.Client
-	memory     memory.Memory
+	memory     memory.Manager
 	strategies map[string]PlanStrategy
 	validators []PlanValidator
 	optimizer  PlanOptimizer
@@ -150,7 +149,7 @@ type SmartPlanner struct {
 }
 
 // NewSmartPlanner creates a new smart planner
-func NewSmartPlanner(llmClient llm.Client, mem memory.Memory, opts ...PlannerOption) *SmartPlanner {
+func NewSmartPlanner(llmClient llm.Client, mem memory.Manager, opts ...PlannerOption) *SmartPlanner {
 	p := &SmartPlanner{
 		llm:          llmClient,
 		memory:       mem,
@@ -214,7 +213,11 @@ func (p *SmartPlanner) CreatePlan(ctx context.Context, goal string, constraints 
 	// Generate plan using LLM with context from similar plans
 	prompt := p.buildPlanPrompt(goal, constraints, similarPlans)
 
-	response, err := p.llm.Complete(ctx, prompt)
+	response, err := p.llm.Complete(ctx, &llm.CompletionRequest{
+		Messages: []llm.Message{
+			{Role: "user", Content: prompt},
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("LLM failed to generate plan: %w", err)
 	}
@@ -274,7 +277,11 @@ Feedback: %s
 Please provide an improved plan that addresses the feedback while maintaining the original goal.`,
 		plan.Goal, plan.Strategy, len(plan.Steps), feedback)
 
-	response, err := p.llm.Complete(ctx, prompt)
+	response, err := p.llm.Complete(ctx, &llm.CompletionRequest{
+		Messages: []llm.Message{
+			{Role: "user", Content: prompt},
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to refine plan: %w", err)
 	}
@@ -304,7 +311,11 @@ Context: %s
 Provide 3-7 detailed sub-steps that fully accomplish the original step.`,
 		step.Name, step.Description, step.Type, plan.Goal)
 
-	response, err := p.llm.Complete(ctx, prompt)
+	response, err := p.llm.Complete(ctx, &llm.CompletionRequest{
+		Messages: []llm.Message{
+			{Role: "user", Content: prompt},
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompose step: %w", err)
 	}
@@ -366,17 +377,22 @@ func (p *SmartPlanner) AddValidator(validator PlanValidator) {
 // Helper methods
 
 func (p *SmartPlanner) retrieveSimilarPlans(ctx context.Context, goal string) ([]*Plan, error) {
-	// Search memory for similar goals
-	results, err := p.memory.Search(ctx, goal, 5)
+	// Search memory for similar cases
+	cases, err := p.memory.SearchSimilarCases(ctx, goal, 5)
 	if err != nil {
 		return nil, err
 	}
 
 	var plans []*Plan
-	for _, result := range results {
-		if plan, ok := result.(*Plan); ok {
-			plans = append(plans, plan)
+	for _, c := range cases {
+		// Create a simplified plan from the case
+		plan := &Plan{
+			ID:       c.ID,
+			Goal:     c.Problem,
+			Strategy: c.Solution,
+			Status:   PlanStatusCompleted,
 		}
+		plans = append(plans, plan)
 	}
 
 	return plans, nil
@@ -514,10 +530,7 @@ func (p *SmartPlanner) selectStrategy(goal string, constraints PlanConstraints) 
 func (p *SmartPlanner) storePlan(ctx context.Context, plan *Plan) {
 	// Store plan in memory for future reference
 	key := fmt.Sprintf("plan:%s", plan.ID)
-	p.memory.Store(ctx, key, plan, memory.StoreOptions{
-		TTL:  24 * time.Hour,
-		Tags: []string{"plan", plan.Status},
-	})
+	p.memory.Store(ctx, key, plan)
 }
 
 func (p *SmartPlanner) defaultOptimization(ctx context.Context, plan *Plan) (*Plan, error) {

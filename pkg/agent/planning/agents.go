@@ -18,7 +18,7 @@ type PlanningAgent struct {
 // NewPlanningAgent creates a new planning agent
 func NewPlanningAgent(planner Planner, executor PlanExecutor) *PlanningAgent {
 	agent := &PlanningAgent{
-		BaseAgent: core.NewBaseAgent("planning_agent", "Creates and executes plans to achieve goals"),
+		BaseAgent: core.NewBaseAgent("planning_agent", "Creates and executes plans to achieve goals", []string{"planning", "execution"}),
 		planner:   planner,
 		executor:  executor,
 	}
@@ -26,23 +26,23 @@ func NewPlanningAgent(planner Planner, executor PlanExecutor) *PlanningAgent {
 }
 
 // Execute implements the Agent interface
-func (a *PlanningAgent) Execute(ctx context.Context, input *core.Input) (*core.Output, error) {
+func (a *PlanningAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
 	// Extract goal from input
-	goal, ok := input.Data["goal"].(string)
+	goal, ok := input.Context["goal"].(string)
 	if !ok {
 		return nil, fmt.Errorf("goal not provided in input")
 	}
 
 	// Extract constraints if provided
 	var constraints PlanConstraints
-	if c, ok := input.Data["constraints"]; ok {
+	if c, ok := input.Context["constraints"]; ok {
 		if constraintData, err := json.Marshal(c); err == nil {
 			json.Unmarshal(constraintData, &constraints)
 		}
 	}
 
 	// Check if we should execute an existing plan
-	if planData, ok := input.Data["plan"]; ok {
+	if planData, ok := input.Context["plan"]; ok {
 		if plan, ok := planData.(*Plan); ok {
 			// Execute existing plan
 			result, err := a.executor.Execute(ctx, plan)
@@ -50,8 +50,8 @@ func (a *PlanningAgent) Execute(ctx context.Context, input *core.Input) (*core.O
 				return nil, fmt.Errorf("failed to execute plan: %w", err)
 			}
 
-			return &core.Output{
-				Data: result,
+			return &core.AgentOutput{
+				Result: result,
 				Metadata: map[string]interface{}{
 					"plan_id":        plan.ID,
 					"execution_time": result.TotalDuration,
@@ -67,14 +67,14 @@ func (a *PlanningAgent) Execute(ctx context.Context, input *core.Input) (*core.O
 	}
 
 	// Execute the plan if requested
-	if execute, ok := input.Options["execute"].(bool); ok && execute {
+	if execute, ok := input.Context["execute"].(bool); ok && execute {
 		result, err := a.executor.Execute(ctx, plan)
 		if err != nil {
 			return nil, fmt.Errorf("failed to execute plan: %w", err)
 		}
 
-		return &core.Output{
-			Data: map[string]interface{}{
+		return &core.AgentOutput{
+			Result: map[string]interface{}{
 				"plan":   plan,
 				"result": result,
 			},
@@ -86,8 +86,8 @@ func (a *PlanningAgent) Execute(ctx context.Context, input *core.Input) (*core.O
 	}
 
 	// Return just the plan
-	return &core.Output{
-		Data: plan,
+	return &core.AgentOutput{
+		Result: plan,
 		Metadata: map[string]interface{}{
 			"plan_id":     plan.ID,
 			"total_steps": len(plan.Steps),
@@ -104,15 +104,15 @@ type TaskDecompositionAgent struct {
 // NewTaskDecompositionAgent creates a new task decomposition agent
 func NewTaskDecompositionAgent(planner Planner) *TaskDecompositionAgent {
 	return &TaskDecompositionAgent{
-		BaseAgent: core.NewBaseAgent("task_decomposition", "Decomposes complex tasks into subtasks"),
+		BaseAgent: core.NewBaseAgent("task_decomposition", "Decomposes complex tasks into subtasks", []string{"decomposition"}),
 		planner:   planner,
 	}
 }
 
 // Execute decomposes a task into subtasks
-func (a *TaskDecompositionAgent) Execute(ctx context.Context, input *core.Input) (*core.Output, error) {
+func (a *TaskDecompositionAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
 	// Extract task description
-	task, ok := input.Data["task"].(string)
+	task, ok := input.Context["task"].(string)
 	if !ok {
 		return nil, fmt.Errorf("task not provided in input")
 	}
@@ -138,8 +138,8 @@ func (a *TaskDecompositionAgent) Execute(ctx context.Context, input *core.Input)
 		})
 	}
 
-	return &core.Output{
-		Data: subtasks,
+	return &core.AgentOutput{
+		Result: subtasks,
 		Metadata: map[string]interface{}{
 			"task":         task,
 			"num_subtasks": len(subtasks),
@@ -156,7 +156,7 @@ type StrategyAgent struct {
 // NewStrategyAgent creates a new strategy agent
 func NewStrategyAgent() *StrategyAgent {
 	agent := &StrategyAgent{
-		BaseAgent:  core.NewBaseAgent("strategy_agent", "Selects and applies planning strategies"),
+		BaseAgent:  core.NewBaseAgent("strategy_agent", "Selects and applies planning strategies", []string{"strategy"}),
 		strategies: make(map[string]PlanStrategy),
 	}
 
@@ -174,9 +174,9 @@ func (a *StrategyAgent) RegisterStrategy(name string, strategy PlanStrategy) {
 }
 
 // Execute selects and applies a strategy to a plan
-func (a *StrategyAgent) Execute(ctx context.Context, input *core.Input) (*core.Output, error) {
+func (a *StrategyAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
 	// Extract plan
-	planData, ok := input.Data["plan"]
+	planData, ok := input.Context["plan"]
 	if !ok {
 		return nil, fmt.Errorf("plan not provided in input")
 	}
@@ -196,7 +196,7 @@ func (a *StrategyAgent) Execute(ctx context.Context, input *core.Input) (*core.O
 
 	// Extract strategy name
 	strategyName := "decomposition" // default
-	if s, ok := input.Data["strategy"].(string); ok {
+	if s, ok := input.Context["strategy"].(string); ok {
 		strategyName = s
 	}
 
@@ -208,7 +208,7 @@ func (a *StrategyAgent) Execute(ctx context.Context, input *core.Input) (*core.O
 
 	// Extract constraints
 	var constraints PlanConstraints
-	if c, ok := input.Data["constraints"]; ok {
+	if c, ok := input.Context["constraints"]; ok {
 		if constraintData, err := json.Marshal(c); err == nil {
 			json.Unmarshal(constraintData, &constraints)
 		}
@@ -220,8 +220,8 @@ func (a *StrategyAgent) Execute(ctx context.Context, input *core.Input) (*core.O
 		return nil, fmt.Errorf("failed to apply strategy: %w", err)
 	}
 
-	return &core.Output{
-		Data: refinedPlan,
+	return &core.AgentOutput{
+		Result: refinedPlan,
 		Metadata: map[string]interface{}{
 			"strategy":    strategyName,
 			"total_steps": len(refinedPlan.Steps),
@@ -241,15 +241,15 @@ func NewOptimizationAgent(optimizer PlanOptimizer) *OptimizationAgent {
 		optimizer = &DefaultOptimizer{}
 	}
 	return &OptimizationAgent{
-		BaseAgent: core.NewBaseAgent("optimization_agent", "Optimizes plans for efficiency"),
+		BaseAgent: core.NewBaseAgent("optimization_agent", "Optimizes plans for efficiency", []string{"optimization"}),
 		optimizer: optimizer,
 	}
 }
 
 // Execute optimizes a plan
-func (a *OptimizationAgent) Execute(ctx context.Context, input *core.Input) (*core.Output, error) {
+func (a *OptimizationAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
 	// Extract plan
-	planData, ok := input.Data["plan"]
+	planData, ok := input.Context["plan"]
 	if !ok {
 		return nil, fmt.Errorf("plan not provided in input")
 	}
@@ -286,8 +286,8 @@ func (a *OptimizationAgent) Execute(ctx context.Context, input *core.Input) (*co
 		}
 	}
 
-	return &core.Output{
-		Data: optimizedPlan,
+	return &core.AgentOutput{
+		Result: optimizedPlan,
 		Metadata: map[string]interface{}{
 			"original_steps":  originalSteps,
 			"optimized_steps": optimizedSteps,
@@ -306,7 +306,7 @@ type ValidationAgent struct {
 // NewValidationAgent creates a new validation agent
 func NewValidationAgent() *ValidationAgent {
 	agent := &ValidationAgent{
-		BaseAgent:  core.NewBaseAgent("validation_agent", "Validates plans for feasibility"),
+		BaseAgent:  core.NewBaseAgent("validation_agent", "Validates plans for feasibility", []string{"validation"}),
 		validators: []PlanValidator{},
 	}
 
@@ -324,9 +324,9 @@ func (a *ValidationAgent) AddValidator(validator PlanValidator) {
 }
 
 // Execute validates a plan
-func (a *ValidationAgent) Execute(ctx context.Context, input *core.Input) (*core.Output, error) {
+func (a *ValidationAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
 	// Extract plan
-	planData, ok := input.Data["plan"]
+	planData, ok := input.Context["plan"]
 	if !ok {
 		return nil, fmt.Errorf("plan not provided in input")
 	}
@@ -359,8 +359,8 @@ func (a *ValidationAgent) Execute(ctx context.Context, input *core.Input) (*core
 		}
 	}
 
-	return &core.Output{
-		Data: map[string]interface{}{
+	return &core.AgentOutput{
+		Result: map[string]interface{}{
 			"valid":  valid,
 			"issues": allIssues,
 		},
