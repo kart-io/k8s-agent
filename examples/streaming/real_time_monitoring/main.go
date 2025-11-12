@@ -16,7 +16,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Real-Time Monitoring Server ===\n")
+	fmt.Println("=== Real-Time Monitoring Server ===")
+	fmt.Println()
 
 	// 创建进度 Agent
 	progressAgent := agents.NewProgressAgent(agents.DefaultProgressConfig())

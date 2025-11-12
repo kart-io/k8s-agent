@@ -182,11 +182,9 @@ func (s *Server) HandleListClusters(c *gin.Context) {
 	}
 
 	// Apply limit if specified
-	limit := len(clusters)
 	if limitStr := c.Query("limit"); limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit < len(clusters) {
-			limit = parsedLimit
-			clusters = clusters[:limit]
+			clusters = clusters[:parsedLimit]
 		}
 	}
 

@@ -131,9 +131,9 @@ func exampleCaching() {
 
 	// 创建内存缓存
 	cacheInstance := cache.NewInMemoryCache(
-		100,                // maxSize
-		5*time.Minute,      // defaultTTL
-		1*time.Minute,      // cleanupInterval
+		100,           // maxSize
+		5*time.Minute, // defaultTTL
+		1*time.Minute, // cleanupInterval
 	)
 
 	// 创建缓存键生成器

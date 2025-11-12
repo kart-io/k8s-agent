@@ -80,8 +80,8 @@ func jsonLoaderExample() {
 	fmt.Println("----------------------")
 
 	loader := document.NewJSONLoader(document.JSONLoaderConfig{
-		FilePath:   "/tmp/example.json",
-		ContentKey: "text",
+		FilePath:     "/tmp/example.json",
+		ContentKey:   "text",
 		MetadataKeys: []string{"author", "category"},
 	})
 
@@ -128,7 +128,7 @@ func setupExampleFiles() {
 	// 创建示例文本文件
 	os.WriteFile("/tmp/example.txt", []byte(`This is a sample text file.
 It contains multiple lines of text.
-This is useful for testing the text loader.`), 0644)
+This is useful for testing the text loader.`), 0o644)
 
 	// 创建示例 Markdown 文件
 	os.WriteFile("/tmp/example.md", []byte(`# Document Loaders
@@ -139,7 +139,7 @@ This is a markdown document with [links](https://example.com) and formatting.
 
 - Easy to use
 - Supports multiple formats
-- Extensible`), 0644)
+- Extensible`), 0o644)
 
 	// 创建示例 JSON 文件
 	os.WriteFile("/tmp/example.json", []byte(`[
@@ -153,13 +153,13 @@ This is a markdown document with [links](https://example.com) and formatting.
     "author": "Jane Smith",
     "category": "Science"
   }
-]`), 0644)
+]`), 0o644)
 
 	// 创建示例目录
-	os.MkdirAll("/tmp/documents", 0755)
-	os.WriteFile("/tmp/documents/doc1.txt", []byte("Document 1 content"), 0644)
-	os.WriteFile("/tmp/documents/doc2.txt", []byte("Document 2 content"), 0644)
-	os.WriteFile("/tmp/documents/doc3.txt", []byte("Document 3 content"), 0644)
+	os.MkdirAll("/tmp/documents", 0o755)
+	os.WriteFile("/tmp/documents/doc1.txt", []byte("Document 1 content"), 0o644)
+	os.WriteFile("/tmp/documents/doc2.txt", []byte("Document 2 content"), 0o644)
+	os.WriteFile("/tmp/documents/doc3.txt", []byte("Document 3 content"), 0o644)
 }
 
 func cleanupExampleFiles() {

@@ -153,7 +153,7 @@ func (s *UserServiceServer) CreateUser(ctx context.Context, req *authv1.CreateUs
 	}
 
 	return &authv1.User{
-		Id:        uint64(stringToID(user.ID)),
+		Id:        stringToID(user.ID),
 		Username:  user.Username,
 		Email:     user.Email,
 		Nickname:  user.RealName,

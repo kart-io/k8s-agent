@@ -529,7 +529,8 @@ func (a *K8sMonitoringAgent) registerMonitoringTools() error {
 }
 
 // calculateAlertRelevance calculates the relevance score for an alert
-// nolint:unused // This will be used in future alert prioritization
+//
+//nolint:unused // This will be used in future alert prioritization
 func (a *K8sMonitoringAgent) calculateAlertRelevance(severity AlertSeverity) float64 {
 	switch severity {
 	case AlertSeverityCritical:

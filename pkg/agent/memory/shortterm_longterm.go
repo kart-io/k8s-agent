@@ -465,7 +465,7 @@ func (c *MemoryConsolidator) Consolidate(shortTerm []*MemoryEntry, longTerm *Lon
 
 // groupRelatedMemories groups related memories together
 func (c *MemoryConsolidator) groupRelatedMemories(memories []*MemoryEntry) [][]*MemoryEntry {
-	var groups [][]*MemoryEntry
+	groups := make([][]*MemoryEntry, 0, len(memories))
 	used := make(map[string]bool)
 
 	for _, memory := range memories {
@@ -546,7 +546,7 @@ func (c *MemoryConsolidator) mergeMemories(group []*MemoryEntry) *MemoryEntry {
 	}
 
 	// Merge content
-	var contents []interface{}
+	contents := make([]interface{}, 0, len(group))
 	totalImportance := 0.0
 	totalAccess := 0
 

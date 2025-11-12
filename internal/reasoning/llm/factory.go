@@ -26,7 +26,7 @@ func NewClient(config *Config) (Client, error) {
 
 // NewMultiClient creates multiple LLM clients for fallback.
 func NewMultiClient(configs []*Config) ([]Client, error) {
-	var clients []Client
+	clients := make([]Client, 0, len(configs))
 	for _, config := range configs {
 		client, err := NewClient(config)
 		if err != nil {

@@ -12,7 +12,7 @@ import (
 // 针对代码进行智能分割,保持代码结构完整性
 type CodeTextSplitter struct {
 	*BaseTextSplitter
-	language  string
+	language   string
 	separators []string
 }
 
@@ -71,39 +71,39 @@ func (s *CodeTextSplitter) getSeparators() []string {
 	switch s.language {
 	case LanguageGo:
 		return []string{
-			"\nfunc ",      // 函数定义
-			"\ntype ",      // 类型定义
-			"\nconst ",     // 常量定义
-			"\nvar ",       // 变量定义
-			"\n\n",         // 段落
-			"\n",           // 行
-			" ",            // 空格
-			"",             // 字符
+			"\nfunc ",  // 函数定义
+			"\ntype ",  // 类型定义
+			"\nconst ", // 常量定义
+			"\nvar ",   // 变量定义
+			"\n\n",     // 段落
+			"\n",       // 行
+			" ",        // 空格
+			"",         // 字符
 		}
 
 	case LanguagePython:
 		return []string{
-			"\nclass ",     // 类定义
-			"\ndef ",       // 函数定义
-			"\n\tdef ",     // 类方法定义
-			"\n\n",         // 段落
-			"\n",           // 行
-			" ",            // 空格
-			"",             // 字符
+			"\nclass ", // 类定义
+			"\ndef ",   // 函数定义
+			"\n\tdef ", // 类方法定义
+			"\n\n",     // 段落
+			"\n",       // 行
+			" ",        // 空格
+			"",         // 字符
 		}
 
 	case LanguageJavaScript, LanguageTypeScript:
 		return []string{
-			"\nfunction ",  // 函数定义
-			"\nconst ",     // 常量定义
-			"\nlet ",       // 变量定义
-			"\nvar ",       // 变量定义
-			"\nclass ",     // 类定义
-			"\nif ",        // 条件语句
-			"\n\n",         // 段落
-			"\n",           // 行
-			" ",            // 空格
-			"",             // 字符
+			"\nfunction ", // 函数定义
+			"\nconst ",    // 常量定义
+			"\nlet ",      // 变量定义
+			"\nvar ",      // 变量定义
+			"\nclass ",    // 类定义
+			"\nif ",       // 条件语句
+			"\n\n",        // 段落
+			"\n",          // 行
+			" ",           // 空格
+			"",            // 字符
 		}
 
 	case LanguageJava:
@@ -121,27 +121,27 @@ func (s *CodeTextSplitter) getSeparators() []string {
 
 	case LanguageRust:
 		return []string{
-			"\nfn ",        // 函数定义
-			"\nstruct ",    // 结构体定义
-			"\nenum ",      // 枚举定义
-			"\nimpl ",      // 实现块
-			"\ntrait ",     // trait 定义
-			"\n\n",         // 段落
-			"\n",           // 行
-			" ",            // 空格
-			"",             // 字符
+			"\nfn ",     // 函数定义
+			"\nstruct ", // 结构体定义
+			"\nenum ",   // 枚举定义
+			"\nimpl ",   // 实现块
+			"\ntrait ",  // trait 定义
+			"\n\n",      // 段落
+			"\n",        // 行
+			" ",         // 空格
+			"",          // 字符
 		}
 
 	case LanguageCpp, LanguageC:
 		return []string{
-			"\nclass ",     // 类定义
-			"\nvoid ",      // 函数定义
-			"\nint ",       // 函数定义
-			"\nstruct ",    // 结构体定义
-			"\n\n",         // 段落
-			"\n",           // 行
-			" ",            // 空格
-			"",             // 字符
+			"\nclass ",  // 类定义
+			"\nvoid ",   // 函数定义
+			"\nint ",    // 函数定义
+			"\nstruct ", // 结构体定义
+			"\n\n",      // 段落
+			"\n",        // 行
+			" ",         // 空格
+			"",          // 字符
 		}
 
 	default:

@@ -119,11 +119,15 @@ func (a *APITool) run(ctx context.Context, input *ToolInput) (*ToolOutput, error
 	}
 
 	// 解析超时
-	timeout := a.client.Timeout
 	if timeoutSec, ok := input.Args["timeout"].(float64); ok {
-		timeout = time.Duration(timeoutSec) * time.Second
+		timeout := time.Duration(timeoutSec) * time.Second
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	} else if a.client.Timeout > 0 {
+		// 使用默认超时
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, a.client.Timeout)
 		defer cancel()
 	}
 

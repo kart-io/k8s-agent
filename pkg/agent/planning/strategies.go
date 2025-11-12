@@ -144,7 +144,7 @@ func (s *BackwardChainingStrategy) Apply(ctx context.Context, plan *Plan, constr
 	prerequisites := s.identifyPrerequisites(goalStep, plan.Context)
 
 	// Build the plan from prerequisites
-	var steps []*Step
+	steps := make([]*Step, 0, len(prerequisites)+1)
 	for i, prereq := range prerequisites {
 		steps = append(steps, &Step{
 			ID:          fmt.Sprintf("step_%d", i+1),
@@ -213,7 +213,7 @@ func (s *HierarchicalStrategy) Apply(ctx context.Context, plan *Plan, constraint
 	// Top-level phases
 	phases := s.identifyPhases(plan.Goal)
 
-	var allSteps []*Step
+	allSteps := make([]*Step, 0, len(phases)*3) // Preallocate: phases + sub-steps
 	for phaseIdx, phase := range phases {
 		// Create phase step
 		phaseStep := &Step{

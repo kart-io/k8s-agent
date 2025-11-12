@@ -340,7 +340,7 @@ func (e *PromptEvaluator) wordUnion(words1, words2 []string) []string {
 		union[w] = true
 	}
 
-	var result []string
+	result := make([]string, 0, len(union))
 	for w := range union {
 		result = append(result, w)
 	}
@@ -440,7 +440,7 @@ func (e *PromptEvaluator) extractKeyPhrases(text string) []string {
 		}
 	}
 
-	var result []string
+	result := make([]string, 0, len(phrases))
 	for phrase := range phrases {
 		result = append(result, phrase)
 	}

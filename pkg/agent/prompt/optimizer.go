@@ -246,7 +246,7 @@ func (o *PromptOptimizer) analyzeFeedbackPatterns(feedback []Feedback) map[strin
 	patterns := make(map[string]interface{})
 
 	// Score distribution
-	var scores []float64
+	scores := make([]float64, 0, len(feedback))
 	for _, f := range feedback {
 		scores = append(scores, f.Score)
 	}
@@ -337,7 +337,7 @@ func (o *PromptOptimizer) copyPrompt(prompt *Prompt) *Prompt {
 }
 
 func (o *PromptOptimizer) getSortedRules() []OptimizationRule {
-	var rules []OptimizationRule
+	rules := make([]OptimizationRule, 0, len(o.improvementRules))
 	for _, rule := range o.improvementRules {
 		rules = append(rules, rule)
 	}
@@ -773,7 +773,7 @@ func (o *PromptOptimizer) testPrompt(ctx context.Context, prompt *Prompt, testCa
 }
 
 func (o *PromptOptimizer) generateFeedbackFromTests(testResult *TestResult) []Feedback {
-	var feedback []Feedback
+	feedback := make([]Feedback, 0, len(testResult.Details))
 
 	for _, detail := range testResult.Details {
 		f := Feedback{

@@ -29,11 +29,11 @@ type TextSplitter interface {
 //
 // 提供通用的分割逻辑
 type BaseTextSplitter struct {
-	chunkSize        int
-	chunkOverlap     int
-	lengthFunction   func(string) int
-	keepSeparator    bool
-	callbackManager  *core.CallbackManager
+	chunkSize       int
+	chunkOverlap    int
+	lengthFunction  func(string) int
+	keepSeparator   bool
+	callbackManager *core.CallbackManager
 }
 
 // BaseTextSplitterConfig 基础分割器配置

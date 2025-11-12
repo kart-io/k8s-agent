@@ -208,6 +208,8 @@ func NewAdvancedCalculatorTool(operations CalculatorOperations) *AdvancedCalcula
 }
 
 // run 执行高级计算
+//
+//nolint:gocyclo // High complexity is inherent due to multiple math operations
 func (a *AdvancedCalculatorTool) run(ctx context.Context, input *ToolInput) (*ToolOutput, error) {
 	operation, ok := input.Args["operation"].(string)
 	if !ok {

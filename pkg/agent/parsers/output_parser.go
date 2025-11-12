@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	ErrParseFailed       = errors.New("failed to parse output")
-	ErrInvalidFormat     = errors.New("invalid output format")
-	ErrMissingField      = errors.New("missing required field")
-	ErrTypeConversion    = errors.New("type conversion failed")
+	ErrParseFailed    = errors.New("failed to parse output")
+	ErrInvalidFormat  = errors.New("invalid output format")
+	ErrMissingField   = errors.New("missing required field")
+	ErrTypeConversion = errors.New("type conversion failed")
 )
 
 // OutputParser 定义输出解析器接口
@@ -103,7 +103,7 @@ func (p *JSONOutputParser[T]) Parse(ctx context.Context, text string) (T, error)
 
 	// 解析 JSON
 	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
-		return result, fmt.Errorf("%w: %v", ErrParseFailed, err)
+		return result, fmt.Errorf("%w: %w", ErrParseFailed, err)
 	}
 
 	return result, nil
@@ -256,11 +256,11 @@ func (p *StructuredOutputParser[T]) Parse(ctx context.Context, text string) (T, 
 	// 构造 JSON 并解析
 	jsonData, err := json.Marshal(fields)
 	if err != nil {
-		return result, fmt.Errorf("%w: %v", ErrParseFailed, err)
+		return result, fmt.Errorf("%w: %w", ErrParseFailed, err)
 	}
 
 	if err := json.Unmarshal(jsonData, &result); err != nil {
-		return result, fmt.Errorf("%w: %v", ErrParseFailed, err)
+		return result, fmt.Errorf("%w: %w", ErrParseFailed, err)
 	}
 
 	return result, nil
@@ -514,7 +514,7 @@ func (p *ChainOutputParser[T]) Parse(ctx context.Context, text string) (T, error
 	}
 
 	var zero T
-	return zero, fmt.Errorf("%w: all parsers failed, last error: %v", ErrParseFailed, lastErr)
+	return zero, fmt.Errorf("%w: all parsers failed, last error: %w", ErrParseFailed, lastErr)
 }
 
 // ParseWithPrompt 带提示的解析
@@ -529,7 +529,7 @@ func (p *ChainOutputParser[T]) ParseWithPrompt(ctx context.Context, text, prompt
 	}
 
 	var zero T
-	return zero, fmt.Errorf("%w: all parsers failed, last error: %v", ErrParseFailed, lastErr)
+	return zero, fmt.Errorf("%w: all parsers failed, last error: %w", ErrParseFailed, lastErr)
 }
 
 // GetFormatInstructions 获取格式化指令

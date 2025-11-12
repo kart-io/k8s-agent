@@ -82,15 +82,15 @@ func NewRecursiveCharacterTextSplitter(config RecursiveCharacterTextSplitterConf
 	if len(config.Separators) == 0 {
 		// 默认分隔符,从大到小
 		config.Separators = []string{
-			"\n\n",   // 段落
-			"\n",     // 行
-			". ",     // 句子
-			"! ",     // 句子
-			"? ",     // 句子
-			"; ",     // 子句
-			", ",     // 短语
-			" ",      // 单词
-			"",       // 字符
+			"\n\n", // 段落
+			"\n",   // 行
+			". ",   // 句子
+			"! ",   // 句子
+			"? ",   // 句子
+			"; ",   // 子句
+			", ",   // 短语
+			" ",    // 单词
+			"",     // 字符
 		}
 	}
 

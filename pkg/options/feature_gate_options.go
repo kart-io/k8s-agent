@@ -152,7 +152,7 @@ func (o *FeatureGateOptions) String() string {
 	}
 	sort.Strings(names)
 
-	var lines []string
+	lines := make([]string, 0, len(o.Known))
 	for _, name := range names {
 		spec := o.Known[name]
 		enabled := "false"
@@ -197,7 +197,7 @@ func (f *FeatureGateFlag) String() string {
 		return ""
 	}
 
-	var pairs []string
+	pairs := make([]string, 0, len(f.options.Override))
 	for k, v := range f.options.Override {
 		pairs = append(pairs, fmt.Sprintf("%s=%v", k, v))
 	}

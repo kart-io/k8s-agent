@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -228,6 +229,7 @@ func (t *SearchFilesTool) Execute(ctx context.Context, input map[string]interfac
 	count := 0
 
 	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+		//nolint:nilerr // Intentionally skip errors to continue traversing
 		if err != nil {
 			return nil // 跳过错误
 		}
@@ -245,6 +247,7 @@ func (t *SearchFilesTool) Execute(ctx context.Context, input map[string]interfac
 		// 如果需要搜索内容
 		if contentSearch != "" && !info.IsDir() {
 			content, err := os.ReadFile(path)
+			//nolint:nilerr // Skip files that cannot be read
 			if err != nil {
 				return nil
 			}
@@ -267,7 +270,7 @@ func (t *SearchFilesTool) Execute(ctx context.Context, input map[string]interfac
 		return nil
 	})
 
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return &core.ToolResult{
 			Success:   false,
 			Error:     fmt.Sprintf("search failed: %v", err),

@@ -10,6 +10,7 @@ import (
 	"github.com/kart-io/k8s-agent/pkg/agent/stream/agents"
 )
 
+//nolint:gocyclo // Example code with comprehensive demo flow
 func main() {
 	fmt.Println("=== Data Processing Pipeline Example ===\n")
 

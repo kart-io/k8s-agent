@@ -58,7 +58,7 @@ func (s *AgentServer) RegisterAgent(ctx context.Context, req *agentv1.RegisterAg
 }
 
 func (s *AgentServer) ListAgents(ctx context.Context, req *agentv1.ListAgentsRequest) (*agentv1.ListAgentsResponse, error) {
-	var agents []*agentv1.Agent
+	agents := make([]*agentv1.Agent, 0, len(s.agents))
 	for _, agent := range s.agents {
 		agents = append(agents, agent)
 	}

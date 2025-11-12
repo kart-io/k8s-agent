@@ -293,7 +293,8 @@ func (a *ClusterApp) initGRPCServer(ctx context.Context) error {
 		addr := fmt.Sprintf("%s:%d", a.opts.GRPC.Host, a.opts.GRPC.Port)
 		a.logger.Infow("gRPC server starting", "address", addr)
 
-		listener, err := net.Listen("tcp", addr)
+		lc := net.ListenConfig{}
+		listener, err := lc.Listen(ctx, "tcp", addr)
 		if err != nil {
 			a.logger.Fatalw("Failed to create gRPC listener", "error", err)
 		}

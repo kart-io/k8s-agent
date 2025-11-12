@@ -238,7 +238,6 @@ func TestKeywordRetriever(t *testing.T) {
 
 		ctx := context.Background()
 		results, err := retriever.GetRelevantDocuments(ctx, "container management")
-
 		if err != nil {
 			t.Fatalf("BM25 retrieval failed: %v", err)
 		}
@@ -264,7 +263,6 @@ func TestKeywordRetriever(t *testing.T) {
 
 		ctx := context.Background()
 		results, err := retriever.GetRelevantDocuments(ctx, "python programming")
-
 		if err != nil {
 			t.Fatalf("TF-IDF retrieval failed: %v", err)
 		}
@@ -282,7 +280,6 @@ func TestKeywordRetriever(t *testing.T) {
 
 		ctx := context.Background()
 		results, err := retriever.GetRelevantDocuments(ctx, "test")
-
 		if err != nil {
 			t.Fatalf("Retrieval failed: %v", err)
 		}
@@ -329,7 +326,6 @@ func TestHybridRetriever(t *testing.T) {
 		)
 
 		results, err := hybrid.GetRelevantDocuments(ctx, "container orchestration")
-
 		if err != nil {
 			t.Fatalf("Hybrid retrieval failed: %v", err)
 		}
@@ -361,7 +357,6 @@ func TestHybridRetriever(t *testing.T) {
 		hybrid.WithFusionStrategy(FusionStrategyRRF)
 
 		results, err := hybrid.GetRelevantDocuments(ctx, "test query")
-
 		if err != nil {
 			t.Fatalf("RRF fusion failed: %v", err)
 		}
@@ -400,7 +395,6 @@ func TestEnsembleRetriever(t *testing.T) {
 		)
 
 		results, err := ensemble.GetRelevantDocuments(ctx, "kubernetes container")
-
 		if err != nil {
 			t.Fatalf("Ensemble retrieval failed: %v", err)
 		}
@@ -441,7 +435,6 @@ func TestReranker(t *testing.T) {
 
 		ctx := context.Background()
 		results, err := reranker.Rerank(ctx, "container technology", docs)
-
 		if err != nil {
 			t.Fatalf("Reranking failed: %v", err)
 		}
@@ -456,7 +449,6 @@ func TestReranker(t *testing.T) {
 
 		ctx := context.Background()
 		results, err := reranker.Rerank(ctx, "test query", docs)
-
 		if err != nil {
 			t.Fatalf("MMR reranking failed: %v", err)
 		}
@@ -497,7 +489,6 @@ func TestReranker(t *testing.T) {
 
 		ctx := context.Background()
 		results, err := rerankingRetriever.GetRelevantDocuments(ctx, "container")
-
 		if err != nil {
 			t.Fatalf("Reranking retrieval failed: %v", err)
 		}
@@ -554,7 +545,7 @@ func TestTokenize(t *testing.T) {
 		input    string
 		expected int
 	}{
-		{"The quick brown fox", 3},  // 'the' is filtered as stopword
+		{"The quick brown fox", 3},   // 'the' is filtered as stopword
 		{"Kubernetes is awesome", 2}, // 'is' is filtered
 		{"", 0},
 		{"a an the", 0}, // all stopwords

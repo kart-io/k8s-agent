@@ -253,8 +253,9 @@ func (a *BaseAgent) triggerOnFinish(ctx context.Context, output *AgentOutput) er
 	return nil
 }
 
-//nolint:unused // Reserved for future agent action tracking
 // triggerOnAction 触发操作回调
+//
+//nolint:unused // Reserved for future agent action tracking
 func (a *BaseAgent) triggerOnAction(ctx context.Context, action *AgentAction) error {
 	config := a.GetConfig()
 	for _, cb := range config.Callbacks {

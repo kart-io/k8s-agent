@@ -193,10 +193,10 @@ Action Input: {"message": "Hello World"}`,
 
 	// 创建执行器
 	executor := agents.NewAgentExecutor(agents.ExecutorConfig{
-		Agent:            agent,
-		MaxIterations:    5,
+		Agent:             agent,
+		MaxIterations:     5,
 		ReturnIntermSteps: true,
-		Verbose:          true,
+		Verbose:           true,
 	})
 
 	// 执行

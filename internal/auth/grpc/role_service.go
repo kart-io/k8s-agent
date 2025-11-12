@@ -70,7 +70,7 @@ func (s *RoleServiceServer) ListRoles(ctx context.Context, req *authv1.ListRoles
 	pbRoles := make([]*authv1.Role, len(roles))
 	for i, r := range roles {
 		pbRoles[i] = &authv1.Role{
-			Id:          uint64(stringToID(r.ID)),
+			Id:          stringToID(r.ID),
 			Name:        r.Name,
 			Description: r.Description,
 			Status:      int32(r.Status),
@@ -109,7 +109,7 @@ func (s *RoleServiceServer) CreateRole(ctx context.Context, req *authv1.CreateRo
 	}
 
 	return &authv1.Role{
-		Id:          uint64(stringToID(role.ID)),
+		Id:          stringToID(role.ID),
 		Name:        role.Name,
 		Description: role.Description,
 		Status:      int32(role.Status),

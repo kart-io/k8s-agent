@@ -43,23 +43,23 @@ type Cache interface {
 
 // CacheStats 缓存统计信息
 type CacheStats struct {
-	Hits       int64 // 命中次数
-	Misses     int64 // 未命中次数
-	Sets       int64 // 设置次数
-	Deletes    int64 // 删除次数
-	Evictions  int64 // 驱逐次数
-	Size       int64 // 当前大小
-	MaxSize    int64 // 最大大小
-	HitRate    float64 // 命中率
+	Hits      int64   // 命中次数
+	Misses    int64   // 未命中次数
+	Sets      int64   // 设置次数
+	Deletes   int64   // 删除次数
+	Evictions int64   // 驱逐次数
+	Size      int64   // 当前大小
+	MaxSize   int64   // 最大大小
+	HitRate   float64 // 命中率
 }
 
 // CacheEntry 缓存条目
 type CacheEntry struct {
-	Key        string      // 键
-	Value      interface{} // 值
-	CreateTime time.Time   // 创建时间
-	ExpireTime time.Time   // 过期时间
-	AccessTime time.Time   // 最后访问时间
+	Key         string      // 键
+	Value       interface{} // 值
+	CreateTime  time.Time   // 创建时间
+	ExpireTime  time.Time   // 过期时间
+	AccessTime  time.Time   // 最后访问时间
 	AccessCount int64       // 访问次数
 }
 
@@ -72,13 +72,13 @@ func (e *CacheEntry) IsExpired() bool {
 //
 // 使用 sync.Map 提供线程安全的内存缓存
 type InMemoryCache struct {
-	entries  sync.Map       // 缓存条目 map[string]*CacheEntry
-	stats    CacheStats     // 统计信息
-	statsMu  sync.RWMutex   // 统计锁
-	maxSize  int            // 最大条目数
-	defaultTTL time.Duration // 默认 TTL
+	entries         sync.Map      // 缓存条目 map[string]*CacheEntry
+	stats           CacheStats    // 统计信息
+	statsMu         sync.RWMutex  // 统计锁
+	maxSize         int           // 最大条目数
+	defaultTTL      time.Duration // 默认 TTL
 	cleanupInterval time.Duration // 清理间隔
-	stopCleanup chan struct{}
+	stopCleanup     chan struct{}
 }
 
 // NewInMemoryCache 创建内存缓存
@@ -144,10 +144,10 @@ func (c *InMemoryCache) Set(ctx context.Context, key string, value interface{}, 
 
 	now := time.Now()
 	entry := &CacheEntry{
-		Key:        key,
-		Value:      value,
-		CreateTime: now,
-		AccessTime: now,
+		Key:         key,
+		Value:       value,
+		CreateTime:  now,
+		AccessTime:  now,
 		AccessCount: 0,
 	}
 
@@ -318,8 +318,9 @@ func NewLRUCache(maxSize int, defaultTTL, cleanupInterval time.Duration) *LRUCac
 	}
 }
 
-//nolint:unused // Reserved for future LRU eviction strategy
 // evictOldest 驱逐最近最少使用的条目
+//
+//nolint:unused // Reserved for future LRU eviction strategy
 func (c *LRUCache) evictOldest() {
 	var lruKey string
 	var lruTime time.Time

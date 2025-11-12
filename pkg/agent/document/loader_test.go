@@ -16,7 +16,7 @@ func TestTextLoader(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.txt")
 
 	content := "This is a test file.\nIt has multiple lines.\nFor testing purposes."
-	err := os.WriteFile(testFile, []byte(content), 0644)
+	err := os.WriteFile(testFile, []byte(content), 0o644)
 	require.NoError(t, err)
 
 	// 测试加载
@@ -48,7 +48,7 @@ func TestDirectoryLoader(t *testing.T) {
 
 	for name, content := range files {
 		path := filepath.Join(tmpDir, name)
-		err := os.WriteFile(path, []byte(content), 0644)
+		err := os.WriteFile(path, []byte(content), 0o644)
 		require.NoError(t, err)
 	}
 
@@ -75,7 +75,7 @@ This is a paragraph with a [link](https://example.com) and an image ![alt](image
 
 More content here.`
 
-	err := os.WriteFile(testFile, []byte(content), 0644)
+	err := os.WriteFile(testFile, []byte(content), 0o644)
 	require.NoError(t, err)
 
 	// 测试加载(保留所有格式)
@@ -109,7 +109,7 @@ func TestJSONLoader(t *testing.T) {
 	t.Run("Single JSON Object", func(t *testing.T) {
 		testFile := filepath.Join(tmpDir, "test.json")
 		content := `{"content": "Test content", "author": "John"}`
-		err := os.WriteFile(testFile, []byte(content), 0644)
+		err := os.WriteFile(testFile, []byte(content), 0o644)
 		require.NoError(t, err)
 
 		loader := NewJSONLoader(JSONLoaderConfig{
@@ -134,7 +134,7 @@ func TestJSONLoader(t *testing.T) {
 			{"content": "First", "id": 1},
 			{"content": "Second", "id": 2}
 		]`
-		err := os.WriteFile(testFile, []byte(content), 0644)
+		err := os.WriteFile(testFile, []byte(content), 0o644)
 		require.NoError(t, err)
 
 		loader := NewJSONLoader(JSONLoaderConfig{
@@ -151,7 +151,7 @@ func TestJSONLoader(t *testing.T) {
 		content := `{"content": "Line 1"}
 {"content": "Line 2"}
 {"content": "Line 3"}`
-		err := os.WriteFile(testFile, []byte(content), 0644)
+		err := os.WriteFile(testFile, []byte(content), 0o644)
 		require.NoError(t, err)
 
 		loader := NewJSONLoader(JSONLoaderConfig{
@@ -171,7 +171,7 @@ func TestLoadAndSplit(t *testing.T) {
 
 	content := "This is a long text that should be split into multiple chunks. " +
 		"Each chunk should be small enough to process efficiently."
-	err := os.WriteFile(testFile, []byte(content), 0644)
+	err := os.WriteFile(testFile, []byte(content), 0o644)
 	require.NoError(t, err)
 
 	loader := NewTextLoader(TextLoaderConfig{
@@ -205,7 +205,7 @@ func BenchmarkTextLoader(b *testing.B) {
 	tmpDir := b.TempDir()
 	testFile := filepath.Join(tmpDir, "test.txt")
 	content := "Test content for benchmarking"
-	_ = os.WriteFile(testFile, []byte(content), 0644)
+	_ = os.WriteFile(testFile, []byte(content), 0o644)
 
 	loader := NewTextLoader(TextLoaderConfig{
 		FilePath: testFile,
@@ -223,7 +223,7 @@ func BenchmarkDirectoryLoader(b *testing.B) {
 	// 创建 10 个测试文件
 	for i := 0; i < 10; i++ {
 		path := filepath.Join(tmpDir, "file"+string(rune(i))+".txt")
-		_ = os.WriteFile(path, []byte("Content"), 0644)
+		_ = os.WriteFile(path, []byte("Content"), 0o644)
 	}
 
 	loader := NewDirectoryLoader(DirectoryLoaderConfig{

@@ -47,7 +47,7 @@ func (s *SessionServiceServer) GetSession(ctx context.Context, req *authv1.GetSe
 
 	return &authv1.Session{
 		Id:        sessionInfo.JTI,
-		UserId:    uint64(stringToID(sessionInfo.UserID)),
+		UserId:    stringToID(sessionInfo.UserID),
 		Username:  sessionInfo.Username,
 		IpAddress: sessionInfo.IPAddress,
 		UserAgent: sessionInfo.UserAgent,
@@ -93,7 +93,7 @@ func (s *SessionServiceServer) ListSessions(ctx context.Context, req *authv1.Lis
 	for i, sess := range sessionList.Sessions {
 		sessions[i] = &authv1.Session{
 			Id:        sess.JTI,
-			UserId:    uint64(stringToID(sess.UserID)),
+			UserId:    stringToID(sess.UserID),
 			Username:  sess.Username,
 			IpAddress: sess.IPAddress,
 			UserAgent: sess.UserAgent,

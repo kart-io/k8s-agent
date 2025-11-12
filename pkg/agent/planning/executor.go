@@ -464,7 +464,7 @@ func (e *AgentExecutor) executeStep(ctx context.Context, step *Step) *StepResult
 func (e *AgentExecutor) ExecuteStep(ctx context.Context, step *Step) (*StepResult, error) {
 	result := e.executeStep(ctx, step)
 	if !result.Success {
-		return result, fmt.Errorf(result.Error)
+		return result, fmt.Errorf("%s", result.Error)
 	}
 	return result, nil
 }

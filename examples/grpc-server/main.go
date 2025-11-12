@@ -104,7 +104,7 @@ func (s *AgentServer) ListAgents(ctx context.Context, req *agentv1.ListAgentsReq
 	log.Printf("Listing agents: cluster=%s", req.ClusterId)
 
 	// 收集所有 Agent
-	var agents []*agentv1.Agent
+	agents := make([]*agentv1.Agent, 0, len(s.agents))
 	for _, agent := range s.agents {
 		// 如果指定了 cluster_id，进行过滤
 		if req.ClusterId != "" && agent.ClusterId != req.ClusterId {

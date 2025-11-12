@@ -69,7 +69,7 @@ linters:
     - goconst       # Find repeated strings that could be replaced by a constant
     - gocritic      # The most opinionated Go source code linter
     - gocyclo       # Compute cyclomatic complexities of functions
-    - gomoddirectives # Manage the use of 'replace', 'retract', and 'excludes' directives in go.mod
+    # - gomoddirectives # Disabled: local replacements are needed for workspace development
     - gomodguard    # Allow and block list linter for direct Go module dependencies
     - goprintffuncname # Check that printf-like functions are named with f at the end
     - gosec         # Inspect source code for security problems
@@ -261,6 +261,9 @@ issues:
   exclude-rules:
     # Exclude all linters from examples directory
     - path: examples/
+      linters:
+        - all
+    - path: "^examples/"
       linters:
         - all
 

@@ -312,10 +312,12 @@ func (a *DataPipelineAgent) StreamReduce(
 	reducer func(accumulator, current interface{}) (interface{}, error),
 ) (interface{}, error) {
 	accumulator := initial
+	var lastErr error
 
 	for {
 		chunk, err := source.Next()
 		if err != nil {
+			lastErr = err
 			break
 		}
 
@@ -323,6 +325,11 @@ func (a *DataPipelineAgent) StreamReduce(
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// 如果是 EOF，说明正常结束，返回 nil 错误
+	if lastErr != nil && lastErr.Error() != "EOF" && lastErr.Error() != "context canceled" {
+		return nil, lastErr
 	}
 
 	return accumulator, nil

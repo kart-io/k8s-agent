@@ -98,10 +98,10 @@ func (l *TextLoader) LoadAndSplit(ctx context.Context, splitter TextSplitter) ([
 // 批量加载目录中的文件
 type DirectoryLoader struct {
 	*BaseDocumentLoader
-	dirPath    string
-	glob       string
-	recursive  bool
-	loader     func(string) DocumentLoader
+	dirPath   string
+	glob      string
+	recursive bool
+	loader    func(string) DocumentLoader
 }
 
 // DirectoryLoaderConfig 目录加载器配置

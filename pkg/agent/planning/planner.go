@@ -377,7 +377,7 @@ func (p *SmartPlanner) retrieveSimilarPlans(ctx context.Context, goal string) ([
 		return nil, err
 	}
 
-	var plans []*Plan
+	plans := make([]*Plan, 0, len(cases))
 	for _, c := range cases {
 		// Create a simplified plan from the case
 		plan := &Plan{

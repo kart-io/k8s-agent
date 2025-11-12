@@ -255,7 +255,7 @@ func (s *AuthService) GetUserMenus(userID string) ([]*types.MenuItem, error) {
 	}
 
 	// Convert authmodel.Permission to types.MenuItem
-	var menus []*types.MenuItem
+	menus := make([]*types.MenuItem, 0, len(permissions))
 	for _, perm := range permissions {
 		menu := &types.MenuItem{
 			ID:        perm.ID,

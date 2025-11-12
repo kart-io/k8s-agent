@@ -278,7 +278,7 @@ func (m *DefaultPromptManager) ListPrompts(filter PromptFilter) ([]*Prompt, erro
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var results []*Prompt
+	results := make([]*Prompt, 0, len(m.prompts))
 
 	for _, prompt := range m.prompts {
 		// Apply filters

@@ -143,7 +143,7 @@ func (a *ReasoningApp) initializeLLMClients() []llm.Client {
 		return a.opts.LLM.Providers[i].Priority < a.opts.LLM.Providers[j].Priority
 	})
 
-	var clients []llm.Client
+	clients := make([]llm.Client, 0, len(a.opts.LLM.Providers))
 	for _, providerCfg := range a.opts.LLM.Providers {
 		if providerCfg.APIKey == "" {
 			a.logger.Warnw("Skipping LLM provider - no API key", "provider", providerCfg.Name)

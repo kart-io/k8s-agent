@@ -179,7 +179,7 @@ func (s *PermissionServiceServer) DeletePermission(ctx context.Context, req *aut
 // convertPermissionToProto converts internal permission to protobuf format.
 func convertPermissionToProto(p *types.Permission) *authv1.Permission {
 	perm := &authv1.Permission{
-		Id:          uint64(stringToID(p.ID)),
+		Id:          stringToID(p.ID),
 		Name:        p.Name,
 		Code:        p.Code,
 		Resource:    p.Path,
@@ -190,7 +190,7 @@ func convertPermissionToProto(p *types.Permission) *authv1.Permission {
 	}
 
 	if p.ParentID != "" {
-		perm.ParentId = uint64(stringToID(p.ParentID))
+		perm.ParentId = stringToID(p.ParentID)
 	}
 
 	return perm
@@ -204,7 +204,7 @@ func flattenPermissionTree(nodes []*types.PermissionNode) []*authv1.Permission {
 	flatten = func(nodes []*types.PermissionNode) {
 		for _, node := range nodes {
 			perm := &authv1.Permission{
-				Id:       uint64(stringToID(node.ID)),
+				Id:       stringToID(node.ID),
 				Name:     node.Name,
 				Code:     node.Code,
 				Resource: node.Path,
@@ -212,7 +212,7 @@ func flattenPermissionTree(nodes []*types.PermissionNode) []*authv1.Permission {
 			}
 
 			if node.ParentID != "" {
-				perm.ParentId = uint64(stringToID(node.ParentID))
+				perm.ParentId = stringToID(node.ParentID)
 			}
 
 			result = append(result, perm)

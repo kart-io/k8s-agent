@@ -122,7 +122,7 @@ func (r *BaseRunnable[I, O]) Batch(ctx context.Context, inputs []I, invoker func
 	// 并发执行
 	for i, input := range inputs {
 		go func(index int, inp I) {
-			semaphore <- struct{}{} // 获取信号量
+			semaphore <- struct{}{}        // 获取信号量
 			defer func() { <-semaphore }() // 释放信号量
 
 			output, err := invoker(ctx, inp)

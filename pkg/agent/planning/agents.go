@@ -126,7 +126,7 @@ func (a *TaskDecompositionAgent) Execute(ctx context.Context, input *core.AgentI
 	}
 
 	// Extract just the steps as subtasks
-	var subtasks []map[string]interface{}
+	subtasks := make([]map[string]interface{}, 0, len(plan.Steps))
 	for _, step := range plan.Steps {
 		subtasks = append(subtasks, map[string]interface{}{
 			"id":                 step.ID,

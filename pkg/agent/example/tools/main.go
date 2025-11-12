@@ -11,7 +11,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Tools System Examples ===\n")
+	fmt.Println("=== Tools System Examples ===")
+	fmt.Println()
 
 	// Example 1: Basic Tool Usage
 	example1BasicToolUsage()

@@ -102,8 +102,8 @@ func processMixedFormats() {
 
 	// 处理不同格式的文档
 	formats := []struct {
-		name    string
-		loader  document.DocumentLoader
+		name     string
+		loader   document.DocumentLoader
 		splitter document.TextSplitter
 	}{
 		{
@@ -153,9 +153,9 @@ func processMixedFormats() {
 
 func setupDocuments() {
 	// 创建目录
-	os.MkdirAll("/tmp/docs", 0755)
-	os.MkdirAll("/tmp/code", 0755)
-	os.MkdirAll("/tmp/mixed", 0755)
+	os.MkdirAll("/tmp/docs", 0o755)
+	os.MkdirAll("/tmp/code", 0o755)
+	os.MkdirAll("/tmp/mixed", 0o755)
 
 	// 技术文档
 	apiDoc := `# API Reference
@@ -178,7 +178,7 @@ Retrieve a list of users.
 
 Create a new user.`
 
-	os.WriteFile("/tmp/docs/api-reference.md", []byte(apiDoc), 0644)
+	os.WriteFile("/tmp/docs/api-reference.md", []byte(apiDoc), 0o644)
 
 	// 代码文件
 	code1 := `package main
@@ -203,18 +203,18 @@ type Config struct {
 	Value string
 }`
 
-	os.WriteFile("/tmp/code/main.go", []byte(code1), 0644)
-	os.WriteFile("/tmp/code/utils.go", []byte(code2), 0644)
+	os.WriteFile("/tmp/code/main.go", []byte(code1), 0o644)
+	os.WriteFile("/tmp/code/utils.go", []byte(code2), 0o644)
 
 	// 混合格式
-	os.WriteFile("/tmp/mixed/doc1.txt", []byte("Text document content"), 0644)
-	os.WriteFile("/tmp/mixed/doc2.txt", []byte("Another text document"), 0644)
+	os.WriteFile("/tmp/mixed/doc1.txt", []byte("Text document content"), 0o644)
+	os.WriteFile("/tmp/mixed/doc2.txt", []byte("Another text document"), 0o644)
 
 	jsonl := `{"content": "First entry in JSON Lines format"}
 {"content": "Second entry with more data"}
 {"content": "Third entry for testing"}`
 
-	os.WriteFile("/tmp/mixed/data.jsonl", []byte(jsonl), 0644)
+	os.WriteFile("/tmp/mixed/data.jsonl", []byte(jsonl), 0o644)
 }
 
 func cleanup() {

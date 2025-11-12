@@ -380,7 +380,8 @@ func getMapKeys(m map[string]interface{}) []string {
 }
 
 // prettyPrint prints a struct as formatted JSON
-// nolint:unused,deadcode // Example function
+//
+//nolint:unused,deadcode // Example function
 func prettyPrint(v interface{}) {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {

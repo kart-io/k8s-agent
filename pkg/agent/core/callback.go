@@ -54,12 +54,13 @@ func NewBaseCallback() *BaseCallback {
 	return &BaseCallback{}
 }
 
-func (b *BaseCallback) OnStart(ctx context.Context, input interface{}) error           { return nil }
-func (b *BaseCallback) OnEnd(ctx context.Context, output interface{}) error            { return nil }
-func (b *BaseCallback) OnError(ctx context.Context, err error) error                   { return nil }
+func (b *BaseCallback) OnStart(ctx context.Context, input interface{}) error { return nil }
+func (b *BaseCallback) OnEnd(ctx context.Context, output interface{}) error  { return nil }
+func (b *BaseCallback) OnError(ctx context.Context, err error) error         { return nil }
 func (b *BaseCallback) OnLLMStart(ctx context.Context, prompts []string, model string) error {
 	return nil
 }
+
 func (b *BaseCallback) OnLLMEnd(ctx context.Context, output string, tokenUsage int) error {
 	return nil
 }
@@ -67,24 +68,31 @@ func (b *BaseCallback) OnLLMError(ctx context.Context, err error) error { return
 func (b *BaseCallback) OnChainStart(ctx context.Context, chainName string, input interface{}) error {
 	return nil
 }
+
 func (b *BaseCallback) OnChainEnd(ctx context.Context, chainName string, output interface{}) error {
 	return nil
 }
+
 func (b *BaseCallback) OnChainError(ctx context.Context, chainName string, err error) error {
 	return nil
 }
+
 func (b *BaseCallback) OnToolStart(ctx context.Context, toolName string, input interface{}) error {
 	return nil
 }
+
 func (b *BaseCallback) OnToolEnd(ctx context.Context, toolName string, output interface{}) error {
 	return nil
 }
+
 func (b *BaseCallback) OnToolError(ctx context.Context, toolName string, err error) error {
 	return nil
 }
+
 func (b *BaseCallback) OnAgentAction(ctx context.Context, action *AgentAction) error {
 	return nil
 }
+
 func (b *BaseCallback) OnAgentFinish(ctx context.Context, output interface{}) error {
 	return nil
 }
@@ -161,7 +169,7 @@ func (m *CallbackManager) OnError(ctx context.Context, err error) error {
 // 将所有事件记录到日志
 type LoggingCallback struct {
 	*BaseCallback
-	logger Logger // 日志接口
+	logger  Logger // 日志接口
 	verbose bool
 }
 

@@ -134,7 +134,7 @@ func (c *Coordinator) ExecuteParallel(ctx context.Context, tasks []AgentTask) ([
 	close(errCh)
 
 	// 检查是否有错误
-	var errs []error
+	errs := make([]error, 0, len(tasks))
 	for err := range errCh {
 		errs = append(errs, err)
 	}

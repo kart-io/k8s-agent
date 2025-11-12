@@ -607,4 +607,3 @@ func (t *testCallback) OnChainError(ctx context.Context, chainName string, err e
 	}
 	return nil
 }
-

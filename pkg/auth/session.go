@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -93,7 +94,7 @@ func (sm *SessionManager) Get(ctx context.Context, sessionID string, result inte
 	key := sm.sessionKey(sessionID)
 	data, err := sm.client.Client().Get(ctx, key).Result()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return fmt.Errorf("session not found: %s", sessionID)
 		}
 		return fmt.Errorf("failed to get session: %w", err)

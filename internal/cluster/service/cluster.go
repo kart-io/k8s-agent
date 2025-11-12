@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	stderr "errors"
 	"fmt"
 	"time"
 
@@ -138,7 +139,7 @@ func (s *ClusterService) ListClusters(ctx context.Context, offset, limit int, wi
 func (s *ClusterService) GetCluster(ctx context.Context, clusterID string, withStats bool) (*clustermodel.Cluster, error) {
 	var cluster clustermodel.Cluster
 	if err := s.db.WithContext(ctx).Where("id = ?", clusterID).First(&cluster).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if stderr.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.ErrClusterNotFound
 		}
 		return nil, errors.NewDatabaseError(fmt.Errorf("failed to query cluster: %w", err))
@@ -383,7 +384,7 @@ func (s *ClusterService) GetClient(ctx context.Context, clusterID string) (*k8s.
 		Select("kubeconfig").
 		Where("id = ?", clusterID).
 		First(&cluster).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if stderr.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.ErrClusterNotFound
 		}
 		return nil, errors.NewDatabaseError(fmt.Errorf("failed to query cluster: %w", err))

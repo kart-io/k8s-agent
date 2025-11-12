@@ -644,7 +644,7 @@ func (s *MultiAgentSystem) getAvailableAgents() map[string]CollaborativeAgent {
 }
 
 func (s *MultiAgentSystem) getAvailableAgentsOrdered() []string {
-	var ordered []string
+	ordered := make([]string, 0, len(s.agents))
 	for id := range s.agents {
 		ordered = append(ordered, id)
 	}

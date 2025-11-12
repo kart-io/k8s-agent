@@ -2,6 +2,7 @@ package stream
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -252,7 +253,7 @@ func (r *Reader) updateStats(chunk *core.LegacyStreamChunk) {
 func (r *Reader) Drain() error {
 	for {
 		_, err := r.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return nil
 		}
 		if err != nil {
@@ -267,7 +268,7 @@ func (r *Reader) Collect() ([]*core.LegacyStreamChunk, error) {
 
 	for {
 		chunk, err := r.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -285,7 +286,7 @@ func (r *Reader) CollectText() (string, error) {
 
 	for {
 		chunk, err := r.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

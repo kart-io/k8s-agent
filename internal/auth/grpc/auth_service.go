@@ -59,7 +59,7 @@ func (s *AuthServiceServer) Login(ctx context.Context, req *authv1.LoginRequest)
 	}
 
 	user := &authv1.User{
-		Id:       uint64(stringToID(loginResp.User.ID)),
+		Id:       stringToID(loginResp.User.ID),
 		Username: loginResp.User.Username,
 		Email:    loginResp.User.Email,
 		Nickname: loginResp.User.RealName,
@@ -141,7 +141,7 @@ func (s *AuthServiceServer) GetMe(ctx context.Context, req *authv1.GetMeRequest)
 	}
 
 	return &authv1.User{
-		Id:       uint64(stringToID(userInfo.ID)),
+		Id:       stringToID(userInfo.ID),
 		Username: userInfo.Username,
 		Email:    userInfo.Email,
 		Nickname: userInfo.RealName,

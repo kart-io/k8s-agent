@@ -41,9 +41,9 @@ func (a *ReasoningAgentAdapter) Execute(ctx context.Context, input *core.AgentIn
 	analysisOutput, err := a.reasoningAgent.Analyze(ctx, analysisInput)
 	if err != nil {
 		return &core.AgentOutput{
-			Status:    "failed",
-			Message:   err.Error(),
-			Latency:   time.Since(start),
+			Status:  "failed",
+			Message: err.Error(),
+			Latency: time.Since(start),
 		}, err
 	}
 

@@ -155,6 +155,8 @@ type ToolDiscovery interface {
 }
 
 // ErrToolNotFound 工具未找到错误
+//
+//nolint:errname // Using traditional Err prefix for sentinel errors
 type ErrToolNotFound struct {
 	ToolName string
 }
@@ -164,6 +166,8 @@ func (e *ErrToolNotFound) Error() string {
 }
 
 // ErrToolAlreadyExists 工具已存在错误
+//
+//nolint:errname // Using traditional Err prefix for sentinel errors
 type ErrToolAlreadyExists struct {
 	ToolName string
 }
@@ -173,6 +177,8 @@ func (e *ErrToolAlreadyExists) Error() string {
 }
 
 // ErrInvalidInput 无效输入错误
+//
+//nolint:errname // Using traditional Err prefix for sentinel errors
 type ErrInvalidInput struct {
 	Field   string
 	Message string
@@ -183,6 +189,8 @@ func (e *ErrInvalidInput) Error() string {
 }
 
 // ErrPermissionDenied 权限拒绝错误
+//
+//nolint:errname // Using traditional Err prefix for sentinel errors
 type ErrPermissionDenied struct {
 	UserID   string
 	ToolName string
@@ -194,6 +202,8 @@ func (e *ErrPermissionDenied) Error() string {
 }
 
 // ErrExecutionFailed 执行失败错误
+//
+//nolint:errname // Using traditional Err prefix for sentinel errors
 type ErrExecutionFailed struct {
 	ToolName string
 	Reason   string

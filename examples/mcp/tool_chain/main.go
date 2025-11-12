@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== MCP 工具链编排示例 ===\n")
+	fmt.Println("=== MCP 工具链编排示例 ===")
+	fmt.Println()
 
 	// 创建工具箱
 	tb := toolbox.NewStandardToolBox()

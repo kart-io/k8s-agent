@@ -88,7 +88,8 @@ func (t *WriteFileTool) Execute(ctx context.Context, input map[string]interface{
 	var err error
 	if mode == "append" {
 		// 追加模式
-		f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		var f *os.File
+		f, err = os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			return &core.ToolResult{
 				Success:   false,

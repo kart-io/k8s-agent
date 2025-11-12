@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -119,7 +120,7 @@ func (a *CacheAgent) executeGet(ctx context.Context, input *agentcore.AgentInput
 
 	val, err := a.client.Get(ctx, key).Result()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return map[string]interface{}{
 				"found": false,
 				"value": nil,

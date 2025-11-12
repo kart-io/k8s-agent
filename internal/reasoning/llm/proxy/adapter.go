@@ -404,7 +404,7 @@ func estimateTokens(text string) int {
 func calculateCost(providerName string, tokensUsed int) float64 {
 	// 简化的成本计算 (美元)
 	// 实际应该根据 provider 和 model 查表
-	costPerToken := 0.00002 // $0.02 per 1K tokens
+	var costPerToken float64
 
 	switch providerName {
 	case "openai":

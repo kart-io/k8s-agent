@@ -1,5 +1,4 @@
 //go:build wireinject
-// +build wireinject
 
 // Copyright 2024 Kart.IO. All rights reserved.
 // Use of this source code is governed by a MIT style
