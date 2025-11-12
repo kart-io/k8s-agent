@@ -85,7 +85,7 @@ func TestBaseChain_Steps(t *testing.T) {
 	}
 }
 
-func TestBaseChain_Process_Success(t *testing.T) {
+func TestBaseChain_Invoke_Success(t *testing.T) {
 	// 创建一个简单的处理链
 	steps := []Step{
 		NewMockStep("uppercase", "convert to uppercase", func(ctx context.Context, input interface{}) (interface{}, error) {
@@ -115,7 +115,7 @@ func TestBaseChain_Process_Success(t *testing.T) {
 		Options: DefaultChainOptions(),
 	}
 
-	output, err := chain.Process(context.Background(), input)
+	output, err := chain.Invoke(context.Background(), input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "success", output.Status)
@@ -126,7 +126,7 @@ func TestBaseChain_Process_Success(t *testing.T) {
 	assert.True(t, output.StepsExecuted[2].Success)
 }
 
-func TestBaseChain_Process_WithError(t *testing.T) {
+func TestBaseChain_Invoke_WithError(t *testing.T) {
 	expectedError := errors.New("step2 error")
 
 	steps := []Step{
@@ -151,7 +151,7 @@ func TestBaseChain_Process_WithError(t *testing.T) {
 		},
 	}
 
-	output, err := chain.Process(context.Background(), input)
+	output, err := chain.Invoke(context.Background(), input)
 
 	assert.Error(t, err)
 	assert.Equal(t, "failed", output.Status)
@@ -161,7 +161,7 @@ func TestBaseChain_Process_WithError(t *testing.T) {
 	assert.Equal(t, expectedError.Error(), output.StepsExecuted[1].Error)
 }
 
-func TestBaseChain_Process_ContinueOnError(t *testing.T) {
+func TestBaseChain_Invoke_ContinueOnError(t *testing.T) {
 	steps := []Step{
 		NewMockStep("step1", "successful step", func(ctx context.Context, input interface{}) (interface{}, error) {
 			return "step1_result", nil
@@ -184,29 +184,17 @@ func TestBaseChain_Process_ContinueOnError(t *testing.T) {
 		},
 	}
 
-	output, err := chain.Process(context.Background(), input)
+	output, err := chain.Invoke(context.Background(), input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "partial", output.Status)
-	// Note: Due to bug in chain.go (lines 167 and 180), failed steps are appended twice
-	// Expected: 3 executions, Actual: 4 (step1, step2 twice, step3)
-	assert.GreaterOrEqual(t, len(output.StepsExecuted), 3)
+	assert.Len(t, output.StepsExecuted, 3)
 	assert.True(t, output.StepsExecuted[0].Success)
-	// Find the last step2 execution (the correct one)
-	step2Found := false
-	for i := 1; i < len(output.StepsExecuted)-1; i++ {
-		if output.StepsExecuted[i].StepName == "step2" {
-			assert.False(t, output.StepsExecuted[i].Success)
-			step2Found = true
-		}
-	}
-	assert.True(t, step2Found)
-	// Last step should be step3
-	assert.Equal(t, "step3", output.StepsExecuted[len(output.StepsExecuted)-1].StepName)
-	assert.True(t, output.StepsExecuted[len(output.StepsExecuted)-1].Success)
+	assert.False(t, output.StepsExecuted[1].Success)
+	assert.True(t, output.StepsExecuted[2].Success)
 }
 
-func TestBaseChain_Process_SkipSteps(t *testing.T) {
+func TestBaseChain_Invoke_SkipSteps(t *testing.T) {
 	executionOrder := []string{}
 
 	steps := []Step{
@@ -234,7 +222,7 @@ func TestBaseChain_Process_SkipSteps(t *testing.T) {
 		},
 	}
 
-	output, err := chain.Process(context.Background(), input)
+	output, err := chain.Invoke(context.Background(), input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "success", output.Status)
@@ -245,7 +233,7 @@ func TestBaseChain_Process_SkipSteps(t *testing.T) {
 	assert.Equal(t, []string{"step1", "step3"}, executionOrder)
 }
 
-func TestBaseChain_Process_OnlySteps(t *testing.T) {
+func TestBaseChain_Invoke_OnlySteps(t *testing.T) {
 	executionOrder := []string{}
 
 	steps := []Step{
@@ -273,7 +261,7 @@ func TestBaseChain_Process_OnlySteps(t *testing.T) {
 		},
 	}
 
-	output, err := chain.Process(context.Background(), input)
+	output, err := chain.Invoke(context.Background(), input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "success", output.Status)
@@ -284,7 +272,7 @@ func TestBaseChain_Process_OnlySteps(t *testing.T) {
 	assert.Equal(t, []string{"step1", "step3"}, executionOrder)
 }
 
-func TestBaseChain_Process_WithTimeout(t *testing.T) {
+func TestBaseChain_Invoke_WithTimeout(t *testing.T) {
 	steps := []Step{
 		NewMockStep("slow_step", "takes too long", func(ctx context.Context, input interface{}) (interface{}, error) {
 			select {
@@ -306,14 +294,14 @@ func TestBaseChain_Process_WithTimeout(t *testing.T) {
 		},
 	}
 
-	output, err := chain.Process(context.Background(), input)
+	output, err := chain.Invoke(context.Background(), input)
 
 	assert.Error(t, err)
 	assert.Equal(t, context.DeadlineExceeded, err)
 	assert.Equal(t, "failed", output.Status)
 }
 
-func TestBaseChain_Process_EmptyChain(t *testing.T) {
+func TestBaseChain_Invoke_EmptyChain(t *testing.T) {
 	chain := NewBaseChain("EmptyChain", []Step{})
 
 	input := &ChainInput{
@@ -321,7 +309,7 @@ func TestBaseChain_Process_EmptyChain(t *testing.T) {
 		Options: DefaultChainOptions(),
 	}
 
-	output, err := chain.Process(context.Background(), input)
+	output, err := chain.Invoke(context.Background(), input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "success", output.Status)
@@ -350,17 +338,14 @@ func TestChainInput_Structure(t *testing.T) {
 			"var1": "test",
 			"var2": 456,
 		},
-		Tags: []string{"tag1", "tag2"},
 		Options: ChainOptions{
 			StopOnError: false,
 			Timeout:     30 * time.Second,
 		},
-		Timestamp: time.Now(),
 	}
 
 	assert.NotNil(t, input.Data)
 	assert.Len(t, input.Vars, 2)
-	assert.Len(t, input.Tags, 2)
 	assert.False(t, input.Options.StopOnError)
 	assert.Equal(t, 30*time.Second, input.Options.Timeout)
 }
@@ -368,10 +353,6 @@ func TestChainInput_Structure(t *testing.T) {
 func TestChainOutput_Structure(t *testing.T) {
 	output := &ChainOutput{
 		Data: "processed_data",
-		Result: map[string]interface{}{
-			"result1": "value1",
-			"result2": 789,
-		},
 		StepsExecuted: []StepExecution{
 			{
 				StepNumber:  1,
@@ -383,17 +364,16 @@ func TestChainOutput_Structure(t *testing.T) {
 		},
 		TotalLatency: 100 * time.Millisecond,
 		Status:       "success",
-		Timestamp:    time.Now(),
 		Metadata: map[string]interface{}{
 			"meta1": "value1",
 		},
 	}
 
 	assert.Equal(t, "processed_data", output.Data)
-	assert.Len(t, output.Result, 2)
 	assert.Len(t, output.StepsExecuted, 1)
 	assert.Equal(t, "success", output.Status)
 	assert.Equal(t, 100*time.Millisecond, output.TotalLatency)
+	assert.Len(t, output.Metadata, 1)
 }
 
 func TestShouldSkipStep(t *testing.T) {
@@ -461,7 +441,7 @@ func TestShouldSkipStep(t *testing.T) {
 }
 
 // Benchmark tests
-func BenchmarkBaseChain_Process_SimpleChain(b *testing.B) {
+func BenchmarkBaseChain_Invoke_SimpleChain(b *testing.B) {
 	steps := []Step{
 		NewMockStep("step1", "step1", func(ctx context.Context, input interface{}) (interface{}, error) {
 			return input, nil
@@ -483,11 +463,11 @@ func BenchmarkBaseChain_Process_SimpleChain(b *testing.B) {
 	ctx := context.Background()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = chain.Process(ctx, input)
+		_, _ = chain.Invoke(ctx, input)
 	}
 }
 
-func BenchmarkBaseChain_Process_LongChain(b *testing.B) {
+func BenchmarkBaseChain_Invoke_LongChain(b *testing.B) {
 	steps := make([]Step, 10)
 	for i := 0; i < 10; i++ {
 		steps[i] = NewMockStep("step", "description", func(ctx context.Context, input interface{}) (interface{}, error) {
@@ -504,6 +484,127 @@ func BenchmarkBaseChain_Process_LongChain(b *testing.B) {
 	ctx := context.Background()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = chain.Process(ctx, input)
+		_, _ = chain.Invoke(ctx, input)
 	}
 }
+
+// Test Runnable interface methods
+
+func TestBaseChain_Stream(t *testing.T) {
+	steps := []Step{
+		NewMockStep("step1", "first step", func(ctx context.Context, input interface{}) (interface{}, error) {
+			return "step1_output", nil
+		}),
+		NewMockStep("step2", "second step", func(ctx context.Context, input interface{}) (interface{}, error) {
+			return "step2_output", nil
+		}),
+	}
+
+	chain := NewBaseChain("StreamChain", steps)
+	input := &ChainInput{
+		Data:    "initial",
+		Options: DefaultChainOptions(),
+	}
+
+	stream, err := chain.Stream(context.Background(), input)
+	require.NoError(t, err)
+
+	chunks := []StreamChunk[*ChainOutput]{}
+	for chunk := range stream {
+		chunks = append(chunks, chunk)
+	}
+
+	// Should have intermediate chunks + final chunk
+	assert.GreaterOrEqual(t, len(chunks), 2)
+
+	// Last chunk should be done
+	lastChunk := chunks[len(chunks)-1]
+	assert.True(t, lastChunk.Done)
+	assert.NoError(t, lastChunk.Error)
+	assert.Equal(t, "success", lastChunk.Data.Status)
+}
+
+func TestBaseChain_Batch(t *testing.T) {
+	steps := []Step{
+		NewMockStep("step1", "transform", func(ctx context.Context, input interface{}) (interface{}, error) {
+			if str, ok := input.(string); ok {
+				return str + "_transformed", nil
+			}
+			return input, nil
+		}),
+	}
+
+	chain := NewBaseChain("BatchChain", steps)
+	inputs := []*ChainInput{
+		{Data: "input1", Options: DefaultChainOptions()},
+		{Data: "input2", Options: DefaultChainOptions()},
+		{Data: "input3", Options: DefaultChainOptions()},
+	}
+
+	outputs, err := chain.Batch(context.Background(), inputs)
+
+	require.NoError(t, err)
+	assert.Len(t, outputs, 3)
+	assert.Equal(t, "input1_transformed", outputs[0].Data)
+	assert.Equal(t, "input2_transformed", outputs[1].Data)
+	assert.Equal(t, "input3_transformed", outputs[2].Data)
+}
+
+func TestBaseChain_WithCallbacks(t *testing.T) {
+	callbackCalled := false
+	callback := &testCallback{
+		onChainStart: func(ctx context.Context, chainName string, input interface{}) error {
+			callbackCalled = true
+			return nil
+		},
+	}
+
+	steps := []Step{
+		NewMockStep("step1", "step", func(ctx context.Context, input interface{}) (interface{}, error) {
+			return input, nil
+		}),
+	}
+
+	chain := NewBaseChain("CallbackChain", steps)
+	chainWithCallback := chain.WithCallbacks(callback)
+
+	input := &ChainInput{
+		Data:    "test",
+		Options: DefaultChainOptions(),
+	}
+
+	_, err := chainWithCallback.Invoke(context.Background(), input)
+
+	require.NoError(t, err)
+	assert.True(t, callbackCalled)
+}
+
+// testCallback is a minimal callback implementation for testing
+type testCallback struct {
+	*BaseCallback
+	onChainStart func(ctx context.Context, chainName string, input interface{}) error
+	onChainEnd   func(ctx context.Context, chainName string, output interface{}) error
+	onChainError func(ctx context.Context, chainName string, err error) error
+}
+
+func (t *testCallback) OnChainStart(ctx context.Context, chainName string, input interface{}) error {
+	if t.onChainStart != nil {
+		return t.onChainStart(ctx, chainName, input)
+	}
+	return nil
+}
+
+func (t *testCallback) OnChainEnd(ctx context.Context, chainName string, output interface{}) error {
+	if t.onChainEnd != nil {
+		return t.onChainEnd(ctx, chainName, output)
+	}
+	return nil
+}
+
+func (t *testCallback) OnChainError(ctx context.Context, chainName string, err error) error {
+	if t.onChainError != nil {
+		return t.onChainError(ctx, chainName, err)
+	}
+	return nil
+}
+

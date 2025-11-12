@@ -550,8 +550,8 @@ func (e *Engine) GenerateRecommendations(ctx context.Context, result *types.Anal
 
 	// Optionally enhance with LLM
 	if e.config.LLM.Enabled && len(e.llmClients) > 0 {
-		llmRecs, err := e.getLLMRecommendations(ctx, result.Result.RootCause, analysisCtx)
-		if err == nil && len(llmRecs) > 0 {
+		llmRecs := e.getLLMRecommendations(ctx, result.Result.RootCause, analysisCtx)
+		if len(llmRecs) > 0 {
 			// Merge LLM recommendations
 			recommendations = append(recommendations, llmRecs...)
 		}
@@ -573,7 +573,7 @@ func (e *Engine) getRuleBasedRecommendations(rootCause types.RootCauseType) []ty
 	return []types.Recommendation{}
 }
 
-func (e *Engine) getLLMRecommendations(ctx context.Context, rootCause *types.RootCause, analysisCtx *types.AnalysisContext) ([]types.Recommendation, error) {
+func (e *Engine) getLLMRecommendations(ctx context.Context, rootCause *types.RootCause, analysisCtx *types.AnalysisContext) []types.Recommendation {
 	for _, client := range e.llmClients {
 		if !client.IsAvailable() {
 			continue
@@ -598,8 +598,8 @@ func (e *Engine) getLLMRecommendations(ctx context.Context, rootCause *types.Roo
 			continue
 		}
 
-		return recommendations, nil
+		return recommendations
 	}
 
-	return nil, nil
+	return nil
 }

@@ -91,13 +91,13 @@ func ExampleCachedAgent() {
 
 	// First execution (cache miss)
 	start := time.Now()
-	output1, _ := cachedAgent.Execute(ctx, input)
+	output1, _ := cachedAgent.Invoke(ctx, input)
 	duration1 := time.Since(start)
 	fmt.Printf("First execution: %v (cache miss)\n", duration1)
 
 	// Second execution (cache hit)
 	start = time.Now()
-	output2, _ := cachedAgent.Execute(ctx, input)
+	output2, _ := cachedAgent.Invoke(ctx, input)
 	duration2 := time.Since(start)
 	fmt.Printf("Second execution: %v (cache hit)\n", duration2)
 
@@ -260,7 +260,7 @@ type poolAgent struct {
 	pool *AgentPool
 }
 
-func (p *poolAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
+func (p *poolAgent) Invoke(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
 	return p.pool.Execute(ctx, input)
 }
 
@@ -274,6 +274,53 @@ func (p *poolAgent) Description() string {
 
 func (p *poolAgent) Capabilities() []string {
 	return []string{"pooled", "cached"}
+}
+
+// Stream 流式执行 Agent（通过池获取 agent 并执行）
+func (p *poolAgent) Stream(ctx context.Context, input *core.AgentInput) (<-chan core.StreamChunk[*core.AgentOutput], error) {
+	agent, err := p.pool.Acquire(ctx)
+	if err != nil {
+		outChan := make(chan core.StreamChunk[*core.AgentOutput], 1)
+		outChan <- core.StreamChunk[*core.AgentOutput]{Error: err, Done: true}
+		close(outChan)
+		return outChan, err
+	}
+	defer p.pool.Release(agent)
+	return agent.Stream(ctx, input)
+}
+
+// Batch 批量执行 Agent（通过池获取 agent 并执行）
+func (p *poolAgent) Batch(ctx context.Context, inputs []*core.AgentInput) ([]*core.AgentOutput, error) {
+	agent, err := p.pool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer p.pool.Release(agent)
+	return agent.Batch(ctx, inputs)
+}
+
+// Pipe 连接到另一个 Runnable（通过池获取 agent 并执行）
+func (p *poolAgent) Pipe(next core.Runnable[*core.AgentOutput, any]) core.Runnable[*core.AgentInput, any] {
+	// 为了简化，返回一个函数式 Runnable
+	return core.NewRunnableFunc(func(ctx context.Context, input *core.AgentInput) (any, error) {
+		output, err := p.Invoke(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		return next.Invoke(ctx, output)
+	})
+}
+
+// WithCallbacks 添加回调处理器（返回新实例）
+func (p *poolAgent) WithCallbacks(callbacks ...core.Callback) core.Runnable[*core.AgentInput, *core.AgentOutput] {
+	// poolAgent 不支持回调，返回自身
+	return p
+}
+
+// WithConfig 配置 Agent（返回新实例）
+func (p *poolAgent) WithConfig(config core.RunnableConfig) core.Runnable[*core.AgentInput, *core.AgentOutput] {
+	// poolAgent 不支持配置，返回自身
+	return p
 }
 
 // Example_streamingBatch demonstrates streaming batch execution
@@ -360,7 +407,7 @@ func Example_customCacheKey() {
 		}
 
 		start := time.Now()
-		_, _ = cachedAgent.Execute(ctx, input)
+		_, _ = cachedAgent.Invoke(ctx, input)
 		duration := time.Since(start)
 
 		if i == 0 {

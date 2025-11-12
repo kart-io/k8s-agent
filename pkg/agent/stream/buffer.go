@@ -14,7 +14,7 @@ import (
 // - 线程安全
 // - 零内存分配（预分配）
 type RingBuffer struct {
-	buffer []*core.StreamChunk
+	buffer []*core.LegacyStreamChunk
 	size   int
 	head   int
 	tail   int
@@ -29,13 +29,13 @@ func NewRingBuffer(size int) *RingBuffer {
 	}
 
 	return &RingBuffer{
-		buffer: make([]*core.StreamChunk, size),
+		buffer: make([]*core.LegacyStreamChunk, size),
 		size:   size,
 	}
 }
 
 // Push 添加元素到缓冲区
-func (rb *RingBuffer) Push(chunk *core.StreamChunk) bool {
+func (rb *RingBuffer) Push(chunk *core.LegacyStreamChunk) bool {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
 
@@ -54,7 +54,7 @@ func (rb *RingBuffer) Push(chunk *core.StreamChunk) bool {
 }
 
 // Pop 从缓冲区弹出元素
-func (rb *RingBuffer) Pop() *core.StreamChunk {
+func (rb *RingBuffer) Pop() *core.LegacyStreamChunk {
 	rb.mu.Lock()
 	defer rb.mu.Unlock()
 
@@ -71,7 +71,7 @@ func (rb *RingBuffer) Pop() *core.StreamChunk {
 }
 
 // Peek 查看第一个元素但不移除
-func (rb *RingBuffer) Peek() *core.StreamChunk {
+func (rb *RingBuffer) Peek() *core.LegacyStreamChunk {
 	rb.mu.RLock()
 	defer rb.mu.RUnlock()
 
@@ -124,7 +124,7 @@ func (rb *RingBuffer) Clear() {
 }
 
 // ToSlice 转换为切片
-func (rb *RingBuffer) ToSlice() []*core.StreamChunk {
+func (rb *RingBuffer) ToSlice() []*core.LegacyStreamChunk {
 	rb.mu.RLock()
 	defer rb.mu.RUnlock()
 
@@ -132,7 +132,7 @@ func (rb *RingBuffer) ToSlice() []*core.StreamChunk {
 		return nil
 	}
 
-	result := make([]*core.StreamChunk, rb.count)
+	result := make([]*core.LegacyStreamChunk, rb.count)
 	idx := rb.head
 
 	for i := 0; i < rb.count; i++ {
@@ -153,7 +153,7 @@ func (rb *RingBuffer) Resize(newSize int) {
 	defer rb.mu.Unlock()
 
 	// 保存现有数据
-	oldData := make([]*core.StreamChunk, rb.count)
+	oldData := make([]*core.LegacyStreamChunk, rb.count)
 	idx := rb.head
 	for i := 0; i < rb.count; i++ {
 		oldData[i] = rb.buffer[idx]
@@ -161,7 +161,7 @@ func (rb *RingBuffer) Resize(newSize int) {
 	}
 
 	// 创建新缓冲区
-	rb.buffer = make([]*core.StreamChunk, newSize)
+	rb.buffer = make([]*core.LegacyStreamChunk, newSize)
 	rb.size = newSize
 	rb.head = 0
 	rb.count = 0

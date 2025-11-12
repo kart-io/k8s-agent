@@ -193,7 +193,7 @@ func NewFeatureGateFlag(options *FeatureGateOptions) *FeatureGateFlag {
 
 // String 返回字符串表示
 func (f *FeatureGateFlag) String() string {
-	if f.options.Override == nil || len(f.options.Override) == 0 {
+	if len(f.options.Override) == 0 {
 		return ""
 	}
 

@@ -129,6 +129,7 @@ Layer 1: Collect Agent → NATS → Layer 2: Agent Manager
 ```
 
 **Data Flow Pattern**:
+
 1. Collect Agent monitors K8s events in each cluster
 2. Events sent via NATS to Agent Manager (central control)
 3. Agent Manager evaluates and publishes to internal bus
@@ -141,17 +142,20 @@ Layer 1: Collect Agent → NATS → Layer 2: Agent Manager
 The codebase uses three startup patterns (post-refactoring):
 
 **Pattern 1: Ultra-Simple** (agent-manager, orchestrator, auth)
+
 - Single `cmd/{service}/app/app.go` (~500 LOC)
 - Bootstrap framework with priority-based init
 - Direct instantiation, no Wire DI
 - Used for complex services with many dependencies
 
 **Pattern 2: Simple** (collect-agent, gateway, monitor)
+
 - Basic `run()` function, no Bootstrap
 - Linear initialization
 - Used for lightweight services
 
 **Pattern 3: Simplified Bootstrap** (cluster, reasoning)
+
 - Bootstrap framework without complexity
 - Mid-complexity services
 
@@ -177,6 +181,7 @@ k8s-agent/
 ```
 
 **Key Principle**:
+
 - `common/` = Zero business logic, reusable anywhere
 - `pkg/` = Project-specific business logic
 - `internal/` = Private service code
@@ -191,6 +196,7 @@ k8s-agent/
 ### Workflow Engine (Orchestrator)
 
 Supports 6 step types:
+
 - **Command**: Execute kubectl via Agent Manager
 - **AI**: Call Reasoning Service
 - **Decision**: Conditional branching
@@ -216,6 +222,7 @@ See `.claude/commands/speckit.*.md` for details.
 ## Key Technical Details
 
 ### Technology Stack
+
 - **Go**: 1.25.0 (strict requirement)
 - **Framework**: Gin v1.11.0
 - **Database**: MySQL 8.0+
@@ -226,6 +233,7 @@ See `.claude/commands/speckit.*.md` for details.
 - **AI**: OpenAI/Gemini/DeepSeek APIs via gollm
 
 ### Service Ports
+
 - Agent Manager: 8080
 - Orchestrator: 8081
 - Reasoning: 8082
@@ -235,12 +243,14 @@ See `.claude/commands/speckit.*.md` for details.
 - Gateway: 8086
 
 ### Performance Targets
+
 - Agent Manager: 1000+ agents, 10K events/min
 - Orchestrator: 500+ concurrent workflows
 - Reasoning: 100+ analysis requests/min
 - MTTD < 1 minute, MTTR < 5 minutes
 
 ### Testing Strategy
+
 - Unit tests: Alongside implementation
 - Integration: `internal/{service}/test/integration/`
 - Coverage: HTML reports in `_output/coverage/`
@@ -249,6 +259,7 @@ See `.claude/commands/speckit.*.md` for details.
 ## Important Patterns
 
 ### Error Handling
+
 ```go
 import "github.com/kart-io/k8s-agent/common/errors"
 
@@ -257,6 +268,7 @@ return errors.Wrap(err, errors.CodeInternal, "operation failed")
 ```
 
 ### Service Initialization
+
 ```go
 // All services follow this pattern in cmd/{service}/app/app.go
 func (a *App) registerComponents(bs *bootstrap.Bootstrap) error {
@@ -275,6 +287,7 @@ func (a *App) registerComponents(bs *bootstrap.Bootstrap) error {
 ```
 
 ### Common Initializers (pkg/initializers/)
+
 - DatabaseInitializer - MySQL/GORM with migrations
 - RedisInitializer - Redis client with health checks
 - NATSInitializer - NATS with auto-reconnect

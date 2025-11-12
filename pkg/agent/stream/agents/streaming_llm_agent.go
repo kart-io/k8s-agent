@@ -230,13 +230,13 @@ func (a *StreamingLLMAgentWithRealStreaming) ExecuteStream(ctx context.Context, 
 
 // SimpleStreamConsumer 简单的流消费者实现
 type SimpleStreamConsumer struct {
-	OnChunkFunc    func(*core.StreamChunk) error
+	OnChunkFunc    func(*core.LegacyStreamChunk) error
 	OnStartFunc    func() error
 	OnCompleteFunc func() error
 	OnErrorFunc    func(error) error
 }
 
-func (c *SimpleStreamConsumer) OnChunk(chunk *core.StreamChunk) error {
+func (c *SimpleStreamConsumer) OnChunk(chunk *core.LegacyStreamChunk) error {
 	if c.OnChunkFunc != nil {
 		return c.OnChunkFunc(chunk)
 	}
@@ -276,7 +276,7 @@ func NewTextAccumulatorConsumer() *TextAccumulatorConsumer {
 	}
 }
 
-func (c *TextAccumulatorConsumer) OnChunk(chunk *core.StreamChunk) error {
+func (c *TextAccumulatorConsumer) OnChunk(chunk *core.LegacyStreamChunk) error {
 	if chunk.Type == core.ChunkTypeText && chunk.Text != "" {
 		c.mu <- struct{}{}
 		c.builder.WriteString(chunk.Text)

@@ -49,7 +49,7 @@ func (s *AuthServiceServer) Login(ctx context.Context, req *authv1.LoginRequest)
 	roles := make([]*authv1.Role, len(loginResp.User.Roles))
 	for i, r := range loginResp.User.Roles {
 		roles[i] = &authv1.Role{
-			Id:          uint64(stringToID(r.ID)),
+			Id:          stringToID(r.ID),
 			Name:        r.Name,
 			Description: r.Description,
 			Status:      int32(r.Status),
@@ -131,7 +131,7 @@ func (s *AuthServiceServer) GetMe(ctx context.Context, req *authv1.GetMeRequest)
 	roles := make([]*authv1.Role, len(userInfo.Roles))
 	for i, r := range userInfo.Roles {
 		roles[i] = &authv1.Role{
-			Id:          uint64(stringToID(r.ID)),
+			Id:          stringToID(r.ID),
 			Name:        r.Name,
 			Description: r.Description,
 			Status:      int32(r.Status),

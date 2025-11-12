@@ -54,10 +54,7 @@ func (c *RootCauseChain) Analyze(ctx context.Context, input *AnalysisInput) (*An
 	start := time.Now()
 
 	// 1. 构建 Prompt
-	prompt, err := c.buildPrompt(input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build prompt: %w", err)
-	}
+	prompt := c.buildPrompt(input)
 
 	log.Printf("Root cause analysis prompt built for resource: %s/%s", input.Namespace, input.ResourceName)
 
@@ -111,7 +108,7 @@ func (c *RootCauseChain) Analyze(ctx context.Context, input *AnalysisInput) (*An
 }
 
 // buildPrompt 构建分析 Prompt.
-func (c *RootCauseChain) buildPrompt(input *AnalysisInput) (string, error) {
+func (c *RootCauseChain) buildPrompt(input *AnalysisInput) string {
 	var sb strings.Builder
 
 	// 基本信息
@@ -206,7 +203,7 @@ func (c *RootCauseChain) buildPrompt(input *AnalysisInput) (string, error) {
 	sb.WriteString(getJSONSchema())
 	sb.WriteString("\n```\n")
 
-	return sb.String(), nil
+	return sb.String()
 }
 
 // parseResponse 解析 LLM 响应.

@@ -129,7 +129,7 @@ func main() {
 			fmt.Println("Consumer: Stream started")
 			return nil
 		},
-		OnChunkFunc: func(chunk *core.StreamChunk) error {
+		OnChunkFunc: func(chunk *core.LegacyStreamChunk) error {
 			if chunk.Type == core.ChunkTypeText {
 				fmt.Printf("Consumer received: %s\n", chunk.Text)
 			}

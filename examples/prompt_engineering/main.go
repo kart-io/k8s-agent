@@ -8,15 +8,16 @@ import (
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/prompt"
 	"github.com/kart-io/logger"
+	"github.com/kart-io/logger/core"
 )
 
 // Example: Demonstrating Prompt Engineering capabilities
 func main() {
-	// Initialize logger
-	log := logger.New(logger.Config{
-		Level:  logger.LevelInfo,
-		Format: logger.FormatText,
-	})
+	// Initialize logger with defaults
+	log, err := logger.NewWithDefaults()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize logger: %v", err))
+	}
 
 	fmt.Println("=== AI Agent System Demo: Prompt Engineering ===\n")
 
@@ -48,7 +49,7 @@ func main() {
 }
 
 // Part 1: Basic Prompt Management
-func demonstrateBasicPrompts(manager *prompt.DefaultPromptManager, llmClient llm.LLMProvider, log logger.Logger) {
+func demonstrateBasicPrompts(manager *prompt.DefaultPromptManager, llmClient llm.Client, log core.Logger) {
 	ctx := context.Background()
 
 	// Create a simple prompt
@@ -67,7 +68,7 @@ func demonstrateBasicPrompts(manager *prompt.DefaultPromptManager, llmClient llm
 
 	// Register the prompt
 	if err := manager.CreatePrompt(simplePrompt); err != nil {
-		log.Error("Failed to create prompt", logger.Error(err))
+		log.Error("Failed to create prompt", "error", err)
 		return
 	}
 	fmt.Println("✓ Created simple summarization prompt")
@@ -82,7 +83,7 @@ func demonstrateBasicPrompts(manager *prompt.DefaultPromptManager, llmClient llm
 		consideration as we integrate AI into society.`,
 	})
 	if err != nil {
-		log.Error("Failed to execute prompt", logger.Error(err))
+		log.Error("Failed to execute prompt", "error", err)
 		return
 	}
 
@@ -91,7 +92,7 @@ func demonstrateBasicPrompts(manager *prompt.DefaultPromptManager, llmClient llm
 }
 
 // Part 2: Different Prompt Strategies
-func demonstratePromptStrategies(manager *prompt.DefaultPromptManager, llmClient llm.Client, log logger.Logger) {
+func demonstratePromptStrategies(manager *prompt.DefaultPromptManager, llmClient llm.Client, log core.Logger) {
 	ctx := context.Background()
 
 	// 1. Zero-shot prompt
@@ -201,7 +202,7 @@ Let's think through this step by step:`,
 }
 
 // Part 3: Prompt Chains
-func demonstratePromptChains(manager *prompt.DefaultPromptManager, llmClient llm.Client, log logger.Logger) {
+func demonstratePromptChains(manager *prompt.DefaultPromptManager, llmClient llm.Client, log core.Logger) {
 	ctx := context.Background()
 
 	// Create prompts for the chain
@@ -272,7 +273,7 @@ func demonstratePromptChains(manager *prompt.DefaultPromptManager, llmClient llm
 
 	// Register the chain
 	if err := manager.CreateChain(chain); err != nil {
-		log.Error("Failed to create chain", logger.Error(err))
+		log.Error("Failed to create chain", "error", err)
 		return
 	}
 	fmt.Println("✓ Created analysis pipeline with 3 steps")
@@ -287,7 +288,7 @@ func demonstratePromptChains(manager *prompt.DefaultPromptManager, llmClient llm
 	fmt.Println("\nExecuting prompt chain...")
 	results, err := manager.ExecuteChain(ctx, "analysis_pipeline", input)
 	if err != nil {
-		log.Error("Failed to execute chain", logger.Error(err))
+		log.Error("Failed to execute chain", "error", err)
 		return
 	}
 
@@ -298,7 +299,7 @@ func demonstratePromptChains(manager *prompt.DefaultPromptManager, llmClient llm
 }
 
 // Part 4: Prompt Optimization
-func demonstratePromptOptimization(manager *prompt.DefaultPromptManager, llmClient llm.LLMProvider, log logger.Logger) {
+func demonstratePromptOptimization(manager *prompt.DefaultPromptManager, llmClient llm.Client, log core.Logger) {
 	// Create a prompt to optimize
 	initialPrompt := &prompt.Prompt{
 		ID:       "task_solver",
@@ -357,7 +358,7 @@ func demonstratePromptOptimization(manager *prompt.DefaultPromptManager, llmClie
 	// Optimize the prompt based on feedback
 	optimizedPrompt, err := manager.OptimizePrompt("task_solver", feedback)
 	if err != nil {
-		log.Error("Failed to optimize prompt", logger.Error(err))
+		log.Error("Failed to optimize prompt", "error", err)
 		return
 	}
 
@@ -386,7 +387,7 @@ func demonstratePromptOptimization(manager *prompt.DefaultPromptManager, llmClie
 }
 
 // Part 5: Prompt Testing
-func demonstratePromptTesting(manager *prompt.DefaultPromptManager, llmClient llm.Client, log logger.Logger) {
+func demonstratePromptTesting(manager *prompt.DefaultPromptManager, llmClient llm.Client, log core.Logger) {
 	// Create test cases
 	testCases := []prompt.TestCase{
 		{
@@ -434,7 +435,7 @@ func demonstratePromptTesting(manager *prompt.DefaultPromptManager, llmClient ll
 	// Run tests
 	testResult, err := manager.TestPrompt("math_adder", testCases)
 	if err != nil {
-		log.Error("Failed to test prompt", logger.Error(err))
+		log.Error("Failed to test prompt", "error", err)
 		return
 	}
 
@@ -470,7 +471,13 @@ func demonstratePromptTesting(manager *prompt.DefaultPromptManager, llmClient ll
 // Mock LLM client for demonstration
 type mockLLMClient struct{}
 
-func (c *mockLLMClient) Complete(ctx context.Context, prompt string) (*llm.Response, error) {
+func (c *mockLLMClient) Complete(ctx context.Context, req *llm.CompletionRequest) (*llm.CompletionResponse, error) {
+	// Extract prompt from messages
+	prompt := ""
+	if len(req.Messages) > 0 {
+		prompt = req.Messages[len(req.Messages)-1].Content
+	}
+
 	// Return mock responses based on prompt content
 	response := "Mock response for: " + prompt
 
@@ -488,16 +495,24 @@ func (c *mockLLMClient) Complete(ctx context.Context, prompt string) (*llm.Respo
 		}
 	}
 
-	return &llm.Response{
-		Content: response,
-		TokensUsed: llm.TokenUsage{
-			Prompt:     len(prompt),
-			Completion: len(response),
-			Total:      len(prompt) + len(response),
-		},
+	return &llm.CompletionResponse{
+		Content:    response,
+		TokensUsed: len(prompt) + len(response),
 	}, nil
 }
 
-func (c *mockLLMClient) Stream(ctx context.Context, prompt string, callback func(string)) error {
-	return fmt.Errorf("streaming not implemented")
+func (c *mockLLMClient) Chat(ctx context.Context, messages []llm.Message) (*llm.CompletionResponse, error) {
+	// Convert to CompletionRequest and call Complete
+	req := &llm.CompletionRequest{
+		Messages: messages,
+	}
+	return c.Complete(ctx, req)
+}
+
+func (c *mockLLMClient) Provider() llm.Provider {
+	return llm.ProviderOpenAI // Return a default provider
+}
+
+func (c *mockLLMClient) IsAvailable() bool {
+	return true
 }

@@ -32,7 +32,7 @@ type Multiplexer struct {
 type consumerState struct {
 	id       string
 	consumer core.StreamConsumer
-	ch       chan *core.StreamChunk
+	ch       chan *core.LegacyStreamChunk
 	errors   int
 	active   bool
 }
@@ -71,7 +71,7 @@ func (m *Multiplexer) AddConsumer(consumer core.StreamConsumer) (string, error) 
 	state := &consumerState{
 		id:       id,
 		consumer: consumer,
-		ch:       make(chan *core.StreamChunk, m.opts.BufferSize),
+		ch:       make(chan *core.LegacyStreamChunk, m.opts.BufferSize),
 		active:   true,
 	}
 
@@ -188,7 +188,7 @@ func (m *Multiplexer) Close() error {
 }
 
 // broadcast 广播数据块到所有消费者
-func (m *Multiplexer) broadcast(chunk *core.StreamChunk) error {
+func (m *Multiplexer) broadcast(chunk *core.LegacyStreamChunk) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 

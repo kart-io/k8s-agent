@@ -14,7 +14,7 @@ import (
 type Writer struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-	ch     chan *core.StreamChunk
+	ch     chan *core.LegacyStreamChunk
 	opts   *core.StreamOptions
 
 	closed   atomic.Bool
@@ -44,7 +44,7 @@ func NewWriter(ctx context.Context, opts *core.StreamOptions) *Writer {
 	return &Writer{
 		ctx:    ctx,
 		cancel: cancel,
-		ch:     make(chan *core.StreamChunk, opts.BufferSize),
+		ch:     make(chan *core.LegacyStreamChunk, opts.BufferSize),
 		opts:   opts,
 		stats: WriterStats{
 			StartTime: time.Now(),
@@ -67,7 +67,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 }
 
 // Write 写入数据块
-func (w *Writer) WriteChunk(chunk *core.StreamChunk) error {
+func (w *Writer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	if w.closed.Load() {
 		return fmt.Errorf("writer is closed")
 	}
@@ -101,7 +101,7 @@ func (w *Writer) WriteChunk(chunk *core.StreamChunk) error {
 }
 
 // WriteBatch 批量写入数据块
-func (w *Writer) WriteBatch(chunks []*core.StreamChunk) error {
+func (w *Writer) WriteBatch(chunks []*core.LegacyStreamChunk) error {
 	for _, chunk := range chunks {
 		if err := w.WriteChunk(chunk); err != nil {
 			return err
@@ -124,7 +124,7 @@ func (w *Writer) WriteProgress(progress float64, message string) error {
 
 // WriteStatus 写入状态更新
 func (w *Writer) WriteStatus(status string) error {
-	chunk := &core.StreamChunk{
+	chunk := &core.LegacyStreamChunk{
 		Type: core.ChunkTypeStatus,
 		Data: status,
 		Metadata: core.ChunkMetadata{
@@ -148,7 +148,7 @@ func (w *Writer) Close() error {
 	}
 
 	// 发送最后一个块标记
-	lastChunk := &core.StreamChunk{
+	lastChunk := &core.LegacyStreamChunk{
 		Type:   core.ChunkTypeControl,
 		IsLast: true,
 		Metadata: core.ChunkMetadata{
@@ -173,7 +173,7 @@ func (w *Writer) IsClosed() bool {
 }
 
 // Channel 返回写入通道（供 Reader 使用）
-func (w *Writer) Channel() <-chan *core.StreamChunk {
+func (w *Writer) Channel() <-chan *core.LegacyStreamChunk {
 	return w.ch
 }
 
@@ -185,7 +185,7 @@ func (w *Writer) Stats() WriterStats {
 }
 
 // updateStats 更新统计信息
-func (w *Writer) updateStats(chunk *core.StreamChunk) {
+func (w *Writer) updateStats(chunk *core.LegacyStreamChunk) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 

@@ -30,7 +30,7 @@ type StreamingAgent interface {
 type StreamOutput interface {
 	// Next 读取下一个数据块
 	// 返回 io.EOF 表示流结束
-	Next() (*StreamChunk, error)
+	Next() (*LegacyStreamChunk, error)
 
 	// Close 关闭流并释放资源
 	Close() error
@@ -42,13 +42,15 @@ type StreamOutput interface {
 	Context() context.Context
 }
 
-// StreamChunk 流数据块
+// LegacyStreamChunk 流数据块
 //
-// StreamChunk 表示流中的一个数据单元：
+// LegacyStreamChunk 表示流中的一个数据单元：
 // - 可以是文本片段、JSON 对象、二进制数据等
 // - 包含类型信息和元数据
 // - 支持进度和状态信息
-type StreamChunk struct {
+//
+// 注意：这是旧的流式输出实现，新代码应使用 Runnable[I,O].Stream() 和泛型 StreamChunk[T]
+type LegacyStreamChunk struct {
 	// 数据类型
 	Type ChunkType `json:"type"` // 数据类型
 
@@ -147,7 +149,7 @@ type StreamOptions struct {
 }
 
 // ChunkTransformFunc 数据块转换函数
-type ChunkTransformFunc func(*StreamChunk) (*StreamChunk, error)
+type ChunkTransformFunc func(*LegacyStreamChunk) (*LegacyStreamChunk, error)
 
 // DefaultStreamOptions 返回默认流选项
 func DefaultStreamOptions() *StreamOptions {
@@ -203,10 +205,10 @@ type StreamWriter interface {
 	io.Writer
 
 	// WriteChunk 写入数据块
-	WriteChunk(chunk *StreamChunk) error
+	WriteChunk(chunk *LegacyStreamChunk) error
 
 	// WriteBatch 批量写入数据块
-	WriteBatch(chunks []*StreamChunk) error
+	WriteBatch(chunks []*LegacyStreamChunk) error
 
 	// WriteText 写入文本数据
 	WriteText(text string) error
@@ -260,7 +262,7 @@ type StreamController interface {
 // - 处理流事件（开始、结束、错误）
 type StreamConsumer interface {
 	// OnChunk 处理数据块
-	OnChunk(chunk *StreamChunk) error
+	OnChunk(chunk *LegacyStreamChunk) error
 
 	// OnStart 流开始时调用
 	OnStart() error
@@ -295,8 +297,8 @@ type StreamMultiplexer interface {
 }
 
 // NewStreamChunk 创建新的流数据块
-func NewStreamChunk(typ ChunkType, data interface{}) *StreamChunk {
-	return &StreamChunk{
+func NewStreamChunk(typ ChunkType, data interface{}) *LegacyStreamChunk {
+	return &LegacyStreamChunk{
 		Type: typ,
 		Data: data,
 		Metadata: ChunkMetadata{
@@ -306,8 +308,8 @@ func NewStreamChunk(typ ChunkType, data interface{}) *StreamChunk {
 }
 
 // NewTextChunk 创建文本数据块
-func NewTextChunk(text string) *StreamChunk {
-	return &StreamChunk{
+func NewTextChunk(text string) *LegacyStreamChunk {
+	return &LegacyStreamChunk{
 		Type: ChunkTypeText,
 		Text: text,
 		Data: text,
@@ -318,8 +320,8 @@ func NewTextChunk(text string) *StreamChunk {
 }
 
 // NewProgressChunk 创建进度数据块
-func NewProgressChunk(progress float64, message string) *StreamChunk {
-	return &StreamChunk{
+func NewProgressChunk(progress float64, message string) *LegacyStreamChunk {
+	return &LegacyStreamChunk{
 		Type: ChunkTypeProgress,
 		Data: map[string]interface{}{
 			"progress": progress,
@@ -334,8 +336,8 @@ func NewProgressChunk(progress float64, message string) *StreamChunk {
 }
 
 // NewErrorChunk 创建错误数据块
-func NewErrorChunk(err error) *StreamChunk {
-	return &StreamChunk{
+func NewErrorChunk(err error) *LegacyStreamChunk {
+	return &LegacyStreamChunk{
 		Type:  ChunkTypeError,
 		Data:  err.Error(),
 		Error: err,

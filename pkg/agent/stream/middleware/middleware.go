@@ -257,11 +257,11 @@ func (m *TeeMiddleware) Apply(ctx context.Context, source core.StreamOutput) (co
 // - 只传递符合条件的块
 // - 跳过不需要的数据
 type FilterMiddleware struct {
-	predicate func(*core.StreamChunk) bool
+	predicate func(*core.LegacyStreamChunk) bool
 }
 
 // NewFilterMiddleware 创建过滤中间件
-func NewFilterMiddleware(predicate func(*core.StreamChunk) bool) *FilterMiddleware {
+func NewFilterMiddleware(predicate func(*core.LegacyStreamChunk) bool) *FilterMiddleware {
 	return &FilterMiddleware{
 		predicate: predicate,
 	}
@@ -320,7 +320,7 @@ func (m *BatchMiddleware) Apply(ctx context.Context, source core.StreamOutput) (
 	go func() {
 		defer writer.Close()
 
-		batch := make([]*core.StreamChunk, 0, m.batchSize)
+		batch := make([]*core.LegacyStreamChunk, 0, m.batchSize)
 		timer := time.NewTimer(m.timeout)
 		defer timer.Stop()
 
@@ -329,7 +329,7 @@ func (m *BatchMiddleware) Apply(ctx context.Context, source core.StreamOutput) (
 				return nil
 			}
 
-			batchChunk := &core.StreamChunk{
+			batchChunk := &core.LegacyStreamChunk{
 				Type: core.ChunkTypeJSON,
 				Data: map[string]interface{}{
 					"batch_size": len(batch),

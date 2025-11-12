@@ -42,7 +42,7 @@ func NewSSEStreamer(w http.ResponseWriter) (*SSEStreamer, error) {
 }
 
 // WriteChunk 写入数据块
-func (s *SSEStreamer) WriteChunk(chunk *core.StreamChunk) error {
+func (s *SSEStreamer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	if s.closed {
 		return fmt.Errorf("streamer is closed")
 	}
@@ -62,7 +62,7 @@ func (s *SSEStreamer) WriteChunk(chunk *core.StreamChunk) error {
 }
 
 // formatSSEEvent 格式化 SSE 事件
-func (s *SSEStreamer) formatSSEEvent(chunk *core.StreamChunk) string {
+func (s *SSEStreamer) formatSSEEvent(chunk *core.LegacyStreamChunk) string {
 	data, _ := json.Marshal(chunk)
 	return fmt.Sprintf("event: %s\ndata: %s\n\n", chunk.Type, string(data))
 }
@@ -189,7 +189,7 @@ func NewChunkedTransferStreamer(w http.ResponseWriter) (*ChunkedTransferStreamer
 }
 
 // WriteChunk 写入数据块
-func (c *ChunkedTransferStreamer) WriteChunk(chunk *core.StreamChunk) error {
+func (c *ChunkedTransferStreamer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	if c.closed {
 		return fmt.Errorf("streamer is closed")
 	}
@@ -247,7 +247,7 @@ func StreamToChunkedTransfer(ctx context.Context, w http.ResponseWriter, source 
 // - 服务器缓存最新数据
 type PollingStreamer struct {
 	sessionID string
-	buffer    []*core.StreamChunk
+	buffer    []*core.LegacyStreamChunk
 	lastIndex int //nolint:unused // For future position tracking
 	timeout   time.Duration
 }
@@ -256,13 +256,13 @@ type PollingStreamer struct {
 func NewPollingStreamer(sessionID string, timeout time.Duration) *PollingStreamer {
 	return &PollingStreamer{
 		sessionID: sessionID,
-		buffer:    make([]*core.StreamChunk, 0, 100),
+		buffer:    make([]*core.LegacyStreamChunk, 0, 100),
 		timeout:   timeout,
 	}
 }
 
 // WriteChunk 写入数据块
-func (p *PollingStreamer) WriteChunk(chunk *core.StreamChunk) error {
+func (p *PollingStreamer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	p.buffer = append(p.buffer, chunk)
 
 	// 限制缓冲区大小
@@ -274,7 +274,7 @@ func (p *PollingStreamer) WriteChunk(chunk *core.StreamChunk) error {
 }
 
 // Poll 轮询新数据
-func (p *PollingStreamer) Poll(lastIndex int) ([]*core.StreamChunk, int, error) {
+func (p *PollingStreamer) Poll(lastIndex int) ([]*core.LegacyStreamChunk, int, error) {
 	if lastIndex < 0 || lastIndex > len(p.buffer) {
 		lastIndex = 0
 	}

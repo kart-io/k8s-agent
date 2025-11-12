@@ -68,10 +68,7 @@ func (c *DescriptionChain) Generate(ctx context.Context, input *DescriptionInput
 	start := time.Now()
 
 	// 1. 构建 Prompt
-	prompt, err := c.buildPrompt(input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build prompt: %w", err)
-	}
+	prompt := c.buildPrompt(input)
 
 	log.Printf("Description generation prompt built for resource: %s/%s, language: %s",
 		input.Namespace, input.ResourceName, input.Language)
@@ -121,7 +118,7 @@ func (c *DescriptionChain) Generate(ctx context.Context, input *DescriptionInput
 }
 
 // buildPrompt 构建描述生成 Prompt.
-func (c *DescriptionChain) buildPrompt(input *DescriptionInput) (string, error) {
+func (c *DescriptionChain) buildPrompt(input *DescriptionInput) string {
 	var sb strings.Builder
 
 	// 根据语言选择标题
@@ -298,7 +295,7 @@ func (c *DescriptionChain) buildPrompt(input *DescriptionInput) (string, error) 
 	sb.WriteString(c.getJSONSchema(input.Language, input.IncludeTimeline))
 	sb.WriteString("\n```\n")
 
-	return sb.String(), nil
+	return sb.String()
 }
 
 // parseResponse 解析 LLM 响应.

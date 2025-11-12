@@ -35,20 +35,15 @@ func (a *ReasoningAgentAdapter) Execute(ctx context.Context, input *core.AgentIn
 	start := time.Now()
 
 	// Convert core.AgentInput to reasoning.AnalysisInput
-	analysisInput, err := a.convertInput(input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert input: %w", err)
-	}
+	analysisInput := a.convertInput(input)
 
 	// Execute analysis using the wrapped ReasoningAgent
 	analysisOutput, err := a.reasoningAgent.Analyze(ctx, analysisInput)
 	if err != nil {
 		return &core.AgentOutput{
-			Result:    nil,
 			Status:    "failed",
 			Message:   err.Error(),
 			Latency:   time.Since(start),
-			Timestamp: time.Now(),
 		}, err
 	}
 
@@ -57,7 +52,7 @@ func (a *ReasoningAgentAdapter) Execute(ctx context.Context, input *core.AgentIn
 }
 
 // convertInput converts core.AgentInput to reasoning.AnalysisInput.
-func (a *ReasoningAgentAdapter) convertInput(input *core.AgentInput) (*reasoning.AnalysisInput, error) {
+func (a *ReasoningAgentAdapter) convertInput(input *core.AgentInput) *reasoning.AnalysisInput {
 	analysisInput := &reasoning.AnalysisInput{
 		IncludeRootCause:   true,
 		IncludeDescription: true,
@@ -120,7 +115,7 @@ func (a *ReasoningAgentAdapter) convertInput(input *core.AgentInput) (*reasoning
 		analysisInput.ResourceStatus = resourceStatus
 	}
 
-	return analysisInput, nil
+	return analysisInput
 }
 
 // convertOutput converts reasoning.AnalysisOutput to core.AgentOutput.
@@ -132,7 +127,6 @@ func (a *ReasoningAgentAdapter) convertOutput(output *reasoning.AnalysisOutput, 
 		ReasoningSteps: make([]core.ReasoningStep, 0),
 		ToolCalls:      make([]core.ToolCall, 0),
 		Latency:        latency,
-		Timestamp:      time.Now(),
 		Metadata:       make(map[string]interface{}),
 	}
 
@@ -298,21 +292,14 @@ func (c *RootCauseChainAdapter) Process(ctx context.Context, input *core.ChainIn
 	if err != nil {
 		return &core.ChainOutput{
 			Data:         nil,
-			Result:       nil,
 			Status:       "failed",
 			TotalLatency: time.Since(start),
-			Timestamp:    time.Now(),
 		}, err
 	}
 
 	// Convert output
 	return &core.ChainOutput{
 		Data: output,
-		Result: map[string]interface{}{
-			"root_cause": output.RootCause,
-			"confidence": output.Confidence,
-			"category":   output.Category,
-		},
 		StepsExecuted: []core.StepExecution{
 			{
 				StepNumber:  1,
@@ -326,7 +313,6 @@ func (c *RootCauseChainAdapter) Process(ctx context.Context, input *core.ChainIn
 		},
 		Status:       "success",
 		TotalLatency: time.Since(start),
-		Timestamp:    time.Now(),
 	}, nil
 }
 
@@ -359,20 +345,14 @@ func (c *DescriptionChainAdapter) Process(ctx context.Context, input *core.Chain
 	if err != nil {
 		return &core.ChainOutput{
 			Data:         nil,
-			Result:       nil,
 			Status:       "failed",
 			TotalLatency: time.Since(start),
-			Timestamp:    time.Now(),
 		}, err
 	}
 
 	// Convert output
 	return &core.ChainOutput{
 		Data: output,
-		Result: map[string]interface{}{
-			"title":    output.Title,
-			"severity": output.Severity,
-		},
 		StepsExecuted: []core.StepExecution{
 			{
 				StepNumber:  1,
@@ -386,6 +366,5 @@ func (c *DescriptionChainAdapter) Process(ctx context.Context, input *core.Chain
 		},
 		Status:       "success",
 		TotalLatency: time.Since(start),
-		Timestamp:    time.Now(),
 	}, nil
 }

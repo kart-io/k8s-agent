@@ -223,10 +223,7 @@ func (p *SmartPlanner) CreatePlan(ctx context.Context, goal string, constraints 
 	}
 
 	// Parse and structure the plan
-	plan, err := p.parsePlan(response.Content, goal)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse plan: %w", err)
-	}
+	plan := p.parsePlan(response.Content, goal)
 
 	// Apply planning strategy
 	strategy := p.selectStrategy(goal, constraints)
@@ -286,10 +283,7 @@ Please provide an improved plan that addresses the feedback while maintaining th
 		return nil, fmt.Errorf("failed to refine plan: %w", err)
 	}
 
-	refinedPlan, err := p.parsePlan(response.Content, plan.Goal)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse refined plan: %w", err)
-	}
+	refinedPlan := p.parsePlan(response.Content, plan.Goal)
 
 	// Preserve context and metrics from original plan
 	refinedPlan.Context = plan.Context
@@ -425,7 +419,7 @@ func (p *SmartPlanner) buildPlanPrompt(goal string, constraints PlanConstraints,
 	return prompt
 }
 
-func (p *SmartPlanner) parsePlan(content string, goal string) (*Plan, error) {
+func (p *SmartPlanner) parsePlan(content string, goal string) *Plan {
 	// This is a simplified parser - in production, use structured output from LLM
 	plan := &Plan{
 		ID:           fmt.Sprintf("plan_%d", time.Now().Unix()),
@@ -477,7 +471,7 @@ func (p *SmartPlanner) parsePlan(content string, goal string) (*Plan, error) {
 		},
 	}
 
-	return plan, nil
+	return plan
 }
 
 func (p *SmartPlanner) parseSteps(content string) []*Step {

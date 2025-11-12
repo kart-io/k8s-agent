@@ -92,13 +92,7 @@ func (o *AlertOptions) Validate() error {
 	}
 
 	// At least one channel should be enabled
-	hasChannel := false
-	if o.Email != nil && o.Email.Enabled {
-		hasChannel = true
-	}
-	if o.Webhook != nil && o.Webhook.Enabled {
-		hasChannel = true
-	}
+	hasChannel := (o.Email != nil && o.Email.Enabled) || (o.Webhook != nil && o.Webhook.Enabled)
 	if o.Slack != nil && o.Slack.Enabled {
 		hasChannel = true
 	}

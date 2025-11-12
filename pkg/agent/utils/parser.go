@@ -171,16 +171,16 @@ func (p *ResponseParser) RemoveMarkdown() string {
 	content = regexp.MustCompile("`[^`]+`").ReplaceAllString(content, "")
 
 	// 移除标题标记
-	content = regexp.MustCompile("(?m)^#+\\s+").ReplaceAllString(content, "")
+	content = regexp.MustCompile(`(?m)^#+\s+`).ReplaceAllString(content, "")
 
 	// 移除粗体和斜体
-	content = regexp.MustCompile("\\*\\*([^*]+)\\*\\*").ReplaceAllString(content, "$1")
-	content = regexp.MustCompile("\\*([^*]+)\\*").ReplaceAllString(content, "$1")
+	content = regexp.MustCompile(`\*\*([^*]+)\*\*`).ReplaceAllString(content, "$1")
+	content = regexp.MustCompile(`\*([^*]+)\*`).ReplaceAllString(content, "$1")
 	content = regexp.MustCompile("__([^_]+)__").ReplaceAllString(content, "$1")
 	content = regexp.MustCompile("_([^_]+)_").ReplaceAllString(content, "$1")
 
 	// 移除链接
-	content = regexp.MustCompile("\\[([^\\]]+)\\]\\([^)]+\\)").ReplaceAllString(content, "$1")
+	content = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`).ReplaceAllString(content, "$1")
 
 	return strings.TrimSpace(content)
 }

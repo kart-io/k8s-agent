@@ -1,0 +1,417 @@
+package tools
+
+import (
+	"context"
+	"fmt"
+	"sync"
+)
+
+// Toolkit 工具集接口
+//
+// 管理一组相关的工具
+type Toolkit interface {
+	// GetTools 获取所有工具
+	GetTools() []Tool
+
+	// GetToolByName 根据名称获取工具
+	GetToolByName(name string) (Tool, error)
+
+	// GetToolNames 获取所有工具名称
+	GetToolNames() []string
+}
+
+// BaseToolkit 基础工具集实现
+type BaseToolkit struct {
+	tools    []Tool
+	toolsMap map[string]Tool
+	mu       sync.RWMutex
+}
+
+// NewBaseToolkit 创建基础工具集
+func NewBaseToolkit(tools ...Tool) *BaseToolkit {
+	toolkit := &BaseToolkit{
+		tools:    tools,
+		toolsMap: make(map[string]Tool),
+	}
+
+	for _, tool := range tools {
+		toolkit.toolsMap[tool.Name()] = tool
+	}
+
+	return toolkit
+}
+
+// GetTools 获取所有工具
+func (t *BaseToolkit) GetTools() []Tool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.tools
+}
+
+// GetToolByName 根据名称获取工具
+func (t *BaseToolkit) GetToolByName(name string) (Tool, error) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	tool, ok := t.toolsMap[name]
+	if !ok {
+		return nil, fmt.Errorf("tool not found: %s", name)
+	}
+
+	return tool, nil
+}
+
+// GetToolNames 获取所有工具名称
+func (t *BaseToolkit) GetToolNames() []string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	names := make([]string, 0, len(t.tools))
+	for _, tool := range t.tools {
+		names = append(names, tool.Name())
+	}
+
+	return names
+}
+
+// AddTool 添加工具
+func (t *BaseToolkit) AddTool(tool Tool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.tools = append(t.tools, tool)
+	t.toolsMap[tool.Name()] = tool
+}
+
+// RemoveTool 移除工具
+func (t *BaseToolkit) RemoveTool(name string) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if _, ok := t.toolsMap[name]; !ok {
+		return fmt.Errorf("tool not found: %s", name)
+	}
+
+	delete(t.toolsMap, name)
+
+	// 从 slice 中移除
+	for i, tool := range t.tools {
+		if tool.Name() == name {
+			t.tools = append(t.tools[:i], t.tools[i+1:]...)
+			break
+		}
+	}
+
+	return nil
+}
+
+// MergeTool 合并另一个工具集
+func (t *BaseToolkit) MergeTool(other Toolkit) {
+	for _, tool := range other.GetTools() {
+		t.AddTool(tool)
+	}
+}
+
+// StandardToolkit 标准工具集
+//
+// 包含常用的基础工具
+type StandardToolkit struct {
+	*BaseToolkit
+}
+
+// NewStandardToolkit 创建标准工具集
+func NewStandardToolkit() *StandardToolkit {
+	tools := []Tool{
+		NewCalculatorTool(),
+		NewSearchTool(NewMockSearchEngine()),
+	}
+
+	return &StandardToolkit{
+		BaseToolkit: NewBaseToolkit(tools...),
+	}
+}
+
+// DevelopmentToolkit 开发工具集
+//
+// 包含开发常用的工具（Shell、API 等）
+type DevelopmentToolkit struct {
+	*BaseToolkit
+}
+
+// NewDevelopmentToolkit 创建开发工具集
+func NewDevelopmentToolkit() *DevelopmentToolkit {
+	// 安全的命令白名单
+	safeCommands := []string{
+		"ls", "pwd", "echo", "cat", "grep", "find",
+		"git", "curl", "wget",
+		"uname", "hostname", "whoami", "date",
+	}
+
+	tools := []Tool{
+		NewShellTool(safeCommands, 0),
+		NewAPITool("", 0, nil),
+		NewCalculatorTool(),
+	}
+
+	return &DevelopmentToolkit{
+		BaseToolkit: NewBaseToolkit(tools...),
+	}
+}
+
+// ToolkitBuilder 工具集构建器
+type ToolkitBuilder struct {
+	tools []Tool
+}
+
+// NewToolkitBuilder 创建工具集构建器
+func NewToolkitBuilder() *ToolkitBuilder {
+	return &ToolkitBuilder{
+		tools: []Tool{},
+	}
+}
+
+// AddTool 添加单个工具
+func (b *ToolkitBuilder) AddTool(tool Tool) *ToolkitBuilder {
+	b.tools = append(b.tools, tool)
+	return b
+}
+
+// AddTools 批量添加工具
+func (b *ToolkitBuilder) AddTools(tools ...Tool) *ToolkitBuilder {
+	b.tools = append(b.tools, tools...)
+	return b
+}
+
+// AddToolkit 添加整个工具集
+func (b *ToolkitBuilder) AddToolkit(toolkit Toolkit) *ToolkitBuilder {
+	b.tools = append(b.tools, toolkit.GetTools()...)
+	return b
+}
+
+// WithCalculator 添加计算器工具
+func (b *ToolkitBuilder) WithCalculator() *ToolkitBuilder {
+	b.tools = append(b.tools, NewCalculatorTool())
+	return b
+}
+
+// WithSearch 添加搜索工具
+func (b *ToolkitBuilder) WithSearch(engine SearchEngine) *ToolkitBuilder {
+	if engine == nil {
+		engine = NewMockSearchEngine()
+	}
+	b.tools = append(b.tools, NewSearchTool(engine))
+	return b
+}
+
+// WithShell 添加 Shell 工具
+func (b *ToolkitBuilder) WithShell(allowedCommands []string) *ToolkitBuilder {
+	b.tools = append(b.tools, NewShellTool(allowedCommands, 0))
+	return b
+}
+
+// WithAPI 添加 API 工具
+func (b *ToolkitBuilder) WithAPI(baseURL string, headers map[string]string) *ToolkitBuilder {
+	b.tools = append(b.tools, NewAPITool(baseURL, 0, headers))
+	return b
+}
+
+// Build 构建工具集
+func (b *ToolkitBuilder) Build() Toolkit {
+	return NewBaseToolkit(b.tools...)
+}
+
+// ToolRegistry 工具注册表
+//
+// 全局工具管理器，支持注册和发现工具
+type ToolRegistry struct {
+	tools map[string]Tool
+	mu    sync.RWMutex
+}
+
+// NewToolRegistry 创建工具注册表
+func NewToolRegistry() *ToolRegistry {
+	return &ToolRegistry{
+		tools: make(map[string]Tool),
+	}
+}
+
+// Register 注册工具
+func (r *ToolRegistry) Register(tool Tool) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, exists := r.tools[tool.Name()]; exists {
+		return fmt.Errorf("tool already registered: %s", tool.Name())
+	}
+
+	r.tools[tool.Name()] = tool
+	return nil
+}
+
+// Unregister 注销工具
+func (r *ToolRegistry) Unregister(name string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, exists := r.tools[name]; !exists {
+		return fmt.Errorf("tool not found: %s", name)
+	}
+
+	delete(r.tools, name)
+	return nil
+}
+
+// Get 获取工具
+func (r *ToolRegistry) Get(name string) (Tool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	tool, ok := r.tools[name]
+	if !ok {
+		return nil, fmt.Errorf("tool not found: %s", name)
+	}
+
+	return tool, nil
+}
+
+// List 列出所有工具
+func (r *ToolRegistry) List() []Tool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	tools := make([]Tool, 0, len(r.tools))
+	for _, tool := range r.tools {
+		tools = append(tools, tool)
+	}
+
+	return tools
+}
+
+// CreateToolkit 从注册表创建工具集
+func (r *ToolRegistry) CreateToolkit(names ...string) (Toolkit, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	tools := make([]Tool, 0, len(names))
+	for _, name := range names {
+		tool, ok := r.tools[name]
+		if !ok {
+			return nil, fmt.Errorf("tool not found: %s", name)
+		}
+		tools = append(tools, tool)
+	}
+
+	return NewBaseToolkit(tools...), nil
+}
+
+// 全局工具注册表
+var defaultRegistry = NewToolRegistry()
+
+// RegisterTool 注册工具到全局注册表
+func RegisterTool(tool Tool) error {
+	return defaultRegistry.Register(tool)
+}
+
+// GetTool 从全局注册表获取工具
+func GetTool(name string) (Tool, error) {
+	return defaultRegistry.Get(name)
+}
+
+// ListTools 列出全局注册表中的所有工具
+func ListTools() []Tool {
+	return defaultRegistry.List()
+}
+
+// ToolExecutor 工具执行器
+//
+// 提供工具执行的辅助功能
+type ToolExecutor struct {
+	toolkit  Toolkit
+	parallel bool // 是否并行执行
+}
+
+// NewToolExecutor 创建工具执行器
+func NewToolExecutor(toolkit Toolkit) *ToolExecutor {
+	return &ToolExecutor{
+		toolkit:  toolkit,
+		parallel: false,
+	}
+}
+
+// WithParallel 设置并行执行
+func (e *ToolExecutor) WithParallel(parallel bool) *ToolExecutor {
+	e.parallel = parallel
+	return e
+}
+
+// Execute 执行单个工具
+func (e *ToolExecutor) Execute(ctx context.Context, toolName string, input *ToolInput) (*ToolOutput, error) {
+	tool, err := e.toolkit.GetToolByName(toolName)
+	if err != nil {
+		return nil, err
+	}
+
+	return tool.Invoke(ctx, input)
+}
+
+// ExecuteMultiple 执行多个工具
+func (e *ToolExecutor) ExecuteMultiple(ctx context.Context, requests map[string]*ToolInput) (map[string]*ToolOutput, error) {
+	if e.parallel {
+		return e.executeParallel(ctx, requests)
+	}
+	return e.executeSequential(ctx, requests)
+}
+
+// executeSequential 顺序执行
+func (e *ToolExecutor) executeSequential(ctx context.Context, requests map[string]*ToolInput) (map[string]*ToolOutput, error) {
+	results := make(map[string]*ToolOutput)
+
+	for toolName, input := range requests {
+		output, err := e.Execute(ctx, toolName, input)
+		if err != nil {
+			return results, err
+		}
+		results[toolName] = output
+	}
+
+	return results, nil
+}
+
+// executeParallel 并行执行
+func (e *ToolExecutor) executeParallel(ctx context.Context, requests map[string]*ToolInput) (map[string]*ToolOutput, error) {
+	type result struct {
+		toolName string
+		output   *ToolOutput
+		err      error
+	}
+
+	resultsChan := make(chan result, len(requests))
+
+	for toolName, input := range requests {
+		go func(name string, inp *ToolInput) {
+			output, err := e.Execute(ctx, name, inp)
+			resultsChan <- result{
+				toolName: name,
+				output:   output,
+				err:      err,
+			}
+		}(toolName, input)
+	}
+
+	results := make(map[string]*ToolOutput)
+	var firstError error
+
+	for i := 0; i < len(requests); i++ {
+		select {
+		case res := <-resultsChan:
+			if res.err != nil && firstError == nil {
+				firstError = res.err
+			}
+			results[res.toolName] = res.output
+		case <-ctx.Done():
+			return results, ctx.Err()
+		}
+	}
+
+	return results, firstError
+}

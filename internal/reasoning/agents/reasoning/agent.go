@@ -88,14 +88,7 @@ func (a *ReasoningAgent) Analyze(ctx context.Context, input *AnalysisInput) (*An
 
 	// 步骤 1: 获取 K8s 上下文
 	if input.IncludeK8sContext && a.config.EnableK8sTool {
-		k8sCtx, err := a.fetchK8sContext(ctx, input)
-		if err != nil {
-			return nil, &AnalysisError{
-				Phase:   PhaseK8sContext,
-				Message: "failed to fetch K8s context",
-				Err:     err,
-			}
-		}
+		k8sCtx := a.fetchK8sContext(ctx, input)
 		output.K8sContext = k8sCtx
 		output.ReasoningSteps = append(output.ReasoningSteps, ReasoningStep{
 			Step:        1,
@@ -203,7 +196,7 @@ func (a *ReasoningAgent) GenerateDescription(ctx context.Context, input *Analysi
 }
 
 // fetchK8sContext 获取 K8s 上下文信息.
-func (a *ReasoningAgent) fetchK8sContext(ctx context.Context, input *AnalysisInput) (*K8sContext, error) {
+func (a *ReasoningAgent) fetchK8sContext(ctx context.Context, input *AnalysisInput) *K8sContext {
 	k8sCtx := &K8sContext{
 		FetchedAt: time.Now(),
 	}
@@ -285,7 +278,7 @@ func (a *ReasoningAgent) fetchK8sContext(ctx context.Context, input *AnalysisInp
 		}
 	}
 
-	return k8sCtx, nil
+	return k8sCtx
 }
 
 // buildRootCauseInput 构建根因分析输入.

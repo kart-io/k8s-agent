@@ -139,7 +139,7 @@ func BenchmarkCachedVsUncached(b *testing.B) {
 		b.ReportAllocs()
 
 		for i := 0; i < b.N; i++ {
-			_, err := cachedAgent.Execute(ctx, input)
+			_, err := cachedAgent.Invoke(ctx, input)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -283,7 +283,7 @@ func BenchmarkCacheHitRate(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				for _, input := range inputs {
-					_, err := cachedAgent.Execute(ctx, input)
+					_, err := cachedAgent.Invoke(ctx, input)
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -477,7 +477,7 @@ func TestPerformanceReport(t *testing.T) {
 
 		start = time.Now()
 		for i := 0; i < 100; i++ {
-			_, err := cachedAgent.Execute(ctx, input)
+			_, err := cachedAgent.Invoke(ctx, input)
 			if err != nil {
 				t.Fatal(err)
 			}

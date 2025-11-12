@@ -29,8 +29,8 @@ func NewAnalysisAgent(memMgr memory.Manager) *AnalysisAgent {
 	}
 }
 
-// Execute 执行分析任务
-func (a *AnalysisAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
+// Execute 执行分析任务（实现 Runnable 接口的 Invoke 方法）
+func (a *AnalysisAgent) Invoke(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
 	start := time.Now()
 	output := &core.AgentOutput{
 		ReasoningSteps: make([]core.ReasoningStep, 0),
@@ -197,6 +197,8 @@ func NewSimpleOrchestrator() *SimpleOrchestrator {
 }
 
 // Execute 执行编排任务
+//
+//nolint:unparam // error return required by Orchestrator interface
 func (o *SimpleOrchestrator) Execute(ctx context.Context, request *core.OrchestratorRequest) (*core.OrchestratorResponse, error) {
 	start := time.Now()
 	response := &core.OrchestratorResponse{
@@ -216,7 +218,7 @@ func (o *SimpleOrchestrator) Execute(ctx context.Context, request *core.Orchestr
 			Options: core.DefaultChainOptions(),
 		}
 
-		chainOutput, err := chain.Process(ctx, chainInput)
+		chainOutput, err := chain.Invoke(ctx, chainInput)
 
 		step := core.ExecutionStep{
 			Step:          1,
@@ -250,7 +252,7 @@ func (o *SimpleOrchestrator) Execute(ctx context.Context, request *core.Orchestr
 			SessionID: request.SessionID,
 		}
 
-		agentOutput, err := agent.Execute(ctx, agentInput)
+		agentOutput, err := agent.Invoke(ctx, agentInput)
 
 		step := core.ExecutionStep{
 			Step:          2,

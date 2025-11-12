@@ -246,7 +246,7 @@ func (p *AgentPool) Execute(ctx context.Context, input *core.AgentInput) (*core.
 	}
 	defer p.Release(agent)
 
-	return agent.Execute(ctx, input)
+	return agent.Invoke(ctx, input)
 }
 
 // Close 关闭池

@@ -322,7 +322,6 @@ func exampleRootCauseChain(ctx context.Context, components *Components) error {
 	chainInput := &core.ChainInput{
 		Data:    analysisInput,
 		Vars:    make(map[string]interface{}),
-		Tags:    []string{"kubernetes", "pod_failure", "oom"},
 		Options: core.DefaultChainOptions(),
 	}
 

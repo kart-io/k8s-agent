@@ -103,7 +103,7 @@ func (s *UserServiceServer) ListUsers(ctx context.Context, req *authv1.ListUsers
 	users := make([]*authv1.User, len(usersSlice))
 	for i, u := range usersSlice {
 		users[i] = &authv1.User{
-			Id:        uint64(stringToID(u.ID)),
+			Id:        stringToID(u.ID),
 			Username:  u.Username,
 			Email:     u.Email,
 			Nickname:  u.RealName,

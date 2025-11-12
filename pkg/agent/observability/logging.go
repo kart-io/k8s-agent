@@ -27,8 +27,8 @@ func NewInstrumentedAgent(agent agentcore.Agent, serviceName string, logger core
 	}
 }
 
-// Execute 执行 Agent 并自动记录可观测性数据
-func (i *InstrumentedAgent) Execute(ctx context.Context, input *agentcore.AgentInput) (*agentcore.AgentOutput, error) {
+// Invoke 执行 Agent 并自动记录可观测性数据
+func (i *InstrumentedAgent) Invoke(ctx context.Context, input *agentcore.AgentInput) (*agentcore.AgentOutput, error) {
 	start := time.Now()
 	agentName := i.agent.Name()
 
@@ -52,7 +52,7 @@ func (i *InstrumentedAgent) Execute(ctx context.Context, input *agentcore.AgentI
 		"session_id", input.SessionID)
 
 	// 执行 Agent
-	output, err := i.agent.Execute(ctx, input)
+	output, err := i.agent.Invoke(ctx, input)
 	duration := time.Since(start)
 
 	// 记录结果
@@ -119,6 +119,31 @@ func (i *InstrumentedAgent) Description() string {
 // Capabilities 返回 Agent 能力
 func (i *InstrumentedAgent) Capabilities() []string {
 	return i.agent.Capabilities()
+}
+
+// Stream 流式执行 Agent（委托给内部 agent）
+func (i *InstrumentedAgent) Stream(ctx context.Context, input *agentcore.AgentInput) (<-chan agentcore.StreamChunk[*agentcore.AgentOutput], error) {
+	return i.agent.Stream(ctx, input)
+}
+
+// Batch 批量执行 Agent（委托给内部 agent）
+func (i *InstrumentedAgent) Batch(ctx context.Context, inputs []*agentcore.AgentInput) ([]*agentcore.AgentOutput, error) {
+	return i.agent.Batch(ctx, inputs)
+}
+
+// Pipe 连接到另一个 Runnable（委托给内部 agent）
+func (i *InstrumentedAgent) Pipe(next agentcore.Runnable[*agentcore.AgentOutput, any]) agentcore.Runnable[*agentcore.AgentInput, any] {
+	return i.agent.Pipe(next)
+}
+
+// WithCallbacks 添加回调处理器（委托给内部 agent）
+func (i *InstrumentedAgent) WithCallbacks(callbacks ...agentcore.Callback) agentcore.Runnable[*agentcore.AgentInput, *agentcore.AgentOutput] {
+	return i.agent.WithCallbacks(callbacks...)
+}
+
+// WithConfig 配置 Agent（委托给内部 agent）
+func (i *InstrumentedAgent) WithConfig(config agentcore.RunnableConfig) agentcore.Runnable[*agentcore.AgentInput, *agentcore.AgentOutput] {
+	return i.agent.WithConfig(config)
 }
 
 // WrapAgent 包装 Agent 以添加可观测性

@@ -149,7 +149,7 @@ func main() {
 	}
 
 	// 过滤器：只保留进度更新
-	filterFunc := func(chunk *core.StreamChunk) bool {
+	filterFunc := func(chunk *core.LegacyStreamChunk) bool {
 		return chunk.Type == core.ChunkTypeProgress
 	}
 
@@ -177,7 +177,7 @@ func main() {
 	}
 
 	// 映射器：添加时间戳到每个块
-	mapperFunc := func(chunk *core.StreamChunk) (*core.StreamChunk, error) {
+	mapperFunc := func(chunk *core.LegacyStreamChunk) (*core.LegacyStreamChunk, error) {
 		chunk.Metadata.Extra = map[string]interface{}{
 			"processed_at": time.Now().Format(time.RFC3339),
 			"processor":    "stream-mapper",

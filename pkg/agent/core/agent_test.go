@@ -23,8 +23,8 @@ func NewMockAgent(name, description string, capabilities []string, executeFunc f
 	}
 }
 
-// Execute 实现 Agent 接口
-func (m *MockAgent) Execute(ctx context.Context, input *AgentInput) (*AgentOutput, error) {
+// Invoke 实现 Agent 接口（Runnable 接口的核心方法）
+func (m *MockAgent) Invoke(ctx context.Context, input *AgentInput) (*AgentOutput, error) {
 	if m.executeFunc != nil {
 		return m.executeFunc(ctx, input)
 	}
@@ -121,16 +121,20 @@ func TestBaseAgent_Capabilities(t *testing.T) {
 	}
 }
 
-func TestBaseAgent_Execute_Panics(t *testing.T) {
+func TestBaseAgent_Invoke_ReturnsError(t *testing.T) {
 	agent := NewBaseAgent("TestAgent", "description", nil)
 	input := &AgentInput{
 		Task:        "test task",
 		Instruction: "test instruction",
 	}
 
-	assert.Panics(t, func() {
-		_, _ = agent.Execute(context.Background(), input)
-	}, "BaseAgent.Execute should panic as it must be implemented by concrete agent")
+	output, err := agent.Invoke(context.Background(), input)
+
+	require.Error(t, err)
+	assert.Equal(t, ErrNotImplemented, err)
+	assert.NotNil(t, output)
+	assert.Equal(t, "failed", output.Status)
+	assert.Equal(t, "Invoke method must be implemented by concrete agent", output.Message)
 }
 
 func TestMockAgent_Execute_Success(t *testing.T) {
@@ -155,7 +159,7 @@ func TestMockAgent_Execute_Success(t *testing.T) {
 		Options:     DefaultAgentOptions(),
 	}
 
-	output, err := agent.Execute(context.Background(), input)
+	output, err := agent.Invoke(context.Background(), input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "success", output.Status)
@@ -183,7 +187,7 @@ func TestMockAgent_Execute_WithContext(t *testing.T) {
 		ctx := context.Background()
 		input := &AgentInput{Task: "test"}
 
-		output, err := agent.Execute(ctx, input)
+		output, err := agent.Invoke(ctx, input)
 		require.NoError(t, err)
 		assert.Equal(t, "success", output.Status)
 	})
@@ -194,7 +198,7 @@ func TestMockAgent_Execute_WithContext(t *testing.T) {
 
 		input := &AgentInput{Task: "test"}
 
-		output, err := agent.Execute(ctx, input)
+		output, err := agent.Invoke(ctx, input)
 		assert.Error(t, err)
 		assert.Nil(t, output)
 		assert.Equal(t, context.Canceled, err)
@@ -216,7 +220,7 @@ func TestMockAgent_Execute_WithContext(t *testing.T) {
 
 		input := &AgentInput{Task: "test"}
 
-		output, err := slowAgent.Execute(ctx, input)
+		output, err := slowAgent.Invoke(ctx, input)
 		assert.Error(t, err)
 		assert.Nil(t, output)
 		assert.Equal(t, context.DeadlineExceeded, err)
@@ -455,6 +459,6 @@ func BenchmarkMockAgent_Execute(b *testing.B) {
 	ctx := context.Background()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = agent.Execute(ctx, input)
+		_, _ = agent.Invoke(ctx, input)
 	}
 }

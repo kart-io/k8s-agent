@@ -320,10 +320,7 @@ func TestBuildPrompt_English(t *testing.T) {
 		IncludeTimeline: true,
 	}
 
-	prompt, err := chain.buildPrompt(input)
-	if err != nil {
-		t.Fatalf("buildPrompt() error: %v", err)
-	}
+	prompt := chain.buildPrompt(input)
 
 	if prompt == "" {
 		t.Fatal("buildPrompt() returned empty prompt")
@@ -368,10 +365,7 @@ func TestBuildPrompt_Chinese(t *testing.T) {
 		IncludeTimeline: false,
 	}
 
-	prompt, err := chain.buildPrompt(input)
-	if err != nil {
-		t.Fatalf("buildPrompt() error: %v", err)
-	}
+	prompt := chain.buildPrompt(input)
 
 	if prompt == "" {
 		t.Fatal("buildPrompt() returned empty prompt")
@@ -419,10 +413,7 @@ func TestBuildPromptWithRootCause(t *testing.T) {
 		},
 	}
 
-	prompt, err := chain.buildPrompt(input)
-	if err != nil {
-		t.Fatalf("buildPrompt() error: %v", err)
-	}
+	prompt := chain.buildPrompt(input)
 
 	// 验证包含根因信息
 	if !strings.Contains(prompt, "Root Cause Analysis") {

@@ -7,15 +7,17 @@ import (
 
 // Agent 定义通用 AI Agent 接口
 //
-// Agent 是一个具有推理能力的智能体，能够：
-// - 接收输入并进行处理
+// Agent 是一个 Runnable[*AgentInput, *AgentOutput]，具有推理能力的智能体，能够：
+// - 接收输入并进行处理（通过 Runnable.Invoke）
 // - 调用工具获取额外信息
 // - 使用 LLM 进行推理
 // - 返回结构化输出
+// - 支持流式处理、批量执行、管道连接等 Runnable 特性
 type Agent interface {
-	// Execute 执行 Agent 的主要逻辑
-	Execute(ctx context.Context, input *AgentInput) (*AgentOutput, error)
+	// 继承 Runnable 接口，Agent 是一个可执行的组件
+	Runnable[*AgentInput, *AgentOutput]
 
+	// Agent 特有方法
 	// Name 返回 Agent 的名称
 	Name() string
 
@@ -102,7 +104,11 @@ type ToolCall struct {
 }
 
 // BaseAgent 提供 Agent 的基础实现
+//
+// BaseAgent 实现了 Agent 接口，包括完整的 Runnable 接口支持
+// 具体的执行逻辑需要通过组合或继承来实现
 type BaseAgent struct {
+	*BaseRunnable[*AgentInput, *AgentOutput]
 	name         string
 	description  string
 	capabilities []string
@@ -111,6 +117,7 @@ type BaseAgent struct {
 // NewBaseAgent 创建基础 Agent
 func NewBaseAgent(name, description string, capabilities []string) *BaseAgent {
 	return &BaseAgent{
+		BaseRunnable: NewBaseRunnable[*AgentInput, *AgentOutput](),
 		name:         name,
 		description:  description,
 		capabilities: capabilities,
@@ -132,9 +139,130 @@ func (a *BaseAgent) Capabilities() []string {
 	return a.capabilities
 }
 
-// Execute 需要由具体 Agent 实现
-func (a *BaseAgent) Execute(ctx context.Context, input *AgentInput) (*AgentOutput, error) {
-	panic("Execute method must be implemented by concrete agent")
+// Invoke 执行 Agent
+// 这是 Runnable 接口的核心方法，需要由具体 Agent 实现
+func (a *BaseAgent) Invoke(ctx context.Context, input *AgentInput) (*AgentOutput, error) {
+	// 触发回调
+	startTime := time.Now()
+	if err := a.triggerOnStart(ctx, input); err != nil {
+		return nil, err
+	}
+
+	// 默认实现返回错误，提示需要重写
+	output := &AgentOutput{
+		Status:    "failed",
+		Message:   "Invoke method must be implemented by concrete agent",
+		Timestamp: time.Now(),
+		Latency:   time.Since(startTime),
+	}
+
+	// 触发回调
+	_ = a.triggerOnFinish(ctx, output)
+
+	return output, ErrNotImplemented
+}
+
+// Stream 流式执行 Agent
+// 默认实现将 Invoke 的结果包装成单个流块
+func (a *BaseAgent) Stream(ctx context.Context, input *AgentInput) (<-chan StreamChunk[*AgentOutput], error) {
+	outChan := make(chan StreamChunk[*AgentOutput], 1)
+
+	go func() {
+		defer close(outChan)
+
+		output, err := a.Invoke(ctx, input)
+		outChan <- StreamChunk[*AgentOutput]{
+			Data:  output,
+			Error: err,
+			Done:  true,
+		}
+	}()
+
+	return outChan, nil
+}
+
+// Batch 批量执行 Agent
+// 使用 BaseRunnable 的默认批处理实现
+func (a *BaseAgent) Batch(ctx context.Context, inputs []*AgentInput) ([]*AgentOutput, error) {
+	return a.BaseRunnable.Batch(ctx, inputs, a.Invoke)
+}
+
+// Pipe 连接到另一个 Runnable
+// 将当前 Agent 的输出连接到下一个 Runnable 的输入
+func (a *BaseAgent) Pipe(next Runnable[*AgentOutput, any]) Runnable[*AgentInput, any] {
+	return NewRunnablePipe[*AgentInput, *AgentOutput, any](a, next)
+}
+
+// WithCallbacks 添加回调处理器
+// 返回一个新的 Agent 实例，包含指定的回调
+func (a *BaseAgent) WithCallbacks(callbacks ...Callback) Runnable[*AgentInput, *AgentOutput] {
+	newAgent := *a
+	newAgent.BaseRunnable = a.BaseRunnable.WithCallbacks(callbacks...)
+	return &newAgent
+}
+
+// WithConfig 配置 Agent
+// 返回一个新的 Agent 实例，使用指定的配置
+func (a *BaseAgent) WithConfig(config RunnableConfig) Runnable[*AgentInput, *AgentOutput] {
+	newAgent := *a
+	newAgent.BaseRunnable = a.BaseRunnable.WithConfig(config)
+	return &newAgent
+}
+
+// triggerOnStart 触发开始回调
+func (a *BaseAgent) triggerOnStart(ctx context.Context, input *AgentInput) error {
+	config := a.GetConfig()
+	for _, cb := range config.Callbacks {
+		if err := cb.OnStart(ctx, input); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// triggerOnEnd 触发结束回调
+func (a *BaseAgent) triggerOnEnd(ctx context.Context, output *AgentOutput) error {
+	config := a.GetConfig()
+	for _, cb := range config.Callbacks {
+		if err := cb.OnEnd(ctx, output); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// triggerOnError 触发错误回调
+func (a *BaseAgent) triggerOnError(ctx context.Context, err error) error {
+	config := a.GetConfig()
+	for _, cb := range config.Callbacks {
+		if cbErr := cb.OnError(ctx, err); cbErr != nil {
+			return cbErr
+		}
+	}
+	return nil
+}
+
+// triggerOnFinish 触发完成回调
+func (a *BaseAgent) triggerOnFinish(ctx context.Context, output *AgentOutput) error {
+	config := a.GetConfig()
+	for _, cb := range config.Callbacks {
+		if err := cb.OnAgentFinish(ctx, output); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//nolint:unused // Reserved for future agent action tracking
+// triggerOnAction 触发操作回调
+func (a *BaseAgent) triggerOnAction(ctx context.Context, action *AgentAction) error {
+	config := a.GetConfig()
+	for _, cb := range config.Callbacks {
+		if err := cb.OnAgentAction(ctx, action); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // DefaultAgentOptions 返回默认的 Agent 选项
@@ -150,4 +278,147 @@ func DefaultAgentOptions() AgentOptions {
 		MaxHistoryLength: 10,
 		Timeout:          60 * time.Second,
 	}
+}
+
+// AgentExecutor 执行 Agent 的辅助结构
+//
+// 提供额外的执行逻辑，如重试、超时控制等
+type AgentExecutor struct {
+	agent       Agent
+	maxRetries  int
+	timeout     time.Duration
+	stopOnError bool
+}
+
+// NewAgentExecutor 创建 Agent 执行器
+func NewAgentExecutor(agent Agent, options ...ExecutorOption) *AgentExecutor {
+	executor := &AgentExecutor{
+		agent:       agent,
+		maxRetries:  0,
+		timeout:     0,
+		stopOnError: true,
+	}
+
+	for _, opt := range options {
+		opt(executor)
+	}
+
+	return executor
+}
+
+// ExecutorOption 执行器选项函数
+type ExecutorOption func(*AgentExecutor)
+
+// WithMaxRetries 设置最大重试次数
+func WithMaxRetries(maxRetries int) ExecutorOption {
+	return func(e *AgentExecutor) {
+		e.maxRetries = maxRetries
+	}
+}
+
+// WithTimeout 设置超时时间
+func WithTimeout(timeout time.Duration) ExecutorOption {
+	return func(e *AgentExecutor) {
+		e.timeout = timeout
+	}
+}
+
+// WithStopOnError 设置是否在错误时停止
+func WithStopOnError(stop bool) ExecutorOption {
+	return func(e *AgentExecutor) {
+		e.stopOnError = stop
+	}
+}
+
+// Execute 执行 Agent，支持重试和超时
+func (e *AgentExecutor) Execute(ctx context.Context, input *AgentInput) (*AgentOutput, error) {
+	// 应用超时
+	if e.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, e.timeout)
+		defer cancel()
+	}
+
+	var lastErr error
+	attempts := e.maxRetries + 1 // 第一次尝试 + 重试次数
+
+	for i := 0; i < attempts; i++ {
+		output, err := e.agent.Invoke(ctx, input)
+		if err == nil {
+			return output, nil
+		}
+
+		lastErr = err
+
+		// 如果设置了在错误时停止，且不是最后一次尝试，则不重试
+		if e.stopOnError && i < attempts-1 {
+			return output, err
+		}
+
+		// 检查上下文是否已取消
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+	}
+
+	return nil, lastErr
+}
+
+// ChainableAgent 可链式调用的 Agent
+//
+// 允许将多个 Agent 串联起来，前一个的输出作为后一个的输入
+type ChainableAgent struct {
+	*BaseAgent
+	agents []Agent
+}
+
+// NewChainableAgent 创建可链式调用的 Agent
+func NewChainableAgent(name, description string, agents ...Agent) *ChainableAgent {
+	capabilities := []string{"chaining"}
+	for _, agent := range agents {
+		capabilities = append(capabilities, agent.Capabilities()...)
+	}
+
+	return &ChainableAgent{
+		BaseAgent: NewBaseAgent(name, description, capabilities),
+		agents:    agents,
+	}
+}
+
+// Invoke 顺序调用所有 Agent
+func (c *ChainableAgent) Invoke(ctx context.Context, input *AgentInput) (*AgentOutput, error) {
+	if len(c.agents) == 0 {
+		return &AgentOutput{
+			Status:    "success",
+			Message:   "No agents in chain",
+			Timestamp: time.Now(),
+		}, nil
+	}
+
+	currentInput := input
+	var finalOutput *AgentOutput
+
+	for i, agent := range c.agents {
+		output, err := agent.Invoke(ctx, currentInput)
+		if err != nil {
+			return nil, err
+		}
+
+		finalOutput = output
+
+		// 如果不是最后一个 agent，准备下一个的输入
+		if i < len(c.agents)-1 {
+			// 将当前输出转换为下一个的输入
+			currentInput = &AgentInput{
+				Task:        currentInput.Task,
+				Instruction: currentInput.Instruction,
+				Context:     output.Metadata,
+				Options:     currentInput.Options,
+				SessionID:   currentInput.SessionID,
+				Timestamp:   time.Now(),
+			}
+		}
+	}
+
+	return finalOutput, nil
 }

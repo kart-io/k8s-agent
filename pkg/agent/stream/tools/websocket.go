@@ -32,7 +32,7 @@ func NewWebSocketStreamer(conn *websocket.Conn) *WebSocketStreamer {
 }
 
 // WriteChunk 写入数据块
-func (w *WebSocketStreamer) WriteChunk(chunk *core.StreamChunk) error {
+func (w *WebSocketStreamer) WriteChunk(chunk *core.LegacyStreamChunk) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -79,20 +79,20 @@ func (w *WebSocketStreamer) WriteBinary(data []byte) error {
 }
 
 // ReadChunk 读取数据块
-func (w *WebSocketStreamer) ReadChunk() (*core.StreamChunk, error) {
+func (w *WebSocketStreamer) ReadChunk() (*core.LegacyStreamChunk, error) {
 	messageType, data, err := w.conn.ReadMessage()
 	if err != nil {
 		return nil, err
 	}
 
 	if messageType == websocket.BinaryMessage {
-		return &core.StreamChunk{
+		return &core.LegacyStreamChunk{
 			Type: core.ChunkTypeBinary,
 			Data: data,
 		}, nil
 	}
 
-	var chunk core.StreamChunk
+	var chunk core.LegacyStreamChunk
 	if err := json.Unmarshal(data, &chunk); err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func StreamToWebSocket(ctx context.Context, conn *websocket.Conn, source core.St
 	defer streamer.Close()
 
 	// 发送开始消息
-	startChunk := &core.StreamChunk{
+	startChunk := &core.LegacyStreamChunk{
 		Type: core.ChunkTypeControl,
 		Data: map[string]interface{}{
 			"event":   "start",
@@ -150,7 +150,7 @@ func StreamToWebSocket(ctx context.Context, conn *websocket.Conn, source core.St
 			if err != nil {
 				if err.Error() == "EOF" {
 					// 发送结束消息
-					endChunk := &core.StreamChunk{
+					endChunk := &core.LegacyStreamChunk{
 						Type: core.ChunkTypeControl,
 						Data: map[string]interface{}{
 							"event":   "end",
@@ -174,8 +174,8 @@ func StreamToWebSocket(ctx context.Context, conn *websocket.Conn, source core.St
 // WebSocketBidirectionalStream 双向 WebSocket 流
 type WebSocketBidirectionalStream struct {
 	streamer *WebSocketStreamer
-	input    chan *core.StreamChunk
-	output   chan *core.StreamChunk
+	input    chan *core.LegacyStreamChunk
+	output   chan *core.LegacyStreamChunk
 	ctx      context.Context
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
@@ -187,8 +187,8 @@ func NewWebSocketBidirectionalStream(conn *websocket.Conn) *WebSocketBidirection
 
 	stream := &WebSocketBidirectionalStream{
 		streamer: NewWebSocketStreamer(conn),
-		input:    make(chan *core.StreamChunk, 100),
-		output:   make(chan *core.StreamChunk, 100),
+		input:    make(chan *core.LegacyStreamChunk, 100),
+		output:   make(chan *core.LegacyStreamChunk, 100),
 		ctx:      ctx,
 		cancel:   cancel,
 	}
@@ -246,12 +246,12 @@ func (s *WebSocketBidirectionalStream) writeLoop() {
 }
 
 // Input 返回输入通道
-func (s *WebSocketBidirectionalStream) Input() <-chan *core.StreamChunk {
+func (s *WebSocketBidirectionalStream) Input() <-chan *core.LegacyStreamChunk {
 	return s.input
 }
 
 // Output 返回输出通道
-func (s *WebSocketBidirectionalStream) Output() chan<- *core.StreamChunk {
+func (s *WebSocketBidirectionalStream) Output() chan<- *core.LegacyStreamChunk {
 	return s.output
 }
 

@@ -159,7 +159,7 @@ func (a *ProgressAgent) processWithProgress(ctx context.Context, input *core.Age
 
 		// 发送进度更新
 		if a.config.EnableProgress {
-			chunk := &core.StreamChunk{
+			chunk := &core.LegacyStreamChunk{
 				Type: core.ChunkTypeProgress,
 				Data: map[string]interface{}{
 					"progress": progress,
@@ -196,7 +196,7 @@ func (a *ProgressAgent) processWithProgress(ctx context.Context, input *core.Age
 		"completion":   "100%",
 	}
 
-	resultChunk := &core.StreamChunk{
+	resultChunk := &core.LegacyStreamChunk{
 		Type: core.ChunkTypeJSON,
 		Data: result,
 		Metadata: core.ChunkMetadata{
@@ -252,7 +252,7 @@ func (pt *ProgressTracker) Report(current int64) error {
 		eta = avgTimePerItem * time.Duration(remaining)
 	}
 
-	chunk := &core.StreamChunk{
+	chunk := &core.LegacyStreamChunk{
 		Type: core.ChunkTypeProgress,
 		Data: map[string]interface{}{
 			"progress": progress,

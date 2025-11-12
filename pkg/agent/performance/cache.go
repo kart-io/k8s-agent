@@ -102,8 +102,8 @@ func NewCachedAgent(agent core.Agent, config CacheConfig) *CachedAgent {
 	return ca
 }
 
-// Execute 执行 Agent（带缓存）
-func (c *CachedAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
+// Invoke 执行 Agent（带缓存）
+func (c *CachedAgent) Invoke(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
 	startTime := time.Now()
 
 	// 生成缓存键
@@ -119,7 +119,7 @@ func (c *CachedAgent) Execute(ctx context.Context, input *core.AgentInput) (*cor
 	}
 
 	// 缓存未命中，执行 Agent
-	output, err := c.agent.Execute(ctx, input)
+	output, err := c.agent.Invoke(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -376,4 +376,29 @@ func copyOutput(output *core.AgentOutput) *core.AgentOutput {
 	}
 
 	return copied
+}
+
+// Stream 流式执行 Agent（委托给内部 agent）
+func (c *CachedAgent) Stream(ctx context.Context, input *core.AgentInput) (<-chan core.StreamChunk[*core.AgentOutput], error) {
+	return c.agent.Stream(ctx, input)
+}
+
+// Batch 批量执行 Agent（委托给内部 agent）
+func (c *CachedAgent) Batch(ctx context.Context, inputs []*core.AgentInput) ([]*core.AgentOutput, error) {
+	return c.agent.Batch(ctx, inputs)
+}
+
+// Pipe 连接到另一个 Runnable（委托给内部 agent）
+func (c *CachedAgent) Pipe(next core.Runnable[*core.AgentOutput, any]) core.Runnable[*core.AgentInput, any] {
+	return c.agent.Pipe(next)
+}
+
+// WithCallbacks 添加回调处理器（委托给内部 agent）
+func (c *CachedAgent) WithCallbacks(callbacks ...core.Callback) core.Runnable[*core.AgentInput, *core.AgentOutput] {
+	return c.agent.WithCallbacks(callbacks...)
+}
+
+// WithConfig 配置 Agent（委托给内部 agent）
+func (c *CachedAgent) WithConfig(config core.RunnableConfig) core.Runnable[*core.AgentInput, *core.AgentOutput] {
+	return c.agent.WithConfig(config)
 }

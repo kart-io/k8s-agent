@@ -106,7 +106,7 @@ func (a *DataPipelineAgent) processDataPipeline(ctx context.Context, input *core
 	}
 
 	totalItems := len(dataSource)
-	processedItems := 0
+	var processedItems int
 	startTime := time.Now()
 
 	writer.WriteStatus(fmt.Sprintf("Starting pipeline: %d items", totalItems))
@@ -135,7 +135,7 @@ func (a *DataPipelineAgent) processDataPipeline(ctx context.Context, input *core
 		}
 
 		// 发送结果
-		chunk := &core.StreamChunk{
+		chunk := &core.LegacyStreamChunk{
 			Type: core.ChunkTypeJSON,
 			Data: result,
 			Metadata: core.ChunkMetadata{
@@ -214,7 +214,7 @@ func (a *DataPipelineAgent) ProcessWithTransform(
 			}
 
 			// 发送结果
-			chunk := &core.StreamChunk{
+			chunk := &core.LegacyStreamChunk{
 				Type: core.ChunkTypeJSON,
 				Data: transformed,
 				Metadata: core.ChunkMetadata{
@@ -240,7 +240,7 @@ func (a *DataPipelineAgent) ProcessWithTransform(
 func (a *DataPipelineAgent) StreamFilter(
 	ctx context.Context,
 	source core.StreamOutput,
-	filter func(*core.StreamChunk) bool,
+	filter func(*core.LegacyStreamChunk) bool,
 ) (core.StreamOutput, error) {
 	opts := core.DefaultStreamOptions()
 	writer := stream.NewWriter(ctx, opts)
@@ -272,7 +272,7 @@ func (a *DataPipelineAgent) StreamFilter(
 func (a *DataPipelineAgent) StreamMap(
 	ctx context.Context,
 	source core.StreamOutput,
-	mapper func(*core.StreamChunk) (*core.StreamChunk, error),
+	mapper func(*core.LegacyStreamChunk) (*core.LegacyStreamChunk, error),
 ) (core.StreamOutput, error) {
 	opts := core.DefaultStreamOptions()
 	writer := stream.NewWriter(ctx, opts)

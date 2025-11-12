@@ -15,7 +15,7 @@ import (
 type Reader struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-	ch     <-chan *core.StreamChunk
+	ch     <-chan *core.LegacyStreamChunk
 	opts   *core.StreamOptions
 
 	closed   atomic.Bool
@@ -25,7 +25,7 @@ type Reader struct {
 	mu        sync.RWMutex
 	stats     ReaderStats
 	buffer    *RingBuffer
-	lastChunk *core.StreamChunk
+	lastChunk *core.LegacyStreamChunk
 	lastError error
 }
 
@@ -40,7 +40,7 @@ type ReaderStats struct {
 }
 
 // NewReader 创建新的流读取器
-func NewReader(ctx context.Context, ch <-chan *core.StreamChunk, opts *core.StreamOptions) *Reader {
+func NewReader(ctx context.Context, ch <-chan *core.LegacyStreamChunk, opts *core.StreamOptions) *Reader {
 	if opts == nil {
 		opts = core.DefaultStreamOptions()
 	}
@@ -68,7 +68,7 @@ func NewReader(ctx context.Context, ch <-chan *core.StreamChunk, opts *core.Stre
 }
 
 // Next 读取下一个数据块
-func (r *Reader) Next() (*core.StreamChunk, error) {
+func (r *Reader) Next() (*core.LegacyStreamChunk, error) {
 	if r.closed.Load() {
 		return nil, io.EOF
 	}
@@ -232,7 +232,7 @@ func (r *Reader) Stats() ReaderStats {
 }
 
 // updateStats 更新统计信息
-func (r *Reader) updateStats(chunk *core.StreamChunk) {
+func (r *Reader) updateStats(chunk *core.LegacyStreamChunk) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -262,8 +262,8 @@ func (r *Reader) Drain() error {
 }
 
 // Collect 收集所有数据块
-func (r *Reader) Collect() ([]*core.StreamChunk, error) {
-	var chunks []*core.StreamChunk
+func (r *Reader) Collect() ([]*core.LegacyStreamChunk, error) {
+	var chunks []*core.LegacyStreamChunk
 
 	for {
 		chunk, err := r.Next()

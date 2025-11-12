@@ -167,7 +167,7 @@ func (b *BatchExecutor) Execute(ctx context.Context, inputs []*core.AgentInput) 
 
 			// 执行任务
 			taskStart := time.Now()
-			output, err := b.agent.Execute(timeoutCtx, inp)
+			output, err := b.agent.Invoke(timeoutCtx, inp)
 			taskDuration := time.Since(taskStart)
 
 			if err != nil {

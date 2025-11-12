@@ -298,10 +298,7 @@ func TestBuildPrompt(t *testing.T) {
 		},
 	}
 
-	prompt, err := chain.buildPrompt(input)
-	if err != nil {
-		t.Fatalf("buildPrompt() error: %v", err)
-	}
+	prompt := chain.buildPrompt(input)
 
 	if prompt == "" {
 		t.Fatal("buildPrompt() returned empty prompt")
@@ -370,10 +367,7 @@ func TestBuildPromptWithSimilarCases(t *testing.T) {
 		},
 	}
 
-	prompt, err := chain.buildPrompt(input)
-	if err != nil {
-		t.Fatalf("buildPrompt() error: %v", err)
-	}
+	prompt := chain.buildPrompt(input)
 
 	// 打印 prompt 用于调试
 	t.Logf("Generated prompt:\n%s", prompt)

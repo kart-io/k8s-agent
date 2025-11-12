@@ -428,7 +428,7 @@ func (e *AgentExecutor) executeStep(ctx context.Context, step *Step) *StepResult
 	defer cancel()
 
 	// Execute agent
-	output, err := agent.Execute(execCtx, input)
+	output, err := agent.Invoke(execCtx, input)
 
 	// Build result
 	result := &StepResult{

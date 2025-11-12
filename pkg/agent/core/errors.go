@@ -9,6 +9,7 @@ var (
 	ErrAgentAlreadyExists   = errors.New("agent already exists")
 	ErrAgentExecutionFailed = errors.New("agent execution failed")
 	ErrInvalidAgentInput    = errors.New("invalid agent input")
+	ErrNotImplemented       = errors.New("method not implemented")
 
 	// Chain 相关错误
 	ErrChainNotFound       = errors.New("chain not found")
