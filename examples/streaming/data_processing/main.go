@@ -12,7 +12,8 @@ import (
 
 //nolint:gocyclo // Example code with comprehensive demo flow
 func main() {
-	fmt.Println("=== Data Processing Pipeline Example ===\n")
+	fmt.Println("=== Data Processing Pipeline Example ===")
+	fmt.Println()
 
 	// 创建数据管道 Agent
 	config := &agents.DataPipelineConfig{
@@ -50,7 +51,8 @@ func main() {
 	ctx := context.Background()
 
 	// 演示 1: 基本流式处理
-	fmt.Println("=== Example 1: Basic Stream Processing ===\n")
+	fmt.Println("=== Example 1: Basic Stream Processing ===")
+	fmt.Println()
 
 	streamOutput, err := agent.ExecuteStream(ctx, input)
 	if err != nil {
@@ -104,7 +106,8 @@ func main() {
 	fmt.Printf("Throughput: %.2f items/sec\n", throughput)
 
 	// 演示 2: 使用转换函数
-	fmt.Println("\n=== Example 2: Stream with Transform ===\n")
+	fmt.Println("\n=== Example 2: Stream with Transform ===")
+	fmt.Println()
 
 	simpleData := make([]interface{}, 100)
 	for i := 0; i < 100; i++ {
@@ -142,7 +145,8 @@ func main() {
 	}
 
 	// 演示 3: 流式过滤
-	fmt.Println("\n=== Example 3: Stream Filtering ===\n")
+	fmt.Println("\n=== Example 3: Stream Filtering ===")
+	fmt.Println()
 
 	streamOutput3, err := agent.ExecuteStream(ctx, input)
 	if err != nil {
@@ -170,7 +174,8 @@ func main() {
 	}
 
 	// 演示 4: 流式映射
-	fmt.Println("\n=== Example 4: Stream Mapping ===\n")
+	fmt.Println("\n=== Example 4: Stream Mapping ===")
+	fmt.Println()
 
 	streamOutput4, err := agent.ExecuteStream(ctx, input)
 	if err != nil {
@@ -208,7 +213,8 @@ func main() {
 	}
 
 	// 演示 5: 流式归约
-	fmt.Println("\n=== Example 5: Stream Reduce ===\n")
+	fmt.Println("\n=== Example 5: Stream Reduce ===")
+	fmt.Println()
 
 	numbers := make([]interface{}, 100)
 	for i := 0; i < 100; i++ {

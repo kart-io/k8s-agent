@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== MCP 工具箱基础示例 ===\n")
+	fmt.Println("=== MCP 工具箱基础示例 ===")
+	fmt.Println()
 
 	// 1. 创建工具箱
 	tb := toolbox.NewStandardToolBox()
@@ -30,7 +31,8 @@ func main() {
 	listTools(tb)
 
 	// 4. 执行工具示例
-	fmt.Println("\n=== 工具执行示例 ===\n")
+	fmt.Println("\n=== 工具执行示例 ===")
+	fmt.Println()
 
 	// 示例 1: 读取文件
 	demonstrateReadFile(tb)

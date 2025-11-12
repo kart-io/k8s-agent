@@ -34,7 +34,8 @@ func (m *MockLLMClient) IsAvailable() bool {
 }
 
 func main() {
-	fmt.Println("=== LLM Streaming Example ===\n")
+	fmt.Println("=== LLM Streaming Example ===")
+	fmt.Println()
 
 	// 创建 LLM 流式 Agent
 	llmClient := &MockLLMClient{}
@@ -110,7 +111,8 @@ func main() {
 	fmt.Printf("Full text length: %d characters\n", len(fullText))
 
 	// 演示同步执行（收集所有流数据）
-	fmt.Println("\n=== Synchronous Execution (Collecting All Data) ===\n")
+	fmt.Println("\n=== Synchronous Execution (Collecting All Data) ===")
+	fmt.Println()
 
 	output, err := agent.Execute(ctx, input)
 	if err != nil {
@@ -122,7 +124,8 @@ func main() {
 	fmt.Printf("Latency: %v\n", output.Latency)
 
 	// 演示流消费者
-	fmt.Println("\n=== Stream Consumer Example ===\n")
+	fmt.Println("\n=== Stream Consumer Example ===")
+	fmt.Println()
 
 	consumer := &agents.SimpleStreamConsumer{
 		OnStartFunc: func() error {

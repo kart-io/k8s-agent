@@ -9,7 +9,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Advanced Retrieval Example ===\n")
+	fmt.Println("=== Advanced Retrieval Example ===")
+	fmt.Println()
 
 	// 创建技术文档集合
 	docs := createTechDocs()

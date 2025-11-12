@@ -13,7 +13,8 @@ import (
 
 // 示例 1: 使用 Runnable 接口和管道模式
 func exampleRunnable() {
-	fmt.Println("=== Example 1: Runnable Interface with Pipe ===\n")
+	fmt.Println("=== Example 1: Runnable Interface with Pipe ===")
+	fmt.Println()
 
 	// 创建一个简单的 Runnable 函数：文本转大写
 	uppercaseRunnable := core.NewRunnableFunc(
@@ -42,7 +43,8 @@ func exampleRunnable() {
 
 // 示例 2: 使用 Callbacks 监控执行过程
 func exampleCallbacks() {
-	fmt.Println("=== Example 2: Callbacks for Monitoring ===\n")
+	fmt.Println("=== Example 2: Callbacks for Monitoring ===")
+	fmt.Println()
 
 	// 创建 Stdout 回调（输出到控制台）
 	stdoutCallback := core.NewStdoutCallback(true) // 启用颜色
@@ -75,7 +77,8 @@ func exampleCallbacks() {
 
 // 示例 3: 使用 Output Parsers 解析结构化输出
 func exampleOutputParsers() {
-	fmt.Println("=== Example 3: Output Parsers for Structured Data ===\n")
+	fmt.Println("=== Example 3: Output Parsers for Structured Data ===")
+	fmt.Println()
 
 	// 定义输出结构
 	type AnalysisResult struct {
@@ -127,7 +130,8 @@ These recommendations should resolve the issue.
 
 // 示例 4: 使用 Caching 优化性能
 func exampleCaching() {
-	fmt.Println("=== Example 4: Caching for Performance ===\n")
+	fmt.Println("=== Example 4: Caching for Performance ===")
+	fmt.Println()
 
 	// 创建内存缓存
 	cacheInstance := cache.NewInMemoryCache(
@@ -185,7 +189,8 @@ func exampleCaching() {
 
 // 示例 5: 综合应用 - LangChain 风格的 RAG Pipeline
 func exampleRAGPipeline() {
-	fmt.Println("=== Example 5: LangChain-style RAG Pipeline ===\n")
+	fmt.Println("=== Example 5: LangChain-style RAG Pipeline ===")
+	fmt.Println()
 
 	// 定义结构化输出
 	type RAGResponse struct {
@@ -282,7 +287,8 @@ func exampleRAGPipeline() {
 		WithCallbacks(stdoutCallback)
 
 	// 执行 RAG 查询
-	fmt.Println("Executing RAG Pipeline...\n")
+	fmt.Println("Executing RAG Pipeline...")
+	fmt.Println()
 	result, err := ragPipeline.Invoke(context.Background(), "What is Kubernetes?")
 	if err != nil {
 		log.Fatal(err)
@@ -297,7 +303,8 @@ func exampleRAGPipeline() {
 
 // 示例 6: 批处理和并发执行
 func exampleBatchProcessing() {
-	fmt.Println("=== Example 6: Batch Processing ===\n")
+	fmt.Println("=== Example 6: Batch Processing ===")
+	fmt.Println()
 
 	// 创建处理 Runnable
 	processor := core.NewRunnableFunc(

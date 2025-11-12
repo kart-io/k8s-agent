@@ -8,7 +8,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Basic Retrieval Example ===\n")
+	fmt.Println("=== Basic Retrieval Example ===")
+	fmt.Println()
 
 	// 创建示例文档
 	docs := []*retrieval.Document{

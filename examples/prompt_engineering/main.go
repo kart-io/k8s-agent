@@ -19,7 +19,8 @@ func main() {
 		panic(fmt.Sprintf("Failed to initialize logger: %v", err))
 	}
 
-	fmt.Println("=== AI Agent System Demo: Prompt Engineering ===\n")
+	fmt.Println("=== AI Agent System Demo: Prompt Engineering ===")
+	fmt.Println()
 
 	// Initialize LLM client (mock for demo)
 	llmClient := &mockLLMClient{}

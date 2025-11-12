@@ -12,7 +12,8 @@ import (
 
 //nolint:gocyclo // Example code with comprehensive demo flow
 func main() {
-	fmt.Println("=== Progress Tracking Example ===\n")
+	fmt.Println("=== Progress Tracking Example ===")
+	fmt.Println()
 
 	// 创建进度 Agent
 	config := &agents.ProgressConfig{
@@ -25,7 +26,8 @@ func main() {
 	agent := agents.NewProgressAgent(config)
 
 	// 演示 1: 基本进度跟踪
-	fmt.Println("=== Example 1: Basic Progress Tracking ===\n")
+	fmt.Println("=== Example 1: Basic Progress Tracking ===")
+	fmt.Println()
 
 	input := &core.AgentInput{
 		Task:        "Long running task with progress tracking",
@@ -46,7 +48,8 @@ func main() {
 	}
 	defer streamOutput.Close()
 
-	fmt.Println("Executing task with real-time progress...\n")
+	fmt.Println("Executing task with real-time progress...")
+	fmt.Println()
 
 	lastProgress := 0.0
 	lastPhase := ""
@@ -96,7 +99,8 @@ func main() {
 	fmt.Println("\nTask completed!")
 
 	// 演示 2: 进度条可视化
-	fmt.Println("\n=== Example 2: Progress Bar Visualization ===\n")
+	fmt.Println("\n=== Example 2: Progress Bar Visualization ===")
+	fmt.Println()
 
 	input2 := &core.AgentInput{
 		Task: "Task with visual progress bar",
@@ -113,7 +117,8 @@ func main() {
 	}
 	defer streamOutput2.Close()
 
-	fmt.Println("Task execution with progress bar:\n")
+	fmt.Println("Task execution with progress bar:")
+	fmt.Println()
 
 	for {
 		chunk, err := streamOutput2.Next()
@@ -130,7 +135,8 @@ func main() {
 	fmt.Println("\n\nTask completed!")
 
 	// 演示 3: 多任务进度跟踪
-	fmt.Println("\n=== Example 3: Multiple Task Progress ===\n")
+	fmt.Println("\n=== Example 3: Multiple Task Progress ===")
+	fmt.Println()
 
 	tasks := []struct {
 		name  string
@@ -141,7 +147,8 @@ func main() {
 		{"Task C", 20},
 	}
 
-	fmt.Println("Executing multiple tasks concurrently:\n")
+	fmt.Println("Executing multiple tasks concurrently:")
+	fmt.Println()
 
 	type taskProgress struct {
 		name     string
@@ -207,7 +214,8 @@ func main() {
 		case <-ticker.C:
 			// 定期更新显示
 			fmt.Print("\033[H\033[2J") // 清屏
-			fmt.Println("=== Multiple Task Progress ===\n")
+			fmt.Println("=== Multiple Task Progress ===")
+	fmt.Println()
 
 			for _, task := range tasks {
 				progress := taskStates[task.name]
@@ -223,7 +231,8 @@ func main() {
 	fmt.Println("\n\nAll tasks completed!")
 
 	// 演示 4: 自定义进度跟踪器
-	fmt.Println("\n=== Example 4: Custom Progress Tracker ===\n")
+	fmt.Println("\n=== Example 4: Custom Progress Tracker ===")
+	fmt.Println()
 
 	customInput := &core.AgentInput{
 		Task: "Custom progress tracking",
@@ -240,7 +249,8 @@ func main() {
 	}
 	defer streamOutput4.Close()
 
-	fmt.Println("Processing with custom progress metrics:\n")
+	fmt.Println("Processing with custom progress metrics:")
+	fmt.Println()
 
 	var (
 		totalChunks     int
