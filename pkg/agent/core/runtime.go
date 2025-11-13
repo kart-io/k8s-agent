@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"time"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/store"
 )
 
 // Runtime provides the execution environment for tools and middleware.
@@ -25,7 +27,7 @@ type Runtime[C any, S State] struct {
 	State S
 
 	// Store provides long-term persistent storage
-	Store Store
+	Store store.Store
 
 	// Checkpointer handles session state persistence
 	Checkpointer Checkpointer
@@ -47,14 +49,14 @@ type Runtime[C any, S State] struct {
 func NewRuntime[C any, S State](
 	ctx C,
 	state S,
-	store Store,
+	st store.Store,
 	checkpointer Checkpointer,
 	sessionID string,
 ) *Runtime[C, S] {
 	return &Runtime[C, S]{
 		Context:      ctx,
 		State:        state,
-		Store:        store,
+		Store:        st,
 		Checkpointer: checkpointer,
 		SessionID:    sessionID,
 		Timestamp:    time.Now(),
@@ -251,14 +253,14 @@ func (m *RuntimeManager[C, S]) GetOrCreateRuntime(
 	sessionID string,
 	ctx C,
 	state S,
-	store Store,
+	st store.Store,
 	checkpointer Checkpointer,
 ) *Runtime[C, S] {
 	if runtime, ok := m.runtimes[sessionID]; ok {
 		return runtime
 	}
 
-	runtime := NewRuntime(ctx, state, store, checkpointer, sessionID)
+	runtime := NewRuntime(ctx, state, st, checkpointer, sessionID)
 	m.runtimes[sessionID] = runtime
 	return runtime
 }

@@ -9,6 +9,8 @@ import (
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
+	"github.com/kart-io/k8s-agent/pkg/agent/store"
+	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -30,7 +32,7 @@ type AgentBuilder[C any, S core.State] struct {
 
 	// Phase 1 components
 	state        S
-	store        core.Store
+	store        store.Store
 	checkpointer core.Checkpointer
 	context      C
 
@@ -132,8 +134,8 @@ func (b *AgentBuilder[C, S]) WithContext(context C) *AgentBuilder[C, S] {
 }
 
 // WithStore sets the long-term storage
-func (b *AgentBuilder[C, S]) WithStore(store core.Store) *AgentBuilder[C, S] {
-	b.store = store
+func (b *AgentBuilder[C, S]) WithStore(st store.Store) *AgentBuilder[C, S] {
+	b.store = st
 	return b
 }
 
@@ -258,7 +260,7 @@ func (b *AgentBuilder[C, S]) Build() (*ConfigurableAgent[C, S], error) {
 	}
 
 	if b.store == nil {
-		b.store = core.NewInMemoryStore()
+		b.store = memory.New()
 	}
 
 	if b.checkpointer == nil {

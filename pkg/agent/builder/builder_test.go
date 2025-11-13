@@ -11,6 +11,7 @@ import (
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
+	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -220,7 +221,7 @@ func TestAgentBuilder_WithStore(t *testing.T) {
 	llmClient := NewMockLLMClient()
 	builder := NewAgentBuilder[TestContext, *core.AgentState](llmClient)
 
-	store := core.NewInMemoryStore()
+	store := memory.New()
 	builder.WithStore(store)
 
 	assert.NotNil(t, builder.store)
@@ -312,7 +313,7 @@ func TestAgentBuilder_Build(t *testing.T) {
 		WithSystemPrompt("You are a test assistant").
 		WithState(state).
 		WithContext(ctx).
-		WithStore(core.NewInMemoryStore()).
+		WithStore(memory.New()).
 		WithCheckpointer(core.NewInMemorySaver()).
 		Build()
 
@@ -640,7 +641,7 @@ func TestAgentBuilder_CompleteFlow(t *testing.T) {
 		UserName: "Charlie",
 	}
 
-	store := core.NewInMemoryStore()
+	store := memory.New()
 	checkpointer := core.NewInMemorySaver()
 
 	// Create tools

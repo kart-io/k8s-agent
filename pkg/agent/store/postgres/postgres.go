@@ -1,4 +1,4 @@
-package core
+package postgres
 
 import (
 	"context"
@@ -10,47 +10,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/store"
 )
 
-// PostgresStoreConfig holds configuration for PostgreSQL store
-type PostgresStoreConfig struct {
-	// DSN is the PostgreSQL Data Source Name
-	// Example: "host=localhost user=postgres password=secret dbname=agent port=5432 sslmode=disable"
-	DSN string
-
-	// TableName is the name of the table to use for storage
-	TableName string
-
-	// MaxIdleConns is the maximum number of idle connections
-	MaxIdleConns int
-
-	// MaxOpenConns is the maximum number of open connections
-	MaxOpenConns int
-
-	// ConnMaxLifetime is the maximum lifetime of a connection
-	ConnMaxLifetime time.Duration
-
-	// LogLevel is the GORM log level
-	LogLevel logger.LogLevel
-
-	// AutoMigrate enables automatic table creation
-	AutoMigrate bool
-}
-
-// DefaultPostgresStoreConfig returns default PostgreSQL configuration
-func DefaultPostgresStoreConfig() *PostgresStoreConfig {
-	return &PostgresStoreConfig{
-		DSN:             "host=localhost user=postgres password=postgres dbname=agent port=5432 sslmode=disable",
-		TableName:       "agent_stores",
-		MaxIdleConns:    10,
-		MaxOpenConns:    100,
-		ConnMaxLifetime: time.Hour,
-		LogLevel:        logger.Silent,
-		AutoMigrate:     true,
-	}
-}
-
-// PostgresStore is a PostgreSQL-backed implementation of the Store interface.
+// Store is a PostgreSQL-backed implementation of the store.Store interface.
 //
 // Features:
 //   - JSONB storage for flexible data types
@@ -64,9 +28,9 @@ func DefaultPostgresStoreConfig() *PostgresStoreConfig {
 //   - Large-scale data storage
 //   - Complex queries
 //   - Distributed systems with shared database
-type PostgresStore struct {
+type Store struct {
 	db     *gorm.DB
-	config *PostgresStoreConfig
+	config *Config
 }
 
 // storeModel represents the database schema for store values
@@ -89,10 +53,10 @@ func (storeModel) TableName() string {
 	return "agent_stores"
 }
 
-// NewPostgresStore creates a new PostgreSQL-backed store
-func NewPostgresStore(config *PostgresStoreConfig) (*PostgresStore, error) {
+// New creates a new PostgreSQL-backed store
+func New(config *Config) (*Store, error) {
 	if config == nil {
-		config = DefaultPostgresStoreConfig()
+		config = DefaultConfig()
 	}
 
 	// Open database connection
@@ -114,7 +78,7 @@ func NewPostgresStore(config *PostgresStoreConfig) (*PostgresStore, error) {
 	sqlDB.SetMaxOpenConns(config.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(config.ConnMaxLifetime)
 
-	store := &PostgresStore{
+	store := &Store{
 		db:     db,
 		config: config,
 	}
@@ -129,13 +93,13 @@ func NewPostgresStore(config *PostgresStoreConfig) (*PostgresStore, error) {
 	return store, nil
 }
 
-// NewPostgresStoreFromDB creates a PostgresStore from an existing GORM DB
-func NewPostgresStoreFromDB(db *gorm.DB, config *PostgresStoreConfig) (*PostgresStore, error) {
+// NewFromDB creates a Store from an existing GORM DB
+func NewFromDB(db *gorm.DB, config *Config) (*Store, error) {
 	if config == nil {
-		config = DefaultPostgresStoreConfig()
+		config = DefaultConfig()
 	}
 
-	store := &PostgresStore{
+	store := &Store{
 		db:     db,
 		config: config,
 	}
@@ -150,7 +114,7 @@ func NewPostgresStoreFromDB(db *gorm.DB, config *PostgresStoreConfig) (*Postgres
 }
 
 // migrate creates the table and indexes
-func (s *PostgresStore) migrate() error {
+func (s *Store) migrate() error {
 	// Set custom table name
 	if s.config.TableName != "" {
 		model := storeModel{}
@@ -167,7 +131,7 @@ func (s *PostgresStore) migrate() error {
 }
 
 // Put stores a value with the given namespace and key
-func (s *PostgresStore) Put(ctx context.Context, namespace []string, key string, value interface{}) error {
+func (s *Store) Put(ctx context.Context, namespace []string, key string, value interface{}) error {
 	nsKey := namespaceToKey(namespace)
 
 	// Serialize value to JSON
@@ -212,7 +176,7 @@ func (s *PostgresStore) Put(ctx context.Context, namespace []string, key string,
 }
 
 // Get retrieves a value by namespace and key
-func (s *PostgresStore) Get(ctx context.Context, namespace []string, key string) (*StoreValue, error) {
+func (s *Store) Get(ctx context.Context, namespace []string, key string) (*store.Value, error) {
 	nsKey := namespaceToKey(namespace)
 
 	var model storeModel
@@ -241,7 +205,7 @@ func (s *PostgresStore) Get(ctx context.Context, namespace []string, key string)
 		metadata = make(map[string]interface{})
 	}
 
-	return &StoreValue{
+	return &store.Value{
 		Value:     value,
 		Metadata:  metadata,
 		Created:   model.CreatedAt,
@@ -252,7 +216,7 @@ func (s *PostgresStore) Get(ctx context.Context, namespace []string, key string)
 }
 
 // Delete removes a value by namespace and key
-func (s *PostgresStore) Delete(ctx context.Context, namespace []string, key string) error {
+func (s *Store) Delete(ctx context.Context, namespace []string, key string) error {
 	nsKey := namespaceToKey(namespace)
 
 	result := s.getDB().Where("namespace = ? AND key = ?", nsKey, key).Delete(&storeModel{})
@@ -264,7 +228,7 @@ func (s *PostgresStore) Delete(ctx context.Context, namespace []string, key stri
 }
 
 // Search finds values matching the filter within a namespace
-func (s *PostgresStore) Search(ctx context.Context, namespace []string, filter map[string]interface{}) ([]*StoreValue, error) {
+func (s *Store) Search(ctx context.Context, namespace []string, filter map[string]interface{}) ([]*store.Value, error) {
 	nsKey := namespaceToKey(namespace)
 
 	query := s.getDB().Where("namespace = ?", nsKey)
@@ -286,8 +250,8 @@ func (s *PostgresStore) Search(ctx context.Context, namespace []string, filter m
 		return nil, fmt.Errorf("failed to search values: %w", err)
 	}
 
-	// Convert models to StoreValues
-	results := make([]*StoreValue, 0, len(models))
+	// Convert models to store.Values
+	results := make([]*store.Value, 0, len(models))
 	for _, model := range models {
 		var value interface{}
 		if err := json.Unmarshal(model.Value, &value); err != nil {
@@ -301,7 +265,7 @@ func (s *PostgresStore) Search(ctx context.Context, namespace []string, filter m
 			metadata = make(map[string]interface{})
 		}
 
-		results = append(results, &StoreValue{
+		results = append(results, &store.Value{
 			Value:     value,
 			Metadata:  metadata,
 			Created:   model.CreatedAt,
@@ -315,7 +279,7 @@ func (s *PostgresStore) Search(ctx context.Context, namespace []string, filter m
 }
 
 // List returns all keys within a namespace
-func (s *PostgresStore) List(ctx context.Context, namespace []string) ([]string, error) {
+func (s *Store) List(ctx context.Context, namespace []string) ([]string, error) {
 	nsKey := namespaceToKey(namespace)
 
 	var keys []string
@@ -332,7 +296,7 @@ func (s *PostgresStore) List(ctx context.Context, namespace []string) ([]string,
 }
 
 // Clear removes all values within a namespace
-func (s *PostgresStore) Clear(ctx context.Context, namespace []string) error {
+func (s *Store) Clear(ctx context.Context, namespace []string) error {
 	nsKey := namespaceToKey(namespace)
 
 	result := s.getDB().Where("namespace = ?", nsKey).Delete(&storeModel{})
@@ -344,7 +308,7 @@ func (s *PostgresStore) Clear(ctx context.Context, namespace []string) error {
 }
 
 // Close closes the database connection
-func (s *PostgresStore) Close() error {
+func (s *Store) Close() error {
 	sqlDB, err := s.db.DB()
 	if err != nil {
 		return err
@@ -353,7 +317,7 @@ func (s *PostgresStore) Close() error {
 }
 
 // getDB returns the DB instance with custom table name if configured
-func (s *PostgresStore) getDB() *gorm.DB {
+func (s *Store) getDB() *gorm.DB {
 	if s.config.TableName != "" {
 		return s.db.Table(s.config.TableName)
 	}
@@ -361,7 +325,7 @@ func (s *PostgresStore) getDB() *gorm.DB {
 }
 
 // Ping tests the connection to PostgreSQL
-func (s *PostgresStore) Ping(ctx context.Context) error {
+func (s *Store) Ping(ctx context.Context) error {
 	sqlDB, err := s.db.DB()
 	if err != nil {
 		return err
@@ -370,11 +334,31 @@ func (s *PostgresStore) Ping(ctx context.Context) error {
 }
 
 // Size returns the total number of stored values
-func (s *PostgresStore) Size(ctx context.Context) (int64, error) {
+func (s *Store) Size(ctx context.Context) (int64, error) {
 	var count int64
 	err := s.getDB().Model(&storeModel{}).Count(&count).Error
 	if err != nil {
 		return 0, fmt.Errorf("failed to count values: %w", err)
 	}
 	return count, nil
+}
+
+// namespaceToKey converts a namespace slice to a string key.
+func namespaceToKey(namespace []string) string {
+	if len(namespace) == 0 {
+		return "/"
+	}
+	return "/" + joinNamespace(namespace)
+}
+
+// joinNamespace joins namespace components with "/".
+func joinNamespace(namespace []string) string {
+	if len(namespace) == 0 {
+		return ""
+	}
+	result := namespace[0]
+	for i := 1; i < len(namespace); i++ {
+		result += "/" + namespace[i]
+	}
+	return result
 }

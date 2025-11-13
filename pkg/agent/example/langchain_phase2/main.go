@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 )
 
 func main() {
@@ -237,7 +238,7 @@ func completeAgentDemo() {
 	fmt.Println()
 
 	// Initialize Phase 1 components
-	store := core.NewInMemoryStore()
+	store := memory.New()
 	checkpointer := core.NewInMemorySaver()
 	ctx := context.Background()
 

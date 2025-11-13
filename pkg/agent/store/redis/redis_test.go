@@ -1,4 +1,4 @@
-package core
+package redis
 
 import (
 	"context"
@@ -12,12 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestRedisStore(t *testing.T) (*RedisStore, *miniredis.Miniredis) {
+func setupTestStore(t *testing.T) (*Store, *miniredis.Miniredis) {
 	// Create a miniredis server
 	mr := miniredis.RunT(t)
 
 	// Create config
-	config := &RedisStoreConfig{
+	config := &Config{
 		Addr:         mr.Addr(),
 		Password:     "",
 		DB:           0,
@@ -32,38 +32,38 @@ func setupTestRedisStore(t *testing.T) (*RedisStore, *miniredis.Miniredis) {
 	}
 
 	// Create store
-	store, err := NewRedisStore(config)
+	s, err := New(config)
 	require.NoError(t, err)
-	require.NotNil(t, store)
+	require.NotNil(t, s)
 
-	return store, mr
+	return s, mr
 }
 
-func TestNewRedisStore(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestNew(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
-	assert.NotNil(t, store)
-	assert.NotNil(t, store.client)
-	assert.NotNil(t, store.config)
+	assert.NotNil(t, s)
+	assert.NotNil(t, s.client)
+	assert.NotNil(t, s.config)
 }
 
-func TestNewRedisStore_ConnectionFailure(t *testing.T) {
-	config := &RedisStoreConfig{
+func TestNew_ConnectionFailure(t *testing.T) {
+	config := &Config{
 		Addr:        "localhost:9999", // Non-existent server
 		DialTimeout: 1 * time.Second,
 	}
 
-	store, err := NewRedisStore(config)
+	s, err := New(config)
 	assert.Error(t, err)
-	assert.Nil(t, store)
+	assert.Nil(t, s)
 }
 
-func TestRedisStore_Put(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Put(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"users", "test"}
@@ -73,11 +73,11 @@ func TestRedisStore_Put(t *testing.T) {
 		"age":  30,
 	}
 
-	err := store.Put(ctx, namespace, key, value)
+	err := s.Put(ctx, namespace, key, value)
 	assert.NoError(t, err)
 
 	// Verify the value was stored
-	stored, err := store.Get(ctx, namespace, key)
+	stored, err := s.Get(ctx, namespace, key)
 	require.NoError(t, err)
 
 	// JSON serialization converts numbers to float64
@@ -92,10 +92,10 @@ func TestRedisStore_Put(t *testing.T) {
 	assert.NotZero(t, stored.Updated)
 }
 
-func TestRedisStore_Put_Update(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Put_Update(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"users"}
@@ -103,10 +103,10 @@ func TestRedisStore_Put_Update(t *testing.T) {
 
 	// First put
 	value1 := "initial value"
-	err := store.Put(ctx, namespace, key, value1)
+	err := s.Put(ctx, namespace, key, value1)
 	require.NoError(t, err)
 
-	stored1, err := store.Get(ctx, namespace, key)
+	stored1, err := s.Get(ctx, namespace, key)
 	require.NoError(t, err)
 	created := stored1.Created
 
@@ -114,10 +114,10 @@ func TestRedisStore_Put_Update(t *testing.T) {
 
 	// Update
 	value2 := "updated value"
-	err = store.Put(ctx, namespace, key, value2)
+	err = s.Put(ctx, namespace, key, value2)
 	require.NoError(t, err)
 
-	stored2, err := store.Get(ctx, namespace, key)
+	stored2, err := s.Get(ctx, namespace, key)
 	require.NoError(t, err)
 
 	assert.Equal(t, value2, stored2.Value)
@@ -125,10 +125,10 @@ func TestRedisStore_Put_Update(t *testing.T) {
 	assert.True(t, stored2.Updated.After(stored1.Updated))
 }
 
-func TestRedisStore_Get(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Get(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"test"}
@@ -136,33 +136,33 @@ func TestRedisStore_Get(t *testing.T) {
 	value := "test value"
 
 	// Put a value
-	err := store.Put(ctx, namespace, key, value)
+	err := s.Put(ctx, namespace, key, value)
 	require.NoError(t, err)
 
 	// Get the value
-	stored, err := store.Get(ctx, namespace, key)
+	stored, err := s.Get(ctx, namespace, key)
 	require.NoError(t, err)
 	assert.Equal(t, value, stored.Value)
 }
 
-func TestRedisStore_Get_NotFound(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Get_NotFound(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"test"}
 	key := "nonexistent"
 
-	_, err := store.Get(ctx, namespace, key)
+	_, err := s.Get(ctx, namespace, key)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
 
-func TestRedisStore_Delete(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Delete(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"test"}
@@ -170,22 +170,22 @@ func TestRedisStore_Delete(t *testing.T) {
 	value := "test value"
 
 	// Put a value
-	err := store.Put(ctx, namespace, key, value)
+	err := s.Put(ctx, namespace, key, value)
 	require.NoError(t, err)
 
 	// Delete the value
-	err = store.Delete(ctx, namespace, key)
+	err = s.Delete(ctx, namespace, key)
 	assert.NoError(t, err)
 
 	// Verify it's gone
-	_, err = store.Get(ctx, namespace, key)
+	_, err = s.Get(ctx, namespace, key)
 	assert.Error(t, err)
 }
 
-func TestRedisStore_List(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_List(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"users"}
@@ -193,33 +193,33 @@ func TestRedisStore_List(t *testing.T) {
 	// Put multiple values
 	keys := []string{"user1", "user2", "user3"}
 	for _, key := range keys {
-		err := store.Put(ctx, namespace, key, map[string]string{"id": key})
+		err := s.Put(ctx, namespace, key, map[string]string{"id": key})
 		require.NoError(t, err)
 	}
 
 	// List keys
-	listed, err := store.List(ctx, namespace)
+	listed, err := s.List(ctx, namespace)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, keys, listed)
 }
 
-func TestRedisStore_List_EmptyNamespace(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_List_EmptyNamespace(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"empty"}
 
-	listed, err := store.List(ctx, namespace)
+	listed, err := s.List(ctx, namespace)
 	require.NoError(t, err)
 	assert.Empty(t, listed)
 }
 
-func TestRedisStore_Search(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Search(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"products"}
@@ -236,119 +236,119 @@ func TestRedisStore_Search(t *testing.T) {
 	}
 
 	for _, data := range testData {
-		err := store.Put(ctx, namespace, data.key, data.value)
+		err := s.Put(ctx, namespace, data.key, data.value)
 		require.NoError(t, err)
 
 		// Update metadata
-		stored, err := store.Get(ctx, namespace, data.key)
+		stored, err := s.Get(ctx, namespace, data.key)
 		require.NoError(t, err)
 		stored.Metadata = data.metadata
 
 		// Use client directly to update metadata
-		client := store.client
+		client := s.client
 		jsonData, _ := json.Marshal(stored)
-		client.Set(ctx, store.makeKey(namespace, data.key), jsonData, 0)
+		client.Set(ctx, s.makeKey(namespace, data.key), jsonData, 0)
 	}
 
 	// Search with filter
 	filter := map[string]interface{}{"category": "electronics"}
-	results, err := store.Search(ctx, namespace, filter)
+	results, err := s.Search(ctx, namespace, filter)
 	require.NoError(t, err)
 	assert.Len(t, results, 2)
 }
 
-func TestRedisStore_Search_EmptyFilter(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Search_EmptyFilter(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"test"}
 
 	// Put values
 	for i := 0; i < 3; i++ {
-		err := store.Put(ctx, namespace, string(rune('a'+i)), i)
+		err := s.Put(ctx, namespace, string(rune('a'+i)), i)
 		require.NoError(t, err)
 	}
 
 	// Search with empty filter (should return all)
-	results, err := store.Search(ctx, namespace, map[string]interface{}{})
+	results, err := s.Search(ctx, namespace, map[string]interface{}{})
 	require.NoError(t, err)
 	assert.Len(t, results, 3)
 }
 
-func TestRedisStore_Clear(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Clear(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"test"}
 
 	// Put multiple values
 	for i := 0; i < 5; i++ {
-		err := store.Put(ctx, namespace, string(rune('a'+i)), i)
+		err := s.Put(ctx, namespace, string(rune('a'+i)), i)
 		require.NoError(t, err)
 	}
 
 	// Clear namespace
-	err := store.Clear(ctx, namespace)
+	err := s.Clear(ctx, namespace)
 	assert.NoError(t, err)
 
 	// Verify all keys are gone
-	keys, err := store.List(ctx, namespace)
+	keys, err := s.List(ctx, namespace)
 	require.NoError(t, err)
 	assert.Empty(t, keys)
 }
 
-func TestRedisStore_WithTTL(t *testing.T) {
+func TestStore_WithTTL(t *testing.T) {
 	mr := miniredis.RunT(t)
 	defer mr.Close()
 
-	config := &RedisStoreConfig{
+	config := &Config{
 		Addr:   mr.Addr(),
 		Prefix: "test:ttl:",
 		TTL:    100 * time.Millisecond,
 	}
 
-	store, err := NewRedisStore(config)
+	s, err := New(config)
 	require.NoError(t, err)
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	namespace := []string{"test"}
 	key := "expiring"
 
 	// Put value with TTL
-	err = store.Put(ctx, namespace, key, "value")
+	err = s.Put(ctx, namespace, key, "value")
 	require.NoError(t, err)
 
 	// Value should exist
-	_, err = store.Get(ctx, namespace, key)
+	_, err = s.Get(ctx, namespace, key)
 	assert.NoError(t, err)
 
 	// Fast forward time in miniredis
 	mr.FastForward(200 * time.Millisecond)
 
 	// Value should be expired
-	_, err = store.Get(ctx, namespace, key)
+	_, err = s.Get(ctx, namespace, key)
 	assert.Error(t, err)
 }
 
-func TestRedisStore_Ping(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Ping(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
-	err := store.Ping(ctx)
+	err := s.Ping(ctx)
 	assert.NoError(t, err)
 }
 
-func TestRedisStore_Size(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_Size(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 
@@ -360,16 +360,16 @@ func TestRedisStore_Size(t *testing.T) {
 	}
 
 	for _, ns := range namespaces {
-		err := store.Put(ctx, ns, "key1", "value")
+		err := s.Put(ctx, ns, "key1", "value")
 		require.NoError(t, err)
 	}
 
-	size, err := store.Size(ctx)
+	size, err := s.Size(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, 3, size)
 }
 
-func TestRedisStore_NewFromClient(t *testing.T) {
+func TestStore_NewFromClient(t *testing.T) {
 	mr := miniredis.RunT(t)
 	defer mr.Close()
 
@@ -377,21 +377,21 @@ func TestRedisStore_NewFromClient(t *testing.T) {
 		Addr: mr.Addr(),
 	})
 
-	config := &RedisStoreConfig{
+	config := &Config{
 		Prefix: "test:",
 	}
 
-	store := NewRedisStoreFromClient(client, config)
-	defer store.Close()
+	s := NewFromClient(client, config)
+	defer s.Close()
 
-	assert.NotNil(t, store)
-	assert.Equal(t, client, store.client)
+	assert.NotNil(t, s)
+	assert.Equal(t, client, s.client)
 }
 
-func TestRedisStore_NamespaceIsolation(t *testing.T) {
-	store, mr := setupTestRedisStore(t)
+func TestStore_NamespaceIsolation(t *testing.T) {
+	s, mr := setupTestStore(t)
 	defer mr.Close()
-	defer store.Close()
+	defer s.Close()
 
 	ctx := context.Background()
 	key := "same_key"
@@ -399,18 +399,18 @@ func TestRedisStore_NamespaceIsolation(t *testing.T) {
 	value2 := "value in ns2"
 
 	// Put same key in different namespaces
-	err := store.Put(ctx, []string{"ns1"}, key, value1)
+	err := s.Put(ctx, []string{"ns1"}, key, value1)
 	require.NoError(t, err)
 
-	err = store.Put(ctx, []string{"ns2"}, key, value2)
+	err = s.Put(ctx, []string{"ns2"}, key, value2)
 	require.NoError(t, err)
 
 	// Get from different namespaces
-	stored1, err := store.Get(ctx, []string{"ns1"}, key)
+	stored1, err := s.Get(ctx, []string{"ns1"}, key)
 	require.NoError(t, err)
 	assert.Equal(t, value1, stored1.Value)
 
-	stored2, err := store.Get(ctx, []string{"ns2"}, key)
+	stored2, err := s.Get(ctx, []string{"ns2"}, key)
 	require.NoError(t, err)
 	assert.Equal(t, value2, stored2.Value)
 }

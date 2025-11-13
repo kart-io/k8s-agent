@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 )
 
 // MockContext for testing
@@ -18,7 +20,7 @@ type MockContext struct {
 func TestNewRuntime(t *testing.T) {
 	ctx := MockContext{UserID: "user123", UserName: "Alice"}
 	state := NewAgentState()
-	store := NewInMemoryStore()
+	store := memory.New()
 	checkpointer := NewInMemorySaver()
 	sessionID := "session123"
 
@@ -97,7 +99,7 @@ func TestRuntime_SaveStateWithoutCheckpointer(t *testing.T) {
 func TestToolWithRuntime(t *testing.T) {
 	ctx := MockContext{UserID: "user123", UserName: "Alice"}
 	state := NewAgentState()
-	store := NewInMemoryStore()
+	store := memory.New()
 	runtime := NewRuntime(ctx, state, store, nil, "session123")
 
 	// Create a tool function that uses runtime
@@ -225,7 +227,7 @@ func TestRuntimeManager_GetOrCreateRuntime(t *testing.T) {
 	manager := NewRuntimeManager[MockContext, *AgentState](nil)
 	ctx := MockContext{UserID: "user123"}
 	state := NewAgentState()
-	store := NewInMemoryStore()
+	store := memory.New()
 	checkpointer := NewInMemorySaver()
 
 	// Create new runtime

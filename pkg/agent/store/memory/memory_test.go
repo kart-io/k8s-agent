@@ -1,4 +1,4 @@
-package core
+package memory
 
 import (
 	"context"
@@ -8,16 +8,18 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/store"
 )
 
-func TestNewInMemoryStore(t *testing.T) {
-	store := NewInMemoryStore()
+func TestNew(t *testing.T) {
+	store := New()
 	require.NotNil(t, store)
 	assert.Equal(t, 0, store.Size())
 }
 
-func TestInMemoryStore_PutAndGet(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_PutAndGet(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	namespace := []string{"users", "preferences"}
@@ -44,8 +46,8 @@ func TestInMemoryStore_PutAndGet(t *testing.T) {
 	assert.NotNil(t, storeValue.Metadata)
 }
 
-func TestInMemoryStore_PutUpdate(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_PutUpdate(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	namespace := []string{"users"}
@@ -76,8 +78,8 @@ func TestInMemoryStore_PutUpdate(t *testing.T) {
 	assert.Equal(t, "value2", value2.Value)
 }
 
-func TestInMemoryStore_GetNonExistent(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_GetNonExistent(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	// Get from non-existent namespace
@@ -93,8 +95,8 @@ func TestInMemoryStore_GetNonExistent(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestInMemoryStore_Delete(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_Delete(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	namespace := []string{"users"}
@@ -119,8 +121,8 @@ func TestInMemoryStore_Delete(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestInMemoryStore_List(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_List(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	namespace := []string{"users"}
@@ -147,8 +149,8 @@ func TestInMemoryStore_List(t *testing.T) {
 	assert.Empty(t, keys)
 }
 
-func TestInMemoryStore_Clear(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_Clear(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	namespace := []string{"users"}
@@ -173,8 +175,8 @@ func TestInMemoryStore_Clear(t *testing.T) {
 	assert.Empty(t, keys)
 }
 
-func TestInMemoryStore_Search(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_Search(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	namespace := []string{"products"}
@@ -233,8 +235,8 @@ func TestInMemoryStore_Search(t *testing.T) {
 	assert.Empty(t, results)
 }
 
-func TestInMemoryStore_MultipleNamespaces(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_MultipleNamespaces(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	// Put values in different namespaces
@@ -270,8 +272,8 @@ func TestInMemoryStore_MultipleNamespaces(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestInMemoryStore_Namespaces(t *testing.T) {
-	store := NewInMemoryStore()
+func TestStore_Namespaces(t *testing.T) {
+	store := New()
 	ctx := context.Background()
 
 	// Put values in different namespaces
@@ -304,7 +306,7 @@ func TestNamespaceToKey(t *testing.T) {
 }
 
 func TestMatchesFilter(t *testing.T) {
-	value := &StoreValue{
+	value := &storeValue{
 		Value: "test",
 		Metadata: map[string]interface{}{
 			"category": "electronics",
@@ -335,31 +337,8 @@ func TestMatchesFilter(t *testing.T) {
 	}
 }
 
-func TestStoreWithMetadata(t *testing.T) {
-	baseStore := NewInMemoryStore()
-	metadata := map[string]interface{}{
-		"source":  "api",
-		"version": "1.0",
-	}
-	store := NewStoreWithMetadata(baseStore, metadata)
-
-	ctx := context.Background()
-	namespace := []string{"users"}
-	key := "user123"
-
-	// Put value (should add metadata)
-	err := store.Put(ctx, namespace, key, "value")
-	require.NoError(t, err)
-
-	// Get value and verify metadata
-	value, err := store.Get(ctx, namespace, key)
-	require.NoError(t, err)
-	assert.Equal(t, "api", value.Metadata["source"])
-	assert.Equal(t, "1.0", value.Metadata["version"])
-}
-
-func BenchmarkInMemoryStore_Put(b *testing.B) {
-	store := NewInMemoryStore()
+func BenchmarkStore_Put(b *testing.B) {
+	store := New()
 	ctx := context.Background()
 	namespace := []string{"bench"}
 
@@ -369,8 +348,8 @@ func BenchmarkInMemoryStore_Put(b *testing.B) {
 	}
 }
 
-func BenchmarkInMemoryStore_Get(b *testing.B) {
-	store := NewInMemoryStore()
+func BenchmarkStore_Get(b *testing.B) {
+	store := New()
 	ctx := context.Background()
 	namespace := []string{"bench"}
 	store.Put(ctx, namespace, "key", "value")
@@ -381,8 +360,8 @@ func BenchmarkInMemoryStore_Get(b *testing.B) {
 	}
 }
 
-func BenchmarkInMemoryStore_Search(b *testing.B) {
-	store := NewInMemoryStore()
+func BenchmarkStore_Search(b *testing.B) {
+	store := New()
 	ctx := context.Background()
 	namespace := []string{"bench"}
 
@@ -401,3 +380,6 @@ func BenchmarkInMemoryStore_Search(b *testing.B) {
 		store.Search(ctx, namespace, filter)
 	}
 }
+
+// storeValue is a type alias to make tests work with the local type
+type storeValue = store.Value

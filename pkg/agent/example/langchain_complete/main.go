@@ -9,6 +9,8 @@ import (
 	"github.com/kart-io/k8s-agent/pkg/agent/builder"
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
+	"github.com/kart-io/k8s-agent/pkg/agent/store"
+	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -71,7 +73,7 @@ func main() {
 	})
 
 	// 4. Create Store and Checkpointer
-	store := core.NewInMemoryStore()
+	store := memory.New()
 	checkpointer := core.NewInMemorySaver()
 
 	// Pre-populate store with some data
@@ -413,7 +415,7 @@ func CreateWeatherTool() tools.Tool {
 	)
 }
 
-func CreateDatabaseTool(store core.Store) tools.Tool {
+func CreateDatabaseTool(st store.Store) tools.Tool {
 	return tools.NewBaseTool(
 		"database",
 		"Query the database for user information",
@@ -424,7 +426,7 @@ func CreateDatabaseTool(store core.Store) tools.Tool {
 				// Get user profile from store
 				if runtime, ok := input.Context.Value("runtime").(*core.Runtime[ApplicationContext, *CustomState]); ok {
 					userID := runtime.Context.UserID
-					profile, err := store.Get(ctx, []string{"users", userID}, "profile")
+					profile, err := st.Get(ctx, []string{"users", userID}, "profile")
 					if err == nil {
 						return &tools.ToolOutput{
 							Result:  profile.Value,

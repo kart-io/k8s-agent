@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 )
 
 // CustomContext represents application-specific context
@@ -99,7 +100,7 @@ func stateDemo() {
 // storeDemo demonstrates long-term storage
 func storeDemo() {
 	ctx := context.Background()
-	store := core.NewInMemoryStore()
+	store := memory.New()
 
 	// Store user preferences
 	userNamespace := []string{"users", "user123"}
@@ -242,7 +243,7 @@ func runtimeDemo() {
 	}
 	state := core.NewAgentState()
 	state.Set("initialized", true)
-	store := core.NewInMemoryStore()
+	store := memory.New()
 	checkpointer := core.NewInMemorySaver()
 
 	// Create runtime
@@ -303,7 +304,7 @@ func completeWorkflowDemo() {
 	ctx := context.Background()
 
 	// Setup infrastructure
-	store := core.NewInMemoryStore()
+	store := memory.New()
 	checkpointer := core.NewInMemorySaver()
 
 	fmt.Println("  Simulating multi-turn conversation...")

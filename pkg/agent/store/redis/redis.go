@@ -1,4 +1,4 @@
-package core
+package redis
 
 import (
 	"context"
@@ -8,62 +8,11 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/store"
 )
 
-// RedisStoreConfig holds configuration for Redis store
-type RedisStoreConfig struct {
-	// Addr is the Redis server address (host:port)
-	Addr string
-
-	// Password for Redis authentication
-	Password string
-
-	// DB is the Redis database number
-	DB int
-
-	// Prefix is the key prefix for all store keys
-	Prefix string
-
-	// TTL is the default time-to-live for keys (0 = no expiration)
-	TTL time.Duration
-
-	// PoolSize is the maximum number of connections
-	PoolSize int
-
-	// MinIdleConns is the minimum number of idle connections
-	MinIdleConns int
-
-	// MaxRetries is the maximum number of retry attempts
-	MaxRetries int
-
-	// DialTimeout is the timeout for establishing connections
-	DialTimeout time.Duration
-
-	// ReadTimeout is the timeout for read operations
-	ReadTimeout time.Duration
-
-	// WriteTimeout is the timeout for write operations
-	WriteTimeout time.Duration
-}
-
-// DefaultRedisStoreConfig returns default Redis configuration
-func DefaultRedisStoreConfig() *RedisStoreConfig {
-	return &RedisStoreConfig{
-		Addr:         "localhost:6379",
-		Password:     "",
-		DB:           0,
-		Prefix:       "agent:store:",
-		TTL:          0, // No expiration
-		PoolSize:     10,
-		MinIdleConns: 2,
-		MaxRetries:   3,
-		DialTimeout:  5 * time.Second,
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 3 * time.Second,
-	}
-}
-
-// RedisStore is a Redis-backed implementation of the Store interface.
+// Store is a Redis-backed implementation of the store.Store interface.
 //
 // Features:
 //   - Connection pooling for high performance
@@ -77,15 +26,15 @@ func DefaultRedisStoreConfig() *RedisStoreConfig {
 //   - Distributed systems
 //   - High-throughput scenarios
 //   - Shared state across services
-type RedisStore struct {
+type Store struct {
 	client *redis.Client
-	config *RedisStoreConfig
+	config *Config
 }
 
-// NewRedisStore creates a new Redis-backed store
-func NewRedisStore(config *RedisStoreConfig) (*RedisStore, error) {
+// New creates a new Redis-backed store
+func New(config *Config) (*Store, error) {
 	if config == nil {
-		config = DefaultRedisStoreConfig()
+		config = DefaultConfig()
 	}
 
 	// Create Redis client
@@ -109,26 +58,26 @@ func NewRedisStore(config *RedisStoreConfig) (*RedisStore, error) {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
 
-	return &RedisStore{
+	return &Store{
 		client: client,
 		config: config,
 	}, nil
 }
 
-// NewRedisStoreFromClient creates a RedisStore from an existing client
-func NewRedisStoreFromClient(client *redis.Client, config *RedisStoreConfig) *RedisStore {
+// NewFromClient creates a Store from an existing client
+func NewFromClient(client *redis.Client, config *Config) *Store {
 	if config == nil {
-		config = DefaultRedisStoreConfig()
+		config = DefaultConfig()
 	}
 
-	return &RedisStore{
+	return &Store{
 		client: client,
 		config: config,
 	}
 }
 
 // Put stores a value with the given namespace and key
-func (s *RedisStore) Put(ctx context.Context, namespace []string, key string, value interface{}) error {
+func (s *Store) Put(ctx context.Context, namespace []string, key string, value interface{}) error {
 	redisKey := s.makeKey(namespace, key)
 
 	// Get existing value to preserve created timestamp
@@ -147,7 +96,7 @@ func (s *RedisStore) Put(ctx context.Context, namespace []string, key string, va
 	}
 
 	// Create store value
-	storeValue := &StoreValue{
+	storeValue := &store.Value{
 		Value:     value,
 		Metadata:  metadata,
 		Created:   created,
@@ -177,7 +126,7 @@ func (s *RedisStore) Put(ctx context.Context, namespace []string, key string, va
 }
 
 // Get retrieves a value by namespace and key
-func (s *RedisStore) Get(ctx context.Context, namespace []string, key string) (*StoreValue, error) {
+func (s *Store) Get(ctx context.Context, namespace []string, key string) (*store.Value, error) {
 	redisKey := s.makeKey(namespace, key)
 
 	// Get from Redis
@@ -190,7 +139,7 @@ func (s *RedisStore) Get(ctx context.Context, namespace []string, key string) (*
 	}
 
 	// Deserialize
-	var storeValue StoreValue
+	var storeValue store.Value
 	if err := json.Unmarshal(data, &storeValue); err != nil {
 		return nil, fmt.Errorf("failed to deserialize value: %w", err)
 	}
@@ -199,7 +148,7 @@ func (s *RedisStore) Get(ctx context.Context, namespace []string, key string) (*
 }
 
 // Delete removes a value by namespace and key
-func (s *RedisStore) Delete(ctx context.Context, namespace []string, key string) error {
+func (s *Store) Delete(ctx context.Context, namespace []string, key string) error {
 	redisKey := s.makeKey(namespace, key)
 
 	err := s.client.Del(ctx, redisKey).Err()
@@ -211,7 +160,7 @@ func (s *RedisStore) Delete(ctx context.Context, namespace []string, key string)
 }
 
 // Search finds values matching the filter within a namespace
-func (s *RedisStore) Search(ctx context.Context, namespace []string, filter map[string]interface{}) ([]*StoreValue, error) {
+func (s *Store) Search(ctx context.Context, namespace []string, filter map[string]interface{}) ([]*store.Value, error) {
 	// Get all keys in namespace
 	pattern := s.makePattern(namespace)
 	keys, err := s.scanKeys(ctx, pattern)
@@ -219,7 +168,7 @@ func (s *RedisStore) Search(ctx context.Context, namespace []string, filter map[
 		return nil, err
 	}
 
-	results := make([]*StoreValue, 0)
+	results := make([]*store.Value, 0)
 
 	// Iterate through keys and filter
 	for _, redisKey := range keys {
@@ -228,7 +177,7 @@ func (s *RedisStore) Search(ctx context.Context, namespace []string, filter map[
 			continue // Skip keys that can't be read
 		}
 
-		var storeValue StoreValue
+		var storeValue store.Value
 		if err := json.Unmarshal(data, &storeValue); err != nil {
 			continue // Skip invalid data
 		}
@@ -243,7 +192,7 @@ func (s *RedisStore) Search(ctx context.Context, namespace []string, filter map[
 }
 
 // List returns all keys within a namespace
-func (s *RedisStore) List(ctx context.Context, namespace []string) ([]string, error) {
+func (s *Store) List(ctx context.Context, namespace []string) ([]string, error) {
 	pattern := s.makePattern(namespace)
 	redisKeys, err := s.scanKeys(ctx, pattern)
 	if err != nil {
@@ -264,7 +213,7 @@ func (s *RedisStore) List(ctx context.Context, namespace []string) ([]string, er
 }
 
 // Clear removes all values within a namespace
-func (s *RedisStore) Clear(ctx context.Context, namespace []string) error {
+func (s *Store) Clear(ctx context.Context, namespace []string) error {
 	pattern := s.makePattern(namespace)
 	keys, err := s.scanKeys(ctx, pattern)
 	if err != nil {
@@ -285,12 +234,12 @@ func (s *RedisStore) Clear(ctx context.Context, namespace []string) error {
 }
 
 // Close closes the Redis connection
-func (s *RedisStore) Close() error {
+func (s *Store) Close() error {
 	return s.client.Close()
 }
 
 // makeKey creates a Redis key from namespace and key
-func (s *RedisStore) makeKey(namespace []string, key string) string {
+func (s *Store) makeKey(namespace []string, key string) string {
 	nsKey := s.config.Prefix + namespaceToKey(namespace)
 	if !strings.HasSuffix(nsKey, "/") {
 		nsKey += "/"
@@ -299,7 +248,7 @@ func (s *RedisStore) makeKey(namespace []string, key string) string {
 }
 
 // makePattern creates a Redis pattern for scanning namespace keys
-func (s *RedisStore) makePattern(namespace []string) string {
+func (s *Store) makePattern(namespace []string) string {
 	nsKey := s.config.Prefix + namespaceToKey(namespace)
 	if !strings.HasSuffix(nsKey, "/") {
 		nsKey += "/"
@@ -308,7 +257,7 @@ func (s *RedisStore) makePattern(namespace []string) string {
 }
 
 // extractKey extracts the key part from a full Redis key
-func (s *RedisStore) extractKey(namespace []string, redisKey string) string {
+func (s *Store) extractKey(namespace []string, redisKey string) string {
 	prefix := s.config.Prefix + namespaceToKey(namespace)
 	if !strings.HasSuffix(prefix, "/") {
 		prefix += "/"
@@ -322,7 +271,7 @@ func (s *RedisStore) extractKey(namespace []string, redisKey string) string {
 }
 
 // scanKeys scans Redis keys matching the pattern
-func (s *RedisStore) scanKeys(ctx context.Context, pattern string) ([]string, error) {
+func (s *Store) scanKeys(ctx context.Context, pattern string) ([]string, error) {
 	var keys []string
 	var cursor uint64
 
@@ -346,16 +295,55 @@ func (s *RedisStore) scanKeys(ctx context.Context, pattern string) ([]string, er
 }
 
 // Ping tests the connection to Redis
-func (s *RedisStore) Ping(ctx context.Context) error {
+func (s *Store) Ping(ctx context.Context) error {
 	return s.client.Ping(ctx).Err()
 }
 
 // Size returns the approximate number of keys in all namespaces
-func (s *RedisStore) Size(ctx context.Context) (int, error) {
+func (s *Store) Size(ctx context.Context) (int, error) {
 	pattern := s.config.Prefix + "*"
 	keys, err := s.scanKeys(ctx, pattern)
 	if err != nil {
 		return 0, err
 	}
 	return len(keys), nil
+}
+
+// namespaceToKey converts a namespace slice to a string key.
+func namespaceToKey(namespace []string) string {
+	if len(namespace) == 0 {
+		return "/"
+	}
+	return "/" + joinNamespace(namespace)
+}
+
+// joinNamespace joins namespace components with "/".
+func joinNamespace(namespace []string) string {
+	if len(namespace) == 0 {
+		return ""
+	}
+	result := namespace[0]
+	for i := 1; i < len(namespace); i++ {
+		result += "/" + namespace[i]
+	}
+	return result
+}
+
+// matchesFilter checks if a store.Value matches the given filter.
+func matchesFilter(value *store.Value, filter map[string]interface{}) bool {
+	if len(filter) == 0 {
+		return true
+	}
+
+	for key, filterValue := range filter {
+		metaValue, ok := value.Metadata[key]
+		if !ok {
+			return false
+		}
+		if metaValue != filterValue {
+			return false
+		}
+	}
+
+	return true
 }
