@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+const (
+	ReplicationModeSync = "sync"
+	ReplicationModeAsync = "async"
+)
+
 // DistributedCheckpointerConfig holds configuration for distributed checkpointer
 type DistributedCheckpointerConfig struct {
 	// PrimaryBackend is the primary checkpointer (e.g., Redis)
@@ -150,13 +155,14 @@ func (dc *DistributedCheckpointer) Save(ctx context.Context, threadID string, st
 
 	// Replicate to secondary if enabled
 	if enableReplication && secondary != nil {
-		if replicationMode == "sync" {
+		switch replicationMode {
+		case "sync":
 			// Synchronous replication
 			if err := secondary.Save(ctx, threadID, state); err != nil {
 				// Log error but don't fail the operation
 				// In production, you might want to use a logger here
 			}
-		} else if replicationMode == "async" {
+		case "async":
 			// Asynchronous replication
 			select {
 			case dc.replicationQueue <- replicationTask{
@@ -219,9 +225,10 @@ func (dc *DistributedCheckpointer) Delete(ctx context.Context, threadID string) 
 
 	// Replicate deletion to secondary if enabled
 	if enableReplication && secondary != nil {
-		if replicationMode == "sync" {
+		switch replicationMode {
+		case ReplicationModeSync:
 			secondary.Delete(ctx, threadID)
-		} else if replicationMode == "async" {
+		case ReplicationModeAsync:
 			select {
 			case dc.replicationQueue <- replicationTask{
 				operation: "delete",

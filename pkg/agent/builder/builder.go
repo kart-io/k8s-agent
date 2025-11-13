@@ -738,7 +738,7 @@ func MonitoringAgent(llmClient llm.Client, checkInterval time.Duration) (*Config
 //   - Middleware: ToolSelector (for search/scrape), Cache
 func ResearchAgent(llmClient llm.Client, sources []string) (*ConfigurableAgent[any, *core.AgentState], error) {
 	state := core.NewAgentState()
-	if sources != nil && len(sources) > 0 {
+	if len(sources) > 0 {
 		state.Set("sources", sources)
 		state.Set("sources_count", len(sources))
 	}

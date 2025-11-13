@@ -105,10 +105,7 @@ func NewTelemetryProvider(config *TelemetryConfig) (*TelemetryProvider, error) {
 
 	// 初始化 Meter
 	if config.MetricsEnabled {
-		meterProvider, err := provider.initMeter(res)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize meter: %w", err)
-		}
+		meterProvider := provider.initMeter(res)
 		provider.meterProvider = meterProvider
 		otel.SetMeterProvider(meterProvider)
 	}
@@ -209,7 +206,7 @@ func (p *TelemetryProvider) createOTLPExporter() (sdktrace.SpanExporter, error) 
 }
 
 // initMeter 初始化 Meter
-func (p *TelemetryProvider) initMeter(res *resource.Resource) (*sdkmetric.MeterProvider, error) {
+func (p *TelemetryProvider) initMeter(res *resource.Resource) *sdkmetric.MeterProvider {
 	// 创建 Manual Reader
 	reader := sdkmetric.NewManualReader()
 
@@ -219,7 +216,7 @@ func (p *TelemetryProvider) initMeter(res *resource.Resource) (*sdkmetric.MeterP
 		sdkmetric.WithReader(reader),
 	)
 
-	return meterProvider, nil
+	return meterProvider
 }
 
 // GetTracer 获取 Tracer
