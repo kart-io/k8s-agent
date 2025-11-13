@@ -1,7 +1,6 @@
 package practical
 
 import (
-	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -13,6 +12,7 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
+	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -215,7 +215,9 @@ func (t *DatabaseQueryTool) getConnection(config connectionConfig) (*sql.DB, err
 	if config.ConnectionID != "" {
 		if db, exists := t.connections[config.ConnectionID]; exists {
 			// Verify connection is still alive
-			if err := db.Ping(); err == nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := db.PingContext(ctx); err == nil {
 				return db, nil
 			}
 			// Connection is dead, remove it
@@ -235,7 +237,9 @@ func (t *DatabaseQueryTool) getConnection(config connectionConfig) (*sql.DB, err
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	// Test connection
-	if err := db.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -300,6 +304,11 @@ func (t *DatabaseQueryTool) executeQuery(ctx context.Context, db *sql.DB, params
 
 		result["rows"] = append(result["rows"].([][]interface{}), rowData)
 		rowCount++
+	}
+
+	// Check for errors during iteration
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return result, nil

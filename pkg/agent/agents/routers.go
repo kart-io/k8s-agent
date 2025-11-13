@@ -2,8 +2,9 @@ package agents
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -516,9 +517,12 @@ func (r *RandomRouter) Route(ctx context.Context, task Task, agents map[string]c
 		agentNames = append(agentNames, name)
 	}
 
-	// Random selection
-	index := rand.Intn(len(agentNames))
-	return agentNames[index], nil
+	// Random selection using crypto/rand for security
+	n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(int64(len(agentNames))))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random number: %w", err)
+	}
+	return agentNames[n.Int64()], nil
 }
 
 // GetCapabilities returns the capabilities of an agent

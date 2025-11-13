@@ -2,8 +2,9 @@ package core
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"sync"
 	"time"
 )
@@ -443,7 +444,6 @@ type RandomDelayMiddleware struct {
 	*BaseMiddleware
 	minDelay time.Duration
 	maxDelay time.Duration
-	rand     *rand.Rand
 }
 
 // NewRandomDelayMiddleware creates a random delay middleware
@@ -452,7 +452,6 @@ func NewRandomDelayMiddleware(minDelay, maxDelay time.Duration) *RandomDelayMidd
 		BaseMiddleware: NewBaseMiddleware("random-delay"),
 		minDelay:       minDelay,
 		maxDelay:       maxDelay,
-		rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -460,7 +459,12 @@ func NewRandomDelayMiddleware(minDelay, maxDelay time.Duration) *RandomDelayMidd
 func (m *RandomDelayMiddleware) OnBefore(ctx context.Context, request *MiddlewareRequest) (*MiddlewareRequest, error) {
 	delayRange := int64(m.maxDelay - m.minDelay)
 	if delayRange > 0 {
-		delay := m.minDelay + time.Duration(m.rand.Int63n(delayRange))
+		// Use crypto/rand for secure random number generation
+		n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(delayRange))
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate random delay: %w", err)
+		}
+		delay := m.minDelay + time.Duration(n.Int64())
 		select {
 		case <-time.After(delay):
 			// Delay completed

@@ -123,7 +123,8 @@ func initializeOrchestratorWithMemory(
 	)
 	if err != nil {
 		log.Printf("Error: Failed to initialize Orchestrator: %v", err)
-		return nil, nil
+		// Fallback to orchestrator without memory
+		return nil, createOrchestratorWithoutMemory(reasoningAgent, rootCauseChain, descriptionChain, k8sTool)
 	}
 
 	return memoryManager, orch

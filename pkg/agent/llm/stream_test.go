@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
@@ -122,7 +123,7 @@ func TestMockStreamClient_CompleteStream(t *testing.T) {
 		for chunk := range stream {
 			if chunk.Error != nil {
 				// 应该得到 context 错误
-				if chunk.Error != context.DeadlineExceeded {
+				if !errors.Is(chunk.Error, context.DeadlineExceeded) {
 					t.Logf("Got error: %v", chunk.Error)
 				}
 				break

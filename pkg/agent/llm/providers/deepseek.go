@@ -219,6 +219,8 @@ func (p *DeepSeekProvider) Stream(ctx context.Context, prompt string) (<-chan st
 	if err != nil {
 		return nil, fmt.Errorf("DeepSeek stream API call failed: %w", err)
 	}
+	// Body will be closed by goroutine below
+	// nolint:bodyclose
 
 	go func() {
 		defer close(tokens)
@@ -331,6 +333,8 @@ func (p *DeepSeekProvider) StreamWithTools(ctx context.Context, prompt string, t
 	if err != nil {
 		return nil, fmt.Errorf("DeepSeek stream tool API call failed: %w", err)
 	}
+	// Body will be closed by goroutine below
+	// nolint:bodyclose
 
 	go func() {
 		defer close(chunks)
@@ -608,6 +612,8 @@ func (p *DeepSeekStreamingProvider) StreamWithMetadata(ctx context.Context, prom
 	if err != nil {
 		return nil, err
 	}
+	// Body will be closed by goroutine below
+	// nolint:bodyclose
 
 	go func() {
 		defer close(tokens)

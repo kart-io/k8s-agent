@@ -186,7 +186,7 @@ func TestAgentTracer_StartAgentSpan(t *testing.T) {
 	tracer := NewAgentTracer(provider, "test-tracer")
 	ctx := context.Background()
 
-	ctx, span := tracer.StartAgentSpan(ctx, "test-agent",
+	_, span := tracer.StartAgentSpan(ctx, "test-agent",
 		attribute.String("agent.type", "test"),
 	)
 	assert.NotNil(t, span)
@@ -208,7 +208,7 @@ func TestAgentTracer_StartToolSpan(t *testing.T) {
 	tracer := NewAgentTracer(provider, "test-tracer")
 	ctx := context.Background()
 
-	ctx, span := tracer.StartToolSpan(ctx, "test-tool",
+	_, span := tracer.StartToolSpan(ctx, "test-tool",
 		attribute.String("tool.version", "1.0"),
 	)
 	assert.NotNil(t, span)
@@ -230,7 +230,7 @@ func TestAgentTracer_StartLLMSpan(t *testing.T) {
 	tracer := NewAgentTracer(provider, "test-tracer")
 	ctx := context.Background()
 
-	ctx, span := tracer.StartLLMSpan(ctx, "gpt-4",
+	_, span := tracer.StartLLMSpan(ctx, "gpt-4",
 		attribute.String("llm.provider", "openai"),
 	)
 	assert.NotNil(t, span)

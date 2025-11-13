@@ -22,7 +22,6 @@ type AgentMetrics struct {
 
 	// Gauges
 	activeAgents metric.Int64UpDownCounter
-	cacheSize    metric.Int64ObservableGauge
 }
 
 // NewAgentMetrics 创建指标

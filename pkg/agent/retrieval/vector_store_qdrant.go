@@ -155,28 +155,6 @@ func (q *QdrantVectorStore) GetEmbedding(ctx context.Context, text string) ([]fl
 	return q.config.Embedder.EmbedQuery(ctx, text)
 }
 
-// ensureCollection 确保集合存在
-func (q *QdrantVectorStore) ensureCollection() error {
-	// TODO: 实现集合创建或验证逻辑
-	// collection, err := q.client.GetCollection(ctx, q.config.CollectionName)
-	// if err != nil {
-	//     // 集合不存在，创建
-	//     err = q.client.CreateCollection(ctx, &qdrant.CreateCollection{
-	//         CollectionName: q.config.CollectionName,
-	//         VectorsConfig: &qdrant.VectorsConfig{
-	//             Params: &qdrant.VectorParams{
-	//                 Size: uint64(q.config.VectorSize),
-	//                 Distance: q.config.Distance,
-	//             },
-	//         },
-	//     })
-	//     if err != nil {
-	//         return fmt.Errorf("failed to create collection: %w", err)
-	//     }
-	// }
-	return nil
-}
-
 // Close 关闭连接
 func (q *QdrantVectorStore) Close() error {
 	// TODO: 关闭 Qdrant 客户端连接

@@ -433,15 +433,3 @@ func TestOpenAIProvider_Integration(t *testing.T) {
 	assert.NotEmpty(t, resp.Content)
 	assert.Contains(t, resp.Content, "4")
 }
-
-// Test helpers
-func createTestConfig(provider llm.Provider) *llm.Config {
-	return &llm.Config{
-		Provider:    provider,
-		APIKey:      "test-key",
-		Model:       "test-model",
-		MaxTokens:   2000,
-		Temperature: 0.7,
-		Timeout:     60,
-	}
-}

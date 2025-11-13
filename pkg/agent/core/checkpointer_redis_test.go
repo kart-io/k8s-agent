@@ -14,6 +14,7 @@ import (
 )
 
 func setupTestRedisCheckpointer(t *testing.T) (*RedisCheckpointer, *miniredis.Miniredis) {
+	t.Helper()
 	// Create a miniredis server
 	mr := miniredis.RunT(t)
 

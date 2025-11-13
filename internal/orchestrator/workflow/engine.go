@@ -470,9 +470,9 @@ func (e *Engine) executeFailureBranch(ctx context.Context, workflow *types.Workf
 	for _, stepID := range failedStep.OnFailure {
 		// Find the step in the workflow
 		var nextStep *types.WorkflowStep
-		for _, s := range workflow.Steps {
-			if s.ID == stepID {
-				nextStep = &s
+		for i := range workflow.Steps {
+			if workflow.Steps[i].ID == stepID {
+				nextStep = &workflow.Steps[i] // Use index to avoid implicit memory aliasing
 				break
 			}
 		}

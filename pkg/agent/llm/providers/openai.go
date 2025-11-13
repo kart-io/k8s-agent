@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -137,7 +138,7 @@ func (p *OpenAIProvider) Stream(ctx context.Context, prompt string) (<-chan stri
 		for {
 			response, err := stream.Recv()
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					return
 				}
 				// Log error but don't crash the stream
@@ -231,7 +232,7 @@ func (p *OpenAIProvider) StreamWithTools(ctx context.Context, prompt string, too
 		for {
 			response, err := stream.Recv()
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					// Finalize last tool call if exists
 					if currentCall != nil && argsBuffer != "" {
 						var args map[string]interface{}
@@ -443,7 +444,7 @@ func (p *OpenAIStreamingProvider) StreamTokensWithMetadata(ctx context.Context, 
 		for {
 			response, err := stream.Recv()
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					tokens <- TokenWithMetadata{
 						Type: "finish",
 						Metadata: map[string]interface{}{

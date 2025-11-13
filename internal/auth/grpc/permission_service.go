@@ -61,8 +61,8 @@ func (s *PermissionServiceServer) ListPermissions(ctx context.Context, req *auth
 
 	// Convert to protobuf format
 	pbPerms := make([]*authv1.Permission, len(perms))
-	for i, p := range perms {
-		pbPerms[i] = convertPermissionToProto(&p)
+	for i := range perms {
+		pbPerms[i] = convertPermissionToProto(&perms[i]) // Use index to avoid implicit memory aliasing
 	}
 
 	return &authv1.ListPermissionsResponse{

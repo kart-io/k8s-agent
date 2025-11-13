@@ -1,7 +1,6 @@
 package practical
 
 import (
-	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -464,7 +464,15 @@ func (t *APICallerTool) calculateBackoff(attempt int, strategy string) time.Dura
 	case "linear":
 		return base * time.Duration(attempt+1)
 	case "exponential":
-		return base * (1 << uint(attempt))
+		// Cap attempt to prevent overflow (2^31 is safe for uint)
+		safeAttempt := attempt
+		if safeAttempt > 31 {
+			safeAttempt = 31
+		}
+		if safeAttempt < 0 {
+			safeAttempt = 0
+		}
+		return base * (1 << uint(safeAttempt))
 	default:
 		return base
 	}

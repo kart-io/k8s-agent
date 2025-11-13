@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
@@ -217,8 +218,12 @@ func (a *ClusterApp) initHTTPServer(ctx context.Context) error {
 	// Create HTTP server
 	addr := fmt.Sprintf("%s:%d", a.opts.Server.Host, a.opts.Server.Port)
 	a.httpServer = &http.Server{
-		Addr:    addr,
-		Handler: engine,
+		Addr:              addr,
+		Handler:           engine,
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	// Start server in goroutine

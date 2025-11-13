@@ -2,9 +2,10 @@ package retrieval
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/big"
 	"sync"
 )
 
@@ -204,8 +205,11 @@ func (m *MockVectorStore) calculateSimilarity(query, content string) float64 {
 		}
 	}
 
-	// 添加一些随机性
-	score += rand.Float64() * 0.3
+	// 添加一些随机性 - using crypto/rand for security
+	n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(1000))
+	if err == nil {
+		score += float64(n.Int64()) / 1000.0 * 0.3
+	}
 
 	// 确保在 0-1 范围内
 	return math.Min(score, 1.0)

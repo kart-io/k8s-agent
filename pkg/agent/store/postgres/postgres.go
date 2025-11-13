@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -154,7 +155,7 @@ func (s *Store) Put(ctx context.Context, namespace []string, key string, value i
 		if err := s.getDB().Save(&existing).Error; err != nil {
 			return fmt.Errorf("failed to update value: %w", err)
 		}
-	} else if result.Error == gorm.ErrRecordNotFound {
+	} else if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		// Create new
 		model := storeModel{
 			Namespace: nsKey,
@@ -183,7 +184,7 @@ func (s *Store) Get(ctx context.Context, namespace []string, key string) (*store
 	result := s.getDB().Where("namespace = ? AND key = ?", nsKey, key).First(&model)
 
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("key not found: %s", key)
 		}
 		return nil, fmt.Errorf("failed to get value: %w", result.Error)

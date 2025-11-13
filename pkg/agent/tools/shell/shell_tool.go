@@ -116,6 +116,22 @@ func (s *ShellTool) run(ctx context.Context, input *tools.ToolInput) (*tools.Too
 	cmdCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	// Validate command to prevent shell injection
+	if strings.Contains(command, ";") || strings.Contains(command, "|") ||
+		strings.Contains(command, "&") || strings.Contains(command, "`") ||
+		strings.Contains(command, "$") || strings.Contains(command, ">") ||
+		strings.Contains(command, "<") {
+		return &tools.ToolOutput{
+			Result:  nil,
+			Success: false,
+			Error:   "command contains potentially dangerous characters",
+			Metadata: map[string]interface{}{
+				"tool_name": s.Name(),
+				"exit_code": -1,
+			},
+		}, tools.NewToolError(s.Name(), "invalid command", fmt.Errorf("command contains potentially dangerous characters"))
+	}
+
 	// 构建命令
 	cmd := exec.CommandContext(cmdCtx, command, args...)
 	if workDir != "" {

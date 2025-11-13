@@ -42,7 +42,7 @@ func (c *MockLLMClient) IsAvailable() bool {
 }
 
 func main() {
-	fmt.Println("=== OpenTelemetry Integration Example ===\n")
+	fmt.Println("=== OpenTelemetry Integration Example ===")
 
 	// 1. 创建 Telemetry Provider
 	fmt.Println("1. Creating Telemetry Provider...")
@@ -63,7 +63,7 @@ func main() {
 		log.Fatalf("Failed to create telemetry provider: %v", err)
 	}
 	defer provider.Shutdown(context.Background())
-	fmt.Println("✓ Telemetry Provider created\n")
+	fmt.Println("✓ Telemetry Provider created")
 
 	// 2. 创建 Tracer 和 Metrics
 	fmt.Println("2. Creating Tracer and Metrics...")
@@ -72,7 +72,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create metrics: %v", err)
 	}
-	fmt.Println("✓ Tracer and Metrics created\n")
+	fmt.Println("✓ Tracer and Metrics created")
 
 	// 3. 创建带有可观测性的 Agent
 	fmt.Println("3. Creating Agent with Observability...")

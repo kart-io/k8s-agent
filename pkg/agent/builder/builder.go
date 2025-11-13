@@ -314,12 +314,7 @@ func (b *AgentBuilder[C, S]) Build() (*ConfigurableAgent[C, S], error) {
 func (b *AgentBuilder[C, S]) createHandler(runtime *core.Runtime[C, S]) core.Handler {
 	return func(ctx context.Context, request *core.MiddlewareRequest) (*core.MiddlewareResponse, error) {
 		// Extract input
-		input := fmt.Sprintf("%v", request.Input)
-
-		// Add system prompt if available
-		if b.systemPrompt != "" {
-			input = fmt.Sprintf("%s\n\n%s", b.systemPrompt, input)
-		}
+		inputStr := fmt.Sprintf("%v", request.Input)
 
 		// Create LLM request
 		llmReq := &llm.CompletionRequest{
@@ -330,7 +325,7 @@ func (b *AgentBuilder[C, S]) createHandler(runtime *core.Runtime[C, S]) core.Han
 				},
 				{
 					Role:    "user",
-					Content: fmt.Sprintf("%v", request.Input),
+					Content: inputStr,
 				},
 			},
 			MaxTokens:   b.config.MaxTokens,

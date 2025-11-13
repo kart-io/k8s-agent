@@ -249,7 +249,6 @@ func (s *MultiModeStream) Close() error {
 type StreamWriter struct {
 	stream *MultiModeStream
 	mode   StreamMode
-	mu     sync.Mutex
 }
 
 // Write sends data to the stream

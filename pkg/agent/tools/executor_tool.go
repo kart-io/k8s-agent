@@ -186,13 +186,13 @@ func (e *ToolExecutor) ExecuteParallel(ctx context.Context, calls []*ToolCall) (
 	}
 
 	// 检查是否有错误
-	var errors []error
+	errors := make([]error, 0, len(calls))
 	for err := range errorsChan {
 		errors = append(errors, err)
 	}
 
 	if len(errors) > 0 {
-		return results, fmt.Errorf("parallel execution failed with %d errors: %v", len(errors), errors[0])
+		return results, fmt.Errorf("parallel execution failed with %d errors: %w", len(errors), errors[0])
 	}
 
 	return results, nil

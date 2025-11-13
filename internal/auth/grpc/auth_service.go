@@ -48,11 +48,20 @@ func (s *AuthServiceServer) Login(ctx context.Context, req *authv1.LoginRequest)
 	// Convert roles
 	roles := make([]*authv1.Role, len(loginResp.User.Roles))
 	for i, r := range loginResp.User.Roles {
+		// Validate status value before conversion to prevent overflow
+		roleStatus := r.Status
+		if roleStatus < 0 {
+			roleStatus = 0
+		}
+		if roleStatus > 0x7FFFFFFF { // Max int32
+			roleStatus = 0x7FFFFFFF
+		}
+
 		roles[i] = &authv1.Role{
 			Id:          stringToID(r.ID),
 			Name:        r.Name,
 			Description: r.Description,
-			Status:      int32(r.Status),
+			Status:      int32(roleStatus),
 			CreatedAt:   timestamppb.New(r.CreatedAt),
 			UpdatedAt:   timestamppb.New(r.UpdatedAt),
 		}
@@ -130,11 +139,20 @@ func (s *AuthServiceServer) GetMe(ctx context.Context, req *authv1.GetMeRequest)
 	// Convert roles
 	roles := make([]*authv1.Role, len(userInfo.Roles))
 	for i, r := range userInfo.Roles {
+		// Validate status value before conversion to prevent overflow
+		roleStatus := r.Status
+		if roleStatus < 0 {
+			roleStatus = 0
+		}
+		if roleStatus > 0x7FFFFFFF { // Max int32
+			roleStatus = 0x7FFFFFFF
+		}
+
 		roles[i] = &authv1.Role{
 			Id:          stringToID(r.ID),
 			Name:        r.Name,
 			Description: r.Description,
-			Status:      int32(r.Status),
+			Status:      int32(roleStatus),
 			CreatedAt:   timestamppb.New(r.CreatedAt),
 			UpdatedAt:   timestamppb.New(r.UpdatedAt),
 		}

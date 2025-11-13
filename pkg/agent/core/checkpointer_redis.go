@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -213,7 +214,7 @@ func (c *RedisCheckpointer) Load(ctx context.Context, threadID string) (State, e
 	// Get from Redis
 	jsonData, err := c.client.Get(ctx, key).Bytes()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return nil, fmt.Errorf("checkpoint not found for thread: %s", threadID)
 		}
 		return nil, fmt.Errorf("failed to load checkpoint from Redis: %w", err)

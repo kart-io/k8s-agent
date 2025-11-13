@@ -357,8 +357,14 @@ func (s *MetricsCollectorGRPCService) ReportMetrics(stream monitorv1.MetricsColl
 	}
 
 	// 返回响应
+	// Validate receivedCount to prevent overflow
+	safeReceivedCount := receivedCount
+	if receivedCount > 0x7FFFFFFF { // Max int32
+		safeReceivedCount = 0x7FFFFFFF
+	}
+
 	return stream.SendAndClose(&monitorv1.ReportMetricsResponse{
-		ReceivedCount: int32(receivedCount),
+		ReceivedCount: int32(safeReceivedCount),
 		Message:       "Metrics received successfully",
 	})
 }

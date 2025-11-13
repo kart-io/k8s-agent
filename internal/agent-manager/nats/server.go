@@ -627,6 +627,15 @@ func (s *Server) customReconnectDelay(attempts int) time.Duration {
 	// 计算指数退避延迟: 初始延迟 * (2^(attempts-1))
 	// 使用 float64 计算指数，然后转换回 time.Duration
 	baseDelay := float64(s.options.reconnectDelayInitial)
+
+	// Prevent integer overflow by capping attempts
+	if attempts > 31 {
+		attempts = 31 // Cap to prevent overflow (2^31 is safe for uint)
+	}
+	if attempts < 1 {
+		attempts = 1
+	}
+
 	exponentialFactor := float64(uint(1) << uint(attempts-1)) // 2^(attempts-1)
 
 	delay := time.Duration(baseDelay * exponentialFactor)

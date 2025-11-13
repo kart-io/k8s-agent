@@ -220,28 +220,6 @@ func (a *BaseAgent) triggerOnStart(ctx context.Context, input *AgentInput) error
 	return nil
 }
 
-// triggerOnEnd 触发结束回调
-func (a *BaseAgent) triggerOnEnd(ctx context.Context, output *AgentOutput) error {
-	config := a.GetConfig()
-	for _, cb := range config.Callbacks {
-		if err := cb.OnEnd(ctx, output); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// triggerOnError 触发错误回调
-func (a *BaseAgent) triggerOnError(ctx context.Context, err error) error {
-	config := a.GetConfig()
-	for _, cb := range config.Callbacks {
-		if cbErr := cb.OnError(ctx, err); cbErr != nil {
-			return cbErr
-		}
-	}
-	return nil
-}
-
 // triggerOnFinish 触发完成回调
 func (a *BaseAgent) triggerOnFinish(ctx context.Context, output *AgentOutput) error {
 	config := a.GetConfig()

@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -132,7 +133,7 @@ func (s *Store) Get(ctx context.Context, namespace []string, key string) (*store
 	// Get from Redis
 	data, err := s.client.Get(ctx, redisKey).Bytes()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return nil, fmt.Errorf("key not found: %s", key)
 		}
 		return nil, fmt.Errorf("failed to get value from Redis: %w", err)

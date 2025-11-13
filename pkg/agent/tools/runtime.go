@@ -2,11 +2,20 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/store"
+)
+
+// Sentinel errors
+var (
+	ErrKeyNotFound       = errors.New("key not found")
+	ErrValueNotFound     = errors.New("value not found")
+	ErrStateAccessDenied = errors.New("state access is disabled")
+	ErrStoreAccessDenied = errors.New("store access is disabled")
 )
 
 // ToolRuntime provides access to agent state and context from within tools
@@ -93,12 +102,12 @@ func (r *ToolRuntime) WithMetadata(key string, value interface{}) *ToolRuntime {
 // GetState retrieves a value from agent state
 func (r *ToolRuntime) GetState(key string) (interface{}, error) {
 	if !r.Config.EnableStateAccess {
-		return nil, fmt.Errorf("state access is disabled")
+		return nil, ErrStateAccessDenied
 	}
 
 	val, ok := r.State.Get(key)
 	if !ok {
-		return nil, nil
+		return nil, ErrKeyNotFound
 	}
 	return val, nil
 }
@@ -116,7 +125,7 @@ func (r *ToolRuntime) SetState(key string, value interface{}) error {
 // GetFromStore retrieves data from long-term store
 func (r *ToolRuntime) GetFromStore(namespace []string, key string) (interface{}, error) {
 	if !r.Config.EnableStoreAccess {
-		return nil, fmt.Errorf("store access is disabled")
+		return nil, ErrStoreAccessDenied
 	}
 
 	// Check namespace restrictions
@@ -138,7 +147,7 @@ func (r *ToolRuntime) GetFromStore(namespace []string, key string) (interface{},
 		return nil, err
 	}
 	if val == nil {
-		return nil, nil
+		return nil, ErrValueNotFound
 	}
 	return val.Value, nil
 }

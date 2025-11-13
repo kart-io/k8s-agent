@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -48,7 +49,12 @@ func NewGemini(config *llm.Config) (*GeminiProvider, error) {
 
 	// Configure model parameters
 	if config.MaxTokens > 0 {
-		maxTokens := int32(config.MaxTokens)
+		// Validate MaxTokens to prevent overflow
+		safeMaxTokens := config.MaxTokens
+		if safeMaxTokens > 0x7FFFFFFF { // Max int32
+			safeMaxTokens = 0x7FFFFFFF
+		}
+		maxTokens := int32(safeMaxTokens)
 		model.MaxOutputTokens = &maxTokens
 	} else {
 		defaultTokens := int32(2000)
@@ -115,7 +121,12 @@ func (p *GeminiProvider) Complete(ctx context.Context, req *llm.CompletionReques
 
 	// Apply request-specific parameters
 	if req.MaxTokens > 0 {
-		maxTokens := int32(req.MaxTokens)
+		// Validate MaxTokens to prevent overflow
+		safeMaxTokens := req.MaxTokens
+		if safeMaxTokens > 0x7FFFFFFF { // Max int32
+			safeMaxTokens = 0x7FFFFFFF
+		}
+		maxTokens := int32(safeMaxTokens)
 		p.model.MaxOutputTokens = &maxTokens
 	}
 	if req.Temperature > 0 {
@@ -166,7 +177,7 @@ func (p *GeminiProvider) Stream(ctx context.Context, prompt string) (<-chan stri
 		iter := cs.SendMessageStream(ctx, genai.Text(prompt))
 		for {
 			resp, err := iter.Next()
-			if err == iterator.Done {
+			if errors.Is(err, iterator.Done) {
 				break
 			}
 			if err != nil {
@@ -196,7 +207,13 @@ func (p *GeminiProvider) GenerateWithTools(ctx context.Context, prompt string, t
 	model := p.client.GenerativeModel(p.modelName)
 	temp := float32(p.temperature)
 	model.Temperature = &temp
-	maxTokens := int32(p.maxTokens)
+
+	// Validate maxTokens to prevent overflow
+	safeMaxTokens := p.maxTokens
+	if safeMaxTokens > 0x7FFFFFFF { // Max int32
+		safeMaxTokens = 0x7FFFFFFF
+	}
+	maxTokens := int32(safeMaxTokens)
 	model.MaxOutputTokens = &maxTokens
 	model.Tools = []*genai.Tool{
 		{FunctionDeclarations: functionDeclarations},
@@ -266,7 +283,7 @@ func (p *GeminiProvider) StreamWithTools(ctx context.Context, prompt string, too
 		iter := cs.SendMessageStream(ctx, genai.Text(prompt))
 		for {
 			resp, err := iter.Next()
-			if err == iterator.Done {
+			if errors.Is(err, iterator.Done) {
 				break
 			}
 			if err != nil {
@@ -418,7 +435,7 @@ func (p *GeminiStreamingProvider) StreamWithContext(ctx context.Context, prompt 
 
 		for {
 			resp, err := iter.Next()
-			if err == iterator.Done {
+			if errors.Is(err, iterator.Done) {
 				// Send completion event
 				events <- StreamEvent{
 					Type:      "complete",

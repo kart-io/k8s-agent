@@ -77,7 +77,7 @@ func main() {
 	checkpointer := core.NewInMemorySaver()
 
 	// Pre-populate store with some data
-	store.Put(ctx, []string{"users", appContext.UserID}, "profile", map[string]interface{}{
+	_ = store.Put(ctx, []string{"users", appContext.UserID}, "profile", map[string]interface{}{
 		"name":         appContext.UserName,
 		"organization": appContext.Organization,
 		"tier":         appContext.Tier,
@@ -229,7 +229,7 @@ func main() {
 	fmt.Println()
 
 	// Save checkpoint after first task
-	checkpointer.Save(ctx, agent.GetMetrics()["session_id"].(string), customState)
+	_ = checkpointer.Save(ctx, agent.GetMetrics()["session_id"].(string), customState)
 
 	// Task 2: Tool usage (tests tool selection and execution)
 	fmt.Println("Task 2: Tool Usage - Calculation")

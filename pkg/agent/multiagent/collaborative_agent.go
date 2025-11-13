@@ -2,8 +2,9 @@ package multiagent
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"sync"
 	"time"
 
@@ -96,8 +97,12 @@ func (a *BaseCollaborativeAgent) Collaborate(ctx context.Context, task *Collabor
 // Vote participates in consensus decision making
 func (a *BaseCollaborativeAgent) Vote(ctx context.Context, proposal interface{}) (bool, error) {
 	// Simple voting logic - can be overridden
-	// Randomly vote yes or no for demonstration
-	return rand.Float64() > 0.3, nil
+	// Randomly vote yes or no for demonstration - using crypto/rand for security
+	n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(1000))
+	if err != nil {
+		return false, fmt.Errorf("failed to generate random vote: %w", err)
+	}
+	return float64(n.Int64())/1000.0 > 0.3, nil
 }
 
 // Execute implements the Agent interface

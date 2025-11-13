@@ -252,7 +252,7 @@ func (p *TelemetryProvider) Shutdown(ctx context.Context) error {
 	if p.meterProvider != nil {
 		if shutdownErr := p.meterProvider.Shutdown(ctx); shutdownErr != nil {
 			if err != nil {
-				err = fmt.Errorf("%v; failed to shutdown meter provider: %w", err, shutdownErr)
+				err = fmt.Errorf("%w; failed to shutdown meter provider: %w", err, shutdownErr)
 			} else {
 				err = fmt.Errorf("failed to shutdown meter provider: %w", shutdownErr)
 			}
@@ -275,7 +275,7 @@ func (p *TelemetryProvider) ForceFlush(ctx context.Context) error {
 	if p.meterProvider != nil {
 		if flushErr := p.meterProvider.ForceFlush(ctx); flushErr != nil {
 			if err != nil {
-				err = fmt.Errorf("%v; failed to flush meter provider: %w", err, flushErr)
+				err = fmt.Errorf("%w; failed to flush meter provider: %w", err, flushErr)
 			} else {
 				err = fmt.Errorf("failed to flush meter provider: %w", flushErr)
 			}

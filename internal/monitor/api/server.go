@@ -139,8 +139,11 @@ func (s *Server) startMetricsServer() {
 	mux.Handle("/metrics", promhttp.Handler())
 
 	s.metricsServer = &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.metricsPort),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", s.metricsPort),
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second, // Prevent Slowloris attacks
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
 	}
 
 	s.log.Infow("Starting Prometheus metrics server", "port", s.metricsPort)

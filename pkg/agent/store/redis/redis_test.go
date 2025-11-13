@@ -13,6 +13,7 @@ import (
 )
 
 func setupTestStore(t *testing.T) (*Store, *miniredis.Miniredis) {
+	t.Helper()
 	// Create a miniredis server
 	mr := miniredis.RunT(t)
 

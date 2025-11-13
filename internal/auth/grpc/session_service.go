@@ -107,12 +107,25 @@ func (s *SessionServiceServer) ListSessions(ctx context.Context, req *authv1.Lis
 		totalPages++
 	}
 
+	// Validate conversions to prevent overflow
+	if totalPages > 0x7FFFFFFF { // Max int32
+		totalPages = 0x7FFFFFFF
+	}
+	safePageSize := int32(pageSize)
+	if pageSize > 0x7FFFFFFF {
+		safePageSize = 0x7FFFFFFF
+	}
+	safePage := int32(page)
+	if page > 0x7FFFFFFF {
+		safePage = 0x7FFFFFFF
+	}
+
 	return &authv1.ListSessionsResponse{
 		Sessions: sessions,
 		Pagination: &commonpb.PaginationMetadata{
 			Total:      int64(sessionList.Total),
-			PageSize:   int32(pageSize),
-			Page:       int32(page),
+			PageSize:   safePageSize,
+			Page:       safePage,
 			TotalPages: int32(totalPages),
 		},
 	}, nil

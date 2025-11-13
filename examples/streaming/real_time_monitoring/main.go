@@ -18,6 +18,9 @@ func main() {
 	fmt.Println("=== Real-Time Monitoring Server ===")
 	fmt.Println()
 
+	// Server address
+	addr := ":8080"
+
 	// 创建进度 Agent
 	progressAgent := stream.NewProgressAgent(stream.DefaultProgressConfig())
 
@@ -52,8 +55,16 @@ func main() {
 	// 主页
 	router.HandleFunc("/", HomeHandler).Methods("GET")
 
-	// 启动服务器
-	addr := ":8080"
+	// Start server with proper timeouts
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
 	fmt.Printf("Server starting on %s\n", addr)
 	fmt.Println("\nAvailable endpoints:")
 	fmt.Println("  GET  /                             - Home page with examples")
@@ -66,7 +77,7 @@ func main() {
 	fmt.Println("\nPress Ctrl+C to stop")
 	fmt.Println()
 
-	if err := http.ListenAndServe(addr, router); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

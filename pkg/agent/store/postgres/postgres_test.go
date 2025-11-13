@@ -15,6 +15,7 @@ import (
 )
 
 func setupTestStore(t *testing.T) (*Store, sqlmock.Sqlmock, *sql.DB) {
+	t.Helper()
 	// Create mock database
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)

@@ -93,7 +93,7 @@ func (l *WebLoader) Load(ctx context.Context) ([]*retrieval.Document, error) {
 	}
 
 	// 发送请求
-	resp, err := l.client.Do(req)
+	resp, err := l.client.Do(req.WithContext(ctx))
 	if err != nil {
 		if l.callbackManager != nil {
 			_ = l.callbackManager.OnError(ctx, err)

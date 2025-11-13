@@ -1,7 +1,6 @@
 package practical
 
 import (
-	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"archive/zip"
 	"bufio"
 	"compress/gzip"
@@ -21,6 +20,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -321,6 +321,10 @@ func (t *FileOperationsTool) writeFile(ctx context.Context, params *fileParams) 
 		// Parse permissions
 		var p uint64
 		fmt.Sscanf(params.Options.Permissions, "%o", &p)
+		// Validate permissions to prevent overflow
+		if p > 0xFFFFFFFF { // Max uint32 for FileMode
+			p = 0xFFFFFFFF
+		}
 		perm = os.FileMode(p)
 	}
 
@@ -499,7 +503,7 @@ func (t *FileOperationsTool) listDirectory(ctx context.Context, params *filePara
 	if params.Options.Recursive {
 		err := filepath.Walk(params.Path, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return nil // Skip errors
+				return err // Return the error to stop walking or handle it
 			}
 
 			files = append(files, map[string]interface{}{
@@ -565,7 +569,7 @@ func (t *FileOperationsTool) searchFiles(ctx context.Context, params *fileParams
 
 	err := filepath.Walk(params.Path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil // Skip errors
+			return err // Return the error to be handled
 		}
 
 		// Check pattern
@@ -732,9 +736,9 @@ func (t *FileOperationsTool) compressZip(src, dst string) (interface{}, error) {
 
 	if info.IsDir() {
 		// Compress directory
-		err = filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
+		if err := filepath.Walk(src, func(path string, info os.FileInfo, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
 			}
 
 			// Create header
@@ -761,11 +765,15 @@ func (t *FileOperationsTool) compressZip(src, dst string) (interface{}, error) {
 					return err
 				}
 				defer file.Close()
-				_, err = io.Copy(writer, file)
+				if _, err = io.Copy(writer, file); err != nil {
+					return err
+				}
 			}
 
-			return err
-		})
+			return nil
+		}); err != nil {
+			return nil, err
+		}
 	} else {
 		// Compress single file
 		writer, err := zipWriter.Create(filepath.Base(src))

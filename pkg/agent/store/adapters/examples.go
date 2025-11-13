@@ -34,7 +34,7 @@ func ExampleRedisStoreAdapter() {
 
 	// Use the store
 	ctx := context.Background()
-	err = store.Put(ctx, []string{"users"}, "user123", map[string]interface{}{
+	_ = store.Put(ctx, []string{"users"}, "user123", map[string]interface{}{
 		"name": "Alice",
 		"age":  30,
 	})

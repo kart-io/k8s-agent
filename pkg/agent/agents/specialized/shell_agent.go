@@ -81,6 +81,23 @@ func (a *ShellAgent) Execute(ctx context.Context, input *agentcore.AgentInput) (
 		"work_dir", workDir,
 		"timeout", timeout)
 
+	// Validate command to prevent shell injection
+	if strings.Contains(command, ";") || strings.Contains(command, "|") ||
+		strings.Contains(command, "&") || strings.Contains(command, "`") ||
+		strings.Contains(command, "$") || strings.Contains(command, ">") ||
+		strings.Contains(command, "<") {
+		return &agentcore.AgentOutput{
+			Status:  "failed",
+			Message: "command contains potentially dangerous characters",
+			Result: map[string]interface{}{
+				"agent_name": a.Name(),
+				"exit_code":  -1,
+			},
+			Latency:   time.Since(start),
+			Timestamp: start,
+		}, nil
+	}
+
 	// 构建命令
 	cmd := exec.CommandContext(cmdCtx, command, args...)
 	if workDir != "" {

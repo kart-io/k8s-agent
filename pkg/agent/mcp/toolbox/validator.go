@@ -35,7 +35,8 @@ func (v *JSONSchemaValidator) ValidateSchema(schema *core.ToolSchema) error {
 	}
 
 	// 验证每个属性定义
-	for name, prop := range schema.Properties {
+	for name := range schema.Properties {
+		prop := schema.Properties[name] // Create copy to avoid implicit memory aliasing
 		if err := v.validatePropertySchema(&prop); err != nil {
 			return fmt.Errorf("invalid property '%s': %w", name, err)
 		}
