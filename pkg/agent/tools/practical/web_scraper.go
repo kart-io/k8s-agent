@@ -11,6 +11,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
+	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -48,9 +49,9 @@ func (t *WebScraperTool) Description() string {
 	return "Scrapes web pages and extracts structured data including text, links, images, and metadata"
 }
 
-// InputSchema returns the input schema
-func (t *WebScraperTool) InputSchema() interface{} {
-	return map[string]interface{}{
+// ArgsSchema returns the arguments schema as a JSON string
+func (t *WebScraperTool) ArgsSchema() string {
+	schema := map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
 			"url": map[string]interface{}{
@@ -81,28 +82,14 @@ func (t *WebScraperTool) InputSchema() interface{} {
 		},
 		"required": []string{"url"},
 	}
+
+	schemaJSON, _ := json.Marshal(schema)
+	return string(schemaJSON)
 }
 
-// OutputSchema returns the output schema
-func (t *WebScraperTool) OutputSchema() interface{} {
-	return map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"url":      map[string]interface{}{"type": "string"},
-			"title":    map[string]interface{}{"type": "string"},
-			"content":  map[string]interface{}{"type": "string"},
-			"links":    map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
-			"images":   map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}},
-			"metadata": map[string]interface{}{"type": "object"},
-			"custom":   map[string]interface{}{"type": "object"},
-			"error":    map[string]interface{}{"type": "string"},
-		},
-	}
-}
-
-// Execute runs the web scraper
-func (t *WebScraperTool) Execute(ctx context.Context, input interface{}) (interface{}, error) {
-	params, err := t.parseInput(input)
+// Execute runs the web scraper with ToolInput/ToolOutput
+func (t *WebScraperTool) Execute(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+	params, err := t.parseInput(input.Args)
 	if err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
@@ -119,9 +106,12 @@ func (t *WebScraperTool) Execute(ctx context.Context, input interface{}) (interf
 	// Fetch the page
 	doc, err := t.fetchPage(ctx, params.URL)
 	if err != nil {
-		return map[string]interface{}{
-			"url":   params.URL,
-			"error": err.Error(),
+		return &tools.ToolOutput{
+			Result: map[string]interface{}{
+				"url":   params.URL,
+				"error": err.Error(),
+			},
+			Error: err.Error(),
 		}, err
 	}
 
@@ -148,70 +138,179 @@ func (t *WebScraperTool) Execute(ctx context.Context, input interface{}) (interf
 	}
 
 	// Extract links
-	if params.Selectors.Links != "" {
-		result["links"] = t.extractLinks(doc, params.Selectors.Links, parsedURL)
-	} else {
-		result["links"] = t.extractAllLinks(doc, parsedURL)
-	}
+	links := t.extractLinks(doc, params.Selectors.Links, params.URL)
+	result["links"] = links
 
 	// Extract images
-	if params.Selectors.Images != "" {
-		result["images"] = t.extractImages(doc, params.Selectors.Images, parsedURL)
-	} else {
-		result["images"] = t.extractAllImages(doc, parsedURL)
-	}
+	images := t.extractImages(doc, params.Selectors.Images, params.URL)
+	result["images"] = images
 
-	// Extract metadata
+	// Extract metadata if requested
 	if params.ExtractMetadata {
-		result["metadata"] = t.extractMetadata(doc)
+		metadata := t.extractMetadata(doc)
+		result["metadata"] = metadata
 	}
 
 	// Extract custom selectors
 	if len(params.Selectors.Custom) > 0 {
-		result["custom"] = t.extractCustom(doc, params.Selectors.Custom)
+		custom := t.extractCustom(doc, params.Selectors.Custom)
+		result["custom"] = custom
 	}
 
-	return result, nil
+	return &tools.ToolOutput{
+		Result: result,
+	}, nil
 }
 
-// fetchPage fetches and parses an HTML page
-func (t *WebScraperTool) fetchPage(ctx context.Context, url string) (*goquery.Document, error) {
-	var lastErr error
-	for i := 0; i < t.maxRetries; i++ {
-		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+// Implement Runnable interface
+func (t *WebScraperTool) Invoke(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+	return t.Execute(ctx, input)
+}
+
+func (t *WebScraperTool) Stream(ctx context.Context, input *tools.ToolInput) (<-chan agentcore.StreamChunk[*tools.ToolOutput], error) {
+	ch := make(chan agentcore.StreamChunk[*tools.ToolOutput])
+	go func() {
+		defer close(ch)
+		output, err := t.Execute(ctx, input)
+		if err != nil {
+			ch <- agentcore.StreamChunk[*tools.ToolOutput]{Error: err}
+		} else {
+			ch <- agentcore.StreamChunk[*tools.ToolOutput]{Data: output}
+		}
+	}()
+	return ch, nil
+}
+
+func (t *WebScraperTool) Batch(ctx context.Context, inputs []*tools.ToolInput) ([]*tools.ToolOutput, error) {
+	outputs := make([]*tools.ToolOutput, len(inputs))
+	for i, input := range inputs {
+		output, err := t.Execute(ctx, input)
 		if err != nil {
 			return nil, err
 		}
-		req.Header.Set("User-Agent", t.userAgent)
-
-		resp, err := t.httpClient.Do(req)
-		if err != nil {
-			lastErr = err
-			time.Sleep(time.Duration(i+1) * time.Second)
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			lastErr = fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
-			time.Sleep(time.Duration(i+1) * time.Second)
-			continue
-		}
-
-		// Parse HTML
-		doc, err := goquery.NewDocumentFromReader(resp.Body)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-
-		return doc, nil
+		outputs[i] = output
 	}
-
-	return nil, fmt.Errorf("failed after %d retries: %w", t.maxRetries, lastErr)
+	return outputs, nil
 }
 
-// extractText extracts text from selected elements
+func (t *WebScraperTool) Pipe(next agentcore.Runnable[*tools.ToolOutput, any]) agentcore.Runnable[*tools.ToolInput, any] {
+	return nil
+}
+
+func (t *WebScraperTool) WithCallbacks(callbacks ...agentcore.Callback) agentcore.Runnable[*tools.ToolInput, *tools.ToolOutput] {
+	return t
+}
+
+func (t *WebScraperTool) WithConfig(config agentcore.RunnableConfig) agentcore.Runnable[*tools.ToolInput, *tools.ToolOutput] {
+	return t
+}
+
+// Helper types and methods
+
+type webScraperParams struct {
+	URL              string
+	Selectors        scraperSelectors
+	ExtractMetadata  bool
+	MaxContentLength int
+}
+
+type scraperSelectors struct {
+	Title   string
+	Content string
+	Links   string
+	Images  string
+	Custom  map[string]string
+}
+
+func (t *WebScraperTool) parseInput(input interface{}) (*webScraperParams, error) {
+	params := &webScraperParams{
+		ExtractMetadata:  true,
+		MaxContentLength: 10000,
+	}
+
+	switch v := input.(type) {
+	case map[string]interface{}:
+		// Parse URL
+		if url, ok := v["url"].(string); ok {
+			params.URL = url
+		} else {
+			return nil, fmt.Errorf("url is required")
+		}
+
+		// Parse selectors
+		if selectors, ok := v["selectors"].(map[string]interface{}); ok {
+			if title, ok := selectors["title"].(string); ok {
+				params.Selectors.Title = title
+			}
+			if content, ok := selectors["content"].(string); ok {
+				params.Selectors.Content = content
+			}
+			if links, ok := selectors["links"].(string); ok {
+				params.Selectors.Links = links
+			}
+			if images, ok := selectors["images"].(string); ok {
+				params.Selectors.Images = images
+			}
+			if custom, ok := selectors["custom"].(map[string]interface{}); ok {
+				params.Selectors.Custom = make(map[string]string)
+				for k, v := range custom {
+					if str, ok := v.(string); ok {
+						params.Selectors.Custom[k] = str
+					}
+				}
+			}
+		}
+
+		// Parse other options
+		if extractMeta, ok := v["extract_metadata"].(bool); ok {
+			params.ExtractMetadata = extractMeta
+		}
+		if maxLen, ok := v["max_content_length"].(float64); ok {
+			params.MaxContentLength = int(maxLen)
+		}
+	case string:
+		// Simple URL input
+		params.URL = v
+	default:
+		return nil, fmt.Errorf("unsupported input type: %T", input)
+	}
+
+	return params, nil
+}
+
+func (t *WebScraperTool) fetchPage(ctx context.Context, urlStr string) (*goquery.Document, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", t.userAgent)
+
+	var resp *http.Response
+	var lastErr error
+
+	for i := 0; i < t.maxRetries; i++ {
+		resp, lastErr = t.httpClient.Do(req)
+		if lastErr == nil && resp.StatusCode == http.StatusOK {
+			break
+		}
+		if resp != nil {
+			resp.Body.Close()
+		}
+		time.Sleep(time.Duration(i+1) * time.Second)
+	}
+
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	defer resp.Body.Close()
+	return goquery.NewDocumentFromReader(resp.Body)
+}
+
 func (t *WebScraperTool) extractText(doc *goquery.Document, selector string, maxLength int) string {
 	var texts []string
 	totalLength := 0
@@ -219,9 +318,9 @@ func (t *WebScraperTool) extractText(doc *goquery.Document, selector string, max
 	doc.Find(selector).Each(func(i int, s *goquery.Selection) {
 		text := strings.TrimSpace(s.Text())
 		if text != "" && totalLength < maxLength {
-			remaining := maxLength - totalLength
-			if len(text) > remaining {
-				text = text[:remaining]
+			remainingLength := maxLength - totalLength
+			if len(text) > remainingLength {
+				text = text[:remainingLength] + "..."
 			}
 			texts = append(texts, text)
 			totalLength += len(text)
@@ -231,35 +330,47 @@ func (t *WebScraperTool) extractText(doc *goquery.Document, selector string, max
 	return strings.Join(texts, "\n\n")
 }
 
-// extractMainContent extracts main content from common areas
 func (t *WebScraperTool) extractMainContent(doc *goquery.Document, maxLength int) string {
+	// Try common content selectors
 	selectors := []string{
-		"main", "article", "[role='main']", "#content", ".content",
-		"#main", ".main", "body",
+		"main", "article", "[role='main']", ".content", "#content",
+		".post", ".entry-content", ".article-body",
 	}
 
 	for _, selector := range selectors {
 		content := t.extractText(doc, selector, maxLength)
-		if len(content) > 100 {
+		if len(content) > 100 { // Minimum content threshold
 			return content
 		}
 	}
 
-	// Fallback to body
+	// Fallback to body text
 	return t.extractText(doc, "body", maxLength)
 }
 
-// extractLinks extracts links
-func (t *WebScraperTool) extractLinks(doc *goquery.Document, selector string, baseURL *url.URL) []string {
+func (t *WebScraperTool) extractLinks(doc *goquery.Document, selector string, baseURL string) []string {
+	if selector == "" {
+		selector = "a[href]"
+	}
+
 	var links []string
 	seen := make(map[string]bool)
 
 	doc.Find(selector).Each(func(i int, s *goquery.Selection) {
-		if href, exists := s.Attr("href"); exists {
-			absolute := t.makeAbsolute(href, baseURL)
-			if !seen[absolute] {
-				links = append(links, absolute)
-				seen[absolute] = true
+		href, exists := s.Attr("href")
+		if exists {
+			// Resolve relative URLs
+			if !strings.HasPrefix(href, "http") && baseURL != "" {
+				if base, err := url.Parse(baseURL); err == nil {
+					if resolved, err := base.Parse(href); err == nil {
+						href = resolved.String()
+					}
+				}
+			}
+
+			if !seen[href] {
+				links = append(links, href)
+				seen[href] = true
 			}
 		}
 	})
@@ -267,22 +378,29 @@ func (t *WebScraperTool) extractLinks(doc *goquery.Document, selector string, ba
 	return links
 }
 
-// extractAllLinks extracts all links
-func (t *WebScraperTool) extractAllLinks(doc *goquery.Document, baseURL *url.URL) []string {
-	return t.extractLinks(doc, "a[href]", baseURL)
-}
+func (t *WebScraperTool) extractImages(doc *goquery.Document, selector string, baseURL string) []string {
+	if selector == "" {
+		selector = "img[src]"
+	}
 
-// extractImages extracts image URLs
-func (t *WebScraperTool) extractImages(doc *goquery.Document, selector string, baseURL *url.URL) []string {
 	var images []string
 	seen := make(map[string]bool)
 
 	doc.Find(selector).Each(func(i int, s *goquery.Selection) {
-		if src, exists := s.Attr("src"); exists {
-			absolute := t.makeAbsolute(src, baseURL)
-			if !seen[absolute] {
-				images = append(images, absolute)
-				seen[absolute] = true
+		src, exists := s.Attr("src")
+		if exists {
+			// Resolve relative URLs
+			if !strings.HasPrefix(src, "http") && baseURL != "" {
+				if base, err := url.Parse(baseURL); err == nil {
+					if resolved, err := base.Parse(src); err == nil {
+						src = resolved.String()
+					}
+				}
+			}
+
+			if !seen[src] {
+				images = append(images, src)
+				seen[src] = true
 			}
 		}
 	})
@@ -290,200 +408,52 @@ func (t *WebScraperTool) extractImages(doc *goquery.Document, selector string, b
 	return images
 }
 
-// extractAllImages extracts all image URLs
-func (t *WebScraperTool) extractAllImages(doc *goquery.Document, baseURL *url.URL) []string {
-	return t.extractImages(doc, "img[src]", baseURL)
-}
-
-// extractMetadata extracts page metadata
 func (t *WebScraperTool) extractMetadata(doc *goquery.Document) map[string]interface{} {
 	metadata := make(map[string]interface{})
 
-	// Open Graph tags
-	og := make(map[string]string)
-	doc.Find("meta[property^='og:']").Each(func(i int, s *goquery.Selection) {
+	// Extract meta tags
+	doc.Find("meta").Each(func(i int, s *goquery.Selection) {
+		if name, exists := s.Attr("name"); exists {
+			if content, exists := s.Attr("content"); exists {
+				metadata[name] = content
+			}
+		}
 		if property, exists := s.Attr("property"); exists {
 			if content, exists := s.Attr("content"); exists {
-				key := strings.TrimPrefix(property, "og:")
-				og[key] = content
-			}
-		}
-	})
-	if len(og) > 0 {
-		metadata["opengraph"] = og
-	}
-
-	// Twitter cards
-	twitter := make(map[string]string)
-	doc.Find("meta[name^='twitter:']").Each(func(i int, s *goquery.Selection) {
-		if name, exists := s.Attr("name"); exists {
-			if content, exists := s.Attr("content"); exists {
-				key := strings.TrimPrefix(name, "twitter:")
-				twitter[key] = content
-			}
-		}
-	})
-	if len(twitter) > 0 {
-		metadata["twitter"] = twitter
-	}
-
-	// Standard meta tags
-	doc.Find("meta[name]").Each(func(i int, s *goquery.Selection) {
-		if name, exists := s.Attr("name"); exists {
-			if content, exists := s.Attr("content"); exists {
-				// Skip Twitter tags already processed
-				if !strings.HasPrefix(name, "twitter:") {
-					metadata[name] = content
-				}
+				metadata[property] = content
 			}
 		}
 	})
 
-	// Canonical URL
-	if canonical, exists := doc.Find("link[rel='canonical']").Attr("href"); exists {
-		metadata["canonical"] = canonical
-	}
-
-	// Language
-	if lang, exists := doc.Find("html").Attr("lang"); exists {
-		metadata["language"] = lang
-	}
+	// Extract structured data (JSON-LD)
+	doc.Find("script[type='application/ld+json']").Each(func(i int, s *goquery.Selection) {
+		var jsonData interface{}
+		if err := json.Unmarshal([]byte(s.Text()), &jsonData); err == nil {
+			metadata["structured_data"] = jsonData
+		}
+	})
 
 	return metadata
 }
 
-// extractCustom extracts custom selectors
 func (t *WebScraperTool) extractCustom(doc *goquery.Document, selectors map[string]string) map[string]interface{} {
-	result := make(map[string]interface{})
+	custom := make(map[string]interface{})
 
 	for key, selector := range selectors {
-		selection := doc.Find(selector)
-		if selection.Length() == 0 {
-			result[key] = nil
-		} else if selection.Length() == 1 {
-			// Single element
-			result[key] = map[string]interface{}{
-				"text": strings.TrimSpace(selection.Text()),
-				"html": t.getOuterHTML(selection),
+		var values []string
+		doc.Find(selector).Each(func(i int, s *goquery.Selection) {
+			text := strings.TrimSpace(s.Text())
+			if text != "" {
+				values = append(values, text)
 			}
-		} else {
-			// Multiple elements
-			var elements []map[string]interface{}
-			selection.Each(func(i int, s *goquery.Selection) {
-				elements = append(elements, map[string]interface{}{
-					"text": strings.TrimSpace(s.Text()),
-					"html": t.getOuterHTML(s),
-				})
-			})
-			result[key] = elements
-		}
-	}
-
-	return result
-}
-
-// getOuterHTML gets the outer HTML of a selection
-func (t *WebScraperTool) getOuterHTML(s *goquery.Selection) string {
-	html, _ := s.Html()
-	return html
-}
-
-// makeAbsolute converts a relative URL to absolute
-func (t *WebScraperTool) makeAbsolute(href string, baseURL *url.URL) string {
-	u, err := url.Parse(href)
-	if err != nil {
-		return href
-	}
-	return baseURL.ResolveReference(u).String()
-}
-
-// parseInput parses the tool input
-func (t *WebScraperTool) parseInput(input interface{}) (*scraperParams, error) {
-	var params scraperParams
-
-	// Handle different input types
-	switch v := input.(type) {
-	case string:
-		params.URL = v
-		params.ExtractMetadata = true
-		params.MaxContentLength = 10000
-	case map[string]interface{}:
-		data, err := json.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal(data, &params); err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unsupported input type: %T", input)
-	}
-
-	if params.MaxContentLength == 0 {
-		params.MaxContentLength = 10000
-	}
-
-	return &params, nil
-}
-
-type scraperParams struct {
-	URL              string           `json:"url"`
-	Selectors        scraperSelectors `json:"selectors"`
-	ExtractMetadata  bool             `json:"extract_metadata"`
-	MaxContentLength int              `json:"max_content_length"`
-}
-
-type scraperSelectors struct {
-	Title   string            `json:"title"`
-	Content string            `json:"content"`
-	Links   string            `json:"links"`
-	Images  string            `json:"images"`
-	Custom  map[string]string `json:"custom"`
-}
-
-// WebScraperRuntimeTool extends WebScraperTool with runtime support
-type WebScraperRuntimeTool struct {
-	*WebScraperTool
-}
-
-// NewWebScraperRuntimeTool creates a runtime-aware web scraper
-func NewWebScraperRuntimeTool() *WebScraperRuntimeTool {
-	return &WebScraperRuntimeTool{
-		WebScraperTool: NewWebScraperTool(),
-	}
-}
-
-// ExecuteWithRuntime executes with runtime support
-func (t *WebScraperRuntimeTool) ExecuteWithRuntime(ctx context.Context, input interface{}, runtime *tools.ToolRuntime) (interface{}, error) {
-	// Stream status
-	if runtime.StreamWriter != nil {
-		runtime.StreamWriter(map[string]interface{}{
-			"status": "starting",
-			"tool":   t.Name(),
 		})
-	}
 
-	// Execute the scraping
-	result, err := t.Execute(ctx, input)
-
-	// Cache successful results
-	if err == nil && runtime != nil {
-		params, _ := t.parseInput(input)
-		if params != nil {
-			// Store in runtime for caching
-			cacheKey := fmt.Sprintf("scrape_%s", params.URL)
-			runtime.PutToStore([]string{"web_cache"}, cacheKey, result)
+		if len(values) == 1 {
+			custom[key] = values[0]
+		} else if len(values) > 1 {
+			custom[key] = values
 		}
 	}
 
-	// Stream completion
-	if runtime.StreamWriter != nil {
-		runtime.StreamWriter(map[string]interface{}{
-			"status": "completed",
-			"tool":   t.Name(),
-			"error":  err,
-		})
-	}
-
-	return result, err
+	return custom
 }

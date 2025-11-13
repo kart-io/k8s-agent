@@ -1,6 +1,7 @@
 package practical
 
 import (
+	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -53,9 +54,9 @@ func (t *APICallerTool) Description() string {
 	return "Makes HTTP API calls with support for various authentication methods, retries, and rate limiting"
 }
 
-// InputSchema returns the input schema
-func (t *APICallerTool) InputSchema() interface{} {
-	return map[string]interface{}{
+// ArgsSchema returns the arguments schema as a JSON string
+func (t *APICallerTool) ArgsSchema() string {
+	schema := map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
 			"url": map[string]interface{}{
@@ -127,27 +128,16 @@ func (t *APICallerTool) InputSchema() interface{} {
 		},
 		"required": []string{"url"},
 	}
+
+	schemaJSON, _ := json.Marshal(schema)
+	return string(schemaJSON)
 }
 
 // OutputSchema returns the output schema
-func (t *APICallerTool) OutputSchema() interface{} {
-	return map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"status_code": map[string]interface{}{"type": "integer"},
-			"headers":     map[string]interface{}{"type": "object"},
-			"body":        map[string]interface{}{"type": []interface{}{"object", "string", "null"}},
-			"error":       map[string]interface{}{"type": "string"},
-			"latency_ms":  map[string]interface{}{"type": "integer"},
-			"cached":      map[string]interface{}{"type": "boolean"},
-			"attempts":    map[string]interface{}{"type": "integer"},
-		},
-	}
-}
 
 // Execute makes the API call
-func (t *APICallerTool) Execute(ctx context.Context, input interface{}) (interface{}, error) {
-	params, err := t.parseAPIInput(input)
+func (t *APICallerTool) Execute(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+	params, err := t.parseAPIInput(input.Args)
 	if err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
@@ -163,7 +153,9 @@ func (t *APICallerTool) Execute(ctx context.Context, input interface{}) (interfa
 		if cached := t.responseCache.Get(cacheKey); cached != nil {
 			result := cached.(map[string]interface{})
 			result["cached"] = true
-			return result, nil
+			return &tools.ToolOutput{
+				Result: result,
+			}, nil
 		}
 	}
 
@@ -195,9 +187,12 @@ func (t *APICallerTool) Execute(ctx context.Context, input interface{}) (interfa
 	}
 
 	if lastErr != nil {
-		return map[string]interface{}{
-			"error":    lastErr.Error(),
-			"attempts": attempts,
+		return &tools.ToolOutput{
+			Result: map[string]interface{}{
+				"error":    lastErr.Error(),
+				"attempts": attempts,
+			},
+			Error: lastErr.Error(),
 		}, lastErr
 	}
 
@@ -210,7 +205,52 @@ func (t *APICallerTool) Execute(ctx context.Context, input interface{}) (interfa
 		t.responseCache.Set(cacheKey, response)
 	}
 
-	return response, nil
+	return &tools.ToolOutput{
+		Result: response,
+	}, nil
+}
+
+// Implement Runnable interface
+func (t *APICallerTool) Invoke(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+	return t.Execute(ctx, input)
+}
+
+func (t *APICallerTool) Stream(ctx context.Context, input *tools.ToolInput) (<-chan agentcore.StreamChunk[*tools.ToolOutput], error) {
+	ch := make(chan agentcore.StreamChunk[*tools.ToolOutput])
+	go func() {
+		defer close(ch)
+		output, err := t.Execute(ctx, input)
+		if err != nil {
+			ch <- agentcore.StreamChunk[*tools.ToolOutput]{Error: err}
+		} else {
+			ch <- agentcore.StreamChunk[*tools.ToolOutput]{Data: output}
+		}
+	}()
+	return ch, nil
+}
+
+func (t *APICallerTool) Batch(ctx context.Context, inputs []*tools.ToolInput) ([]*tools.ToolOutput, error) {
+	outputs := make([]*tools.ToolOutput, len(inputs))
+	for i, input := range inputs {
+		output, err := t.Execute(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		outputs[i] = output
+	}
+	return outputs, nil
+}
+
+func (t *APICallerTool) Pipe(next agentcore.Runnable[*tools.ToolOutput, any]) agentcore.Runnable[*tools.ToolInput, any] {
+	return nil
+}
+
+func (t *APICallerTool) WithCallbacks(callbacks ...agentcore.Callback) agentcore.Runnable[*tools.ToolInput, *tools.ToolOutput] {
+	return t
+}
+
+func (t *APICallerTool) WithConfig(config agentcore.RunnableConfig) agentcore.Runnable[*tools.ToolInput, *tools.ToolOutput] {
+	return t
 }
 
 // executeRequest executes a single HTTP request
@@ -617,7 +657,7 @@ func NewAPICallerRuntimeTool() *APICallerRuntimeTool {
 }
 
 // ExecuteWithRuntime executes with runtime support
-func (t *APICallerRuntimeTool) ExecuteWithRuntime(ctx context.Context, input interface{}, runtime *tools.ToolRuntime) (interface{}, error) {
+func (t *APICallerRuntimeTool) ExecuteWithRuntime(ctx context.Context, input *tools.ToolInput, runtime *tools.ToolRuntime) (*tools.ToolOutput, error) {
 	// Stream status
 	if runtime != nil && runtime.StreamWriter != nil {
 		runtime.StreamWriter(map[string]interface{}{
@@ -628,7 +668,7 @@ func (t *APICallerRuntimeTool) ExecuteWithRuntime(ctx context.Context, input int
 
 	// Get stored API keys from runtime
 	if runtime != nil {
-		params, _ := t.parseAPIInput(input)
+		params, _ := t.parseAPIInput(input.Args)
 		if params != nil && params.Auth != nil && params.Auth.Type == "api_key" {
 			// Try to get API key from runtime state
 			if key, err := runtime.GetState("api_key_" + params.URL); err == nil {
@@ -642,7 +682,7 @@ func (t *APICallerRuntimeTool) ExecuteWithRuntime(ctx context.Context, input int
 
 	// Store successful results in runtime
 	if err == nil && runtime != nil {
-		params, _ := t.parseAPIInput(input)
+		params, _ := t.parseAPIInput(input.Args)
 		if params != nil {
 			// Store last successful response
 			runtime.PutToStore([]string{"api_responses"}, params.URL, result)

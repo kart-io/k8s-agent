@@ -1,6 +1,7 @@
 package practical
 
 import (
+	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"archive/zip"
 	"bufio"
 	"compress/gzip"
@@ -58,9 +59,9 @@ func (t *FileOperationsTool) Description() string {
 	return "Performs file system operations including read, write, search, compress, and analyze files"
 }
 
-// InputSchema returns the input schema
-func (t *FileOperationsTool) InputSchema() interface{} {
-	return map[string]interface{}{
+// ArgsSchema returns the arguments schema as a JSON string
+func (t *FileOperationsTool) ArgsSchema() string {
+	schema := map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
 			"operation": map[string]interface{}{
@@ -133,77 +134,116 @@ func (t *FileOperationsTool) InputSchema() interface{} {
 		},
 		"required": []string{"operation", "path"},
 	}
+
+	schemaJSON, _ := json.Marshal(schema)
+	return string(schemaJSON)
 }
 
 // OutputSchema returns the output schema
-func (t *FileOperationsTool) OutputSchema() interface{} {
-	return map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"success": map[string]interface{}{"type": "boolean"},
-			"result":  map[string]interface{}{"type": []interface{}{"object", "string", "array", "null"}},
-			"error":   map[string]interface{}{"type": "string"},
-			"info": map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"size":        map[string]interface{}{"type": "integer"},
-					"modified":    map[string]interface{}{"type": "string"},
-					"permissions": map[string]interface{}{"type": "string"},
-					"checksum":    map[string]interface{}{"type": "string"},
-				},
-			},
-		},
-	}
-}
 
 // Execute performs the file operation
-func (t *FileOperationsTool) Execute(ctx context.Context, input interface{}) (interface{}, error) {
-	params, err := t.parseFileInput(input)
+func (t *FileOperationsTool) Execute(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+	params, err := t.parseFileInput(input.Args)
 	if err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
 	// Validate path security
 	if err := t.validatePath(params.Path); err != nil {
-		return map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
+		return &tools.ToolOutput{
+			Result: map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+			},
+			Error: err.Error(),
 		}, err
 	}
 
 	// Execute operation
+	var result interface{}
 	switch params.Operation {
 	case "read":
-		return t.readFile(ctx, params)
+		result, err = t.readFile(ctx, params)
 	case "write":
-		return t.writeFile(ctx, params)
+		result, err = t.writeFile(ctx, params)
 	case "append":
-		return t.appendFile(ctx, params)
+		result, err = t.appendFile(ctx, params)
 	case "delete":
-		return t.deleteFile(ctx, params)
+		result, err = t.deleteFile(ctx, params)
 	case "copy":
-		return t.copyFile(ctx, params)
+		result, err = t.copyFile(ctx, params)
 	case "move":
-		return t.moveFile(ctx, params)
+		result, err = t.moveFile(ctx, params)
 	case "list":
-		return t.listDirectory(ctx, params)
+		result, err = t.listDirectory(ctx, params)
 	case "search":
-		return t.searchFiles(ctx, params)
+		result, err = t.searchFiles(ctx, params)
 	case "info":
-		return t.getFileInfo(ctx, params)
+		result, err = t.getFileInfo(ctx, params)
 	case "compress":
-		return t.compressFile(ctx, params)
+		result, err = t.compressFile(ctx, params)
 	case "decompress":
-		return t.decompressFile(ctx, params)
+		result, err = t.decompressFile(ctx, params)
 	case "parse":
-		return t.parseFile(ctx, params)
+		result, err = t.parseFile(ctx, params)
 	case "analyze":
-		return t.analyzeFile(ctx, params)
+		result, err = t.analyzeFile(ctx, params)
 	case "watch":
-		return t.watchFile(ctx, params)
+		result, err = t.watchFile(ctx, params)
 	default:
 		return nil, fmt.Errorf("unsupported operation: %s", params.Operation)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &tools.ToolOutput{
+		Result: result,
+	}, nil
+}
+
+// Implement Runnable interface
+func (t *FileOperationsTool) Invoke(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+	return t.Execute(ctx, input)
+}
+
+func (t *FileOperationsTool) Stream(ctx context.Context, input *tools.ToolInput) (<-chan agentcore.StreamChunk[*tools.ToolOutput], error) {
+	ch := make(chan agentcore.StreamChunk[*tools.ToolOutput])
+	go func() {
+		defer close(ch)
+		output, err := t.Execute(ctx, input)
+		if err != nil {
+			ch <- agentcore.StreamChunk[*tools.ToolOutput]{Error: err}
+		} else {
+			ch <- agentcore.StreamChunk[*tools.ToolOutput]{Data: output}
+		}
+	}()
+	return ch, nil
+}
+
+func (t *FileOperationsTool) Batch(ctx context.Context, inputs []*tools.ToolInput) ([]*tools.ToolOutput, error) {
+	outputs := make([]*tools.ToolOutput, len(inputs))
+	for i, input := range inputs {
+		output, err := t.Execute(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		outputs[i] = output
+	}
+	return outputs, nil
+}
+
+func (t *FileOperationsTool) Pipe(next agentcore.Runnable[*tools.ToolOutput, any]) agentcore.Runnable[*tools.ToolInput, any] {
+	return nil
+}
+
+func (t *FileOperationsTool) WithCallbacks(callbacks ...agentcore.Callback) agentcore.Runnable[*tools.ToolInput, *tools.ToolOutput] {
+	return t
+}
+
+func (t *FileOperationsTool) WithConfig(config agentcore.RunnableConfig) agentcore.Runnable[*tools.ToolInput, *tools.ToolOutput] {
+	return t
 }
 
 // readFile reads file content
@@ -1187,7 +1227,7 @@ func NewFileOperationsRuntimeTool(basePath string) *FileOperationsRuntimeTool {
 }
 
 // ExecuteWithRuntime executes with runtime support
-func (t *FileOperationsRuntimeTool) ExecuteWithRuntime(ctx context.Context, input interface{}, runtime *tools.ToolRuntime) (interface{}, error) {
+func (t *FileOperationsRuntimeTool) ExecuteWithRuntime(ctx context.Context, input *tools.ToolInput, runtime *tools.ToolRuntime) (*tools.ToolOutput, error) {
 	// Stream status
 	if runtime != nil && runtime.StreamWriter != nil {
 		runtime.StreamWriter(map[string]interface{}{
@@ -1201,7 +1241,7 @@ func (t *FileOperationsRuntimeTool) ExecuteWithRuntime(ctx context.Context, inpu
 
 	// Store file operations in runtime for audit
 	if runtime != nil {
-		params, _ := t.parseFileInput(input)
+		params, _ := t.parseFileInput(input.Args)
 		if params != nil {
 			// Store operation log
 			runtime.PutToStore([]string{"file_operations"}, time.Now().Format(time.RFC3339), map[string]interface{}{

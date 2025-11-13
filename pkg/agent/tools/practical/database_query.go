@@ -1,6 +1,7 @@
 package practical
 
 import (
+	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -41,9 +42,9 @@ func (t *DatabaseQueryTool) Description() string {
 	return "Executes SQL queries against databases with support for MySQL, PostgreSQL, and SQLite"
 }
 
-// InputSchema returns the input schema
-func (t *DatabaseQueryTool) InputSchema() interface{} {
-	return map[string]interface{}{
+// ArgsSchema returns the arguments schema as a JSON string
+func (t *DatabaseQueryTool) ArgsSchema() string {
+	schema := map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
 			"connection": map[string]interface{}{
@@ -104,46 +105,16 @@ func (t *DatabaseQueryTool) InputSchema() interface{} {
 		},
 		"required": []string{"connection"},
 	}
+
+	schemaJSON, _ := json.Marshal(schema)
+	return string(schemaJSON)
 }
 
 // OutputSchema returns the output schema
-func (t *DatabaseQueryTool) OutputSchema() interface{} {
-	return map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"columns": map[string]interface{}{
-				"type":        "array",
-				"items":       map[string]interface{}{"type": "string"},
-				"description": "Column names",
-			},
-			"rows": map[string]interface{}{
-				"type":        "array",
-				"items":       map[string]interface{}{"type": "array"},
-				"description": "Result rows",
-			},
-			"rows_affected": map[string]interface{}{
-				"type":        "integer",
-				"description": "Number of rows affected",
-			},
-			"last_insert_id": map[string]interface{}{
-				"type":        "integer",
-				"description": "Last insert ID (if applicable)",
-			},
-			"error": map[string]interface{}{
-				"type":        "string",
-				"description": "Error message if any",
-			},
-			"execution_time_ms": map[string]interface{}{
-				"type":        "integer",
-				"description": "Query execution time in milliseconds",
-			},
-		},
-	}
-}
 
 // Execute runs the database query
-func (t *DatabaseQueryTool) Execute(ctx context.Context, input interface{}) (interface{}, error) {
-	params, err := t.parseDBInput(input)
+func (t *DatabaseQueryTool) Execute(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+	params, err := t.parseDBInput(input.Args)
 	if err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
@@ -176,9 +147,12 @@ func (t *DatabaseQueryTool) Execute(ctx context.Context, input interface{}) (int
 	executionTime := time.Since(startTime).Milliseconds()
 
 	if err != nil {
-		return map[string]interface{}{
-			"error":             err.Error(),
-			"execution_time_ms": executionTime,
+		return &tools.ToolOutput{
+			Result: map[string]interface{}{
+				"error":             err.Error(),
+				"execution_time_ms": executionTime,
+			},
+			Error: err.Error(),
 		}, err
 	}
 
@@ -187,7 +161,52 @@ func (t *DatabaseQueryTool) Execute(ctx context.Context, input interface{}) (int
 		resultMap["execution_time_ms"] = executionTime
 	}
 
-	return result, nil
+	return &tools.ToolOutput{
+		Result: result,
+	}, nil
+}
+
+// Implement Runnable interface
+func (t *DatabaseQueryTool) Invoke(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+	return t.Execute(ctx, input)
+}
+
+func (t *DatabaseQueryTool) Stream(ctx context.Context, input *tools.ToolInput) (<-chan agentcore.StreamChunk[*tools.ToolOutput], error) {
+	ch := make(chan agentcore.StreamChunk[*tools.ToolOutput])
+	go func() {
+		defer close(ch)
+		output, err := t.Execute(ctx, input)
+		if err != nil {
+			ch <- agentcore.StreamChunk[*tools.ToolOutput]{Error: err}
+		} else {
+			ch <- agentcore.StreamChunk[*tools.ToolOutput]{Data: output}
+		}
+	}()
+	return ch, nil
+}
+
+func (t *DatabaseQueryTool) Batch(ctx context.Context, inputs []*tools.ToolInput) ([]*tools.ToolOutput, error) {
+	outputs := make([]*tools.ToolOutput, len(inputs))
+	for i, input := range inputs {
+		output, err := t.Execute(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		outputs[i] = output
+	}
+	return outputs, nil
+}
+
+func (t *DatabaseQueryTool) Pipe(next agentcore.Runnable[*tools.ToolOutput, any]) agentcore.Runnable[*tools.ToolInput, any] {
+	return nil
+}
+
+func (t *DatabaseQueryTool) WithCallbacks(callbacks ...agentcore.Callback) agentcore.Runnable[*tools.ToolInput, *tools.ToolOutput] {
+	return t
+}
+
+func (t *DatabaseQueryTool) WithConfig(config agentcore.RunnableConfig) agentcore.Runnable[*tools.ToolInput, *tools.ToolOutput] {
+	return t
 }
 
 // getConnection gets or creates a database connection
@@ -472,7 +491,7 @@ func NewDatabaseQueryRuntimeTool() *DatabaseQueryRuntimeTool {
 }
 
 // ExecuteWithRuntime executes with runtime support
-func (t *DatabaseQueryRuntimeTool) ExecuteWithRuntime(ctx context.Context, input interface{}, runtime *tools.ToolRuntime) (interface{}, error) {
+func (t *DatabaseQueryRuntimeTool) ExecuteWithRuntime(ctx context.Context, input *tools.ToolInput, runtime *tools.ToolRuntime) (*tools.ToolOutput, error) {
 	// Stream status
 	if runtime != nil && runtime.StreamWriter != nil {
 		runtime.StreamWriter(map[string]interface{}{
@@ -483,7 +502,7 @@ func (t *DatabaseQueryRuntimeTool) ExecuteWithRuntime(ctx context.Context, input
 
 	// Get connection details from runtime if needed
 	if runtime != nil {
-		params, _ := t.parseDBInput(input)
+		params, _ := t.parseDBInput(input.Args)
 		if params != nil && params.Connection.DSN == "" {
 			// Try to get DSN from runtime state
 			key := fmt.Sprintf("db_%s_dsn", params.Connection.Driver)
@@ -498,7 +517,7 @@ func (t *DatabaseQueryRuntimeTool) ExecuteWithRuntime(ctx context.Context, input
 
 	// Store query results in runtime for analysis
 	if err == nil && runtime != nil {
-		params, _ := t.parseDBInput(input)
+		params, _ := t.parseDBInput(input.Args)
 		if params != nil && params.Operation == "query" {
 			// Store recent query results
 			runtime.PutToStore([]string{"query_results"}, time.Now().Format(time.RFC3339), result)
