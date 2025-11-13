@@ -620,3 +620,161 @@ func ChatAgent(llmClient llm.Client, userName string) (*ConfigurableAgent[any, *
 		WithMetadata("type", "chatbot").
 		Build()
 }
+
+// AnalysisAgent creates a pre-configured data analysis agent
+//
+// This agent is optimized for:
+//   - Data analysis and report generation
+//   - Consistent, factual outputs
+//   - Structured data transformations
+//   - Extended reasoning iterations
+//
+// Configuration:
+//   - Temperature: 0.1 (very low for consistency)
+//   - MaxIterations: 20 (more iterations for complex analysis)
+//   - Middleware: Timing, Transform (for structured output)
+func AnalysisAgent(llmClient llm.Client, dataSource interface{}) (*ConfigurableAgent[any, *core.AgentState], error) {
+	state := core.NewAgentState()
+	if dataSource != nil {
+		state.Set("data_source", dataSource)
+	}
+
+	return NewAgentBuilder[any, *core.AgentState](llmClient).
+		WithSystemPrompt("You are a data analysis expert. Analyze data thoroughly and provide structured, accurate insights.").
+		WithState(state).
+		ConfigureForAnalysis().
+		WithMetadata("type", "analysis").
+		WithMetadata("data_source_type", fmt.Sprintf("%T", dataSource)).
+		Build()
+}
+
+// WorkflowAgent creates a pre-configured workflow orchestration agent
+//
+// This agent is optimized for:
+//   - Multi-step workflow execution
+//   - Task orchestration and coordination
+//   - Error handling and validation
+//   - State persistence across steps
+//
+// Configuration:
+//   - MaxIterations: 15 (balanced for workflow steps)
+//   - EnableAutoSave: true (persist state across steps)
+//   - Middleware: Logging, CircuitBreaker, Validation
+func WorkflowAgent(llmClient llm.Client, workflows map[string]interface{}) (*ConfigurableAgent[any, *core.AgentState], error) {
+	state := core.NewAgentState()
+	if workflows != nil {
+		state.Set("workflows", workflows)
+		state.Set("workflow_status", "initialized")
+	}
+
+	config := DefaultAgentConfig()
+	config.MaxIterations = 15
+	config.EnableAutoSave = true
+
+	return NewAgentBuilder[any, *core.AgentState](llmClient).
+		WithSystemPrompt("You are a workflow orchestrator. Execute tasks systematically, validate results, and handle errors gracefully.").
+		WithState(state).
+		WithConfig(config).
+		WithMiddleware(
+			core.NewLoggingMiddleware(nil),
+			core.NewCircuitBreakerMiddleware(5, 30*time.Second),
+			core.NewValidationMiddleware(func(req *core.MiddlewareRequest) error {
+				// Basic validation
+				if req.Input == nil {
+					return fmt.Errorf("workflow input cannot be nil")
+				}
+				return nil
+			}),
+		).
+		WithMetadata("type", "workflow").
+		Build()
+}
+
+// MonitoringAgent creates a pre-configured monitoring agent
+//
+// This agent is optimized for:
+//   - Continuous system monitoring
+//   - Anomaly detection
+//   - Alert generation
+//   - Periodic health checks
+//
+// Configuration:
+//   - Continuous operation mode
+//   - Rate limiting to prevent overwhelming
+//   - Caching for efficient monitoring
+//   - Alert middleware for notifications
+func MonitoringAgent(llmClient llm.Client, checkInterval time.Duration) (*ConfigurableAgent[any, *core.AgentState], error) {
+	state := core.NewAgentState()
+	state.Set("check_interval", checkInterval)
+	state.Set("last_check", time.Now())
+	state.Set("monitoring_status", "active")
+
+	config := DefaultAgentConfig()
+	config.MaxIterations = 100 // Long-running monitoring
+	config.Temperature = 0.3   // Balanced for pattern recognition
+
+	return NewAgentBuilder[any, *core.AgentState](llmClient).
+		WithSystemPrompt("You are a system monitoring expert. Observe metrics, detect anomalies, and alert on issues promptly.").
+		WithState(state).
+		WithConfig(config).
+		WithMiddleware(
+			core.NewRateLimiterMiddleware(60, time.Minute), // Limit to 60 checks per minute
+			core.NewCacheMiddleware(5*time.Minute),         // Cache recent checks
+			core.NewTimingMiddleware(),
+		).
+		WithMetadata("type", "monitoring").
+		WithMetadata("check_interval", checkInterval.String()).
+		Build()
+}
+
+// ResearchAgent creates a pre-configured research and information gathering agent
+//
+// This agent is optimized for:
+//   - Information collection from multiple sources
+//   - Research report generation
+//   - Source synthesis and citation
+//   - Fact-checking and verification
+//
+// Configuration:
+//   - MaxTokens: 4000 (larger context for comprehensive reports)
+//   - Temperature: 0.5 (balanced for creativity and accuracy)
+//   - Middleware: ToolSelector (for search/scrape), Cache
+func ResearchAgent(llmClient llm.Client, sources []string) (*ConfigurableAgent[any, *core.AgentState], error) {
+	state := core.NewAgentState()
+	if sources != nil && len(sources) > 0 {
+		state.Set("sources", sources)
+		state.Set("sources_count", len(sources))
+	}
+	state.Set("research_status", "initialized")
+
+	config := DefaultAgentConfig()
+	config.MaxTokens = 4000
+	config.Temperature = 0.5
+	config.MaxIterations = 15
+
+	return NewAgentBuilder[any, *core.AgentState](llmClient).
+		WithSystemPrompt("You are a research expert. Gather information from multiple sources, synthesize findings, and provide comprehensive, well-cited reports.").
+		WithState(state).
+		WithConfig(config).
+		WithMiddleware(
+			core.NewCacheMiddleware(10*time.Minute), // Cache research results
+			core.NewTimingMiddleware(),
+		).
+		WithMetadata("type", "research").
+		WithMetadata("sources_count", len(sources)).
+		Build()
+}
+
+// WithTelemetry 添加 OpenTelemetry 支持
+func (b *AgentBuilder[C, S]) WithTelemetry(provider interface{}) *AgentBuilder[C, S] {
+	// Store telemetry provider in metadata
+	b.metadata["telemetry_provider"] = provider
+	return b
+}
+
+// WithCommunicator 添加通信器
+func (b *AgentBuilder[C, S]) WithCommunicator(communicator interface{}) *AgentBuilder[C, S] {
+	// Store communicator in metadata
+	b.metadata["communicator"] = communicator
+	return b
+}

@@ -11,8 +11,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
-	"github.com/kart-io/k8s-agent/pkg/agent/stream/agents"
-	"github.com/kart-io/k8s-agent/pkg/agent/stream/tools"
+	"github.com/kart-io/k8s-agent/pkg/agent/stream"
 )
 
 func main() {
@@ -20,10 +19,10 @@ func main() {
 	fmt.Println()
 
 	// 创建进度 Agent
-	progressAgent := agents.NewProgressAgent(agents.DefaultProgressConfig())
+	progressAgent := stream.NewProgressAgent(stream.DefaultProgressConfig())
 
 	// 创建数据管道 Agent
-	pipelineAgent := agents.NewDataPipelineAgent(agents.DefaultDataPipelineConfig())
+	pipelineAgent := stream.NewDataPipelineAgent(stream.DefaultDataPipelineConfig())
 
 	// 创建路由
 	router := mux.NewRouter()
@@ -33,11 +32,11 @@ func main() {
 	router.HandleFunc("/api/stream/sse/data", SSEDataProcessingHandler(pipelineAgent)).Methods("POST")
 
 	// WebSocket 端点
-	router.HandleFunc("/api/stream/ws/progress", tools.WebSocketStreamHandler(func(ctx context.Context, input *core.AgentInput) (core.StreamOutput, error) {
+	router.HandleFunc("/api/stream/ws/progress", stream.WebSocketStreamHandler(func(ctx context.Context, input *core.AgentInput) (core.StreamOutput, error) {
 		return progressAgent.ExecuteStream(ctx, input)
 	})).Methods("GET")
 
-	router.HandleFunc("/api/stream/ws/data", tools.WebSocketStreamHandler(func(ctx context.Context, input *core.AgentInput) (core.StreamOutput, error) {
+	router.HandleFunc("/api/stream/ws/data", stream.WebSocketStreamHandler(func(ctx context.Context, input *core.AgentInput) (core.StreamOutput, error) {
 		return pipelineAgent.ExecuteStream(ctx, input)
 	})).Methods("GET")
 
@@ -73,7 +72,7 @@ func main() {
 }
 
 // SSEProgressHandler SSE 进度流处理器
-func SSEProgressHandler(agent *agents.ProgressAgent) http.HandlerFunc {
+func SSEProgressHandler(agent *stream.ProgressAgent) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -105,14 +104,14 @@ func SSEProgressHandler(agent *agents.ProgressAgent) http.HandlerFunc {
 		defer source.Close()
 
 		// 转换为 SSE
-		if err := tools.StreamToSSE(ctx, w, source); err != nil {
+		if err := stream.StreamToSSE(ctx, w, source); err != nil {
 			log.Printf("SSE error: %v", err)
 		}
 	}
 }
 
 // SSEDataProcessingHandler SSE 数据处理流处理器
-func SSEDataProcessingHandler(agent *agents.DataPipelineAgent) http.HandlerFunc {
+func SSEDataProcessingHandler(agent *stream.DataPipelineAgent) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -149,14 +148,14 @@ func SSEDataProcessingHandler(agent *agents.DataPipelineAgent) http.HandlerFunc 
 		defer source.Close()
 
 		// 转换为 SSE
-		if err := tools.StreamToSSE(ctx, w, source); err != nil {
+		if err := stream.StreamToSSE(ctx, w, source); err != nil {
 			log.Printf("SSE error: %v", err)
 		}
 	}
 }
 
 // ChunkedProgressHandler Chunked Transfer 进度处理器
-func ChunkedProgressHandler(agent *agents.ProgressAgent) http.HandlerFunc {
+func ChunkedProgressHandler(agent *stream.ProgressAgent) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -188,7 +187,7 @@ func ChunkedProgressHandler(agent *agents.ProgressAgent) http.HandlerFunc {
 		defer source.Close()
 
 		// 转换为 Chunked Transfer
-		if err := tools.StreamToChunkedTransfer(ctx, w, source); err != nil {
+		if err := stream.StreamToChunkedTransfer(ctx, w, source); err != nil {
 			log.Printf("Chunked transfer error: %v", err)
 		}
 	}

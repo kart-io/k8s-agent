@@ -7,7 +7,12 @@ import (
 	"time"
 
 	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/toolkits"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
+	"github.com/kart-io/k8s-agent/pkg/agent/tools/compute"
+	"github.com/kart-io/k8s-agent/pkg/agent/tools/http"
+	"github.com/kart-io/k8s-agent/pkg/agent/tools/search"
+	"github.com/kart-io/k8s-agent/pkg/agent/tools/shell"
 )
 
 func main() {
@@ -130,7 +135,7 @@ func example2FunctionTool() {
 func example3CalculatorTool() {
 	fmt.Println("--- Example 3: Calculator Tool ---")
 
-	tool := tools.NewCalculatorTool()
+	tool := compute.NewCalculatorTool()
 	ctx := context.Background()
 
 	expressions := []string{
@@ -171,8 +176,8 @@ func example4SearchTool() {
 	fmt.Println("--- Example 4: Search Tool ---")
 
 	// 使用模拟搜索引擎
-	engine := tools.NewMockSearchEngine()
-	tool := tools.NewSearchTool(engine)
+	engine := search.NewMockSearchEngine()
+	tool := search.NewSearchTool(engine)
 
 	ctx := context.Background()
 	input := &tools.ToolInput{
@@ -190,7 +195,7 @@ func example4SearchTool() {
 	}
 
 	if output.Success {
-		results := output.Result.([]tools.SearchResult)
+		results := output.Result.([]search.SearchResult)
 		fmt.Printf("Found %d results:\n", len(results))
 		for i, result := range results {
 			fmt.Printf("%d. %s\n", i+1, result.Title)
@@ -206,7 +211,7 @@ func example5ShellTool() {
 	fmt.Println("--- Example 5: Shell Tool ---")
 
 	// 创建安全的 Shell 工具（只允许特定命令）
-	tool := tools.NewShellToolBuilder().
+	tool := shell.NewShellToolBuilder().
 		WithAllowedCommands("echo", "pwd", "ls", "date").
 		WithTimeout(5 * time.Second).
 		Build()
@@ -253,7 +258,7 @@ func example6APITool() {
 	fmt.Println("--- Example 6: API Tool ---")
 
 	// 创建 API 工具
-	tool := tools.NewAPIToolBuilder().
+	tool := http.NewAPIToolBuilder().
 		WithBaseURL("https://jsonplaceholder.typicode.com").
 		WithTimeout(10 * time.Second).
 		Build()
@@ -289,7 +294,7 @@ func example7ToolkitUsage() {
 	fmt.Println("--- Example 7: Toolkit Usage ---")
 
 	// 使用标准工具集
-	toolkit := tools.NewStandardToolkit()
+	toolkit := toolkits.NewStandardToolkit()
 
 	fmt.Println("Available tools:")
 	for _, name := range toolkit.GetToolNames() {
@@ -319,11 +324,11 @@ func example7ToolkitUsage() {
 func example8ToolRegistry() {
 	fmt.Println("--- Example 8: Tool Registry ---")
 
-	registry := tools.NewToolRegistry()
+	registry := toolkits.NewToolRegistry()
 
 	// 注册工具
-	_ = registry.Register(tools.NewCalculatorTool())
-	_ = registry.Register(tools.NewSearchTool(tools.NewMockSearchEngine()))
+	_ = registry.Register(compute.NewCalculatorTool())
+	_ = registry.Register(search.NewSearchTool(search.NewMockSearchEngine()))
 
 	fmt.Println("Registered tools:")
 	for _, tool := range registry.List() {
@@ -343,7 +348,7 @@ func example9ToolsWithCallbacks() {
 	callback := &loggingCallback{}
 
 	// 创建带回调的工具
-	tool := tools.NewCalculatorTool()
+	tool := compute.NewCalculatorTool()
 	toolWithCallback := tool.WithCallbacks(callback).(tools.Tool)
 
 	ctx := context.Background()
@@ -429,13 +434,13 @@ func example11ToolExecutor() {
 	fmt.Println("--- Example 11: Tool Executor ---")
 
 	// 创建工具集
-	toolkit := tools.NewToolkitBuilder().
+	toolkit := toolkits.NewToolkitBuilder().
 		WithCalculator().
 		WithSearch(nil).
 		Build()
 
 	// 创建执行器
-	executor := tools.NewToolExecutor(toolkit)
+	executor := toolkits.NewToolkitExecutor(toolkit)
 
 	ctx := context.Background()
 

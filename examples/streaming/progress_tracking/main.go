@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
-	"github.com/kart-io/k8s-agent/pkg/agent/stream/agents"
+	"github.com/kart-io/k8s-agent/pkg/agent/stream"
 )
 
 //nolint:gocyclo // Example code with comprehensive demo flow
@@ -16,14 +16,14 @@ func main() {
 	fmt.Println()
 
 	// 创建进度 Agent
-	config := &agents.ProgressConfig{
+	config := &stream.ProgressConfig{
 		EnableProgress:   true,
 		ProgressInterval: 200 * time.Millisecond,
 		EnableETA:        true,
 		EnablePhases:     true,
 	}
 
-	agent := agents.NewProgressAgent(config)
+	agent := stream.NewProgressAgent(config)
 
 	// 演示 1: 基本进度跟踪
 	fmt.Println("=== Example 1: Basic Progress Tracking ===")

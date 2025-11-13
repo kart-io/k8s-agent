@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
-	"github.com/kart-io/k8s-agent/pkg/agent/stream/agents"
+	"github.com/kart-io/k8s-agent/pkg/agent/stream"
 )
 
 //nolint:gocyclo // Example code with comprehensive demo flow
@@ -16,7 +16,7 @@ func main() {
 	fmt.Println()
 
 	// 创建数据管道 Agent
-	config := &agents.DataPipelineConfig{
+	config := &stream.DataPipelineConfig{
 		BatchSize:        50,
 		ProcessDelay:     50 * time.Millisecond,
 		EnableProgress:   true,
@@ -24,7 +24,7 @@ func main() {
 		MaxWorkers:       4,
 	}
 
-	agent := agents.NewDataPipelineAgent(config)
+	agent := stream.NewDataPipelineAgent(config)
 
 	// 准备大数据集
 	dataSize := 500

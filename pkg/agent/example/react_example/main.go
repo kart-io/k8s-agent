@@ -6,7 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/agents"
+	"github.com/kart-io/k8s-agent/pkg/agent/agents/executor"
+	"github.com/kart-io/k8s-agent/pkg/agent/agents/react"
 	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
@@ -84,7 +85,7 @@ Action Input: {"expression": "25 * 9/5 + 32"}`)
 Final Answer: The current weather in Beijing is 25°C (77°F) with sunny skies.`)
 
 	// 创建 ReAct Agent
-	agent := agents.NewReActAgent(agents.ReActConfig{
+	agent := react.NewReActAgent(react.ReActConfig{
 		Name:        "WeatherAgent",
 		Description: "An agent that can provide weather information and perform calculations",
 		LLM:         llmClient,
@@ -96,7 +97,7 @@ Final Answer: The current weather in Beijing is 25°C (77°F) with sunny skies.`
 	callback := &LoggingCallback{}
 
 	// 创建执行器
-	executor := agents.NewAgentExecutor(agents.ExecutorConfig{
+	executor := executor.NewAgentExecutor(executor.ExecutorConfig{
 		Agent:             agent,
 		Tools:             []tools.Tool{calculatorTool, weatherTool, searchTool},
 		MaxIterations:     10,

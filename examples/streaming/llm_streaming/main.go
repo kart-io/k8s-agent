@@ -8,7 +8,7 @@ import (
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
-	"github.com/kart-io/k8s-agent/pkg/agent/stream/agents"
+	"github.com/kart-io/k8s-agent/pkg/agent/stream"
 )
 
 // MockLLMClient 模拟 LLM 客户端（用于演示）
@@ -39,14 +39,14 @@ func main() {
 
 	// 创建 LLM 流式 Agent
 	llmClient := &MockLLMClient{}
-	config := &agents.StreamingLLMConfig{
+	config := &stream.StreamingLLMConfig{
 		ChunkSize:        5,                      // 每次发送 5 个字符
 		ChunkDelay:       100 * time.Millisecond, // 模拟打字效果
 		EnableProgress:   true,
 		ProgressInterval: time.Second,
 	}
 
-	agent := agents.NewStreamingLLMAgent(llmClient, config)
+	agent := stream.NewStreamingLLMAgent(llmClient, config)
 
 	// 准备输入
 	input := &core.AgentInput{
@@ -127,7 +127,7 @@ func main() {
 	fmt.Println("\n=== Stream Consumer Example ===")
 	fmt.Println()
 
-	consumer := &agents.SimpleStreamConsumer{
+	consumer := &stream.SimpleStreamConsumer{
 		OnStartFunc: func() error {
 			fmt.Println("Consumer: Stream started")
 			return nil
@@ -149,7 +149,7 @@ func main() {
 	}
 
 	// 使用文本累积消费者
-	accumulator := agents.NewTextAccumulatorConsumer()
+	accumulator := stream.NewTextAccumulatorConsumer()
 
 	streamOutput2, err := agent.ExecuteStream(ctx, input)
 	if err != nil {

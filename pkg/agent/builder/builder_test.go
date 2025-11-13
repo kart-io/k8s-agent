@@ -471,6 +471,147 @@ func TestChatAgent(t *testing.T) {
 	assert.Equal(t, "Bob", userName)
 }
 
+func TestAnalysisAgent(t *testing.T) {
+	llmClient := NewMockLLMClient("Analysis response")
+
+	dataSource := map[string]interface{}{
+		"type": "csv",
+		"path": "/data/sales.csv",
+	}
+
+	agent, err := AnalysisAgent(llmClient, dataSource)
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+
+	assert.Contains(t, agent.systemPrompt, "data analysis")
+	assert.Equal(t, "analysis", agent.metadata["type"])
+	assert.Equal(t, 0.1, agent.config.Temperature)
+	assert.Equal(t, 20, agent.config.MaxIterations)
+
+	// Check data source was set in state
+	ds, ok := agent.GetState().Get("data_source")
+	assert.True(t, ok)
+	assert.Equal(t, dataSource, ds)
+}
+
+func TestWorkflowAgent(t *testing.T) {
+	llmClient := NewMockLLMClient("Workflow response")
+
+	workflows := map[string]interface{}{
+		"deploy":   []string{"build", "test", "deploy"},
+		"rollback": []string{"stop", "restore", "restart"},
+	}
+
+	agent, err := WorkflowAgent(llmClient, workflows)
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+
+	assert.Contains(t, agent.systemPrompt, "workflow orchestrator")
+	assert.Equal(t, "workflow", agent.metadata["type"])
+	assert.Equal(t, 15, agent.config.MaxIterations)
+	assert.True(t, agent.config.EnableAutoSave)
+
+	// Check workflows were set in state
+	wf, ok := agent.GetState().Get("workflows")
+	assert.True(t, ok)
+	assert.Equal(t, workflows, wf)
+
+	status, ok := agent.GetState().Get("workflow_status")
+	assert.True(t, ok)
+	assert.Equal(t, "initialized", status)
+}
+
+func TestMonitoringAgent(t *testing.T) {
+	llmClient := NewMockLLMClient("Monitoring response")
+
+	checkInterval := 30 * time.Second
+
+	agent, err := MonitoringAgent(llmClient, checkInterval)
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+
+	assert.Contains(t, agent.systemPrompt, "monitoring")
+	assert.Equal(t, "monitoring", agent.metadata["type"])
+	assert.Equal(t, 100, agent.config.MaxIterations) // Long-running
+	assert.Equal(t, 0.3, agent.config.Temperature)
+
+	// Check check_interval was set in state
+	interval, ok := agent.GetState().Get("check_interval")
+	assert.True(t, ok)
+	assert.Equal(t, checkInterval, interval)
+
+	status, ok := agent.GetState().Get("monitoring_status")
+	assert.True(t, ok)
+	assert.Equal(t, "active", status)
+}
+
+func TestResearchAgent(t *testing.T) {
+	llmClient := NewMockLLMClient("Research response")
+
+	sources := []string{
+		"https://arxiv.org",
+		"https://scholar.google.com",
+		"https://pubmed.ncbi.nlm.nih.gov",
+	}
+
+	agent, err := ResearchAgent(llmClient, sources)
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+
+	assert.Contains(t, agent.systemPrompt, "research")
+	assert.Equal(t, "research", agent.metadata["type"])
+	assert.Equal(t, 4000, agent.config.MaxTokens)
+	assert.Equal(t, 0.5, agent.config.Temperature)
+	assert.Equal(t, 15, agent.config.MaxIterations)
+
+	// Check sources were set in state
+	stateSources, ok := agent.GetState().Get("sources")
+	assert.True(t, ok)
+	assert.Equal(t, sources, stateSources)
+
+	count, ok := agent.GetState().Get("sources_count")
+	assert.True(t, ok)
+	assert.Equal(t, 3, count)
+
+	status, ok := agent.GetState().Get("research_status")
+	assert.True(t, ok)
+	assert.Equal(t, "initialized", status)
+}
+
+func TestAnalysisAgent_NilDataSource(t *testing.T) {
+	llmClient := NewMockLLMClient()
+
+	agent, err := AnalysisAgent(llmClient, nil)
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+
+	// Should still work with nil data source
+	assert.Equal(t, "analysis", agent.metadata["type"])
+}
+
+func TestWorkflowAgent_NilWorkflows(t *testing.T) {
+	llmClient := NewMockLLMClient()
+
+	agent, err := WorkflowAgent(llmClient, nil)
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+
+	// Should still work with nil workflows
+	assert.Equal(t, "workflow", agent.metadata["type"])
+}
+
+func TestResearchAgent_EmptySources(t *testing.T) {
+	llmClient := NewMockLLMClient()
+
+	agent, err := ResearchAgent(llmClient, []string{})
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+
+	// Should still work with empty sources
+	assert.Equal(t, "research", agent.metadata["type"])
+	assert.Equal(t, 0, agent.metadata["sources_count"])
+}
+
 func TestAgentBuilder_ErrorHandling(t *testing.T) {
 	llmClient := NewMockLLMClient()
 
