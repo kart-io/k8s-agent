@@ -215,7 +215,7 @@ func main() {
 			// 定期更新显示
 			fmt.Print("\033[H\033[2J") // 清屏
 			fmt.Println("=== Multiple Task Progress ===")
-	fmt.Println()
+			fmt.Println()
 
 			for _, task := range tasks {
 				progress := taskStates[task.name]

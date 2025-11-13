@@ -37,6 +37,7 @@ pkg/agent/
 ### 1. Agent
 
 Agent 是具有推理能力的智能体，能够：
+
 - 接收输入并进行处理
 - 调用工具获取额外信息
 - 使用 LLM 进行推理
@@ -54,6 +55,7 @@ type Agent interface {
 ### 2. Chain
 
 Chain 是串行执行的处理模式，适用于：
+
 - 多步骤的数据处理流程
 - 需要按顺序执行的分析任务
 - 每个步骤依赖前一步骤的输出
@@ -69,6 +71,7 @@ type Chain interface {
 ### 3. Orchestrator
 
 Orchestrator 负责协调多个组件的执行：
+
 - 复杂的多步骤工作流
 - 多个 Agent 协作场景
 - 动态决策和条件分支
@@ -86,6 +89,7 @@ type Orchestrator interface {
 ### 4. Memory
 
 Memory 系统提供：
+
 - 对话历史管理
 - 案例记忆和检索
 - 向量存储（可选）
@@ -384,6 +388,109 @@ Database connection pool exhausted
 - `internal/reasoning/` 包含 K8s 特定的实现
 - `pkg/agent/` 提供通用的框架
 - Reasoning Service 使用 `pkg/agent/` 作为基础设施
+
+## LangChain-Inspired 增强功能
+
+框架已完成 LangChain 风格的全面升级，新增以下核心特性：
+
+### ✅ 已实现功能
+
+#### Phase 1: 核心基础设施
+- **State Management** (`core/state.go`) - 线程安全的状态管理
+- **Runtime & Context** (`core/runtime.go`) - 运行时环境和上下文传递
+- **Store** (`core/store.go`) - 长期存储系统，支持分层命名空间
+- **Checkpointer** (`core/checkpointer.go`) - 会话持久化和恢复
+
+#### Phase 2: 中间件系统
+- **Middleware Framework** (`core/middleware.go`) - 可扩展的中间件架构
+- **高级中间件** (`core/middleware_advanced.go`):
+  - DynamicPromptMiddleware - 动态提示词增强
+  - ToolSelectorMiddleware - 智能工具选择
+  - RateLimiterMiddleware - 速率限制
+  - AuthenticationMiddleware - 身份验证
+  - ValidationMiddleware - 输入验证
+  - TransformMiddleware - 数据转换
+  - CircuitBreakerMiddleware - 熔断保护
+  - CacheMiddleware - 响应缓存
+
+#### Phase 3: Agent Builder
+- **Builder Pattern** (`builder/builder.go`) - 流式 API 构建器
+- **预配置 Agents**:
+  - QuickAgent - 快速创建简单 Agent
+  - RAGAgent - 检索增强生成 Agent
+  - ChatAgent - 对话式 Agent
+- **完整测试覆盖** (`builder/builder_test.go`)
+
+### 使用新特性
+
+#### 使用 Builder 创建 Agent
+
+```go
+// 创建带完整特性的 Agent
+agent, err := builder.NewAgentBuilder[AppContext, *AppState](llmClient).
+    WithSystemPrompt("You are an advanced assistant").
+    WithContext(appContext).
+    WithState(customState).
+    WithStore(store).
+    WithCheckpointer(checkpointer).
+    WithTools(searchTool, calcTool).
+    WithMiddleware(
+        core.NewLoggingMiddleware(logger),
+        core.NewRateLimiterMiddleware(100, time.Minute),
+        core.NewCacheMiddleware(30*time.Second),
+    ).
+    WithConfig(&builder.AgentConfig{
+        MaxIterations:   10,
+        Timeout:         30 * time.Second,
+        EnableAutoSave:  true,
+        Temperature:     0.7,
+    }).
+    Build()
+```
+
+#### 中间件示例
+
+```go
+// 动态提示词中间件
+promptEnhancer := core.NewDynamicPromptMiddleware(func(req *core.MiddlewareRequest) string {
+    if req.State.Get("user_tier") == "premium" {
+        return fmt.Sprintf("[Premium Mode] %v", req.Input)
+    }
+    return fmt.Sprintf("%v", req.Input)
+})
+
+// 工具选择中间件
+toolSelector := core.NewToolSelectorMiddleware(availableTools, maxTools)
+```
+
+#### 状态管理和持久化
+
+```go
+// 状态管理
+state := core.NewAgentState()
+state.Set("session_id", "123")
+state.Set("user_name", "Alice")
+
+// 持久化
+checkpointer := core.NewInMemorySaver()
+checkpointer.Save(ctx, sessionID, state)
+
+// 恢复
+loadedState, _ := checkpointer.Load(ctx, sessionID)
+```
+
+### 运行示例
+
+```bash
+# Phase 1 核心功能示例
+go run pkg/agent/example/langchain_phase1/main.go
+
+# Phase 2 中间件系统示例
+go run pkg/agent/example/langchain_phase2/main.go
+
+# 完整集成示例
+go run pkg/agent/example/langchain_complete/main.go
+```
 
 ## 未来计划
 
