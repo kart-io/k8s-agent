@@ -141,9 +141,8 @@ func (e *ToolExecutor) ExecuteParallel(ctx context.Context, calls []*ToolCall) (
 		return []*ToolResult{}, nil
 	}
 
-	// 创建结果通道
-	resultChan := make(chan *ToolResult, len(calls))
-	errorsChan := make(chan error, len(calls))
+	// 创建结果数组，保持顺序
+	results := make([]*ToolResult, len(calls))
 
 	// 创建信号量控制并发
 	semaphore := make(chan struct{}, e.maxConcurrency)
@@ -152,9 +151,9 @@ func (e *ToolExecutor) ExecuteParallel(ctx context.Context, calls []*ToolCall) (
 	var wg sync.WaitGroup
 
 	// 并发执行工具
-	for _, call := range calls {
+	for i, call := range calls {
 		wg.Add(1)
-		go func(c *ToolCall) {
+		go func(index int, c *ToolCall) {
 			defer wg.Done()
 
 			// 获取信号量
@@ -163,37 +162,12 @@ func (e *ToolExecutor) ExecuteParallel(ctx context.Context, calls []*ToolCall) (
 
 			// 执行工具
 			result := e.executeWithRetry(ctx, c)
-			resultChan <- result
-
-			// 如果有错误，发送到错误通道
-			if result.Error != nil {
-				errorsChan <- result.Error
-			}
-		}(call)
+			results[index] = result
+		}(i, call)
 	}
 
 	// 等待所有任务完成
-	go func() {
-		wg.Wait()
-		close(resultChan)
-		close(errorsChan)
-	}()
-
-	// 收集结果
-	results := make([]*ToolResult, 0, len(calls))
-	for result := range resultChan {
-		results = append(results, result)
-	}
-
-	// 检查是否有错误
-	errors := make([]error, 0, len(calls))
-	for err := range errorsChan {
-		errors = append(errors, err)
-	}
-
-	if len(errors) > 0 {
-		return results, fmt.Errorf("parallel execution failed with %d errors: %w", len(errors), errors[0])
-	}
+	wg.Wait()
 
 	return results, nil
 }

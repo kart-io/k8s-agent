@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	ReplicationModeSync = "sync"
+	ReplicationModeSync  = "sync"
 	ReplicationModeAsync = "async"
 )
 
