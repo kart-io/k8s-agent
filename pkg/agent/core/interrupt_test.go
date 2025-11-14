@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,26 +36,31 @@ func TestInterruptManager_CreateAndRespond(t *testing.T) {
 	}
 
 	// Start waiting for response
-	responseChan := make(chan *InterruptResponse, 1)
-	errorChan := make(chan error, 1)
+	type result struct {
+		interrupt *Interrupt
+		response  *InterruptResponse
+		err       error
+	}
+	resultChan := make(chan result, 1)
 
 	go func() {
-		response, err := manager.CreateInterrupt(ctx, interrupt)
-		if err != nil {
-			errorChan <- err
-			return
-		}
-		responseChan <- response
+		interrupt, response, err := manager.CreateInterrupt(ctx, interrupt)
+		resultChan <- result{interrupt: interrupt, response: response, err: err}
 	}()
 
 	// Wait a bit to ensure interrupt is created
 	time.Sleep(50 * time.Millisecond)
 
+	// Get the list of pending interrupts to find the created one
+	pending := manager.ListPendingInterrupts()
+	require.Len(t, pending, 1)
+	created := pending[0]
+
 	// Verify interrupt was created
-	retrieved, err := manager.GetInterrupt(interrupt.ID)
+	retrieved, err := manager.GetInterrupt(created.ID)
 	require.NoError(t, err)
-	assert.Equal(t, interrupt.Type, retrieved.Type)
-	assert.Equal(t, interrupt.Message, retrieved.Message)
+	assert.Equal(t, InterruptTypeApproval, retrieved.Type)
+	assert.Equal(t, "Please approve this action", retrieved.Message)
 
 	// Respond to interrupt
 	response := &InterruptResponse{
@@ -63,16 +69,16 @@ func TestInterruptManager_CreateAndRespond(t *testing.T) {
 		RespondedBy: "admin@example.com",
 	}
 
-	err = manager.RespondToInterrupt(interrupt.ID, response)
+	err = manager.RespondToInterrupt(created.ID, response)
 	require.NoError(t, err)
 
 	// Verify we received the response
 	select {
-	case receivedResponse := <-responseChan:
-		assert.True(t, receivedResponse.Approved)
-		assert.Equal(t, "Action approved by admin", receivedResponse.Reason)
-	case err := <-errorChan:
-		t.Fatalf("Unexpected error: %v", err)
+	case res := <-resultChan:
+		require.NoError(t, res.err)
+		assert.True(t, res.response.Approved)
+		assert.Equal(t, "Action approved by admin", res.response.Reason)
+		assert.NotEmpty(t, res.interrupt.ID)
 	case <-time.After(1 * time.Second):
 		t.Fatal("Timeout waiting for response")
 	}
@@ -88,14 +94,23 @@ func TestInterruptManager_RespondNotApproved(t *testing.T) {
 		Message:  "Dangerous operation",
 	}
 
-	responseChan := make(chan *InterruptResponse, 1)
+	type result struct {
+		interrupt *Interrupt
+		response  *InterruptResponse
+	}
+	resultChan := make(chan result, 1)
 
 	go func() {
-		response, _ := manager.CreateInterrupt(ctx, interrupt)
-		responseChan <- response
+		interrupt, response, _ := manager.CreateInterrupt(ctx, interrupt)
+		resultChan <- result{interrupt: interrupt, response: response}
 	}()
 
 	time.Sleep(50 * time.Millisecond)
+
+	// Get the created interrupt ID
+	pending := manager.ListPendingInterrupts()
+	require.Len(t, pending, 1)
+	interruptID := pending[0].ID
 
 	// Respond with denial
 	response := &InterruptResponse{
@@ -104,12 +119,13 @@ func TestInterruptManager_RespondNotApproved(t *testing.T) {
 		RespondedBy: "reviewer@example.com",
 	}
 
-	err := manager.RespondToInterrupt(interrupt.ID, response)
+	err := manager.RespondToInterrupt(interruptID, response)
 	require.NoError(t, err)
 
-	receivedResponse := <-responseChan
-	assert.False(t, receivedResponse.Approved)
-	assert.Equal(t, "Too risky", receivedResponse.Reason)
+	res := <-resultChan
+	assert.False(t, res.response.Approved)
+	assert.Equal(t, "Too risky", res.response.Reason)
+	assert.NotEmpty(t, res.interrupt.ID)
 }
 
 func TestInterruptManager_ListPending(t *testing.T) {
@@ -161,7 +177,7 @@ func TestInterruptManager_CancelInterrupt(t *testing.T) {
 	errorChan := make(chan error, 1)
 
 	go func() {
-		response, err := manager.CreateInterrupt(ctx, interrupt)
+		_, response, err := manager.CreateInterrupt(ctx, interrupt)
 		if err != nil {
 			errorChan <- err
 			return
@@ -171,8 +187,13 @@ func TestInterruptManager_CancelInterrupt(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
+	// Get the created interrupt ID
+	pending := manager.ListPendingInterrupts()
+	require.Len(t, pending, 1)
+	interruptID := pending[0].ID
+
 	// Cancel the interrupt
-	err := manager.CancelInterrupt(interrupt.ID)
+	err := manager.CancelInterrupt(interruptID)
 	require.NoError(t, err)
 
 	// Verify the goroutine receives a nil response due to channel closure
@@ -203,18 +224,24 @@ func TestInterruptManager_WithCheckpointer(t *testing.T) {
 		State:    state,
 	}
 
+	var createdID string
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		manager.RespondToInterrupt(interrupt.ID, &InterruptResponse{
-			Approved: true,
-		})
+		pending := manager.ListPendingInterrupts()
+		if len(pending) > 0 {
+			createdID = pending[0].ID
+			manager.RespondToInterrupt(createdID, &InterruptResponse{
+				Approved: true,
+			})
+		}
 	}()
 
-	_, err := manager.CreateInterrupt(ctx, interrupt)
+	createdInterrupt, _, err := manager.CreateInterrupt(ctx, interrupt)
 	require.NoError(t, err)
+	require.NotEmpty(t, createdInterrupt.ID)
 
 	// Verify state was saved
-	savedState, err := checkpointer.Load(ctx, "interrupt_"+interrupt.ID)
+	savedState, err := checkpointer.Load(ctx, "interrupt_"+createdInterrupt.ID)
 	require.NoError(t, err)
 	assert.NotNil(t, savedState)
 
@@ -227,15 +254,20 @@ func TestInterruptManager_Hooks(t *testing.T) {
 	manager := NewInterruptManager(nil)
 	ctx := context.Background()
 
+	var mu sync.Mutex
 	createdCalled := false
 	resolvedCalled := false
 
 	manager.OnInterruptCreated(func(i *Interrupt) {
+		mu.Lock()
+		defer mu.Unlock()
 		createdCalled = true
 		assert.Equal(t, "Hook test", i.Message)
 	})
 
 	manager.OnInterruptResolved(func(i *Interrupt, r *InterruptResponse) {
+		mu.Lock()
+		defer mu.Unlock()
 		resolvedCalled = true
 		assert.True(t, r.Approved)
 	})
@@ -247,14 +279,19 @@ func TestInterruptManager_Hooks(t *testing.T) {
 
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		manager.RespondToInterrupt(interrupt.ID, &InterruptResponse{
-			Approved: true,
-		})
+		pending := manager.ListPendingInterrupts()
+		if len(pending) > 0 {
+			manager.RespondToInterrupt(pending[0].ID, &InterruptResponse{
+				Approved: true,
+			})
+		}
 	}()
 
-	_, err := manager.CreateInterrupt(ctx, interrupt)
+	_, _, err := manager.CreateInterrupt(ctx, interrupt)
 	require.NoError(t, err)
 
+	mu.Lock()
+	defer mu.Unlock()
 	assert.True(t, createdCalled, "onCreate hook should be called")
 	assert.True(t, resolvedCalled, "onResolved hook should be called")
 }

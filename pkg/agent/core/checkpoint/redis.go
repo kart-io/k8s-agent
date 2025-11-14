@@ -328,7 +328,7 @@ func (c *RedisCheckpointer) getCheckpointInfo(ctx context.Context, threadID stri
 		CreatedAt: data.CreatedAt,
 		UpdatedAt: data.UpdatedAt,
 		Metadata:  data.Metadata,
-		StateSize: data.StateSize,
+		Size:      data.StateSize,
 	}, nil
 }
 

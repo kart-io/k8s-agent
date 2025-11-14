@@ -80,7 +80,7 @@ func demo1BasicInterrupt() {
 	}()
 
 	// Wait for approval
-	response, err := manager.CreateInterrupt(ctx, interrupt)
+	_, response, err := manager.CreateInterrupt(ctx, interrupt)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
@@ -129,7 +129,7 @@ func demo2PriorityLevels() {
 		}(i, interrupt)
 
 		// Create the interrupt
-		_, _ = manager.CreateInterrupt(ctx, interrupt)
+		_, _, _ = manager.CreateInterrupt(ctx, interrupt)
 
 		fmt.Printf("Priority %s:\n", priority)
 		fmt.Printf("  Message: %s\n", interrupt.Message)
@@ -175,7 +175,7 @@ func demo3HumanInput() {
 		})
 	}()
 
-	response, err := manager.CreateInterrupt(ctx, interrupt)
+	_, response, err := manager.CreateInterrupt(ctx, interrupt)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
@@ -314,7 +314,7 @@ func demo5StatePersistence() {
 		})
 	}()
 
-	_, err := manager.CreateInterrupt(ctx, interrupt)
+	_, _, err := manager.CreateInterrupt(ctx, interrupt)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
@@ -381,7 +381,7 @@ func demo6InterruptHooks() {
 			})
 		}(i, interrupt)
 
-		_, _ = manager.CreateInterrupt(ctx, interrupt)
+		_, _, _ = manager.CreateInterrupt(ctx, interrupt)
 	}
 
 	fmt.Printf("\n[Summary]\n")

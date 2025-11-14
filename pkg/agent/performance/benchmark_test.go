@@ -48,6 +48,11 @@ func (m *MockAgent) Execute(ctx context.Context, input *core.AgentInput) (*core.
 	}, nil
 }
 
+// Invoke implements the Runnable interface by calling Execute
+func (m *MockAgent) Invoke(ctx context.Context, input *core.AgentInput) (*core.AgentOutput, error) {
+	return m.Execute(ctx, input)
+}
+
 // GetExecuteCount 获取执行次数
 func (m *MockAgent) GetExecuteCount() int {
 	m.mu.Lock()

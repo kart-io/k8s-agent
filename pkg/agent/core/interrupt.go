@@ -118,39 +118,44 @@ func NewInterruptManager(checkpointer Checkpointer) *InterruptManager {
 }
 
 // CreateInterrupt creates a new interrupt and waits for human response.
-func (m *InterruptManager) CreateInterrupt(ctx context.Context, interrupt *Interrupt) (*InterruptResponse, error) {
-	if interrupt.ID == "" {
-		interrupt.ID = generateInterruptID()
+// Returns the created interrupt (with ID assigned) and the response.
+func (m *InterruptManager) CreateInterrupt(ctx context.Context, interrupt *Interrupt) (*Interrupt, *InterruptResponse, error) {
+	// Create a copy to avoid concurrent access issues
+	interruptCopy := *interrupt
+
+	// Set defaults
+	if interruptCopy.ID == "" {
+		interruptCopy.ID = generateInterruptID()
+	}
+	if interruptCopy.CreatedAt.IsZero() {
+		interruptCopy.CreatedAt = time.Now()
 	}
 
-	if interrupt.CreatedAt.IsZero() {
-		interrupt.CreatedAt = time.Now()
-	}
-
+	// Store interrupt under lock
 	m.mu.Lock()
-	m.interrupts[interrupt.ID] = interrupt
+	m.interrupts[interruptCopy.ID] = &interruptCopy
 	responseChan := make(chan *InterruptResponse, 1)
-	m.channels[interrupt.ID] = responseChan
+	m.channels[interruptCopy.ID] = responseChan
 	m.mu.Unlock()
 
 	// Save state if checkpointer available
-	if m.checkpointer != nil && interrupt.State != nil {
-		_ = m.checkpointer.Save(ctx, fmt.Sprintf("interrupt_%s", interrupt.ID), interrupt.State)
+	if m.checkpointer != nil && interruptCopy.State != nil {
+		_ = m.checkpointer.Save(ctx, fmt.Sprintf("interrupt_%s", interruptCopy.ID), interruptCopy.State)
 	}
 
 	// Call onCreate hook
 	if m.onInterruptCreated != nil {
-		m.onInterruptCreated(interrupt)
+		m.onInterruptCreated(&interruptCopy)
 	}
 
 	// Wait for response or context cancellation
 	select {
 	case response := <-responseChan:
-		return response, nil
+		return &interruptCopy, response, nil
 	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-time.After(getTimeoutForInterrupt(interrupt)):
-		return nil, fmt.Errorf("interrupt %s timed out", interrupt.ID)
+		return &interruptCopy, nil, ctx.Err()
+	case <-time.After(getTimeoutForInterrupt(&interruptCopy)):
+		return &interruptCopy, nil, fmt.Errorf("interrupt %s timed out", interruptCopy.ID)
 	}
 }
 
@@ -304,7 +309,7 @@ func (e *InterruptableExecutor) ExecuteWithInterrupts(
 	// Handle any triggered interrupts
 	for _, interrupt := range interrupts {
 		interrupt.State = state.Clone()
-		response, err := e.manager.CreateInterrupt(ctx, interrupt)
+		_, response, err := e.manager.CreateInterrupt(ctx, interrupt)
 		if err != nil {
 			return fmt.Errorf("interrupt failed: %w", err)
 		}

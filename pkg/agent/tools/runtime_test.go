@@ -375,7 +375,9 @@ func TestUserInfoTool(t *testing.T) {
 	result, err := tool.ExecuteWithRuntime(ctx, nil, runtime)
 
 	assert.NoError(t, err)
-	assert.Equal(t, userData, result)
+	assert.NotNil(t, result)
+	assert.Equal(t, userData, result.Result)
+	assert.True(t, result.Success)
 	assert.Len(t, streamedData, 2) // Should have streamed 2 status updates
 	mockStore.AssertExpectations(t)
 }

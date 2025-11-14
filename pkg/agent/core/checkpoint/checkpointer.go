@@ -46,20 +46,24 @@ type Checkpointer interface {
 // Note: This struct is aligned with interfaces.CheckpointMetadata to ensure consistency.
 // Fields match exactly for seamless integration.
 type CheckpointInfo struct {
-	// ThreadID is the unique identifier for the thread/session
+	// ID is the unique checkpoint identifier.
+	ID string `json:"id"`
+
+	// ThreadID is the thread/session identifier.
 	ThreadID string `json:"thread_id"`
 
-	// CreatedAt is when the checkpoint was first created
+	// CreatedAt is when the checkpoint was created.
 	CreatedAt time.Time `json:"created_at"`
 
-	// UpdatedAt is when the checkpoint was last updated
+	// UpdatedAt is when the checkpoint was last updated.
 	UpdatedAt time.Time `json:"updated_at"`
 
-	// Metadata holds additional checkpoint information
-	Metadata map[string]interface{} `json:"metadata"`
+	// Metadata holds additional checkpoint information.
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 
-	// StateSize is the approximate size of the checkpoint in bytes
-	StateSize int64 `json:"state_size"`
+	// Size is the approximate size in bytes of the checkpoint data.
+	// Useful for storage management and cleanup decisions.
+	Size int64 `json:"size"`
 }
 
 // InMemorySaver is a thread-safe in-memory implementation of Checkpointer.
@@ -98,6 +102,7 @@ func (s *InMemorySaver) Save(ctx context.Context, threadID string, state agentst
 	if exists {
 		// Update existing checkpoint
 		cp.info.UpdatedAt = now
+		cp.info.Size = estimateStateSize(state)
 		// Add previous state to history
 		cp.history = append(cp.history, cp.state)
 		cp.state = state
@@ -106,11 +111,12 @@ func (s *InMemorySaver) Save(ctx context.Context, threadID string, state agentst
 		cp = &checkpoint{
 			state: state,
 			info: CheckpointInfo{
+				ID:        fmt.Sprintf("ckpt_%s_%d", threadID, now.UnixNano()),
 				ThreadID:  threadID,
 				CreatedAt: now,
 				UpdatedAt: now,
 				Metadata:  make(map[string]interface{}),
-				StateSize: estimateStateSize(state),
+				Size:      estimateStateSize(state),
 			},
 			history: []agentstate.State{},
 		}

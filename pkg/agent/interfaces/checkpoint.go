@@ -144,6 +144,9 @@ type CheckpointMetadata struct {
 	// UpdatedAt is when the checkpoint was last updated.
 	UpdatedAt time.Time `json:"updated_at"`
 
+	// Metadata holds additional checkpoint information.
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+
 	// Size is the approximate size in bytes of the checkpoint data.
 	// Useful for storage management and cleanup decisions.
 	Size int64 `json:"size"`
