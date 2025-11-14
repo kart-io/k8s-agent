@@ -1,4 +1,4 @@
-package core
+package checkpoint
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	agentstate "github.com/kart-io/k8s-agent/pkg/agent/core/state"
 )
 
 func TestNewInMemorySaver(t *testing.T) {
@@ -20,7 +22,7 @@ func TestInMemorySaver_SaveAndLoad(t *testing.T) {
 	saver := NewInMemorySaver()
 	ctx := context.Background()
 
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("key1", "value1")
 	state.Set("key2", 42)
 
@@ -52,7 +54,7 @@ func TestInMemorySaver_UpdateCheckpoint(t *testing.T) {
 	threadID := "thread123"
 
 	// Initial save
-	state1 := NewAgentState()
+	state1 := agentstate.NewAgentState()
 	state1.Set("key1", "value1")
 	err := saver.Save(ctx, threadID, state1)
 	require.NoError(t, err)
@@ -61,7 +63,7 @@ func TestInMemorySaver_UpdateCheckpoint(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// Update save
-	state2 := NewAgentState()
+	state2 := agentstate.NewAgentState()
 	state2.Set("key1", "value2")
 	state2.Set("key2", "new")
 	err = saver.Save(ctx, threadID, state2)
@@ -98,7 +100,7 @@ func TestInMemorySaver_List(t *testing.T) {
 
 	// Save multiple checkpoints
 	for i := 0; i < 3; i++ {
-		state := NewAgentState()
+		state := agentstate.NewAgentState()
 		state.Set("count", i)
 		err := saver.Save(ctx, fmt.Sprintf("thread%d", i), state)
 		require.NoError(t, err)
@@ -124,7 +126,7 @@ func TestInMemorySaver_Delete(t *testing.T) {
 	threadID := "thread123"
 
 	// Save checkpoint
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("key1", "value1")
 	err := saver.Save(ctx, threadID, state)
 	require.NoError(t, err)
@@ -155,7 +157,7 @@ func TestInMemorySaver_Exists(t *testing.T) {
 	assert.False(t, exists)
 
 	// Save checkpoint
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	err = saver.Save(ctx, threadID, state)
 	require.NoError(t, err)
 
@@ -179,18 +181,18 @@ func TestInMemorySaver_GetHistory(t *testing.T) {
 	threadID := "thread123"
 
 	// Save initial state
-	state1 := NewAgentState()
+	state1 := agentstate.NewAgentState()
 	state1.Set("version", 1)
 	err := saver.Save(ctx, threadID, state1)
 	require.NoError(t, err)
 
 	// Update multiple times
-	state2 := NewAgentState()
+	state2 := agentstate.NewAgentState()
 	state2.Set("version", 2)
 	err = saver.Save(ctx, threadID, state2)
 	require.NoError(t, err)
 
-	state3 := NewAgentState()
+	state3 := agentstate.NewAgentState()
 	state3.Set("version", 3)
 	err = saver.Save(ctx, threadID, state3)
 	require.NoError(t, err)
@@ -231,11 +233,11 @@ func TestInMemorySaver_CleanupOld(t *testing.T) {
 	ctx := context.Background()
 
 	// Save checkpoints with different ages
-	oldState := NewAgentState()
+	oldState := agentstate.NewAgentState()
 	err := saver.Save(ctx, "old_thread", oldState)
 	require.NoError(t, err)
 
-	recentState := NewAgentState()
+	recentState := agentstate.NewAgentState()
 	err = saver.Save(ctx, "recent_thread", recentState)
 	require.NoError(t, err)
 
@@ -270,7 +272,7 @@ func TestInMemorySaver_StateIsolation(t *testing.T) {
 	threadID := "thread123"
 
 	// Save original state
-	original := NewAgentState()
+	original := agentstate.NewAgentState()
 	original.Set("key1", "value1")
 	err := saver.Save(ctx, threadID, original)
 	require.NoError(t, err)
@@ -320,7 +322,7 @@ func TestCheckpointerWithAutoCleanup(t *testing.T) {
 	ctx := context.Background()
 
 	// Save a checkpoint
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("key", "value")
 	err := wrapper.Save(ctx, "thread1", state)
 	require.NoError(t, err)
@@ -350,7 +352,7 @@ func TestCheckpointerWithAutoCleanup_AllMethods(t *testing.T) {
 	ctx := context.Background()
 
 	// Test Save
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("key", "value")
 	err := wrapper.Save(ctx, "thread1", state)
 	require.NoError(t, err)
@@ -382,7 +384,7 @@ func TestCheckpointerWithAutoCleanup_AllMethods(t *testing.T) {
 func BenchmarkInMemorySaver_Save(b *testing.B) {
 	saver := NewInMemorySaver()
 	ctx := context.Background()
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("key", "value")
 
 	b.ResetTimer()
@@ -394,7 +396,7 @@ func BenchmarkInMemorySaver_Save(b *testing.B) {
 func BenchmarkInMemorySaver_Load(b *testing.B) {
 	saver := NewInMemorySaver()
 	ctx := context.Background()
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("key", "value")
 
 	// Pre-populate
@@ -411,7 +413,7 @@ func BenchmarkInMemorySaver_Load(b *testing.B) {
 func BenchmarkInMemorySaver_SaveAndLoad(b *testing.B) {
 	saver := NewInMemorySaver()
 	ctx := context.Background()
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("key", "value")
 
 	b.ResetTimer()

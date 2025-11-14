@@ -1,4 +1,4 @@
-package core
+package execution
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kart-io/k8s-agent/pkg/agent/core/checkpoint"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/state"
 	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 )
 
@@ -19,12 +21,12 @@ type MockContext struct {
 
 func TestNewRuntime(t *testing.T) {
 	ctx := MockContext{UserID: "user123", UserName: "Alice"}
-	state := NewAgentState()
+	st := state.NewAgentState()
 	store := memory.New()
-	checkpointer := NewInMemorySaver()
+	checkpointer := checkpoint.NewInMemorySaver()
 	sessionID := "session123"
 
-	runtime := NewRuntime(ctx, state, store, checkpointer, sessionID)
+	runtime := NewRuntime(ctx, st, store, checkpointer, sessionID)
 
 	require.NotNil(t, runtime)
 	assert.Equal(t, "user123", runtime.Context.UserID)
@@ -39,8 +41,8 @@ func TestNewRuntime(t *testing.T) {
 
 func TestRuntime_WithToolCallID(t *testing.T) {
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
-	runtime := NewRuntime(ctx, state, nil, nil, "session123")
+	st := state.NewAgentState()
+	runtime := NewRuntime(ctx, st, nil, nil, "session123")
 
 	newRuntime := runtime.WithToolCallID("tool-call-456")
 
@@ -50,8 +52,8 @@ func TestRuntime_WithToolCallID(t *testing.T) {
 
 func TestRuntime_WithMetadata(t *testing.T) {
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
-	runtime := NewRuntime(ctx, state, nil, nil, "session123")
+	st := state.NewAgentState()
+	runtime := NewRuntime(ctx, st, nil, nil, "session123")
 
 	newRuntime := runtime.WithMetadata("key1", "value1")
 	newRuntime2 := newRuntime.WithMetadata("key2", 42)
@@ -67,10 +69,10 @@ func TestRuntime_WithMetadata(t *testing.T) {
 
 func TestRuntime_SaveAndLoadState(t *testing.T) {
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
-	state.Set("key1", "value1")
-	checkpointer := NewInMemorySaver()
-	runtime := NewRuntime(ctx, state, nil, checkpointer, "session123")
+	st := state.NewAgentState()
+	st.Set("key1", "value1")
+	checkpointer := checkpoint.NewInMemorySaver()
+	runtime := NewRuntime(ctx, st, nil, checkpointer, "session123")
 
 	// Save state
 	err := runtime.SaveState(context.Background())
@@ -88,8 +90,8 @@ func TestRuntime_SaveAndLoadState(t *testing.T) {
 
 func TestRuntime_SaveStateWithoutCheckpointer(t *testing.T) {
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
-	runtime := NewRuntime(ctx, state, nil, nil, "session123")
+	st := state.NewAgentState()
+	runtime := NewRuntime(ctx, st, nil, nil, "session123")
 
 	// Should not error when checkpointer is nil
 	err := runtime.SaveState(context.Background())
@@ -98,12 +100,12 @@ func TestRuntime_SaveStateWithoutCheckpointer(t *testing.T) {
 
 func TestToolWithRuntime(t *testing.T) {
 	ctx := MockContext{UserID: "user123", UserName: "Alice"}
-	state := NewAgentState()
+	st := state.NewAgentState()
 	store := memory.New()
-	runtime := NewRuntime(ctx, state, store, nil, "session123")
+	runtime := NewRuntime(ctx, st, store, nil, "session123")
 
 	// Create a tool function that uses runtime
-	toolFunc := func(ctx context.Context, input string, rt *Runtime[MockContext, *AgentState]) (string, error) {
+	toolFunc := func(ctx context.Context, input string, rt *Runtime[MockContext, *state.AgentState]) (string, error) {
 		// Access runtime context
 		userName := rt.Context.UserName
 
@@ -125,7 +127,7 @@ func TestToolWithRuntime(t *testing.T) {
 	assert.Equal(t, "Hello Alice, you said: test message", result)
 
 	// Verify state was updated
-	val, ok := state.Get("last_input")
+	val, ok := st.Get("last_input")
 	assert.True(t, ok)
 	assert.Equal(t, "test message", val)
 }
@@ -133,12 +135,12 @@ func TestToolWithRuntime(t *testing.T) {
 func TestToolWithRuntime_WithRuntime(t *testing.T) {
 	ctx1 := MockContext{UserID: "user1", UserName: "Alice"}
 	ctx2 := MockContext{UserID: "user2", UserName: "Bob"}
-	state1 := NewAgentState()
-	state2 := NewAgentState()
+	state1 := state.NewAgentState()
+	state2 := state.NewAgentState()
 	runtime1 := NewRuntime(ctx1, state1, nil, nil, "session1")
 	runtime2 := NewRuntime(ctx2, state2, nil, nil, "session2")
 
-	toolFunc := func(ctx context.Context, input string, rt *Runtime[MockContext, *AgentState]) (string, error) {
+	toolFunc := func(ctx context.Context, input string, rt *Runtime[MockContext, *state.AgentState]) (string, error) {
 		return "Hello " + rt.Context.UserName, nil
 	}
 
@@ -179,7 +181,7 @@ func TestNewRuntimeMetrics(t *testing.T) {
 
 func TestNewRuntimeManager(t *testing.T) {
 	config := DefaultRuntimeConfig()
-	manager := NewRuntimeManager[MockContext, *AgentState](config)
+	manager := NewRuntimeManager[MockContext, *state.AgentState](config)
 
 	require.NotNil(t, manager)
 	assert.Equal(t, 0, manager.Size())
@@ -187,10 +189,10 @@ func TestNewRuntimeManager(t *testing.T) {
 }
 
 func TestRuntimeManager_GetAndSetRuntime(t *testing.T) {
-	manager := NewRuntimeManager[MockContext, *AgentState](nil)
+	manager := NewRuntimeManager[MockContext, *state.AgentState](nil)
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
-	runtime := NewRuntime(ctx, state, nil, nil, "session123")
+	st := state.NewAgentState()
+	runtime := NewRuntime(ctx, st, nil, nil, "session123")
 
 	// Get non-existent runtime
 	_, ok := manager.GetRuntime("session123")
@@ -208,10 +210,10 @@ func TestRuntimeManager_GetAndSetRuntime(t *testing.T) {
 }
 
 func TestRuntimeManager_RemoveRuntime(t *testing.T) {
-	manager := NewRuntimeManager[MockContext, *AgentState](nil)
+	manager := NewRuntimeManager[MockContext, *state.AgentState](nil)
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
-	runtime := NewRuntime(ctx, state, nil, nil, "session123")
+	st := state.NewAgentState()
+	runtime := NewRuntime(ctx, st, nil, nil, "session123")
 
 	manager.SetRuntime("session123", runtime)
 	assert.Equal(t, 1, manager.Size())
@@ -224,37 +226,37 @@ func TestRuntimeManager_RemoveRuntime(t *testing.T) {
 }
 
 func TestRuntimeManager_GetOrCreateRuntime(t *testing.T) {
-	manager := NewRuntimeManager[MockContext, *AgentState](nil)
+	manager := NewRuntimeManager[MockContext, *state.AgentState](nil)
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
+	st := state.NewAgentState()
 	store := memory.New()
-	checkpointer := NewInMemorySaver()
+	checkpointer := checkpoint.NewInMemorySaver()
 
 	// Create new runtime
-	runtime1 := manager.GetOrCreateRuntime("session123", ctx, state, store, checkpointer)
+	runtime1 := manager.GetOrCreateRuntime("session123", ctx, st, store, checkpointer)
 	require.NotNil(t, runtime1)
 	assert.Equal(t, "session123", runtime1.SessionID)
 	assert.Equal(t, 1, manager.Size())
 
 	// Get existing runtime
-	runtime2 := manager.GetOrCreateRuntime("session123", ctx, state, store, checkpointer)
+	runtime2 := manager.GetOrCreateRuntime("session123", ctx, st, store, checkpointer)
 	require.NotNil(t, runtime2)
 	assert.Equal(t, runtime1, runtime2) // Should be same instance
 	assert.Equal(t, 1, manager.Size())  // Size should not change
 }
 
 func TestRuntimeManager_CleanupExpired(t *testing.T) {
-	manager := NewRuntimeManager[MockContext, *AgentState](nil)
+	manager := NewRuntimeManager[MockContext, *state.AgentState](nil)
 
 	// Create old runtime
 	ctx := MockContext{UserID: "user1"}
-	state1 := NewAgentState()
+	state1 := state.NewAgentState()
 	runtime1 := NewRuntime(ctx, state1, nil, nil, "session1")
 	runtime1.Timestamp = time.Now().Add(-2 * time.Hour) // 2 hours ago
 	manager.SetRuntime("session1", runtime1)
 
 	// Create recent runtime
-	state2 := NewAgentState()
+	state2 := state.NewAgentState()
 	runtime2 := NewRuntime(ctx, state2, nil, nil, "session2")
 	runtime2.Timestamp = time.Now().Add(-10 * time.Minute) // 10 minutes ago
 	manager.SetRuntime("session2", runtime2)
@@ -277,7 +279,7 @@ func TestRuntimeManager_CleanupExpired(t *testing.T) {
 }
 
 func TestRuntimeManager_Metrics(t *testing.T) {
-	manager := NewRuntimeManager[MockContext, *AgentState](nil)
+	manager := NewRuntimeManager[MockContext, *state.AgentState](nil)
 
 	metrics := manager.Metrics()
 	require.NotNil(t, metrics)
@@ -286,8 +288,8 @@ func TestRuntimeManager_Metrics(t *testing.T) {
 
 func BenchmarkRuntime_WithToolCallID(b *testing.B) {
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
-	runtime := NewRuntime(ctx, state, nil, nil, "session123")
+	st := state.NewAgentState()
+	runtime := NewRuntime(ctx, st, nil, nil, "session123")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -297,8 +299,8 @@ func BenchmarkRuntime_WithToolCallID(b *testing.B) {
 
 func BenchmarkRuntime_WithMetadata(b *testing.B) {
 	ctx := MockContext{UserID: "user123"}
-	state := NewAgentState()
-	runtime := NewRuntime(ctx, state, nil, nil, "session123")
+	st := state.NewAgentState()
+	runtime := NewRuntime(ctx, st, nil, nil, "session123")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -308,10 +310,10 @@ func BenchmarkRuntime_WithMetadata(b *testing.B) {
 
 func BenchmarkToolWithRuntime_Execute(b *testing.B) {
 	ctx := MockContext{UserID: "user123", UserName: "Alice"}
-	state := NewAgentState()
-	runtime := NewRuntime(ctx, state, nil, nil, "session123")
+	st := state.NewAgentState()
+	runtime := NewRuntime(ctx, st, nil, nil, "session123")
 
-	toolFunc := func(ctx context.Context, input string, rt *Runtime[MockContext, *AgentState]) (string, error) {
+	toolFunc := func(ctx context.Context, input string, rt *Runtime[MockContext, *state.AgentState]) (string, error) {
 		rt.State.Set("input", input)
 		return "result", nil
 	}

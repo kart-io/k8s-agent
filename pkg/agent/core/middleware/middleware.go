@@ -1,11 +1,16 @@
-package core
+package middleware
 
 import (
 	"context"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/core/state"
 )
+
+// State is an alias to state.State for convenience
+type State = state.State
 
 // Middleware defines the interface for request/response interceptors.
 //

@@ -1,4 +1,4 @@
-package core
+package middleware
 
 import (
 	"context"
@@ -9,9 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kart-io/k8s-agent/pkg/agent/core/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// Alias for convenience in tests
+var NewAgentState = state.NewAgentState
 
 func TestNewMiddlewareChain(t *testing.T) {
 	handler := func(ctx context.Context, req *MiddlewareRequest) (*MiddlewareResponse, error) {

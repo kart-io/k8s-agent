@@ -1,4 +1,4 @@
-package core
+package checkpoint
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	agentstate "github.com/kart-io/k8s-agent/pkg/agent/core/state"
 )
 
 func setupTestRedisCheckpointer(t *testing.T) (*RedisCheckpointer, *miniredis.Miniredis) {
@@ -73,7 +75,7 @@ func TestRedisCheckpointer_Save(t *testing.T) {
 	ctx := context.Background()
 	threadID := "thread-1"
 
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("messages", []string{"hello", "world"})
 	state.Set("count", 42)
 
@@ -95,7 +97,7 @@ func TestRedisCheckpointer_Save_Update(t *testing.T) {
 	threadID := "thread-1"
 
 	// First save
-	state1 := NewAgentState()
+	state1 := agentstate.NewAgentState()
 	state1.Set("value", "initial")
 	err := cp.Save(ctx, threadID, state1)
 	require.NoError(t, err)
@@ -108,7 +110,7 @@ func TestRedisCheckpointer_Save_Update(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// Update
-	state2 := NewAgentState()
+	state2 := agentstate.NewAgentState()
 	state2.Set("value", "updated")
 	err = cp.Save(ctx, threadID, state2)
 	require.NoError(t, err)
@@ -132,7 +134,7 @@ func TestRedisCheckpointer_Load(t *testing.T) {
 	threadID := "thread-1"
 
 	// Save a state
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("key1", "value1")
 	state.Set("key2", 123)
 
@@ -176,7 +178,7 @@ func TestRedisCheckpointer_Delete(t *testing.T) {
 	threadID := "thread-1"
 
 	// Save a state
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("test", "value")
 	err := cp.Save(ctx, threadID, state)
 	require.NoError(t, err)
@@ -205,7 +207,7 @@ func TestRedisCheckpointer_Exists(t *testing.T) {
 	assert.False(t, exists)
 
 	// Save a checkpoint
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	err = cp.Save(ctx, threadID, state)
 	require.NoError(t, err)
 
@@ -225,7 +227,7 @@ func TestRedisCheckpointer_List(t *testing.T) {
 	// Save multiple checkpoints
 	threads := []string{"thread-1", "thread-2", "thread-3"}
 	for _, threadID := range threads {
-		state := NewAgentState()
+		state := agentstate.NewAgentState()
 		state.Set("thread", threadID)
 		err := cp.Save(ctx, threadID, state)
 		require.NoError(t, err)
@@ -266,7 +268,7 @@ func TestRedisCheckpointer_WithTTL(t *testing.T) {
 	threadID := "expiring"
 
 	// Save checkpoint with TTL
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("test", "value")
 	err = cp.Save(ctx, threadID, state)
 	require.NoError(t, err)
@@ -304,7 +306,7 @@ func TestRedisCheckpointer_Size(t *testing.T) {
 
 	// Save checkpoints
 	for i := 0; i < 5; i++ {
-		state := NewAgentState()
+		state := agentstate.NewAgentState()
 		err := cp.Save(ctx, fmt.Sprintf("thread-%d", i), state)
 		require.NoError(t, err)
 	}
@@ -323,7 +325,7 @@ func TestRedisCheckpointer_CleanupOld(t *testing.T) {
 
 	// Save checkpoints
 	for i := 0; i < 3; i++ {
-		state := NewAgentState()
+		state := agentstate.NewAgentState()
 		err := cp.Save(ctx, fmt.Sprintf("thread-%d", i), state)
 		require.NoError(t, err)
 	}
@@ -388,7 +390,7 @@ func TestRedisCheckpointer_ConcurrentAccess(t *testing.T) {
 	threadID := "concurrent-thread"
 
 	// Save initial state
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	state.Set("counter", 0)
 	err := cp.Save(ctx, threadID, state)
 	require.NoError(t, err)
@@ -399,7 +401,7 @@ func TestRedisCheckpointer_ConcurrentAccess(t *testing.T) {
 
 	for i := 0; i < goroutines; i++ {
 		go func(n int) {
-			s := NewAgentState()
+			s := agentstate.NewAgentState()
 			s.Set("counter", n)
 			cp.Save(ctx, threadID, s)
 			done <- true

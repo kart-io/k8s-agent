@@ -1,4 +1,4 @@
-package core
+package execution
 
 import (
 	"context"
@@ -13,12 +13,13 @@ import (
 // - 处理大数据集的渐进式处理
 // - 提供实时进度反馈
 // - 支持长时间运行任务的中间结果
+//
+// Note: This is a legacy interface. New code should use the Runnable[I,O].Stream() pattern
+// from the core package with generic StreamChunk[T] types.
 type StreamingAgent interface {
-	Agent
-
 	// ExecuteStream 以流式方式执行 Agent 逻辑
 	// 返回一个可以持续读取输出块的 StreamOutput
-	ExecuteStream(ctx context.Context, input *AgentInput) (StreamOutput, error)
+	ExecuteStream(ctx context.Context, input interface{}) (StreamOutput, error)
 }
 
 // StreamOutput 流式输出接口

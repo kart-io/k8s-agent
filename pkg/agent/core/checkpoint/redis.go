@@ -1,4 +1,4 @@
-package core
+package checkpoint
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	agentstate "github.com/kart-io/k8s-agent/pkg/agent/core/state"
 )
 
 // RedisCheckpointerConfig holds configuration for Redis checkpointer
@@ -150,7 +152,7 @@ func NewRedisCheckpointerFromClient(client *redis.Client, config *RedisCheckpoin
 }
 
 // Save persists the current state for a thread/session
-func (c *RedisCheckpointer) Save(ctx context.Context, threadID string, state State) error {
+func (c *RedisCheckpointer) Save(ctx context.Context, threadID string, state agentstate.State) error {
 	key := c.makeKey(threadID)
 
 	// Acquire lock if enabled
@@ -208,7 +210,7 @@ func (c *RedisCheckpointer) Save(ctx context.Context, threadID string, state Sta
 }
 
 // Load retrieves the saved state for a thread/session
-func (c *RedisCheckpointer) Load(ctx context.Context, threadID string) (State, error) {
+func (c *RedisCheckpointer) Load(ctx context.Context, threadID string) (agentstate.State, error) {
 	key := c.makeKey(threadID)
 
 	// Get from Redis
@@ -227,7 +229,7 @@ func (c *RedisCheckpointer) Load(ctx context.Context, threadID string) (State, e
 	}
 
 	// Create state from snapshot
-	state := NewAgentState()
+	state := agentstate.NewAgentState()
 	for key, value := range data.State {
 		state.Set(key, value)
 	}

@@ -1,10 +1,12 @@
-package core
+package checkpoint
 
 import (
 	"context"
 	"fmt"
 	"sync"
 	"time"
+
+	agentstate "github.com/kart-io/k8s-agent/pkg/agent/core/state"
 )
 
 const (
@@ -99,7 +101,7 @@ type DistributedCheckpointer struct {
 type replicationTask struct {
 	operation string // "save" or "delete"
 	threadID  string
-	state     State
+	state     agentstate.State
 }
 
 // NewDistributedCheckpointer creates a new distributed checkpointer
@@ -133,7 +135,7 @@ func NewDistributedCheckpointer(config *DistributedCheckpointerConfig) (*Distrib
 }
 
 // Save persists the current state for a thread/session
-func (dc *DistributedCheckpointer) Save(ctx context.Context, threadID string, state State) error {
+func (dc *DistributedCheckpointer) Save(ctx context.Context, threadID string, state agentstate.State) error {
 	dc.mu.RLock()
 	active := dc.activeBackend
 	secondary := dc.config.SecondaryBackend
@@ -180,7 +182,7 @@ func (dc *DistributedCheckpointer) Save(ctx context.Context, threadID string, st
 }
 
 // Load retrieves the saved state for a thread/session
-func (dc *DistributedCheckpointer) Load(ctx context.Context, threadID string) (State, error) {
+func (dc *DistributedCheckpointer) Load(ctx context.Context, threadID string) (agentstate.State, error) {
 	dc.mu.RLock()
 	active := dc.activeBackend
 	dc.mu.RUnlock()

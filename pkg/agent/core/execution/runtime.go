@@ -1,9 +1,11 @@
-package core
+package execution
 
 import (
 	"context"
 	"time"
 
+	"github.com/kart-io/k8s-agent/pkg/agent/core/checkpoint"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/state"
 	"github.com/kart-io/k8s-agent/pkg/agent/store"
 )
 
@@ -19,7 +21,7 @@ import (
 // Generic type parameters:
 //   - C: Custom context type for application-specific data
 //   - S: State type (must implement State interface)
-type Runtime[C any, S State] struct {
+type Runtime[C any, S state.State] struct {
 	// Context holds user-defined application context
 	Context C
 
@@ -30,7 +32,7 @@ type Runtime[C any, S State] struct {
 	Store store.Store
 
 	// Checkpointer handles session state persistence
-	Checkpointer Checkpointer
+	Checkpointer checkpoint.Checkpointer
 
 	// ToolCallID is the unique identifier for the current tool call
 	ToolCallID string
@@ -46,17 +48,17 @@ type Runtime[C any, S State] struct {
 }
 
 // NewRuntime creates a new Runtime with the given components.
-func NewRuntime[C any, S State](
+func NewRuntime[C any, S state.State](
 	ctx C,
-	state S,
-	st store.Store,
-	checkpointer Checkpointer,
+	st S,
+	store store.Store,
+	checkpointer checkpoint.Checkpointer,
 	sessionID string,
 ) *Runtime[C, S] {
 	return &Runtime[C, S]{
 		Context:      ctx,
-		State:        state,
-		Store:        st,
+		State:        st,
+		Store:        store,
 		Checkpointer: checkpointer,
 		SessionID:    sessionID,
 		Timestamp:    time.Now(),
@@ -91,7 +93,7 @@ func (r *Runtime[C, S]) SaveState(ctx context.Context) error {
 }
 
 // LoadState loads the state from the checkpointer if available.
-func (r *Runtime[C, S]) LoadState(ctx context.Context) (State, error) {
+func (r *Runtime[C, S]) LoadState(ctx context.Context) (state.State, error) {
 	if r.Checkpointer == nil {
 		return r.State, nil
 	}
@@ -105,10 +107,10 @@ func (r *Runtime[C, S]) LoadState(ctx context.Context) (State, error) {
 //   - O: Output type from the tool
 //   - C: Custom context type
 //   - S: State type (must implement State interface)
-type ToolFunc[I, O, C any, S State] func(ctx context.Context, input I, runtime *Runtime[C, S]) (O, error)
+type ToolFunc[I, O, C any, S state.State] func(ctx context.Context, input I, runtime *Runtime[C, S]) (O, error)
 
 // ToolWithRuntime wraps a ToolFunc into a Tool interface.
-type ToolWithRuntime[I, O, C any, S State] struct {
+type ToolWithRuntime[I, O, C any, S state.State] struct {
 	name        string
 	description string
 	fn          ToolFunc[I, O, C, S]
@@ -116,7 +118,7 @@ type ToolWithRuntime[I, O, C any, S State] struct {
 }
 
 // NewToolWithRuntime creates a new tool that has access to runtime.
-func NewToolWithRuntime[I, O, C any, S State](
+func NewToolWithRuntime[I, O, C any, S state.State](
 	name, description string,
 	fn ToolFunc[I, O, C, S],
 	runtime *Runtime[C, S],
@@ -209,7 +211,7 @@ func NewRuntimeMetrics() *RuntimeMetrics {
 }
 
 // RuntimeManager manages multiple runtimes and their lifecycle.
-type RuntimeManager[C any, S State] struct {
+type RuntimeManager[C any, S state.State] struct {
 	// runtimes maps session ID to runtime
 	runtimes map[string]*Runtime[C, S]
 
@@ -221,7 +223,7 @@ type RuntimeManager[C any, S State] struct {
 }
 
 // NewRuntimeManager creates a new RuntimeManager.
-func NewRuntimeManager[C any, S State](config *RuntimeConfig) *RuntimeManager[C, S] {
+func NewRuntimeManager[C any, S state.State](config *RuntimeConfig) *RuntimeManager[C, S] {
 	if config == nil {
 		config = DefaultRuntimeConfig()
 	}
@@ -252,15 +254,15 @@ func (m *RuntimeManager[C, S]) RemoveRuntime(sessionID string) {
 func (m *RuntimeManager[C, S]) GetOrCreateRuntime(
 	sessionID string,
 	ctx C,
-	state S,
-	st store.Store,
-	checkpointer Checkpointer,
+	st S,
+	store store.Store,
+	checkpointer checkpoint.Checkpointer,
 ) *Runtime[C, S] {
 	if runtime, ok := m.runtimes[sessionID]; ok {
 		return runtime
 	}
 
-	runtime := NewRuntime(ctx, state, st, checkpointer, sessionID)
+	runtime := NewRuntime(ctx, st, store, checkpointer, sessionID)
 	m.runtimes[sessionID] = runtime
 	return runtime
 }

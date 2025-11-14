@@ -1,10 +1,12 @@
-package core
+package checkpoint
 
 import (
 	"context"
 	"fmt"
 	"sync"
 	"time"
+
+	agentstate "github.com/kart-io/k8s-agent/pkg/agent/core/state"
 )
 
 // Checkpointer defines the interface for session state persistence.
@@ -24,10 +26,10 @@ import (
 // backward compatibility with existing code.
 type Checkpointer interface {
 	// Save persists the current state for a thread/session.
-	Save(ctx context.Context, threadID string, state State) error
+	Save(ctx context.Context, threadID string, state agentstate.State) error
 
 	// Load retrieves the saved state for a thread/session.
-	Load(ctx context.Context, threadID string) (State, error)
+	Load(ctx context.Context, threadID string) (agentstate.State, error)
 
 	// List returns information about all saved checkpoints.
 	List(ctx context.Context) ([]CheckpointInfo, error)
@@ -74,9 +76,9 @@ type InMemorySaver struct {
 
 // checkpoint is an internal structure to hold checkpoint data.
 type checkpoint struct {
-	state   State
+	state   agentstate.State
 	info    CheckpointInfo
-	history []State // Keep history of state changes
+	history []agentstate.State // Keep history of state changes
 }
 
 // NewInMemorySaver creates a new InMemorySaver.
@@ -87,7 +89,7 @@ func NewInMemorySaver() *InMemorySaver {
 }
 
 // Save persists the current state for a thread/session.
-func (s *InMemorySaver) Save(ctx context.Context, threadID string, state State) error {
+func (s *InMemorySaver) Save(ctx context.Context, threadID string, state agentstate.State) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -111,7 +113,7 @@ func (s *InMemorySaver) Save(ctx context.Context, threadID string, state State) 
 				Metadata:  make(map[string]interface{}),
 				StateSize: estimateStateSize(state),
 			},
-			history: []State{},
+			history: []agentstate.State{},
 		}
 		s.checkpoints[threadID] = cp
 	}
@@ -120,7 +122,7 @@ func (s *InMemorySaver) Save(ctx context.Context, threadID string, state State) 
 }
 
 // Load retrieves the saved state for a thread/session.
-func (s *InMemorySaver) Load(ctx context.Context, threadID string) (State, error) {
+func (s *InMemorySaver) Load(ctx context.Context, threadID string) (agentstate.State, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -172,7 +174,7 @@ func (s *InMemorySaver) Size() int {
 }
 
 // GetHistory returns the state history for a thread/session.
-func (s *InMemorySaver) GetHistory(ctx context.Context, threadID string) ([]State, error) {
+func (s *InMemorySaver) GetHistory(ctx context.Context, threadID string) ([]agentstate.State, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -182,7 +184,7 @@ func (s *InMemorySaver) GetHistory(ctx context.Context, threadID string) ([]Stat
 	}
 
 	// Return clones to prevent external modifications
-	history := make([]State, len(cp.history))
+	history := make([]agentstate.State, len(cp.history))
 	for i, state := range cp.history {
 		history[i] = state.Clone()
 	}
@@ -208,7 +210,7 @@ func (s *InMemorySaver) CleanupOld(maxAge time.Duration) int {
 }
 
 // estimateStateSize estimates the size of a state in bytes.
-func estimateStateSize(state State) int64 {
+func estimateStateSize(state agentstate.State) int64 {
 	// Simple estimation based on number of keys and values
 	// In a real implementation, you might want to serialize and measure actual size
 	snapshot := state.Snapshot()
@@ -307,12 +309,12 @@ func (c *CheckpointerWithAutoCleanup) Stop() {
 }
 
 // Save persists the current state for a thread/session.
-func (c *CheckpointerWithAutoCleanup) Save(ctx context.Context, threadID string, state State) error {
+func (c *CheckpointerWithAutoCleanup) Save(ctx context.Context, threadID string, state agentstate.State) error {
 	return c.checkpointer.Save(ctx, threadID, state)
 }
 
 // Load retrieves the saved state for a thread/session.
-func (c *CheckpointerWithAutoCleanup) Load(ctx context.Context, threadID string) (State, error) {
+func (c *CheckpointerWithAutoCleanup) Load(ctx context.Context, threadID string) (agentstate.State, error) {
 	return c.checkpointer.Load(ctx, threadID)
 }
 
