@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
-	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
 // MockAgent is a mock implementation of agentcore.Agent

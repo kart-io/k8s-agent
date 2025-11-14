@@ -90,7 +90,7 @@ func createTool(name, description string) tools.Tool {
 }
 
 func main() {
-	fmt.Println("=== Tool Selector Middleware Demo ===\n")
+	fmt.Println("=== Tool Selector Middleware Demo ===")
 
 	ctx := context.Background()
 	llmClient := NewSimpleLLMClient()

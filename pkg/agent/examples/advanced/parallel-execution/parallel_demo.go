@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Parallel Tool Execution Demo ===\n")
+	fmt.Println("=== Parallel Tool Execution Demo ===")
 
 	// Demo 1: Basic Parallel Execution
 	demo1BasicParallel()
@@ -315,7 +315,7 @@ func createFailingTool(name, errorMsg string) tools.Tool {
 		"{}",
 		func(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
 			time.Sleep(10 * time.Millisecond)
-			return nil, fmt.Errorf(errorMsg)
+			return nil, fmt.Errorf("%s", errorMsg)
 		},
 	)
 }

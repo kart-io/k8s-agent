@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Multi-Agent Communication Example ===\n")
+	fmt.Println("=== Multi-Agent Communication Example ===")
 
 	// 1. 创建内存通信器（单机多Agent）
 	fmt.Println("1. Creating Memory Communicators for 3 Agents...")
@@ -23,7 +23,7 @@ func main() {
 	defer agent2Comm.Close()
 	defer agent3Comm.Close()
 
-	fmt.Println("✓ Communicators created\n")
+	fmt.Println("✓ Communicators created")
 
 	// 2. 演示点对点通信
 	fmt.Println("2. Demonstrating Point-to-Point Communication...")
@@ -59,7 +59,7 @@ func main() {
 	}()
 
 	time.Sleep(100 * time.Millisecond)
-	fmt.Println("✓ Point-to-point communication demonstrated\n")
+	fmt.Println("✓ Point-to-point communication demonstrated")
 
 	// 3. 演示广播通信
 	fmt.Println("3. Demonstrating Broadcast Communication...")
@@ -72,7 +72,7 @@ func main() {
 		log.Fatalf("Failed to broadcast: %v", err)
 	}
 	fmt.Println("Agent 1 broadcasted: system_ready event")
-	fmt.Println("✓ Broadcast demonstrated\n")
+	fmt.Println("✓ Broadcast demonstrated")
 
 	// 4. 演示发布/订阅模式
 	fmt.Println("4. Demonstrating Pub/Sub Pattern...")
@@ -103,7 +103,7 @@ func main() {
 	_ = ch2 // Subscribers would read from these channels
 	_ = ch3
 
-	fmt.Println("✓ Pub/Sub pattern demonstrated\n")
+	fmt.Println("✓ Pub/Sub pattern demonstrated")
 
 	// 5. 演示消息路由
 	fmt.Println("5. Demonstrating Message Router...")
@@ -136,7 +136,7 @@ func main() {
 		fmt.Printf("Router response: %v\n", response1.Payload)
 	}
 
-	fmt.Println("✓ Message routing demonstrated\n")
+	fmt.Println("✓ Message routing demonstrated")
 
 	// 6. 演示会话管理
 	fmt.Println("6. Demonstrating Session Management...")
@@ -168,7 +168,7 @@ func main() {
 	// 关闭会话
 	sessionMgr.CloseSession(session.ID)
 	fmt.Println("Session closed")
-	fmt.Println("✓ Session management demonstrated\n")
+	fmt.Println("✓ Session management demonstrated")
 
 	// 7. 演示多Agent协作场景
 	fmt.Println("7. Demonstrating Multi-Agent Collaboration Scenario...")
@@ -192,7 +192,7 @@ func main() {
 	})
 	fmt.Printf("Analyzer → Coordinator: %v\n", analyzerMsg.Payload)
 
-	fmt.Println("✓ Collaboration scenario demonstrated\n")
+	fmt.Println("✓ Collaboration scenario demonstrated")
 
 	fmt.Println("=== Example Completed Successfully ===")
 	fmt.Println("\nNotes:")

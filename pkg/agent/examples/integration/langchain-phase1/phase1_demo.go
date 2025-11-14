@@ -208,8 +208,8 @@ func checkpointerDemo() {
 	for _, info := range infos {
 		fmt.Printf("    - %s (created: %v, updated: %v)\n",
 			info.ThreadID,
-			info.Created.Format("15:04:05"),
-			info.Updated.Format("15:04:05"))
+			info.CreatedAt.Format("15:04:05"),
+			info.UpdatedAt.Format("15:04:05"))
 	}
 
 	// Resume session 1

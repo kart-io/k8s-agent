@@ -688,7 +688,7 @@ func TestMemoryConsolidator_MergeMemories(t *testing.T) {
 		assert.Equal(t, MemoryTypeLongTerm, merged.Type)
 		assert.Contains(t, merged.Tags, "tag1")
 		assert.Contains(t, merged.Tags, "tag2")
-		assert.Equal(t, 8, merged.AccessCount) // Sum of access counts
+		assert.Equal(t, 8, merged.AccessCount)         // Sum of access counts
 		assert.InDelta(t, 0.7, merged.Importance, 0.1) // Average importance
 	})
 }

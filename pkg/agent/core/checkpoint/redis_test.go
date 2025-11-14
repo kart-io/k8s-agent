@@ -105,7 +105,7 @@ func TestRedisCheckpointer_Save_Update(t *testing.T) {
 	// Get info
 	info1, err := cp.getCheckpointInfo(ctx, threadID)
 	require.NoError(t, err)
-	created := info1.Created
+	created := info1.CreatedAt
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -120,9 +120,9 @@ func TestRedisCheckpointer_Save_Update(t *testing.T) {
 	require.NoError(t, err)
 
 	// Created should remain the same
-	assert.Equal(t, created.Unix(), info2.Created.Unix())
+	assert.Equal(t, created.Unix(), info2.CreatedAt.Unix())
 	// Updated should be newer
-	assert.True(t, info2.Updated.After(info1.Updated))
+	assert.True(t, info2.UpdatedAt.After(info1.UpdatedAt))
 }
 
 func TestRedisCheckpointer_Load(t *testing.T) {
@@ -342,8 +342,8 @@ func TestRedisCheckpointer_CleanupOld(t *testing.T) {
 		json.Unmarshal(data, &cpData)
 
 		// Set old timestamps
-		cpData.Updated = time.Now().Add(-25 * time.Hour)
-		cpData.Created = time.Now().Add(-30 * time.Hour)
+		cpData.UpdatedAt = time.Now().Add(-25 * time.Hour)
+		cpData.CreatedAt = time.Now().Add(-30 * time.Hour)
 
 		// Save back
 		newData, _ := json.Marshal(cpData)

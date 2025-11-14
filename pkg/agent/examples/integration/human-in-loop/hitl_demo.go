@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Human-in-the-Loop Pattern Demo ===\n")
+	fmt.Println("=== Human-in-the-Loop Pattern Demo ===")
 
 	// Demo 1: Basic Interrupt and Approval
 	demo1BasicInterrupt()

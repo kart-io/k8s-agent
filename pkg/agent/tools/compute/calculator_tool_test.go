@@ -5,9 +5,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
 // TestNewCalculatorTool tests calculator tool creation

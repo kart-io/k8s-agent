@@ -40,7 +40,7 @@ func (s *SimpleLLMClient) IsAvailable() bool {
 }
 
 func main() {
-	fmt.Println("=== ToolRuntime Pattern Demo ===\n")
+	fmt.Println("=== ToolRuntime Pattern Demo ===")
 
 	// 1. 创建基础组件
 	llmClient := NewSimpleLLMClient()

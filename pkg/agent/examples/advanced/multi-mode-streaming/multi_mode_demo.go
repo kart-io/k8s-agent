@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Multi-Mode Streaming Demo ===\n")
+	fmt.Println("=== Multi-Mode Streaming Demo ===")
 
 	// Demo 1: Basic Multi-Mode Streaming
 	demo1BasicMultiMode()

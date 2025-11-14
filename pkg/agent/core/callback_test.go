@@ -152,7 +152,6 @@ func TestCallbackManager_TriggerCallbacks(t *testing.T) {
 		called++
 		return nil
 	})
-
 	if err != nil {
 		t.Errorf("TriggerCallbacks returned error: %v", err)
 	}
@@ -164,7 +163,6 @@ func TestCallbackManager_TriggerCallbacks(t *testing.T) {
 		called++
 		return nil
 	})
-
 	if err != nil {
 		t.Errorf("TriggerCallbacks returned error: %v", err)
 	}

@@ -100,8 +100,8 @@ type RedisCheckpointer struct {
 type checkpointData struct {
 	State     map[string]interface{} `json:"state"`
 	ThreadID  string                 `json:"thread_id"`
-	Created   time.Time              `json:"created"`
-	Updated   time.Time              `json:"updated"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
 	Metadata  map[string]interface{} `json:"metadata"`
 	StateSize int64                  `json:"state_size"`
 }
@@ -167,24 +167,24 @@ func (c *RedisCheckpointer) Save(ctx context.Context, threadID string, state age
 	_, err := c.Load(ctx, threadID)
 	now := time.Now()
 
-	var created time.Time
+	var createdAt time.Time
 	if err == nil {
 		// Extract created time from existing checkpoint
-		created = now // Fallback to now if we can't get it
+		createdAt = now // Fallback to now if we can't get it
 		// Try to get created from checkpoint metadata
 		if existingInfo, err := c.getCheckpointInfo(ctx, threadID); err == nil {
-			created = existingInfo.Created
+			createdAt = existingInfo.CreatedAt
 		}
 	} else {
-		created = now
+		createdAt = now
 	}
 
 	// Create checkpoint data
 	data := &checkpointData{
 		State:     state.Snapshot(),
 		ThreadID:  threadID,
-		Created:   created,
-		Updated:   now,
+		CreatedAt: createdAt,
+		UpdatedAt: now,
 		Metadata:  make(map[string]interface{}),
 		StateSize: estimateStateSize(state),
 	}
@@ -325,8 +325,8 @@ func (c *RedisCheckpointer) getCheckpointInfo(ctx context.Context, threadID stri
 
 	return &CheckpointInfo{
 		ThreadID:  threadID,
-		Created:   data.Created,
-		Updated:   data.Updated,
+		CreatedAt: data.CreatedAt,
+		UpdatedAt: data.UpdatedAt,
 		Metadata:  data.Metadata,
 		StateSize: data.StateSize,
 	}, nil
@@ -422,7 +422,7 @@ func (c *RedisCheckpointer) CleanupOld(ctx context.Context, maxAge time.Duration
 	removed := 0
 
 	for _, info := range infos {
-		if now.Sub(info.Updated) > maxAge {
+		if now.Sub(info.UpdatedAt) > maxAge {
 			if err := c.Delete(ctx, info.ThreadID); err == nil {
 				removed++
 			}

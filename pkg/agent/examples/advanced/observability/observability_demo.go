@@ -97,7 +97,7 @@ func main() {
 		log.Fatalf("Failed to create agent: %v", err)
 	}
 	defer agent.Shutdown(context.Background())
-	fmt.Println("✓ Agent created with observability middleware\n")
+	fmt.Println("✓ Agent created with observability middleware")
 
 	// 4. 演示追踪
 	fmt.Println("4. Demonstrating Tracing...")
@@ -129,7 +129,7 @@ func main() {
 		log.Printf("Error: %v", err)
 	}
 
-	fmt.Println("✓ Tracing demonstrated\n")
+	fmt.Println("✓ Tracing demonstrated")
 
 	// 5. 演示指标
 	fmt.Println("5. Demonstrating Metrics...")
@@ -149,7 +149,7 @@ func main() {
 	time.Sleep(100 * time.Millisecond)
 	metrics.IncrementActiveAgents(ctx, -1)
 
-	fmt.Println("✓ Metrics recorded\n")
+	fmt.Println("✓ Metrics recorded")
 
 	// 6. 执行 Agent（带完整可观测性）
 	fmt.Println("6. Executing Agent with Full Observability...")
@@ -161,7 +161,7 @@ func main() {
 
 	fmt.Printf("Agent Output: %v\n", output.Result)
 	fmt.Printf("Execution Duration: %v\n", output.Duration)
-	fmt.Println("✓ Agent executed successfully\n")
+	fmt.Println("✓ Agent executed successfully")
 
 	// 7. 演示错误追踪
 	fmt.Println("7. Demonstrating Error Tracking...")
@@ -174,7 +174,7 @@ func main() {
 	tracer.RecordError(errCtx, demoErr)
 	metrics.RecordError(errCtx, "DemoError")
 
-	fmt.Println("✓ Error tracking demonstrated\n")
+	fmt.Println("✓ Error tracking demonstrated")
 
 	// 8. 强制刷新遥测数据
 	fmt.Println("8. Flushing Telemetry Data...")
@@ -184,7 +184,7 @@ func main() {
 	if err := provider.ForceFlush(flushCtx); err != nil {
 		log.Printf("Warning: Failed to flush telemetry: %v", err)
 	}
-	fmt.Println("✓ Telemetry data flushed\n")
+	fmt.Println("✓ Telemetry data flushed")
 
 	fmt.Println("=== Example Completed Successfully ===")
 	fmt.Println("\nNotes:")

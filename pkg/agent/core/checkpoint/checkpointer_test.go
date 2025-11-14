@@ -114,8 +114,8 @@ func TestInMemorySaver_List(t *testing.T) {
 	// Verify each checkpoint has required fields
 	for _, info := range infos {
 		assert.NotEmpty(t, info.ThreadID)
-		assert.NotZero(t, info.Created)
-		assert.NotZero(t, info.Updated)
+		assert.NotZero(t, info.CreatedAt)
+		assert.NotZero(t, info.UpdatedAt)
 		assert.NotNil(t, info.Metadata)
 	}
 }
@@ -244,7 +244,7 @@ func TestInMemorySaver_CleanupOld(t *testing.T) {
 	// Manually set timestamp for old checkpoint
 	saver.mu.Lock()
 	if cp, ok := saver.checkpoints["old_thread"]; ok {
-		cp.info.Updated = time.Now().Add(-2 * time.Hour)
+		cp.info.UpdatedAt = time.Now().Add(-2 * time.Hour)
 	}
 	saver.mu.Unlock()
 
@@ -330,7 +330,7 @@ func TestCheckpointerWithAutoCleanup(t *testing.T) {
 	// Manually set old timestamp
 	baseSaver.mu.Lock()
 	if cp, ok := baseSaver.checkpoints["thread1"]; ok {
-		cp.info.Updated = time.Now().Add(-200 * time.Millisecond)
+		cp.info.UpdatedAt = time.Now().Add(-200 * time.Millisecond)
 	}
 	baseSaver.mu.Unlock()
 

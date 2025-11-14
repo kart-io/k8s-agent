@@ -141,6 +141,9 @@ type CheckpointMetadata struct {
 	// CreatedAt is when the checkpoint was created.
 	CreatedAt time.Time `json:"created_at"`
 
+	// UpdatedAt is when the checkpoint was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+
 	// Size is the approximate size in bytes of the checkpoint data.
 	// Useful for storage management and cleanup decisions.
 	Size int64 `json:"size"`

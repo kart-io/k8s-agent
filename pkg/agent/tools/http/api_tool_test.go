@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
 // TestNewAPITool tests API tool creation
@@ -494,7 +495,7 @@ func TestAPITool_AbsoluteURL(t *testing.T) {
 func TestAPIToolBuilder(t *testing.T) {
 	builder := NewAPIToolBuilder().
 		WithBaseURL("https://api.example.com").
-		WithTimeout(10 * time.Second).
+		WithTimeout(10*time.Second).
 		WithHeader("X-Custom", "value").
 		WithHeaders(map[string]string{"X-Another": "value2"}).
 		WithAuth("token123")

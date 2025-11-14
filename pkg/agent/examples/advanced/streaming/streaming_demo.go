@@ -11,7 +11,7 @@ import (
 
 // 演示流式响应的完整示例
 func main() {
-	fmt.Println("=== 流式响应示例 ===\n")
+	fmt.Println("=== 流式响应示例 ===")
 
 	// 示例 1: LLM 流式补全
 	example1LLMStream()

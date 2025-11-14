@@ -43,18 +43,17 @@ type Checkpointer interface {
 
 // CheckpointInfo contains metadata about a checkpoint.
 //
-// Note: The canonical version is interfaces.CheckpointMetadata with slightly
-// different field names (CreatedAt vs Created, no Updated field).
-// This struct is maintained for backward compatibility.
+// Note: This struct is aligned with interfaces.CheckpointMetadata to ensure consistency.
+// Fields match exactly for seamless integration.
 type CheckpointInfo struct {
 	// ThreadID is the unique identifier for the thread/session
 	ThreadID string `json:"thread_id"`
 
-	// Created is when the checkpoint was first created
-	Created time.Time `json:"created"`
+	// CreatedAt is when the checkpoint was first created
+	CreatedAt time.Time `json:"created_at"`
 
-	// Updated is when the checkpoint was last updated
-	Updated time.Time `json:"updated"`
+	// UpdatedAt is when the checkpoint was last updated
+	UpdatedAt time.Time `json:"updated_at"`
 
 	// Metadata holds additional checkpoint information
 	Metadata map[string]interface{} `json:"metadata"`
@@ -98,7 +97,7 @@ func (s *InMemorySaver) Save(ctx context.Context, threadID string, state agentst
 
 	if exists {
 		// Update existing checkpoint
-		cp.info.Updated = now
+		cp.info.UpdatedAt = now
 		// Add previous state to history
 		cp.history = append(cp.history, cp.state)
 		cp.state = state
@@ -108,8 +107,8 @@ func (s *InMemorySaver) Save(ctx context.Context, threadID string, state agentst
 			state: state,
 			info: CheckpointInfo{
 				ThreadID:  threadID,
-				Created:   now,
-				Updated:   now,
+				CreatedAt: now,
+				UpdatedAt: now,
 				Metadata:  make(map[string]interface{}),
 				StateSize: estimateStateSize(state),
 			},
@@ -200,7 +199,7 @@ func (s *InMemorySaver) CleanupOld(maxAge time.Duration) int {
 	removed := 0
 
 	for threadID, cp := range s.checkpoints {
-		if now.Sub(cp.info.Updated) > maxAge {
+		if now.Sub(cp.info.UpdatedAt) > maxAge {
 			delete(s.checkpoints, threadID)
 			removed++
 		}

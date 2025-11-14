@@ -52,7 +52,7 @@ func (m *MockLLMClient) IsAvailable() bool {
 }
 
 func main() {
-	fmt.Println("=== Pre-configured Agent Templates Demo ===\n")
+	fmt.Println("=== Pre-configured Agent Templates Demo ===")
 
 	// Create a mock LLM client for demonstration
 	llmClient := NewMockLLMClient()
