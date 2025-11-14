@@ -8,6 +8,8 @@ import (
 
 	"github.com/kart-io/k8s-agent/pkg/agent/builder"
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/execution"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/middleware"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/store"
 	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
@@ -96,9 +98,9 @@ func main() {
 	rateLimiter := createTierRateLimiter()
 
 	// Dynamic prompt enhancer
-	promptEnhancer := core.NewDynamicPromptMiddleware(func(req *core.MiddlewareRequest) string {
+	promptEnhancer := middleware.NewDynamicPromptMiddleware(func(req *middleware.MiddlewareRequest) string {
 		// Enhance prompt based on user tier
-		if ctx, ok := req.Runtime.(*core.Runtime[ApplicationContext, *CustomState]); ok {
+		if ctx, ok := req.Runtime.(*execution.Runtime[ApplicationContext, *CustomState]); ok {
 			tier := ctx.Context.Tier
 			base := fmt.Sprintf("%v", req.Input)
 			switch tier {
@@ -114,8 +116,8 @@ func main() {
 	})
 
 	// Authentication middleware
-	authMiddleware := core.NewAuthenticationMiddleware(func(ctx context.Context, req *core.MiddlewareRequest) (bool, error) {
-		if runtime, ok := req.Runtime.(*core.Runtime[ApplicationContext, *CustomState]); ok {
+	authMiddleware := middleware.NewAuthenticationMiddleware(func(ctx context.Context, req *middleware.MiddlewareRequest) (bool, error) {
+		if runtime, ok := req.Runtime.(*execution.Runtime[ApplicationContext, *CustomState]); ok {
 			// Validate API key
 			if runtime.Context.APIKey == "" {
 				return false, fmt.Errorf("API key required")
@@ -163,16 +165,16 @@ func main() {
 		WithCheckpointer(checkpointer).
 		WithTools(searchTool, calculatorTool, weatherTool, databaseTool).
 		WithMiddleware(
-			core.NewLoggingMiddleware(func(msg string) {
+			middleware.NewLoggingMiddleware(func(msg string) {
 				fmt.Printf("  [LOG] %s\n", msg)
 			}),
-			core.NewTimingMiddleware(),
+			middleware.NewTimingMiddleware(),
 			authMiddleware,
 			rateLimiter,
 			promptEnhancer,
 			toolTracker,
-			core.NewValidationMiddleware(
-				func(req *core.MiddlewareRequest) error {
+			middleware.NewValidationMiddleware(
+				func(req *middleware.MiddlewareRequest) error {
 					// Validate input length
 					if len(fmt.Sprintf("%v", req.Input)) > 5000 {
 						return fmt.Errorf("input too long (max 5000 chars)")
@@ -424,7 +426,7 @@ func CreateDatabaseTool(st store.Store) tools.Tool {
 			// Access runtime context if available
 			if input.Context != nil {
 				// Get user profile from store
-				if runtime, ok := input.Context.Value("runtime").(*core.Runtime[ApplicationContext, *CustomState]); ok {
+				if runtime, ok := input.Context.Value("runtime").(*execution.Runtime[ApplicationContext, *CustomState]); ok {
 					userID := runtime.Context.UserID
 					profile, err := st.Get(ctx, []string{"users", userID}, "profile")
 					if err == nil {
@@ -468,12 +470,12 @@ type toolTrackerMiddleware struct {
 	*core.BaseMiddleware
 }
 
-func (m *toolTrackerMiddleware) OnBefore(ctx context.Context, request *core.MiddlewareRequest) (*core.MiddlewareRequest, error) {
+func (m *toolTrackerMiddleware) OnBefore(ctx context.Context, request *middleware.MiddlewareRequest) (*middleware.MiddlewareRequest, error) {
 	// Pass through
 	return request, nil
 }
 
-func (m *toolTrackerMiddleware) OnAfter(ctx context.Context, response *core.MiddlewareResponse) (*core.MiddlewareResponse, error) {
+func (m *toolTrackerMiddleware) OnAfter(ctx context.Context, response *middleware.MiddlewareResponse) (*middleware.MiddlewareResponse, error) {
 	// Track tool usage in state
 	if response.State != nil {
 		if state, ok := response.State.(*CustomState); ok {

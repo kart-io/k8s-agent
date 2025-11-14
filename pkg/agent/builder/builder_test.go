@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/middleware"
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
@@ -55,14 +57,14 @@ func (m *MockLLMClient) IsAvailable() bool {
 
 // MockTool implements tools.Tool for testing
 type MockTool struct {
-	*core.BaseRunnable[*tools.ToolInput, *tools.ToolOutput]
+	*core.BaseRunnable[*interfaces.ToolInput, *interfaces.ToolOutput]
 	name   string
 	result string
 }
 
 func NewMockTool(name, result string) *MockTool {
 	return &MockTool{
-		BaseRunnable: core.NewBaseRunnable[*tools.ToolInput, *tools.ToolOutput](),
+		BaseRunnable: core.NewBaseRunnable[*interfaces.ToolInput, *interfaces.ToolOutput](),
 		name:         name,
 		result:       result,
 	}
@@ -81,7 +83,7 @@ func (t *MockTool) ArgsSchema() string {
 }
 
 // Invoke implements the Runnable interface for Tool
-func (t *MockTool) Invoke(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+func (t *MockTool) Invoke(ctx context.Context, input *interfaces.ToolInput) (*interfaces.ToolOutput, error) {
 	return &tools.ToolOutput{
 		Result:  t.result,
 		Success: true,
@@ -89,7 +91,7 @@ func (t *MockTool) Invoke(ctx context.Context, input *tools.ToolInput) (*tools.T
 }
 
 // Stream implements the Runnable interface for Tool
-func (t *MockTool) Stream(ctx context.Context, input *tools.ToolInput) (<-chan core.StreamChunk[*tools.ToolOutput], error) {
+func (t *MockTool) Stream(ctx context.Context, input *interfaces.ToolInput) (<-chan core.StreamChunk[*interfaces.ToolOutput], error) {
 	outChan := make(chan core.StreamChunk[*tools.ToolOutput], 1)
 	go func() {
 		defer close(outChan)
@@ -117,8 +119,8 @@ func (t *MockTool) Batch(ctx context.Context, inputs []*tools.ToolInput) ([]*too
 }
 
 // Pipe implements the Runnable interface for Tool
-func (t *MockTool) Pipe(next core.Runnable[*tools.ToolOutput, any]) core.Runnable[*tools.ToolInput, any] {
-	return core.NewRunnablePipe[*tools.ToolInput, *tools.ToolOutput, any](t, next)
+func (t *MockTool) Pipe(next core.Runnable[*interfaces.ToolOutput, any]) core.Runnable[*interfaces.ToolInput, any] {
+	return core.NewRunnablePipe[*interfaces.ToolInput, *interfaces.ToolOutput, any](t, next)
 }
 
 // WithCallbacks adds callbacks to the tool
@@ -241,8 +243,8 @@ func TestAgentBuilder_WithMiddleware(t *testing.T) {
 	llmClient := NewMockLLMClient()
 	builder := NewAgentBuilder[TestContext, *core.AgentState](llmClient)
 
-	mw1 := core.NewLoggingMiddleware(nil)
-	mw2 := core.NewTimingMiddleware()
+	mw1 := middleware.NewLoggingMiddleware(nil)
+	mw2 := middleware.NewTimingMiddleware()
 
 	builder.WithMiddleware(mw1, mw2)
 
@@ -396,7 +398,7 @@ func TestConfigurableAgent_GetMetrics(t *testing.T) {
 
 	agent, err := NewAgentBuilder[any, *core.AgentState](llmClient).
 		WithTools(tool).
-		WithMiddleware(core.NewLoggingMiddleware(nil)).
+		WithMiddleware(middleware.NewLoggingMiddleware(nil)).
 		Build()
 	require.NoError(t, err)
 
@@ -649,10 +651,10 @@ func TestAgentBuilder_CompleteFlow(t *testing.T) {
 	searchTool := NewMockTool("search", "search results")
 
 	// Create middleware
-	loggingMW := core.NewLoggingMiddleware(func(msg string) {
+	loggingMW := middleware.NewLoggingMiddleware(func(msg string) {
 		// Silent logging for test
 	})
-	cacheMW := core.NewCacheMiddleware(1 * time.Minute)
+	cacheMW := middleware.NewCacheMiddleware(1 * time.Minute)
 
 	// Build agent with everything
 	agent, err := NewAgentBuilder[TestContext, *core.AgentState](llmClient).

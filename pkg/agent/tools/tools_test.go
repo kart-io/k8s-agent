@@ -3,8 +3,6 @@ package tools
 import (
 	"context"
 	"testing"
-
-	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 )
 
 // TestBaseTool 测试基础工具
@@ -86,6 +84,8 @@ func TestFunctionTool(t *testing.T) {
 }
 
 // TestToolWithCallbacks 测试工具回调
+// NOTE: This test is disabled because WithCallbacks is no longer part of the simplified Tool interface
+/*
 func TestToolWithCallbacks(t *testing.T) {
 	var callbackExecuted bool
 
@@ -125,8 +125,45 @@ func TestToolWithCallbacks(t *testing.T) {
 		t.Error("Callback was not executed")
 	}
 }
+*/
+
+// TestBasicToolInvocation tests basic tool invocation without callbacks
+func TestBasicToolInvocation(t *testing.T) {
+	tool := NewBaseTool(
+		"test_tool",
+		"A test tool",
+		`{}`,
+		func(ctx context.Context, input *ToolInput) (*ToolOutput, error) {
+			return &ToolOutput{
+				Success: true,
+				Result:  "tool executed",
+			}, nil
+		},
+	)
+
+	ctx := context.Background()
+	input := &ToolInput{
+		Args:    map[string]interface{}{},
+		Context: ctx,
+	}
+
+	output, err := tool.Invoke(ctx, input)
+	if err != nil {
+		t.Fatalf("Invoke failed: %v", err)
+	}
+
+	if !output.Success {
+		t.Error("Expected success=true")
+	}
+
+	if output.Result != "tool executed" {
+		t.Errorf("Expected result 'tool executed', got '%v'", output.Result)
+	}
+}
 
 // testCallback 测试回调实现
+// NOTE: Commented out - no longer used after interface simplification
+/*
 type testCallback struct {
 	agentcore.BaseCallback
 	onToolStart func(ctx context.Context, toolName string, input interface{}) error
@@ -154,6 +191,7 @@ func (t *testCallback) OnToolError(ctx context.Context, toolName string, err err
 	}
 	return nil
 }
+*/
 
 // BenchmarkFunctionTool 性能测试
 func BenchmarkFunctionTool(b *testing.B) {

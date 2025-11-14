@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -341,16 +342,16 @@ func createFlakyTool(name string, failCount int) tools.Tool {
 	)
 }
 
-func createRandomDelayTool(name string, minDelay, maxDelay time.Duration) tools.Tool {
+func createRandomDelayTool(name string, minDelay, maxDelay time.Duration) interfaces.Tool {
 	return tools.NewBaseTool(
 		name,
 		fmt.Sprintf("Random delay %s tool", name),
 		"{}",
-		func(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+		func(ctx context.Context, input *interfaces.ToolInput) (*interfaces.ToolOutput, error) {
 			// Random delay between min and max
 			delay := minDelay + time.Duration(rand.Int63n(int64(maxDelay-minDelay)))
 			time.Sleep(delay)
-			return &tools.ToolOutput{
+			return &interfaces.ToolOutput{
 				Result:  fmt.Sprintf("Completed with %v delay", delay),
 				Success: true,
 			}, nil

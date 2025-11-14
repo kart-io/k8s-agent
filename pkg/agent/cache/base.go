@@ -79,6 +79,7 @@ type InMemoryCache struct {
 	defaultTTL      time.Duration // 默认 TTL
 	cleanupInterval time.Duration // 清理间隔
 	stopCleanup     chan struct{}
+	cleanupDone     sync.WaitGroup // Track cleanup goroutine
 }
 
 // NewInMemoryCache 创建内存缓存
@@ -94,6 +95,7 @@ func NewInMemoryCache(maxSize int, defaultTTL, cleanupInterval time.Duration) *I
 
 	// 启动定期清理
 	if cleanupInterval > 0 {
+		cache.cleanupDone.Add(1)
 		go cache.cleanup()
 	}
 
@@ -237,6 +239,7 @@ func (c *InMemoryCache) evictOldest() {
 
 // cleanup 定期清理过期条目
 func (c *InMemoryCache) cleanup() {
+	defer c.cleanupDone.Done()
 	ticker := time.NewTicker(c.cleanupInterval)
 	defer ticker.Stop()
 
@@ -270,7 +273,12 @@ func (c *InMemoryCache) cleanupExpired() {
 
 // Close 关闭缓存
 func (c *InMemoryCache) Close() {
-	close(c.stopCleanup)
+	// Signal cleanup to stop
+	if c.cleanupInterval > 0 {
+		close(c.stopCleanup)
+		// Wait for cleanup goroutine to finish
+		c.cleanupDone.Wait()
+	}
 }
 
 // 统计辅助方法

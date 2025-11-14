@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/retrieval"
 )
 
@@ -38,8 +39,8 @@ func main() {
 }
 
 // createTechDocs 创建技术文档集合
-func createTechDocs() []*retrieval.Document {
-	return []*retrieval.Document{
+func createTechDocs() []*interfaces.Document {
+	return []*interfaces.Document{
 		retrieval.NewDocument(
 			"Kubernetes provides automatic bin packing, self-healing, horizontal scaling, service discovery and load balancing, automated rollouts and rollbacks, secret and configuration management, storage orchestration, and batch execution.",
 			map[string]interface{}{

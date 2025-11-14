@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
@@ -74,11 +75,11 @@ func NewShellTool(allowedCommands []string, timeout time.Duration) *ShellTool {
 }
 
 // run 执行 shell 命令
-func (s *ShellTool) run(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+func (s *ShellTool) run(ctx context.Context, input *interfaces.ToolInput) (*interfaces.ToolOutput, error) {
 	// 解析参数
 	command, ok := input.Args["command"].(string)
 	if !ok || command == "" {
-		return &tools.ToolOutput{
+		return &interfaces.ToolOutput{
 			Success: false,
 			Error:   "command is required and must be a non-empty string",
 		}, tools.NewToolError(s.Name(), "invalid input", fmt.Errorf("command is required"))
@@ -86,7 +87,7 @@ func (s *ShellTool) run(ctx context.Context, input *tools.ToolInput) (*tools.Too
 
 	// 安全检查：命令白名单
 	if !s.allowedCommands[command] {
-		return &tools.ToolOutput{
+		return &interfaces.ToolOutput{
 			Success: false,
 			Error:   fmt.Sprintf("command not allowed: %s", command),
 			Metadata: map[string]interface{}{
@@ -121,7 +122,7 @@ func (s *ShellTool) run(ctx context.Context, input *tools.ToolInput) (*tools.Too
 		strings.Contains(command, "&") || strings.Contains(command, "`") ||
 		strings.Contains(command, "$") || strings.Contains(command, ">") ||
 		strings.Contains(command, "<") {
-		return &tools.ToolOutput{
+		return &interfaces.ToolOutput{
 			Result:  nil,
 			Success: false,
 			Error:   "command contains potentially dangerous characters",
@@ -204,8 +205,8 @@ func (s *ShellTool) IsCommandAllowed(command string) bool {
 }
 
 // ExecuteScript 执行脚本的便捷方法
-func (s *ShellTool) ExecuteScript(ctx context.Context, scriptPath string, args []string) (*tools.ToolOutput, error) {
-	return s.Invoke(ctx, &tools.ToolInput{
+func (s *ShellTool) ExecuteScript(ctx context.Context, scriptPath string, args []string) (*interfaces.ToolOutput, error) {
+	return s.Invoke(ctx, &interfaces.ToolInput{
 		Args: map[string]interface{}{
 			"command": "bash",
 			"args":    append([]string{scriptPath}, args...),
@@ -215,9 +216,9 @@ func (s *ShellTool) ExecuteScript(ctx context.Context, scriptPath string, args [
 }
 
 // ExecutePipeline 执行管道命令的便捷方法
-func (s *ShellTool) ExecutePipeline(ctx context.Context, commands []string) (*tools.ToolOutput, error) {
+func (s *ShellTool) ExecutePipeline(ctx context.Context, commands []string) (*interfaces.ToolOutput, error) {
 	pipeline := strings.Join(commands, " | ")
-	return s.Invoke(ctx, &tools.ToolInput{
+	return s.Invoke(ctx, &interfaces.ToolInput{
 		Args: map[string]interface{}{
 			"command": "bash",
 			"args":    []string{"-c", pipeline},

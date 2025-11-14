@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/middleware"
 	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 )
 
@@ -50,11 +51,11 @@ func main() {
 // basicMiddlewareDemo demonstrates basic middleware chain execution
 func basicMiddlewareDemo() {
 	// Create main handler (simulates LLM call)
-	handler := func(ctx context.Context, req *core.MiddlewareRequest) (*core.MiddlewareResponse, error) {
+	handler := func(ctx context.Context, req *middleware.MiddlewareRequest) (*middleware.MiddlewareResponse, error) {
 		fmt.Printf("  [Handler] Processing: %v\n", req.Input)
 		time.Sleep(100 * time.Millisecond) // Simulate processing
 
-		return &core.MiddlewareResponse{
+		return &middleware.MiddlewareResponse{
 			Output:   fmt.Sprintf("Processed: %v", req.Input),
 			State:    req.State,
 			Metadata: req.Metadata,
@@ -62,24 +63,24 @@ func basicMiddlewareDemo() {
 	}
 
 	// Create middleware chain
-	chain := core.NewMiddlewareChain(handler)
+	chain := middleware.NewMiddlewareChain(handler)
 
 	// Add logging middleware
-	chain.Use(core.NewLoggingMiddleware(func(msg string) {
+	chain.Use(middleware.NewLoggingMiddleware(func(msg string) {
 		fmt.Printf("  [LOG] %s\n", msg)
 	}))
 
 	// Add timing middleware
-	chain.Use(core.NewTimingMiddleware())
+	chain.Use(middleware.NewTimingMiddleware())
 
 	// Add cache middleware
-	chain.Use(core.NewCacheMiddleware(5 * time.Second))
+	chain.Use(middleware.NewCacheMiddleware(5 * time.Second))
 
 	// Execute request
 	state := core.NewAgentState()
 	state.Set("user", "Alice")
 
-	request := &core.MiddlewareRequest{
+	request := &middleware.MiddlewareRequest{
 		Input:     "What is Kubernetes?",
 		State:     state,
 		Metadata:  make(map[string]interface{}),
@@ -108,7 +109,7 @@ func basicMiddlewareDemo() {
 // dynamicPromptDemo demonstrates dynamic prompt modification
 func dynamicPromptDemo() {
 	// Create prompt modifier function
-	promptModifier := func(req *core.MiddlewareRequest) string {
+	promptModifier := func(req *middleware.MiddlewareRequest) string {
 		if req.State != nil {
 			if role, ok := req.State.Get("role"); ok {
 				original := fmt.Sprintf("%v", req.Input)
@@ -119,16 +120,16 @@ func dynamicPromptDemo() {
 	}
 
 	// Create dynamic prompt middleware
-	dynamicPrompt := core.NewDynamicPromptMiddleware(promptModifier)
+	dynamicPrompt := middleware.NewDynamicPromptMiddleware(promptModifier)
 
 	// Create handler that echoes the modified prompt
-	handler := func(ctx context.Context, req *core.MiddlewareRequest) (*core.MiddlewareResponse, error) {
-		return &core.MiddlewareResponse{
+	handler := func(ctx context.Context, req *middleware.MiddlewareRequest) (*middleware.MiddlewareResponse, error) {
+		return &middleware.MiddlewareResponse{
 			Output: fmt.Sprintf("Received prompt: %v", req.Input),
 		}, nil
 	}
 
-	chain := core.NewMiddlewareChain(handler)
+	chain := middleware.NewMiddlewareChain(handler)
 	chain.Use(dynamicPrompt)
 
 	// Test with different roles
@@ -137,7 +138,7 @@ func dynamicPromptDemo() {
 		state.Set("role", role)
 		state.Set("user_name", "Bob")
 
-		request := &core.MiddlewareRequest{
+		request := &middleware.MiddlewareRequest{
 			Input: "Explain cloud computing",
 			State: state,
 		}
@@ -163,17 +164,17 @@ func toolSelectorDemo() {
 	}
 
 	// Create tool selector middleware
-	toolSelector := core.NewToolSelectorMiddleware(tools, 3)
+	toolSelector := middleware.NewToolSelectorMiddleware(tools, 3)
 
 	// Handler that shows selected tools
-	handler := func(ctx context.Context, req *core.MiddlewareRequest) (*core.MiddlewareResponse, error) {
+	handler := func(ctx context.Context, req *middleware.MiddlewareRequest) (*middleware.MiddlewareResponse, error) {
 		selectedTools := req.Metadata["selected_tools"]
-		return &core.MiddlewareResponse{
+		return &middleware.MiddlewareResponse{
 			Output: fmt.Sprintf("Selected tools: %v", selectedTools),
 		}, nil
 	}
 
-	chain := core.NewMiddlewareChain(handler)
+	chain := middleware.NewMiddlewareChain(handler)
 	chain.Use(toolSelector)
 
 	// Test different queries
@@ -185,7 +186,7 @@ func toolSelectorDemo() {
 	}
 
 	for _, query := range queries {
-		request := &core.MiddlewareRequest{
+		request := &middleware.MiddlewareRequest{
 			Input:    query,
 			Metadata: make(map[string]interface{}),
 		}
@@ -199,16 +200,16 @@ func toolSelectorDemo() {
 // rateLimiterDemo demonstrates rate limiting
 func rateLimiterDemo() {
 	// Create rate limiter (3 requests per 5 seconds)
-	rateLimiter := core.NewRateLimiterMiddleware(3, 5*time.Second)
+	rateLimiter := middleware.NewRateLimiterMiddleware(3, 5*time.Second)
 
 	// Simple handler
-	handler := func(ctx context.Context, req *core.MiddlewareRequest) (*core.MiddlewareResponse, error) {
-		return &core.MiddlewareResponse{
+	handler := func(ctx context.Context, req *middleware.MiddlewareRequest) (*middleware.MiddlewareResponse, error) {
+		return &middleware.MiddlewareResponse{
 			Output: fmt.Sprintf("Request %v processed", req.Input),
 		}, nil
 	}
 
-	chain := core.NewMiddlewareChain(handler)
+	chain := middleware.NewMiddlewareChain(handler)
 	chain.Use(rateLimiter)
 
 	// Simulate multiple requests
@@ -216,7 +217,7 @@ func rateLimiterDemo() {
 	state.Set("user_id", "user123")
 
 	for i := 1; i <= 5; i++ {
-		request := &core.MiddlewareRequest{
+		request := &middleware.MiddlewareRequest{
 			Input:    fmt.Sprintf("Request %d", i),
 			State:    state,
 			Metadata: make(map[string]interface{}),
@@ -250,7 +251,7 @@ func completeAgentDemo() {
 	state.Set("conversation_count", 0)
 
 	// Main agent handler (simulates LLM with context)
-	agentHandler := func(ctx context.Context, req *core.MiddlewareRequest) (*core.MiddlewareResponse, error) {
+	agentHandler := func(ctx context.Context, req *middleware.MiddlewareRequest) (*middleware.MiddlewareResponse, error) {
 		// Increment conversation count
 		if req.State != nil {
 			count, _ := req.State.Get("conversation_count")
@@ -278,7 +279,7 @@ func completeAgentDemo() {
 				"tools":  tools,
 			})
 
-		return &core.MiddlewareResponse{
+		return &middleware.MiddlewareResponse{
 			Output:   output,
 			State:    req.State,
 			Metadata: req.Metadata,
@@ -286,10 +287,10 @@ func completeAgentDemo() {
 	}
 
 	// Build middleware stack
-	chain := core.NewMiddlewareChain(agentHandler)
+	chain := middleware.NewMiddlewareChain(agentHandler)
 
 	// 1. Authentication middleware
-	authMiddleware := core.NewAuthenticationMiddleware(func(ctx context.Context, req *core.MiddlewareRequest) (bool, error) {
+	authMiddleware := middleware.NewAuthenticationMiddleware(func(ctx context.Context, req *middleware.MiddlewareRequest) (bool, error) {
 		// Check if user is authenticated
 		if req.State != nil {
 			if userName, ok := req.State.Get("user_name"); ok && userName != "" {
@@ -300,15 +301,15 @@ func completeAgentDemo() {
 	})
 
 	// 2. Validation middleware
-	validationMiddleware := core.NewValidationMiddleware(
-		func(req *core.MiddlewareRequest) error {
+	validationMiddleware := middleware.NewValidationMiddleware(
+		func(req *middleware.MiddlewareRequest) error {
 			// Validate input is not empty
 			if req.Input == nil || fmt.Sprintf("%v", req.Input) == "" {
 				return fmt.Errorf("input cannot be empty")
 			}
 			return nil
 		},
-		func(req *core.MiddlewareRequest) error {
+		func(req *middleware.MiddlewareRequest) error {
 			// Validate input length
 			if len(fmt.Sprintf("%v", req.Input)) > 1000 {
 				return fmt.Errorf("input too long (max 1000 characters)")
@@ -318,7 +319,7 @@ func completeAgentDemo() {
 	)
 
 	// 3. Dynamic prompt middleware
-	dynamicPrompt := core.NewDynamicPromptMiddleware(func(req *core.MiddlewareRequest) string {
+	dynamicPrompt := middleware.NewDynamicPromptMiddleware(func(req *middleware.MiddlewareRequest) string {
 		if req.State != nil {
 			if role, ok := req.State.Get("user_role"); ok {
 				return fmt.Sprintf("[Role: %v] %v", role, req.Input)
@@ -328,12 +329,12 @@ func completeAgentDemo() {
 	})
 
 	// 4. Tool selector middleware
-	toolSelector := core.NewToolSelectorMiddleware([]string{
+	toolSelector := middleware.NewToolSelectorMiddleware([]string{
 		"code_runner", "database", "file_reader", "search",
 	}, 2)
 
 	// 5. Transform middleware (uppercase for demonstration)
-	transformMiddleware := core.NewTransformMiddleware(
+	transformMiddleware := middleware.NewTransformMiddleware(
 		func(input interface{}) (interface{}, error) {
 			// Transform input to uppercase
 			return strings.ToUpper(fmt.Sprintf("%v", input)), nil
@@ -345,21 +346,21 @@ func completeAgentDemo() {
 	)
 
 	// 6. Rate limiter
-	rateLimiter := core.NewRateLimiterMiddleware(10, 1*time.Minute)
+	rateLimiter := middleware.NewRateLimiterMiddleware(10, 1*time.Minute)
 
 	// 7. Circuit breaker
-	circuitBreaker := core.NewCircuitBreakerMiddleware(3, 30*time.Second)
+	circuitBreaker := middleware.NewCircuitBreakerMiddleware(3, 30*time.Second)
 
 	// 8. Logging
-	logger := core.NewLoggingMiddleware(func(msg string) {
+	logger := middleware.NewLoggingMiddleware(func(msg string) {
 		fmt.Printf("    [LOG] %s\n", msg)
 	})
 
 	// 9. Timing
-	timing := core.NewTimingMiddleware()
+	timing := middleware.NewTimingMiddleware()
 
 	// 10. Cache
-	cache := core.NewCacheMiddleware(30 * time.Second)
+	cache := middleware.NewCacheMiddleware(30 * time.Second)
 
 	// Add all middleware to chain (order matters!)
 	chain.Use(
@@ -388,7 +389,7 @@ func completeAgentDemo() {
 	for i, input := range requests {
 		fmt.Printf("  Request %d: %s\n", i+1, input)
 
-		request := &core.MiddlewareRequest{
+		request := &middleware.MiddlewareRequest{
 			Input:     input,
 			State:     state,
 			Metadata:  make(map[string]interface{}),

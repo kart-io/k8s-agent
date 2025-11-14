@@ -3,9 +3,21 @@ package store
 import (
 	"context"
 	"time"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 )
 
-// Store defines the interface for long-term persistent storage.
+// SimpleStore is a type alias for the canonical Store interface.
+//
+// For new code, use interfaces.Store directly.
+// This alias provides a migration path for existing code.
+type SimpleStore = interfaces.Store
+
+// Store defines the interface for namespace-based persistent storage.
+//
+// NOTE: This is a legacy interface with namespace support.
+// For new code, consider using interfaces.Store for simpler key-value storage,
+// or this NamespaceStore for namespace-organized storage.
 //
 // Inspired by LangChain's Store, it provides:
 //   - Namespace-based organization

@@ -92,6 +92,12 @@ type HierarchicalMemory struct {
 	consolidator *MemoryConsolidator
 	mu           sync.RWMutex
 
+	// Lifecycle management
+	ctx    context.Context
+	cancel context.CancelFunc
+	done   chan struct{}
+	wg     sync.WaitGroup
+
 	// Configuration
 	shortTermCapacity      int
 	consolidationThreshold float64
@@ -101,11 +107,15 @@ type HierarchicalMemory struct {
 
 // NewHierarchicalMemory creates a new hierarchical memory system
 func NewHierarchicalMemory(vectorStore VectorStore, opts ...MemoryOption) *HierarchicalMemory {
+	ctx, cancel := context.WithCancel(context.Background())
 	m := &HierarchicalMemory{
 		shortTerm:              NewShortTermMemory(100),
 		longTerm:               NewLongTermMemory(vectorStore),
 		vectorStore:            vectorStore,
 		consolidator:           NewMemoryConsolidator(),
+		ctx:                    ctx,
+		cancel:                 cancel,
+		done:                   make(chan struct{}),
 		shortTermCapacity:      100,
 		consolidationThreshold: 0.7,
 		decayRate:              0.01,
@@ -116,7 +126,8 @@ func NewHierarchicalMemory(vectorStore VectorStore, opts ...MemoryOption) *Hiera
 		opt(m)
 	}
 
-	// Start background consolidation
+	// Start background consolidation with proper lifecycle management
+	m.wg.Add(1)
 	go m.backgroundConsolidation()
 
 	return m
@@ -136,6 +147,27 @@ func WithShortTermCapacity(capacity int) MemoryOption {
 func WithDecayRate(rate float64) MemoryOption {
 	return func(m *HierarchicalMemory) {
 		m.decayRate = rate
+	}
+}
+
+// Shutdown gracefully shuts down the memory system
+func (m *HierarchicalMemory) Shutdown(ctx context.Context) error {
+	// Signal shutdown
+	m.cancel()
+	close(m.done)
+
+	// Wait for goroutines with timeout
+	done := make(chan struct{})
+	go func() {
+		m.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 
@@ -572,16 +604,20 @@ func (m *HierarchicalMemory) applyDecay() {
 }
 
 func (m *HierarchicalMemory) backgroundConsolidation() {
+	defer m.wg.Done()
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		ctx := context.Background()
+	for {
+		select {
+		case <-m.ctx.Done():
+			return // Clean shutdown
+		case <-ticker.C:
+			// Consolidate memories
+			m.Consolidate(m.ctx)
 
-		// Consolidate memories
-		m.Consolidate(ctx)
-
-		// Forget unimportant memories
-		m.Forget(ctx, m.importanceThreshold)
+			// Forget unimportant memories
+			m.Forget(m.ctx, m.importanceThreshold)
+		}
 	}
 }

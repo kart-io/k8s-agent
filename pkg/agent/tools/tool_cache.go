@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
 )
 
 // ToolCache 工具缓存接口
@@ -48,6 +46,10 @@ type MemoryToolCache struct {
 
 	// stats 统计信息
 	stats *CacheStats
+
+	// Lifecycle management
+	stopCleanup chan struct{}
+	cleanupDone sync.WaitGroup
 }
 
 // cacheEntry 缓存条目
@@ -93,14 +95,18 @@ func NewMemoryToolCache(config MemoryCacheConfig) *MemoryToolCache {
 	}
 
 	cache := &MemoryToolCache{
-		capacity: config.Capacity,
-		cache:    make(map[string]*cacheEntry),
-		lruList:  list.New(),
-		stats:    &CacheStats{},
+		capacity:    config.Capacity,
+		cache:       make(map[string]*cacheEntry),
+		lruList:     list.New(),
+		stats:       &CacheStats{},
+		stopCleanup: make(chan struct{}),
 	}
 
-	// 启动清理 goroutine
-	go cache.cleanupExpired(config.CleanupInterval)
+	// 启动清理 goroutine with proper lifecycle management
+	if config.CleanupInterval > 0 {
+		cache.cleanupDone.Add(1)
+		go cache.cleanupExpired(config.CleanupInterval)
+	}
 
 	return cache
 }
@@ -203,6 +209,14 @@ func (c *MemoryToolCache) GetStats() CacheStats {
 	}
 }
 
+// Close 关闭缓存，清理资源
+func (c *MemoryToolCache) Close() {
+	// Signal cleanup goroutine to stop
+	close(c.stopCleanup)
+	// Wait for cleanup goroutine to finish
+	c.cleanupDone.Wait()
+}
+
 // removeEntry 移除条目（内部方法，不加锁）
 func (c *MemoryToolCache) removeEntry(entry *cacheEntry) {
 	c.lruList.Remove(entry.element)
@@ -221,29 +235,35 @@ func (c *MemoryToolCache) evictOldest() {
 
 // cleanupExpired 清理过期条目
 func (c *MemoryToolCache) cleanupExpired(interval time.Duration) {
+	defer c.cleanupDone.Done()
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		c.mu.Lock()
-		now := time.Now()
+	for {
+		select {
+		case <-c.stopCleanup:
+			return // Clean shutdown
+		case <-ticker.C:
+			c.mu.Lock()
+			now := time.Now()
 
-		// 收集过期的 key
-		expiredKeys := make([]string, 0)
-		for key, entry := range c.cache {
-			if now.After(entry.expireTime) {
-				expiredKeys = append(expiredKeys, key)
+			// 收集过期的 key
+			expiredKeys := make([]string, 0)
+			for key, entry := range c.cache {
+				if now.After(entry.expireTime) {
+					expiredKeys = append(expiredKeys, key)
+				}
 			}
-		}
 
-		// 删除过期条目
-		for _, key := range expiredKeys {
-			if entry, exists := c.cache[key]; exists {
-				c.removeEntry(entry)
+			// 删除过期条目
+			for _, key := range expiredKeys {
+				if entry, exists := c.cache[key]; exists {
+					c.removeEntry(entry)
+				}
 			}
-		}
 
-		c.mu.Unlock()
+			c.mu.Unlock()
+		}
 	}
 }
 
@@ -340,31 +360,6 @@ func (c *CachedTool) Invoke(ctx context.Context, input *ToolInput) (*ToolOutput,
 	_ = c.cache.Set(ctx, cacheKey, output, c.ttl)
 
 	return output, nil
-}
-
-// Stream 流式执行（暂不支持缓存）
-func (c *CachedTool) Stream(ctx context.Context, input *ToolInput) (<-chan agentcore.StreamChunk[*ToolOutput], error) {
-	return c.tool.Stream(ctx, input)
-}
-
-// Batch 批量执行
-func (c *CachedTool) Batch(ctx context.Context, inputs []*ToolInput) ([]*ToolOutput, error) {
-	return c.tool.Batch(ctx, inputs)
-}
-
-// Pipe 管道连接
-func (c *CachedTool) Pipe(next agentcore.Runnable[*ToolOutput, any]) agentcore.Runnable[*ToolInput, any] {
-	return c.tool.Pipe(next)
-}
-
-// WithCallbacks 添加回调
-func (c *CachedTool) WithCallbacks(callbacks ...agentcore.Callback) agentcore.Runnable[*ToolInput, *ToolOutput] {
-	return c.tool.WithCallbacks(callbacks...)
-}
-
-// WithConfig 配置工具
-func (c *CachedTool) WithConfig(config agentcore.RunnableConfig) agentcore.Runnable[*ToolInput, *ToolOutput] {
-	return c.tool.WithConfig(config)
 }
 
 // generateCacheKey 生成缓存键

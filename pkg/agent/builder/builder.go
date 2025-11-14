@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/execution"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/middleware"
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/store"
 	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
@@ -37,7 +40,7 @@ type AgentBuilder[C any, S core.State] struct {
 	context      C
 
 	// Phase 2 components
-	middlewares []core.Middleware
+	middlewares []middleware.Middleware
 
 	// Configuration
 	config *AgentConfig
@@ -102,7 +105,7 @@ func NewAgentBuilder[C any, S core.State](llmClient llm.Client) *AgentBuilder[C,
 	return &AgentBuilder[C, S]{
 		llmClient:   llmClient,
 		tools:       []tools.Tool{},
-		middlewares: []core.Middleware{},
+		middlewares: []middleware.Middleware{},
 		callbacks:   []core.Callback{},
 		config:      DefaultAgentConfig(),
 		metadata:    make(map[string]interface{}),
@@ -146,8 +149,8 @@ func (b *AgentBuilder[C, S]) WithCheckpointer(checkpointer core.Checkpointer) *A
 }
 
 // WithMiddleware adds middleware to the chain
-func (b *AgentBuilder[C, S]) WithMiddleware(middleware ...core.Middleware) *AgentBuilder[C, S] {
-	b.middlewares = append(b.middlewares, middleware...)
+func (b *AgentBuilder[C, S]) WithMiddleware(mw ...middleware.Middleware) *AgentBuilder[C, S] {
+	b.middlewares = append(b.middlewares, mw...)
 	return b
 }
 
@@ -179,8 +182,8 @@ func (b *AgentBuilder[C, S]) WithMetadata(key string, value interface{}) *AgentB
 func (b *AgentBuilder[C, S]) ConfigureForRAG() *AgentBuilder[C, S] {
 	// Add common RAG middleware
 	b.WithMiddleware(
-		core.NewCacheMiddleware(5*time.Minute),
-		core.NewDynamicPromptMiddleware(func(req *core.MiddlewareRequest) string {
+		middleware.NewCacheMiddleware(5*time.Minute),
+		middleware.NewDynamicPromptMiddleware(func(req *middleware.MiddlewareRequest) string {
 			// Add context from retrieval
 			return fmt.Sprintf("Use the following context to answer: %v", req.Input)
 		}),
@@ -197,9 +200,9 @@ func (b *AgentBuilder[C, S]) ConfigureForRAG() *AgentBuilder[C, S] {
 func (b *AgentBuilder[C, S]) ConfigureForChatbot() *AgentBuilder[C, S] {
 	// Add chatbot middleware
 	b.WithMiddleware(
-		core.NewRateLimiterMiddleware(20, time.Minute),
-		core.NewValidationMiddleware(
-			func(req *core.MiddlewareRequest) error {
+		middleware.NewRateLimiterMiddleware(20, time.Minute),
+		middleware.NewValidationMiddleware(
+			func(req *middleware.MiddlewareRequest) error {
 				// Validate input length
 				if len(fmt.Sprintf("%v", req.Input)) > 1000 {
 					return fmt.Errorf("message too long")
@@ -220,8 +223,8 @@ func (b *AgentBuilder[C, S]) ConfigureForChatbot() *AgentBuilder[C, S] {
 func (b *AgentBuilder[C, S]) ConfigureForAnalysis() *AgentBuilder[C, S] {
 	// Add analysis middleware
 	b.WithMiddleware(
-		core.NewTimingMiddleware(),
-		core.NewTransformMiddleware(
+		middleware.NewTimingMiddleware(),
+		middleware.NewTransformMiddleware(
 			nil, // No input transform
 			func(output interface{}) (interface{}, error) {
 				// Format output as structured data
@@ -268,7 +271,7 @@ func (b *AgentBuilder[C, S]) Build() (*ConfigurableAgent[C, S], error) {
 	}
 
 	// Create runtime
-	runtime := core.NewRuntime(
+	runtime := execution.NewRuntime(
 		b.context,
 		b.state,
 		b.store,
@@ -278,12 +281,12 @@ func (b *AgentBuilder[C, S]) Build() (*ConfigurableAgent[C, S], error) {
 
 	// Build middleware chain
 	handler := b.createHandler(runtime)
-	chain := core.NewMiddlewareChain(handler)
+	chain := middleware.NewMiddlewareChain(handler)
 
 	// Add default middleware if verbose
 	if b.config.Verbose {
-		chain.Use(core.NewLoggingMiddleware(nil))
-		chain.Use(core.NewTimingMiddleware())
+		chain.Use(middleware.NewLoggingMiddleware(nil))
+		chain.Use(middleware.NewTimingMiddleware())
 	}
 
 	// Add user-specified middleware
@@ -311,8 +314,8 @@ func (b *AgentBuilder[C, S]) Build() (*ConfigurableAgent[C, S], error) {
 }
 
 // createHandler creates the main execution handler
-func (b *AgentBuilder[C, S]) createHandler(runtime *core.Runtime[C, S]) core.Handler {
-	return func(ctx context.Context, request *core.MiddlewareRequest) (*core.MiddlewareResponse, error) {
+func (b *AgentBuilder[C, S]) createHandler(runtime *execution.Runtime[C, S]) middleware.Handler {
+	return func(ctx context.Context, request *middleware.MiddlewareRequest) (*middleware.MiddlewareResponse, error) {
 		// Extract input
 		inputStr := fmt.Sprintf("%v", request.Input)
 
@@ -350,7 +353,7 @@ func (b *AgentBuilder[C, S]) createHandler(runtime *core.Runtime[C, S]) core.Han
 		}
 
 		// Create response
-		return &core.MiddlewareResponse{
+		return &middleware.MiddlewareResponse{
 			Output:   response.Content,
 			State:    request.State,
 			Metadata: request.Metadata,
@@ -363,8 +366,8 @@ type ConfigurableAgent[C any, S core.State] struct {
 	llmClient    llm.Client
 	tools        []tools.Tool
 	systemPrompt string
-	runtime      *core.Runtime[C, S]
-	chain        *core.MiddlewareChain
+	runtime      *execution.Runtime[C, S]
+	chain        *middleware.MiddlewareChain
 	config       *AgentConfig
 	callbacks    []core.Callback
 	errorHandler func(error) error
@@ -405,7 +408,7 @@ func (a *ConfigurableAgent[C, S]) Execute(ctx context.Context, input interface{}
 	}
 
 	// Create request
-	request := &core.MiddlewareRequest{
+	request := &middleware.MiddlewareRequest{
 		Input:     input,
 		State:     a.runtime.State,
 		Runtime:   a.runtime,
@@ -511,7 +514,7 @@ func (a *ConfigurableAgent[C, S]) executeToolCall(ctx context.Context, call Tool
 	for _, tool := range a.tools {
 		if tool.Name() == call.Name {
 			// Create tool input
-			toolInput := &tools.ToolInput{
+			toolInput := &interfaces.ToolInput{
 				Args:    call.Input,
 				Context: ctx,
 			}
@@ -673,9 +676,9 @@ func WorkflowAgent(llmClient llm.Client, workflows map[string]interface{}) (*Con
 		WithState(state).
 		WithConfig(config).
 		WithMiddleware(
-			core.NewLoggingMiddleware(nil),
-			core.NewCircuitBreakerMiddleware(5, 30*time.Second),
-			core.NewValidationMiddleware(func(req *core.MiddlewareRequest) error {
+			middleware.NewLoggingMiddleware(nil),
+			middleware.NewCircuitBreakerMiddleware(5, 30*time.Second),
+			middleware.NewValidationMiddleware(func(req *middleware.MiddlewareRequest) error {
 				// Basic validation
 				if req.Input == nil {
 					return fmt.Errorf("workflow input cannot be nil")
@@ -715,9 +718,9 @@ func MonitoringAgent(llmClient llm.Client, checkInterval time.Duration) (*Config
 		WithState(state).
 		WithConfig(config).
 		WithMiddleware(
-			core.NewRateLimiterMiddleware(60, time.Minute), // Limit to 60 checks per minute
-			core.NewCacheMiddleware(5*time.Minute),         // Cache recent checks
-			core.NewTimingMiddleware(),
+			middleware.NewRateLimiterMiddleware(60, time.Minute), // Limit to 60 checks per minute
+			middleware.NewCacheMiddleware(5*time.Minute),         // Cache recent checks
+			middleware.NewTimingMiddleware(),
 		).
 		WithMetadata("type", "monitoring").
 		WithMetadata("check_interval", checkInterval.String()).
@@ -754,8 +757,8 @@ func ResearchAgent(llmClient llm.Client, sources []string) (*ConfigurableAgent[a
 		WithState(state).
 		WithConfig(config).
 		WithMiddleware(
-			core.NewCacheMiddleware(10*time.Minute), // Cache research results
-			core.NewTimingMiddleware(),
+			middleware.NewCacheMiddleware(10*time.Minute), // Cache research results
+			middleware.NewTimingMiddleware(),
 		).
 		WithMetadata("type", "research").
 		WithMetadata("sources_count", len(sources)).

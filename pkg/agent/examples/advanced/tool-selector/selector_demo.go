@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/middleware"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
@@ -78,8 +79,8 @@ func createSampleTools() []tools.Tool {
 }
 
 // createTool 创建一个工具
-func createTool(name, description string) tools.Tool {
-	runFunc := func(ctx context.Context, input *tools.ToolInput) (*tools.ToolOutput, error) {
+func createTool(name, description string) interfaces.Tool {
+	runFunc := func(ctx context.Context, input *interfaces.ToolInput) (*interfaces.ToolOutput, error) {
 		return &tools.ToolOutput{
 			Result:  fmt.Sprintf("Result from %s", name),
 			Success: true,

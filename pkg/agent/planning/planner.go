@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
-	"github.com/kart-io/k8s-agent/pkg/agent/memory"
 )
 
 // Plan represents a structured plan for achieving a goal
@@ -136,7 +136,7 @@ type PlanConstraints struct {
 // SmartPlanner uses LLM and memory to create intelligent plans
 type SmartPlanner struct {
 	llm        llm.Client
-	memory     memory.Manager
+	memory     interfaces.MemoryManager
 	strategies map[string]PlanStrategy
 	validators []PlanValidator
 	optimizer  PlanOptimizer
@@ -149,7 +149,7 @@ type SmartPlanner struct {
 }
 
 // NewSmartPlanner creates a new smart planner
-func NewSmartPlanner(llmClient llm.Client, mem memory.Manager, opts ...PlannerOption) *SmartPlanner {
+func NewSmartPlanner(llmClient llm.Client, mem interfaces.MemoryManager, opts ...PlannerOption) *SmartPlanner {
 	p := &SmartPlanner{
 		llm:          llmClient,
 		memory:       mem,

@@ -44,7 +44,8 @@ func main() {
 	example8ToolRegistry()
 
 	// Example 9: Tools with Callbacks
-	example9ToolsWithCallbacks()
+	// NOTE: Commented out - WithCallbacks is no longer part of the simplified Tool interface
+	// example9ToolsWithCallbacks()
 
 	// Example 10: Custom Tool
 	example10CustomTool()
@@ -341,6 +342,8 @@ func example8ToolRegistry() {
 }
 
 // Example 9: 工具与回调
+// NOTE: Commented out - WithCallbacks is no longer part of the simplified Tool interface
+/*
 func example9ToolsWithCallbacks() {
 	fmt.Println("--- Example 9: Tools with Callbacks ---")
 
@@ -366,6 +369,14 @@ func example9ToolsWithCallbacks() {
 	}
 
 	fmt.Printf("Result: %v\n\n", output.Result)
+}
+*/
+
+// Placeholder for example 9
+func example9ToolsWithCallbacks() {
+	fmt.Println("--- Example 9: Tools with Callbacks ---")
+	fmt.Println("This example has been disabled due to interface changes.")
+	fmt.Println("The simplified Tool interface no longer includes WithCallbacks method.\n")
 }
 
 // Example 10: 自定义工具

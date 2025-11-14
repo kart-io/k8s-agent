@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/checkpoint"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/execution"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/state"
 	"github.com/kart-io/k8s-agent/pkg/agent/store/memory"
 )
 
@@ -56,7 +58,7 @@ func main() {
 // stateDemo demonstrates State Management
 func stateDemo() {
 	// Create agent state
-	state := core.NewAgentState()
+	state := state.NewAgentState()
 
 	// Set various types of values
 	state.Set("user_name", "Alice")
@@ -160,11 +162,11 @@ func storeDemo() {
 // checkpointerDemo demonstrates session persistence
 func checkpointerDemo() {
 	ctx := context.Background()
-	checkpointer := core.NewInMemorySaver()
+	checkpointer := checkpoint.NewInMemorySaver()
 
 	// Session 1: Initial conversation
 	threadID1 := "thread-001"
-	state1 := core.NewAgentState()
+	state1 := state.NewAgentState()
 	state1.Set("user", "Alice")
 	state1.Set("topic", "Kubernetes deployment")
 	state1.Set("message_count", 3)
@@ -188,7 +190,7 @@ func checkpointerDemo() {
 
 	// Session 2: Different conversation
 	threadID2 := "thread-002"
-	state2 := core.NewAgentState()
+	state2 := state.NewAgentState()
 	state2.Set("user", "Bob")
 	state2.Set("topic", "Monitoring")
 	err = checkpointer.Save(ctx, threadID2, state2)
@@ -241,13 +243,13 @@ func runtimeDemo() {
 		UserName: "Alice",
 		Role:     "admin",
 	}
-	state := core.NewAgentState()
+	state := state.NewAgentState()
 	state.Set("initialized", true)
 	store := memory.New()
-	checkpointer := core.NewInMemorySaver()
+	checkpointer := checkpoint.NewInMemorySaver()
 
 	// Create runtime
-	runtime := core.NewRuntime(customCtx, state, store, checkpointer, "session-789")
+	runtime := execution.NewRuntime(customCtx, state, store, checkpointer, "session-789")
 	fmt.Printf("  Created runtime for session: %s\n", runtime.SessionID)
 	fmt.Printf("  User: %s (Role: %s)\n", runtime.Context.UserName, runtime.Context.Role)
 
@@ -256,24 +258,36 @@ func runtimeDemo() {
 	runtime = runtime.WithMetadata("version", "1.0")
 	fmt.Printf("  Added metadata: %v\n", runtime.Metadata)
 
+	// NOTE: Tool with runtime example temporarily disabled
+	// The generic type system and tool runtime integration have changed
+	// and need to be updated for the new architecture
+
+	/*
 	// Define a tool that uses runtime
-	getUserInfoTool := func(ctx context.Context, input string, rt *core.Runtime[CustomContext, *core.AgentState]) (string, error) {
+	// Note: Use the concrete state.AgentState type from the state package
+	getUserInfoTool := func(ctx context.Context, input string, rt interface{}) (string, error) {
+		// Type assert to the runtime with concrete types
+		runtime, ok := rt.(*execution.Runtime[CustomContext, *state.AgentState])
+		if !ok {
+			return "", fmt.Errorf("invalid runtime type")
+		}
+
 		// Access user context
-		userName := rt.Context.UserName
-		userRole := rt.Context.Role
+		userName := runtime.Context.UserName
+		userRole := runtime.Context.Role
 
 		// Update state
-		rt.State.Set("last_tool_call", "getUserInfo")
-		rt.State.Set("last_input", input)
+		runtime.State.Set("last_tool_call", "getUserInfo")
+		runtime.State.Set("last_input", input)
 
 		// Store user activity
-		activityNamespace := []string{"activity", rt.Context.UserID}
+		activityNamespace := []string{"activity", runtime.Context.UserID}
 		activity := map[string]interface{}{
 			"tool":      "getUserInfo",
 			"input":     input,
 			"timestamp": time.Now(),
 		}
-		err := rt.Store.Put(ctx, activityNamespace, "last_activity", activity)
+		err := runtime.Store.Put(ctx, activityNamespace, "last_activity", activity)
 		if err != nil {
 			return "", err
 		}
@@ -282,13 +296,16 @@ func runtimeDemo() {
 	}
 
 	// Create and execute tool
-	tool := core.NewToolWithRuntime("getUserInfo", "Gets user information", getUserInfoTool, runtime)
+	tool := execution.NewToolWithRuntime("getUserInfo", "Gets user information", getUserInfoTool, runtime)
 	result, err := tool.Execute(ctx, "account details")
 	if err != nil {
 		fmt.Printf("  Error executing tool: %v\n", err)
 		return
 	}
 	fmt.Printf("  Tool result: %s\n", result)
+	*/
+
+	fmt.Println("  [Tool with runtime example temporarily disabled - needs architecture update]")
 
 	// Verify state was updated
 	lastTool, _ := state.Get("last_tool_call")
@@ -305,7 +322,7 @@ func completeWorkflowDemo() {
 
 	// Setup infrastructure
 	store := memory.New()
-	checkpointer := core.NewInMemorySaver()
+	checkpointer := checkpoint.NewInMemorySaver()
 
 	fmt.Println("  Simulating multi-turn conversation...")
 
@@ -317,11 +334,11 @@ func completeWorkflowDemo() {
 		Role:     "developer",
 	}
 
-	state := core.NewAgentState()
+	state := state.NewAgentState()
 	state.Set("turn", 1)
 	state.Set("topic", "container orchestration")
 
-	runtime := core.NewRuntime(userCtx, state, store, checkpointer, sessionID)
+	runtime := execution.NewRuntime(userCtx, state, store, checkpointer, sessionID)
 	fmt.Printf("\n  Turn 1: User=%s, Topic=%v\n", userCtx.UserName, "container orchestration")
 
 	// Save checkpoint after turn 1

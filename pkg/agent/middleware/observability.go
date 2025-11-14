@@ -7,14 +7,14 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	coremiddleware "github.com/kart-io/k8s-agent/pkg/agent/core/middleware"
 	"github.com/kart-io/k8s-agent/pkg/agent/observability"
 )
 
 // ObservabilityMiddleware 可观测性中间件
 // 集成 OpenTelemetry 追踪和指标
 type ObservabilityMiddleware struct {
-	*core.BaseMiddleware
+	*coremiddleware.BaseMiddleware
 	tracer  *observability.AgentTracer
 	metrics *observability.AgentMetrics
 }
@@ -28,14 +28,14 @@ func NewObservabilityMiddleware(provider *observability.TelemetryProvider) (*Obs
 	}
 
 	return &ObservabilityMiddleware{
-		BaseMiddleware: core.NewBaseMiddleware("observability"),
+		BaseMiddleware: coremiddleware.NewBaseMiddleware("observability"),
 		tracer:         tracer,
 		metrics:        metrics,
 	}, nil
 }
 
 // OnBefore 请求前处理 - 启动 span 和记录指标
-func (m *ObservabilityMiddleware) OnBefore(ctx context.Context, request *core.MiddlewareRequest) (*core.MiddlewareRequest, error) {
+func (m *ObservabilityMiddleware) OnBefore(ctx context.Context, request *coremiddleware.MiddlewareRequest) (*coremiddleware.MiddlewareRequest, error) {
 	// 启动 span
 	agentName := "unknown"
 	if name, ok := request.Metadata["agent.name"].(string); ok {
@@ -58,7 +58,7 @@ func (m *ObservabilityMiddleware) OnBefore(ctx context.Context, request *core.Mi
 }
 
 // OnAfter 请求后处理 - 记录结果和指标
-func (m *ObservabilityMiddleware) OnAfter(ctx context.Context, response *core.MiddlewareResponse) (*core.MiddlewareResponse, error) {
+func (m *ObservabilityMiddleware) OnAfter(ctx context.Context, response *coremiddleware.MiddlewareResponse) (*coremiddleware.MiddlewareResponse, error) {
 	// 从 metadata 获取 span
 	var span interface{}
 	var spanCtx context.Context

@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	coremiddleware "github.com/kart-io/k8s-agent/pkg/agent/core/middleware"
 	"github.com/kart-io/k8s-agent/pkg/agent/llm"
 	"github.com/kart-io/k8s-agent/pkg/agent/tools"
 )
 
 // LLMToolSelectorMiddleware intelligently selects relevant tools using an LLM
 type LLMToolSelectorMiddleware struct {
-	*core.BaseMiddleware
+	*coremiddleware.BaseMiddleware
 	Model          llm.Client          // Cheaper model for selection
 	MaxTools       int                 // Maximum tools to select
 	AlwaysInclude  []string            // Tools to always include
@@ -27,7 +28,7 @@ type LLMToolSelectorMiddleware struct {
 // NewLLMToolSelectorMiddleware creates a new tool selector middleware
 func NewLLMToolSelectorMiddleware(model llm.Client, maxTools int) *LLMToolSelectorMiddleware {
 	return &LLMToolSelectorMiddleware{
-		BaseMiddleware: core.NewBaseMiddleware("llm-tool-selector"),
+		BaseMiddleware: coremiddleware.NewBaseMiddleware("llm-tool-selector"),
 		Model:          model,
 		MaxTools:       maxTools,
 		AlwaysInclude:  []string{},
@@ -245,7 +246,7 @@ func (m *LLMToolSelectorMiddleware) cacheSelection(key string, selection []strin
 
 // DynamicPromptMiddleware generates dynamic prompts based on runtime context
 type DynamicPromptMiddleware struct {
-	*core.BaseMiddleware
+	*coremiddleware.BaseMiddleware
 	PromptGenerators []PromptGenerator
 	mu               sync.RWMutex
 }
@@ -261,7 +262,7 @@ type PromptGenerator struct {
 // NewDynamicPromptMiddleware creates a new dynamic prompt middleware
 func NewDynamicPromptMiddleware() *DynamicPromptMiddleware {
 	return &DynamicPromptMiddleware{
-		BaseMiddleware:   core.NewBaseMiddleware("dynamic-prompt"),
+		BaseMiddleware:   coremiddleware.NewBaseMiddleware("dynamic-prompt"),
 		PromptGenerators: []PromptGenerator{},
 	}
 }
@@ -312,7 +313,7 @@ func (m *DynamicPromptMiddleware) Process(ctx context.Context, state core.State)
 
 // LLMToolEmulatorMiddleware emulates tool execution using an LLM
 type LLMToolEmulatorMiddleware struct {
-	*core.BaseMiddleware
+	*coremiddleware.BaseMiddleware
 	Model         llm.Client
 	EmulatedTools map[string]bool // Tools to emulate
 	EmulateAll    bool            // Emulate all tools
@@ -322,7 +323,7 @@ type LLMToolEmulatorMiddleware struct {
 // NewLLMToolEmulatorMiddleware creates a new tool emulator
 func NewLLMToolEmulatorMiddleware(model llm.Client) *LLMToolEmulatorMiddleware {
 	return &LLMToolEmulatorMiddleware{
-		BaseMiddleware: core.NewBaseMiddleware("tool-emulator"),
+		BaseMiddleware: coremiddleware.NewBaseMiddleware("tool-emulator"),
 		Model:          model,
 		EmulatedTools:  make(map[string]bool),
 		EmulateAll:     false,
@@ -420,7 +421,7 @@ func (m *LLMToolEmulatorMiddleware) emulateTool(ctx context.Context, toolName st
 
 // AdaptiveMiddleware adapts behavior based on runtime performance
 type AdaptiveMiddleware struct {
-	*core.BaseMiddleware
+	*coremiddleware.BaseMiddleware
 	Metrics       *PerformanceMetrics
 	Adaptations   []Adaptation
 	CurrentConfig map[string]interface{}
@@ -447,7 +448,7 @@ type Adaptation struct {
 // NewAdaptiveMiddleware creates a new adaptive middleware
 func NewAdaptiveMiddleware() *AdaptiveMiddleware {
 	return &AdaptiveMiddleware{
-		BaseMiddleware: core.NewBaseMiddleware("adaptive"),
+		BaseMiddleware: coremiddleware.NewBaseMiddleware("adaptive"),
 		Metrics:        NewPerformanceMetrics(),
 		Adaptations:    []Adaptation{},
 		CurrentConfig:  make(map[string]interface{}),
@@ -551,7 +552,7 @@ func (m *AdaptiveMiddleware) checkAdaptations() {
 
 // ContextEnrichmentMiddleware enriches context with additional information
 type ContextEnrichmentMiddleware struct {
-	*core.BaseMiddleware
+	*coremiddleware.BaseMiddleware
 	Enrichers []ContextEnricher
 	Cache     map[string]interface{}
 	CacheTTL  time.Duration
@@ -569,7 +570,7 @@ type ContextEnricher struct {
 // NewContextEnrichmentMiddleware creates a new context enrichment middleware
 func NewContextEnrichmentMiddleware() *ContextEnrichmentMiddleware {
 	return &ContextEnrichmentMiddleware{
-		BaseMiddleware: core.NewBaseMiddleware("context-enrichment"),
+		BaseMiddleware: coremiddleware.NewBaseMiddleware("context-enrichment"),
 		Enrichers:      []ContextEnricher{},
 		Cache:          make(map[string]interface{}),
 		CacheTTL:       5 * time.Minute,

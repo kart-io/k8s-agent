@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/memory"
 	"github.com/kart-io/k8s-agent/pkg/agent/utils"
 )
@@ -14,11 +15,11 @@ import (
 // AnalysisAgent 示例分析 Agent
 type AnalysisAgent struct {
 	*core.BaseAgent
-	memory memory.Manager
+	memory interfaces.MemoryManager
 }
 
 // NewAnalysisAgent 创建分析 Agent
-func NewAnalysisAgent(memMgr memory.Manager) *AnalysisAgent {
+func NewAnalysisAgent(memMgr interfaces.MemoryManager) *AnalysisAgent {
 	return &AnalysisAgent{
 		BaseAgent: core.NewBaseAgent(
 			"analysis-agent",
@@ -99,7 +100,7 @@ func (a *AnalysisAgent) Invoke(ctx context.Context, input *core.AgentInput) (*co
 
 	// 保存到记忆
 	if input.Options.SaveToMemory && input.SessionID != "" {
-		conv := &memory.Conversation{
+		conv := &interfaces.Conversation{
 			SessionID: input.SessionID,
 			Role:      "assistant",
 			Content:   analysisResult,

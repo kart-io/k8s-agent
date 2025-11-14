@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/core/checkpoint"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/state"
 )
 
 // InterruptType defines the type of interrupt.
@@ -59,7 +62,7 @@ type Interrupt struct {
 	Context map[string]interface{}
 
 	// State is a snapshot of the agent state at interrupt time
-	State State
+	State state.State
 
 	// CreatedAt is when the interrupt was created
 	CreatedAt time.Time
@@ -100,7 +103,7 @@ type InterruptManager struct {
 	mu         sync.RWMutex
 
 	// Checkpointer for persisting interrupted state
-	checkpointer Checkpointer
+	checkpointer checkpoint.Checkpointer
 
 	// Hooks for interrupt lifecycle events
 	onInterruptCreated  func(*Interrupt)
@@ -108,7 +111,7 @@ type InterruptManager struct {
 }
 
 // NewInterruptManager creates a new interrupt manager.
-func NewInterruptManager(checkpointer Checkpointer) *InterruptManager {
+func NewInterruptManager(checkpointer checkpoint.Checkpointer) *InterruptManager {
 	return &InterruptManager{
 		interrupts:   make(map[string]*Interrupt),
 		responses:    make(map[string]*InterruptResponse),
@@ -246,7 +249,7 @@ func (m *InterruptManager) OnInterruptResolved(fn func(*Interrupt, *InterruptRes
 // InterruptableExecutor wraps execution with interrupt capability.
 type InterruptableExecutor struct {
 	manager      *InterruptManager
-	checkpointer Checkpointer
+	checkpointer checkpoint.Checkpointer
 
 	// InterruptRules defines when to interrupt
 	interruptRules []InterruptRule
@@ -258,14 +261,14 @@ type InterruptRule struct {
 	Name string
 
 	// Condition evaluates if an interrupt should be triggered
-	Condition func(ctx context.Context, state State) bool
+	Condition func(ctx context.Context, state state.State) bool
 
 	// CreateInterrupt creates the interrupt if condition is met
-	CreateInterrupt func(ctx context.Context, state State) *Interrupt
+	CreateInterrupt func(ctx context.Context, state state.State) *Interrupt
 }
 
 // NewInterruptableExecutor creates a new interruptable executor.
-func NewInterruptableExecutor(manager *InterruptManager, checkpointer Checkpointer) *InterruptableExecutor {
+func NewInterruptableExecutor(manager *InterruptManager, checkpointer checkpoint.Checkpointer) *InterruptableExecutor {
 	return &InterruptableExecutor{
 		manager:        manager,
 		checkpointer:   checkpointer,
@@ -279,7 +282,7 @@ func (e *InterruptableExecutor) AddInterruptRule(rule InterruptRule) {
 }
 
 // CheckInterrupts evaluates all rules and creates interrupts if needed.
-func (e *InterruptableExecutor) CheckInterrupts(ctx context.Context, state State) ([]*Interrupt, error) {
+func (e *InterruptableExecutor) CheckInterrupts(ctx context.Context, state state.State) ([]*Interrupt, error) {
 	interrupts := make([]*Interrupt, 0)
 
 	for _, rule := range e.interruptRules {
@@ -297,8 +300,8 @@ func (e *InterruptableExecutor) CheckInterrupts(ctx context.Context, state State
 // ExecuteWithInterrupts executes a function with interrupt checking.
 func (e *InterruptableExecutor) ExecuteWithInterrupts(
 	ctx context.Context,
-	state State,
-	fn func(context.Context, State) error,
+	state state.State,
+	fn func(context.Context, state.State) error,
 ) error {
 	// Check for interrupts before execution
 	interrupts, err := e.CheckInterrupts(ctx, state)

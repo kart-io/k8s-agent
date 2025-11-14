@@ -132,6 +132,12 @@ type SelfReflectiveAgent struct {
 	learningModel     *LearningModel
 	mu                sync.RWMutex
 
+	// Lifecycle management
+	ctx    context.Context
+	cancel context.CancelFunc
+	done   chan struct{}
+	wg     sync.WaitGroup
+
 	// Configuration
 	reflectionInterval time.Duration
 	minExperiences     int
@@ -140,12 +146,16 @@ type SelfReflectiveAgent struct {
 
 // NewSelfReflectiveAgent creates a new self-reflective agent
 func NewSelfReflectiveAgent(llmClient llm.Client, mem memory.EnhancedMemory, opts ...ReflectionOption) *SelfReflectiveAgent {
+	ctx, cancel := context.WithCancel(context.Background())
 	agent := &SelfReflectiveAgent{
 		BaseAgent:          core.NewBaseAgent("self_reflective", "Agent with self-reflection capabilities", []string{"reflection", "learning", "self-improvement"}),
 		llmClient:          llmClient,
 		memory:             mem,
 		reflectionHistory:  make([]*ReflectionResult, 0),
 		learningModel:      NewLearningModel(),
+		ctx:                ctx,
+		cancel:             cancel,
+		done:               make(chan struct{}),
 		reflectionInterval: 1 * time.Hour,
 		minExperiences:     10,
 		learningThreshold:  0.7,
@@ -155,7 +165,8 @@ func NewSelfReflectiveAgent(llmClient llm.Client, mem memory.EnhancedMemory, opt
 		opt(agent)
 	}
 
-	// Start background reflection
+	// Start background reflection with proper lifecycle management
+	agent.wg.Add(1)
 	go agent.backgroundReflection()
 
 	return agent
@@ -175,6 +186,27 @@ func WithReflectionInterval(interval time.Duration) ReflectionOption {
 func WithLearningThreshold(threshold float64) ReflectionOption {
 	return func(a *SelfReflectiveAgent) {
 		a.learningThreshold = threshold
+	}
+}
+
+// Shutdown gracefully shuts down the agent
+func (a *SelfReflectiveAgent) Shutdown(ctx context.Context) error {
+	// Signal shutdown
+	a.cancel()
+	close(a.done)
+
+	// Wait for goroutines with timeout
+	done := make(chan struct{})
+	go func() {
+		a.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 
@@ -468,12 +500,17 @@ func (a *SelfReflectiveAgent) performReflection(ctx context.Context) {
 }
 
 func (a *SelfReflectiveAgent) backgroundReflection() {
+	defer a.wg.Done()
 	ticker := time.NewTicker(a.reflectionInterval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		ctx := context.Background()
-		a.performReflection(ctx)
+	for {
+		select {
+		case <-a.ctx.Done():
+			return // Clean shutdown
+		case <-ticker.C:
+			a.performReflection(a.ctx)
+		}
 	}
 }
 

@@ -3,7 +3,15 @@ package core
 import (
 	"context"
 	"time"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 )
+
+// SimpleAgent is a type alias for the canonical Agent interface.
+//
+// For new code that doesn't need generic typing, use interfaces.Agent directly.
+// This alias provides a migration path for existing code.
+type SimpleAgent = interfaces.Agent
 
 // Agent 定义通用 AI Agent 接口
 //
@@ -14,8 +22,8 @@ import (
 // - 返回结构化输出
 // - 支持流式处理、批量执行、管道连接等 Runnable 特性
 //
-// Note: The generic Runnable[I, O] interface is maintained in this package.
-// The interfaces package provides a simplified non-generic version for cross-package compatibility.
+// Note: This is a generic version of the Agent interface.
+// For cross-package compatibility, consider using interfaces.Agent.
 type Agent interface {
 	// 继承 Runnable 接口，Agent 是一个可执行的组件
 	Runnable[*AgentInput, *AgentOutput]

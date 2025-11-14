@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/core/execution"
 )
 
 // BufferMiddleware 缓冲中间件
@@ -30,8 +31,8 @@ func NewBufferMiddleware(minSize, maxSize int, threshold float64) *BufferMiddlew
 }
 
 // Apply 应用中间件
-func (m *BufferMiddleware) Apply(ctx context.Context, source core.StreamOutput) (core.StreamOutput, error) {
-	opts := core.DefaultStreamOptions()
+func (m *BufferMiddleware) Apply(ctx context.Context, source execution.StreamOutput) (execution.StreamOutput, error) {
+	opts := execution.DefaultStreamOptions()
 	opts.BufferSize = m.minBufferSize
 	opts.EnableBackpressure = true
 
@@ -97,8 +98,8 @@ func NewThrottleMiddleware(maxChunksPerSec float64) *ThrottleMiddleware {
 }
 
 // Apply 应用中间件
-func (m *ThrottleMiddleware) Apply(ctx context.Context, source core.StreamOutput) (core.StreamOutput, error) {
-	opts := core.DefaultStreamOptions()
+func (m *ThrottleMiddleware) Apply(ctx context.Context, source execution.StreamOutput) (execution.StreamOutput, error) {
+	opts := execution.DefaultStreamOptions()
 	opts.EnableThrottle = true
 	opts.MaxChunksPerSec = m.maxChunksPerSec
 	opts.MinChunkDelay = m.minDelay
@@ -152,8 +153,8 @@ func NewTransformMiddleware(fn core.ChunkTransformFunc) *TransformMiddleware {
 }
 
 // Apply 应用中间件
-func (m *TransformMiddleware) Apply(ctx context.Context, source core.StreamOutput) (core.StreamOutput, error) {
-	opts := core.DefaultStreamOptions()
+func (m *TransformMiddleware) Apply(ctx context.Context, source execution.StreamOutput) (execution.StreamOutput, error) {
+	opts := execution.DefaultStreamOptions()
 	opts.EnableTransform = true
 	opts.TransformFunc = m.transformFunc
 
@@ -192,20 +193,20 @@ func (m *TransformMiddleware) Apply(ctx context.Context, source core.StreamOutpu
 // - 不影响原始流
 // - 支持不同的处理速度
 type TeeMiddleware struct {
-	outputs []core.StreamConsumer
+	outputs []execution.StreamConsumer
 }
 
 // NewTeeMiddleware 创建分支中间件
-func NewTeeMiddleware(outputs ...core.StreamConsumer) *TeeMiddleware {
+func NewTeeMiddleware(outputs ...execution.StreamConsumer) *TeeMiddleware {
 	return &TeeMiddleware{
 		outputs: outputs,
 	}
 }
 
 // Apply 应用中间件
-func (m *TeeMiddleware) Apply(ctx context.Context, source core.StreamOutput) (core.StreamOutput, error) {
+func (m *TeeMiddleware) Apply(ctx context.Context, source execution.StreamOutput) (execution.StreamOutput, error) {
 	// 创建多路复用器
-	multiplexer := NewMultiplexer(core.DefaultStreamOptions())
+	multiplexer := NewMultiplexer(ctx, execution.DefaultStreamOptions())
 
 	// 添加所有输出消费者
 	for _, output := range m.outputs {
@@ -215,7 +216,7 @@ func (m *TeeMiddleware) Apply(ctx context.Context, source core.StreamOutput) (co
 	}
 
 	// 创建主输出流
-	opts := core.DefaultStreamOptions()
+	opts := execution.DefaultStreamOptions()
 	opts.EnableMultiplex = true
 
 	writer := NewWriter(ctx, opts)
@@ -256,19 +257,19 @@ func (m *TeeMiddleware) Apply(ctx context.Context, source core.StreamOutput) (co
 // - 只传递符合条件的块
 // - 跳过不需要的数据
 type FilterMiddleware struct {
-	predicate func(*core.LegacyStreamChunk) bool
+	predicate func(*execution.LegacyStreamChunk) bool
 }
 
 // NewFilterMiddleware 创建过滤中间件
-func NewFilterMiddleware(predicate func(*core.LegacyStreamChunk) bool) *FilterMiddleware {
+func NewFilterMiddleware(predicate func(*execution.LegacyStreamChunk) bool) *FilterMiddleware {
 	return &FilterMiddleware{
 		predicate: predicate,
 	}
 }
 
 // Apply 应用中间件
-func (m *FilterMiddleware) Apply(ctx context.Context, source core.StreamOutput) (core.StreamOutput, error) {
-	opts := core.DefaultStreamOptions()
+func (m *FilterMiddleware) Apply(ctx context.Context, source execution.StreamOutput) (execution.StreamOutput, error) {
+	opts := execution.DefaultStreamOptions()
 	writer := NewWriter(ctx, opts)
 
 	go func() {
@@ -312,14 +313,14 @@ func NewBatchMiddleware(batchSize int, timeout time.Duration) *BatchMiddleware {
 }
 
 // Apply 应用中间件
-func (m *BatchMiddleware) Apply(ctx context.Context, source core.StreamOutput) (core.StreamOutput, error) {
-	opts := core.DefaultStreamOptions()
+func (m *BatchMiddleware) Apply(ctx context.Context, source execution.StreamOutput) (execution.StreamOutput, error) {
+	opts := execution.DefaultStreamOptions()
 	writer := NewWriter(ctx, opts)
 
 	go func() {
 		defer writer.Close()
 
-		batch := make([]*core.LegacyStreamChunk, 0, m.batchSize)
+		batch := make([]*execution.LegacyStreamChunk, 0, m.batchSize)
 		timer := time.NewTimer(m.timeout)
 		defer timer.Stop()
 
@@ -328,7 +329,7 @@ func (m *BatchMiddleware) Apply(ctx context.Context, source core.StreamOutput) (
 				return nil
 			}
 
-			batchChunk := &core.LegacyStreamChunk{
+			batchChunk := &execution.LegacyStreamChunk{
 				Type: core.ChunkTypeJSON,
 				Data: map[string]interface{}{
 					"batch_size": len(batch),
@@ -398,8 +399,8 @@ func NewRetryMiddleware(maxRetries int, backoff time.Duration) *RetryMiddleware 
 }
 
 // Apply 应用中间件
-func (m *RetryMiddleware) Apply(ctx context.Context, source core.StreamOutput) (core.StreamOutput, error) {
-	opts := core.DefaultStreamOptions()
+func (m *RetryMiddleware) Apply(ctx context.Context, source execution.StreamOutput) (execution.StreamOutput, error) {
+	opts := execution.DefaultStreamOptions()
 	opts.RetryOnError = true
 	opts.MaxRetries = m.maxRetries
 	opts.RetryDelay = m.backoff

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kart-io/k8s-agent/pkg/agent/document"
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 	"github.com/kart-io/k8s-agent/pkg/agent/retrieval"
 )
 
@@ -175,7 +176,7 @@ func loadAndSplitExample() {
 	fmt.Println("---------------------------")
 
 	// 创建文档
-	docs := []*retrieval.Document{
+	docs := []*interfaces.Document{
 		retrieval.NewDocument(
 			"This is a long document that needs to be split into smaller chunks for processing.",
 			map[string]interface{}{"source": "doc1.txt"},

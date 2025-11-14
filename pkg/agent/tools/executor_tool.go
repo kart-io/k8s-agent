@@ -156,18 +156,50 @@ func (e *ToolExecutor) ExecuteParallel(ctx context.Context, calls []*ToolCall) (
 		go func(index int, c *ToolCall) {
 			defer wg.Done()
 
-			// 获取信号量
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
+			// Check if context is already cancelled
+			select {
+			case <-ctx.Done():
+				results[index] = &ToolResult{
+					CallID: c.ID,
+					Error:  ctx.Err(),
+				}
+				return
+			default:
+			}
 
-			// 执行工具
+			// 获取信号量
+			select {
+			case semaphore <- struct{}{}:
+				defer func() { <-semaphore }()
+			case <-ctx.Done():
+				results[index] = &ToolResult{
+					CallID: c.ID,
+					Error:  ctx.Err(),
+				}
+				return
+			}
+
+			// 执行工具 - pass context to respect timeout
 			result := e.executeWithRetry(ctx, c)
 			results[index] = result
 		}(i, call)
 	}
 
-	// 等待所有任务完成
-	wg.Wait()
+	// 等待所有任务完成或context取消
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All tasks completed
+	case <-ctx.Done():
+		// Context cancelled, wait for goroutines to finish
+		wg.Wait()
+		return results, ctx.Err()
+	}
 
 	// 检查是否有执行失败的工具
 	var hasError bool

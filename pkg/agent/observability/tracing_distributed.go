@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -136,7 +137,7 @@ func (t *CrossServiceTracer) TraceHTTPRequest(ctx context.Context, req *http.Req
 // TraceHTTPResponse 追踪 HTTP 响应
 func (t *CrossServiceTracer) TraceHTTPResponse(ctx context.Context, resp *http.Response) error {
 	span := trace.SpanFromContext(ctx)
-	span.SetAttributes()
+	span.SetAttributes(attribute.Int("http.status_code", resp.StatusCode))
 	return nil
 }
 

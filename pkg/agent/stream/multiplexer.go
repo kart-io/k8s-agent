@@ -26,6 +26,7 @@ type Multiplexer struct {
 
 	running bool
 	closed  bool
+	wg      sync.WaitGroup // Track all goroutines
 }
 
 // consumerState 消费者状态
@@ -38,12 +39,18 @@ type consumerState struct {
 }
 
 // NewMultiplexer 创建新的多路复用器
-func NewMultiplexer(opts *core.StreamOptions) *Multiplexer {
+func NewMultiplexer(ctx context.Context, opts *core.StreamOptions) *Multiplexer {
 	if opts == nil {
 		opts = core.DefaultStreamOptions()
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	// Create context with optional timeout
+	var cancel context.CancelFunc
+	if opts.StreamTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, opts.StreamTimeout)
+	} else {
+		ctx, cancel = context.WithCancel(ctx)
+	}
 
 	return &Multiplexer{
 		ctx:       ctx,
@@ -167,9 +174,8 @@ func (m *Multiplexer) Start(ctx context.Context, source core.StreamOutput) error
 // Close 关闭多路复用器
 func (m *Multiplexer) Close() error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	if m.closed {
+		m.mu.Unlock()
 		return fmt.Errorf("multiplexer already closed")
 	}
 
@@ -184,6 +190,11 @@ func (m *Multiplexer) Close() error {
 	}
 
 	m.consumers = make(map[string]*consumerState)
+	m.mu.Unlock()
+
+	// Wait for all goroutines to finish
+	m.wg.Wait()
+
 	return nil
 }
 
@@ -219,7 +230,12 @@ func (m *Multiplexer) broadcastError(err error) {
 
 	for _, state := range m.consumers {
 		if state.active {
-			go state.consumer.OnError(err)
+			// Track goroutines
+			m.wg.Add(1)
+			go func(s *consumerState) {
+				defer m.wg.Done()
+				s.consumer.OnError(err)
+			}(state)
 		}
 	}
 }
@@ -231,7 +247,12 @@ func (m *Multiplexer) broadcastComplete() {
 
 	for _, state := range m.consumers {
 		if state.active {
-			go state.consumer.OnComplete()
+			// Track goroutines
+			m.wg.Add(1)
+			go func(s *consumerState) {
+				defer m.wg.Done()
+				s.consumer.OnComplete()
+			}(state)
 		}
 	}
 }
