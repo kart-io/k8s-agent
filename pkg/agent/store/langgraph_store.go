@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -201,13 +200,24 @@ func (s *InMemoryLangGraphStore) Search(ctx context.Context, namespace []string,
 
 		// Simple string matching for in-memory implementation
 		// In production, you'd use vector similarity search
+		matched := false
+
+		// Check if key contains query
 		if strings.Contains(strings.ToLower(key), queryLower) {
-			// Check value content if it's a string
-			if str, ok := value.Value.(string); ok && strings.Contains(strings.ToLower(str), queryLower) {
-				results = append(results, s.copyStoreValue(value))
-				if len(results) >= limit {
-					break
-				}
+			matched = true
+		}
+
+		// Check value content if it's a string
+		if str, ok := value.Value.(string); ok {
+			if strings.Contains(strings.ToLower(str), queryLower) {
+				matched = true
+			}
+		}
+
+		if matched {
+			results = append(results, s.copyStoreValue(value))
+			if len(results) >= limit {
+				break
 			}
 		}
 	}
@@ -235,10 +245,8 @@ func (s *InMemoryLangGraphStore) Delete(ctx context.Context, namespace []string,
 
 	delete(s.data[ns], key)
 
-	// Clean up empty namespace
-	if len(s.data[ns]) == 0 {
-		delete(s.data, ns)
-	}
+	// Note: We intentionally keep empty namespaces to distinguish
+	// between "namespace not found" and "key not found" errors
 
 	// Notify watchers
 	s.notifyWatchers(namespace, StoreEvent{
@@ -322,8 +330,14 @@ func (s *InMemoryLangGraphStore) Update(ctx context.Context, namespace []string,
 		}
 	}
 
-	// Create a copy for the update function
-	updateCopy := s.copyStoreValue(current)
+	// Create a copy for the update function (shallow copy to preserve types)
+	updateCopy := &StoreValue{
+		Value:     current.Value,
+		Metadata:  current.Metadata, // Shallow copy is fine for update
+		Timestamp: current.Timestamp,
+		Version:   current.Version,
+		TTL:       current.TTL,
+	}
 
 	// Apply update
 	updated, err := updateFunc(updateCopy)
@@ -429,12 +443,74 @@ func (s *InMemoryLangGraphStore) copyStoreValue(value *StoreValue) *StoreValue {
 		return nil
 	}
 
-	// Marshal and unmarshal to create a deep copy
-	data, _ := json.Marshal(value)
-	var copy StoreValue
-	json.Unmarshal(data, &copy)
+	// Create a deep copy of Metadata
+	copyMetadata := make(map[string]interface{})
+	for k, v := range value.Metadata {
+		copyMetadata[k] = deepCopyValue(v)
+	}
 
-	return &copy
+	// Copy TTL
+	ttl := value.TTL
+	if ttl != nil {
+		ttlCopy := *ttl
+		ttl = &ttlCopy
+	}
+
+	return &StoreValue{
+		Value:     deepCopyValue(value.Value),
+		Metadata:  copyMetadata,
+		Timestamp: value.Timestamp,
+		Version:   value.Version,
+		TTL:       ttl,
+	}
+}
+
+// deepCopyValue creates a deep copy of interface{} value, preserving types
+func deepCopyValue(v interface{}) interface{} {
+	if v == nil {
+		return nil
+	}
+
+	switch val := v.(type) {
+	case map[string]interface{}:
+		// Deep copy map
+		copied := make(map[string]interface{}, len(val))
+		for k, v := range val {
+			copied[k] = deepCopyValue(v)
+		}
+		return copied
+
+	case []interface{}:
+		// Deep copy slice
+		copied := make([]interface{}, len(val))
+		for i, v := range val {
+			copied[i] = deepCopyValue(v)
+		}
+		return copied
+
+	case []string:
+		// Deep copy string slice
+		copied := make([]string, len(val))
+		copy(copied, val)
+		return copied
+
+	case []int:
+		// Deep copy int slice
+		copied := make([]int, len(val))
+		copy(copied, val)
+		return copied
+
+	case []float64:
+		// Deep copy float64 slice
+		copied := make([]float64, len(val))
+		copy(copied, val)
+		return copied
+
+	default:
+		// For primitive types (string, int, float64, bool, etc.), return as-is
+		// They are immutable in Go
+		return val
+	}
 }
 
 // namespaceToString converts namespace array to string

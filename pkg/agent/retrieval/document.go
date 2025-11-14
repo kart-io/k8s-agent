@@ -3,25 +3,15 @@ package retrieval
 import (
 	"fmt"
 	"sort"
-	"strings"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 )
 
-// Document 文档结构
+// Document type alias for backward compatibility
 //
-// 表示检索系统中的基本文档单元，包含内容和元数据
-type Document struct {
-	// PageContent 文档的文本内容
-	PageContent string
-
-	// Metadata 文档的元数据
-	Metadata map[string]interface{}
-
-	// ID 文档的唯一标识符
-	ID string
-
-	// Score 检索得分（由检索器设置）
-	Score float64
-}
+// Deprecated: Use interfaces.Document directly.
+// This alias will be removed in v1.0.0.
+type Document = interfaces.Document
 
 // NewDocument 创建新文档
 func NewDocument(content string, metadata map[string]interface{}) *Document {
@@ -39,61 +29,6 @@ func NewDocumentWithID(id, content string, metadata map[string]interface{}) *Doc
 		PageContent: content,
 		Metadata:    metadata,
 	}
-}
-
-// Clone 克隆文档
-func (d *Document) Clone() *Document {
-	metadata := make(map[string]interface{})
-	for k, v := range d.Metadata {
-		metadata[k] = v
-	}
-
-	return &Document{
-		ID:          d.ID,
-		PageContent: d.PageContent,
-		Metadata:    metadata,
-		Score:       d.Score,
-	}
-}
-
-// GetMetadata 获取元数据字段
-func (d *Document) GetMetadata(key string) (interface{}, bool) {
-	if d.Metadata == nil {
-		return nil, false
-	}
-	val, ok := d.Metadata[key]
-	return val, ok
-}
-
-// SetMetadata 设置元数据字段
-func (d *Document) SetMetadata(key string, value interface{}) {
-	if d.Metadata == nil {
-		d.Metadata = make(map[string]interface{})
-	}
-	d.Metadata[key] = value
-}
-
-// String 返回文档的字符串表示
-func (d *Document) String() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Document(ID=%s, Score=%.4f", d.ID, d.Score))
-	if len(d.Metadata) > 0 {
-		sb.WriteString(", Metadata={")
-		keys := make([]string, 0, len(d.Metadata))
-		for k := range d.Metadata {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for i, k := range keys {
-			if i > 0 {
-				sb.WriteString(", ")
-			}
-			sb.WriteString(fmt.Sprintf("%s: %v", k, d.Metadata[k]))
-		}
-		sb.WriteString("}")
-	}
-	sb.WriteString(fmt.Sprintf(", Content='%s')", truncateString(d.PageContent, 50)))
-	return sb.String()
 }
 
 // DocumentCollection 文档集合
@@ -170,12 +105,4 @@ var idCounter int64
 func generateID() string {
 	idCounter++
 	return fmt.Sprintf("doc_%d", idCounter)
-}
-
-// truncateString 截断字符串
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen] + "..."
 }

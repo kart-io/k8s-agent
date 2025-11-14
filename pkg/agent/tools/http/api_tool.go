@@ -296,7 +296,16 @@ func (a *APITool) Patch(ctx context.Context, url string, body interface{}, heade
 
 // isAbsoluteURL 检查是否为绝对 URL
 func isAbsoluteURL(urlStr string) bool {
-	return len(urlStr) > 0 && (urlStr[0:7] == "http://" || urlStr[0:8] == "https://")
+	if len(urlStr) < 7 {
+		return false
+	}
+	if len(urlStr) >= 8 && urlStr[0:8] == "https://" {
+		return true
+	}
+	if len(urlStr) >= 7 && urlStr[0:7] == "http://" {
+		return true
+	}
+	return false
 }
 
 // APIToolBuilder API 工具构建器

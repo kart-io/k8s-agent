@@ -18,10 +18,10 @@ func TestCheckpointStructure(t *testing.T) {
 			"step_count":   5,
 		},
 		Metadata: map[string]interface{}{
-			"agent_name":         "TestAgent",
-			"checkpoint_reason":  "step_complete",
+			"agent_name":           "TestAgent",
+			"checkpoint_reason":    "step_complete",
 			"parent_checkpoint_id": "ckpt-122",
-			"tags":               []string{"important", "milestone"},
+			"tags":                 []string{"important", "milestone"},
 		},
 		CreatedAt: now,
 	}
@@ -186,7 +186,7 @@ func TestCheckpointerInterface(t *testing.T) {
 			"data":    "second checkpoint",
 		},
 		Metadata: map[string]interface{}{
-			"agent_name": "Agent1",
+			"agent_name":           "Agent1",
 			"parent_checkpoint_id": "ckpt-1",
 		},
 		CreatedAt: time.Now().Add(-1 * time.Hour),
@@ -205,7 +205,7 @@ func TestCheckpointerInterface(t *testing.T) {
 			"data":    "third checkpoint",
 		},
 		Metadata: map[string]interface{}{
-			"agent_name": "Agent1",
+			"agent_name":           "Agent1",
 			"parent_checkpoint_id": "ckpt-2",
 		},
 		CreatedAt: time.Now(),

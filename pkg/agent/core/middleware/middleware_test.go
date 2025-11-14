@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kart-io/k8s-agent/pkg/agent/core/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/core/state"
 )
 
 // Alias for convenience in tests

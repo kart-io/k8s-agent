@@ -375,13 +375,13 @@ func TestDocumentMetadataFlexibility(t *testing.T) {
 		ID:          "flexible-doc",
 		PageContent: "Content",
 		Metadata: map[string]interface{}{
-			"string_field":  "text",
-			"int_field":     123,
-			"float_field":   45.67,
-			"bool_field":    true,
-			"array_field":   []string{"a", "b", "c"},
-			"object_field":  map[string]interface{}{"nested": "value"},
-			"nil_field":     nil,
+			"string_field": "text",
+			"int_field":    123,
+			"float_field":  45.67,
+			"bool_field":   true,
+			"array_field":  []string{"a", "b", "c"},
+			"object_field": map[string]interface{}{"nested": "value"},
+			"nil_field":    nil,
 		},
 	}
 

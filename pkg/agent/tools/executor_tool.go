@@ -169,6 +169,20 @@ func (e *ToolExecutor) ExecuteParallel(ctx context.Context, calls []*ToolCall) (
 	// 等待所有任务完成
 	wg.Wait()
 
+	// 检查是否有执行失败的工具
+	var hasError bool
+	for _, result := range results {
+		if result.Error != nil {
+			hasError = true
+			break
+		}
+	}
+
+	// 如果有工具执行失败，返回错误
+	if hasError {
+		return results, fmt.Errorf("one or more tools failed execution")
+	}
+
 	return results, nil
 }
 

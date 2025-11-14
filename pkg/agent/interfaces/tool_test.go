@@ -371,7 +371,6 @@ func TestToolExecutorInterface(t *testing.T) {
 		"a":         5,
 		"b":         3,
 	})
-
 	if err != nil {
 		t.Fatalf("ExecuteTool failed: %v", err)
 	}
@@ -496,8 +495,8 @@ func TestMultipleToolsInExecutor(t *testing.T) {
 	// Register 5 different tools
 	for i := 0; i < 5; i++ {
 		tool := &mockTool{
-			name:        string(rune('a' + i)) + "_tool",
-			description: "Tool " + string(rune('A' + i)),
+			name:        string(rune('a'+i)) + "_tool",
+			description: "Tool " + string(rune('A'+i)),
 			result:      i * 10,
 		}
 		executor.registerTool(tool)
@@ -511,7 +510,7 @@ func TestMultipleToolsInExecutor(t *testing.T) {
 
 	// Execute each tool
 	for i := 0; i < 5; i++ {
-		toolName := string(rune('a' + i)) + "_tool"
+		toolName := string(rune('a'+i)) + "_tool"
 		result, err := executor.ExecuteTool(ctx, toolName, map[string]interface{}{})
 		if err != nil {
 			t.Fatalf("ExecuteTool(%s) failed: %v", toolName, err)

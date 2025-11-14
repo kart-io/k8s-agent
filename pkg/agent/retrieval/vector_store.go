@@ -20,15 +20,6 @@ import (
 // See: pkg/agent/docs/refactoring/migration-guide.md
 type VectorStore = interfaces.VectorStore
 
-// Document 文档类型
-//
-// Deprecated: Use interfaces.Document instead.
-// This type alias provides backward compatibility. It will be removed in v1.0.0.
-//
-// Migration: import "github.com/kart-io/k8s-agent/pkg/agent/interfaces"
-// See: pkg/agent/docs/refactoring/migration-guide.md
-type Document = interfaces.Document
-
 // VectorStoreRetriever 向量存储检索器
 //
 // 使用向量相似度进行文档检索

@@ -1,6 +1,11 @@
 package interfaces
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"sort"
+	"strings"
+)
 
 // VectorStore is the canonical interface for vector storage and similarity search.
 //
@@ -128,4 +133,67 @@ type Document struct {
 	//
 	// Higher scores indicate better matches.
 	Score float64 `json:"score,omitempty"`
+}
+
+// Clone creates a deep copy of the document.
+func (d *Document) Clone() *Document {
+	metadata := make(map[string]interface{})
+	for k, v := range d.Metadata {
+		metadata[k] = v
+	}
+
+	embedding := make([]float64, len(d.Embedding))
+	copy(embedding, d.Embedding)
+
+	return &Document{
+		ID:          d.ID,
+		PageContent: d.PageContent,
+		Metadata:    metadata,
+		Embedding:   embedding,
+		Score:       d.Score,
+	}
+}
+
+// GetMetadata retrieves a metadata value by key.
+func (d *Document) GetMetadata(key string) (interface{}, bool) {
+	if d.Metadata == nil {
+		return nil, false
+	}
+	val, ok := d.Metadata[key]
+	return val, ok
+}
+
+// SetMetadata sets a metadata value.
+func (d *Document) SetMetadata(key string, value interface{}) {
+	if d.Metadata == nil {
+		d.Metadata = make(map[string]interface{})
+	}
+	d.Metadata[key] = value
+}
+
+// String returns a string representation of the document.
+func (d *Document) String() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Document(ID=%s, Score=%.4f", d.ID, d.Score))
+	if len(d.Metadata) > 0 {
+		sb.WriteString(", Metadata={")
+		keys := make([]string, 0, len(d.Metadata))
+		for k := range d.Metadata {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for i, k := range keys {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(fmt.Sprintf("%s: %v", k, d.Metadata[k]))
+		}
+		sb.WriteString("}")
+	}
+	contentPreview := d.PageContent
+	if len(contentPreview) > 50 {
+		contentPreview = contentPreview[:50] + "..."
+	}
+	sb.WriteString(fmt.Sprintf(", Content='%s')", contentPreview))
+	return sb.String()
 }
