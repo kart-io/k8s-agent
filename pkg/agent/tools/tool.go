@@ -4,16 +4,20 @@ import (
 	"context"
 
 	agentcore "github.com/kart-io/k8s-agent/pkg/agent/core"
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 )
 
 // Tool 定义工具接口
 //
-// 借鉴 LangChain 的 Tool 设计，工具是一个特殊的 Runnable，具有以下特性:
-// - 明确的名称和描述
-// - 结构化的参数定义（JSON Schema）
-// - 支持同步和异步执行
-// - 集成回调系统
-// - 支持流式输出
+// Deprecated: The Tool interface is defined in interfaces.Tool.
+// While this package retains the Tool interface for backward compatibility,
+// new code should use interfaces.Tool directly.
+//
+// Migration: import "github.com/kart-io/k8s-agent/pkg/agent/interfaces"
+// See: pkg/agent/docs/refactoring/migration-guide.md
+//
+// Note: This interface extends agentcore.Runnable which is aliased to interfaces.Runnable.
+// The implementation is maintained in this package for tool-specific functionality.
 type Tool interface {
 	// 继承 Runnable 接口，工具是可执行的组件
 	agentcore.Runnable[*ToolInput, *ToolOutput]
@@ -31,30 +35,22 @@ type Tool interface {
 }
 
 // ToolInput 工具输入
-type ToolInput struct {
-	// 参数映射
-	Args map[string]interface{} `json:"args"`
-
-	// 上下文信息
-	Context context.Context `json:"-"`
-
-	// 调用信息
-	CallerID string `json:"caller_id,omitempty"` // 调用者 ID
-	TraceID  string `json:"trace_id,omitempty"`  // 追踪 ID
-}
+//
+// Deprecated: Use interfaces.ToolInput instead for new code.
+// This type alias provides backward compatibility. It will be removed in v1.0.0.
+//
+// Note: This struct is retained for compatibility with existing tool implementations
+// that reference tools.ToolInput. The canonical definition is now in interfaces.ToolInput.
+type ToolInput = interfaces.ToolInput
 
 // ToolOutput 工具输出
-type ToolOutput struct {
-	// 结果数据
-	Result interface{} `json:"result"`
-
-	// 状态信息
-	Success bool   `json:"success"` // 是否成功
-	Error   string `json:"error"`   // 错误信息（如果有）
-
-	// 元数据
-	Metadata map[string]interface{} `json:"metadata,omitempty"` // 额外元数据
-}
+//
+// Deprecated: Use interfaces.ToolOutput instead for new code.
+// This type alias provides backward compatibility. It will be removed in v1.0.0.
+//
+// Note: This struct is retained for compatibility with existing tool implementations
+// that reference tools.ToolOutput. The canonical definition is now in interfaces.ToolOutput.
+type ToolOutput = interfaces.ToolOutput
 
 // BaseTool 提供 Tool 的基础实现
 //

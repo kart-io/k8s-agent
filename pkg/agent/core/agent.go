@@ -13,6 +13,9 @@ import (
 // - 使用 LLM 进行推理
 // - 返回结构化输出
 // - 支持流式处理、批量执行、管道连接等 Runnable 特性
+//
+// Note: The generic Runnable[I, O] interface is maintained in this package.
+// The interfaces package provides a simplified non-generic version for cross-package compatibility.
 type Agent interface {
 	// 继承 Runnable 接口，Agent 是一个可执行的组件
 	Runnable[*AgentInput, *AgentOutput]

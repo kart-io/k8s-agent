@@ -2,54 +2,36 @@ package memory
 
 import (
 	"context"
-	"time"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 )
 
 // Manager 定义记忆管理器接口
-type Manager interface {
-	// 对话记忆
-	AddConversation(ctx context.Context, conv *Conversation) error
-	GetConversationHistory(ctx context.Context, sessionID string, limit int) ([]*Conversation, error)
-	ClearConversation(ctx context.Context, sessionID string) error
-
-	// 案例记忆
-	AddCase(ctx context.Context, caseMemory *Case) error
-	SearchSimilarCases(ctx context.Context, query string, limit int) ([]*Case, error)
-
-	// 通用记忆
-	Store(ctx context.Context, key string, value interface{}) error
-	Retrieve(ctx context.Context, key string) (interface{}, error)
-	Delete(ctx context.Context, key string) error
-
-	// 管理操作
-	Clear(ctx context.Context) error
-}
+//
+// Deprecated: Use interfaces.MemoryManager instead.
+// This type alias provides backward compatibility. It will be removed in v1.0.0.
+//
+// Migration: import "github.com/kart-io/k8s-agent/pkg/agent/interfaces"
+// See: pkg/agent/docs/refactoring/migration-guide.md
+type Manager = interfaces.MemoryManager
 
 // Conversation 对话记录
-type Conversation struct {
-	ID        string                 `json:"id"`         // 对话 ID
-	SessionID string                 `json:"session_id"` // 会话 ID
-	Role      string                 `json:"role"`       // 角色: "user", "assistant", "system"
-	Content   string                 `json:"content"`    // 内容
-	Timestamp time.Time              `json:"timestamp"`  // 时间戳
-	Metadata  map[string]interface{} `json:"metadata"`   // 元数据
-}
+//
+// Deprecated: Use interfaces.Conversation instead.
+// This type alias provides backward compatibility. It will be removed in v1.0.0.
+//
+// Migration: import "github.com/kart-io/k8s-agent/pkg/agent/interfaces"
+// See: pkg/agent/docs/refactoring/migration-guide.md
+type Conversation = interfaces.Conversation
 
 // Case 案例记忆
-type Case struct {
-	ID          string                 `json:"id"`          // 案例 ID
-	Title       string                 `json:"title"`       // 标题
-	Description string                 `json:"description"` // 描述
-	Problem     string                 `json:"problem"`     // 问题
-	Solution    string                 `json:"solution"`    // 解决方案
-	Category    string                 `json:"category"`    // 分类
-	Tags        []string               `json:"tags"`        // 标签
-	Embedding   []float64              `json:"embedding"`   // 向量嵌入
-	Similarity  float64                `json:"similarity"`  // 相似度（搜索结果）
-	CreatedAt   time.Time              `json:"created_at"`  // 创建时间
-	UpdatedAt   time.Time              `json:"updated_at"`  // 更新时间
-	Metadata    map[string]interface{} `json:"metadata"`    // 元数据
-}
+//
+// Deprecated: Use interfaces.Case instead.
+// This type alias provides backward compatibility. It will be removed in v1.0.0.
+//
+// Migration: import "github.com/kart-io/k8s-agent/pkg/agent/interfaces"
+// See: pkg/agent/docs/refactoring/migration-guide.md
+type Case = interfaces.Case
 
 // ConversationStore 对话存储接口
 type ConversationStore interface {

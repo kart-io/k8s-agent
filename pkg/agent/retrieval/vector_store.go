@@ -7,22 +7,27 @@ import (
 	"math"
 	"math/big"
 	"sync"
+
+	"github.com/kart-io/k8s-agent/pkg/agent/interfaces"
 )
 
 // VectorStore 向量存储接口
-type VectorStore interface {
-	// SimilaritySearch 相似度搜索
-	SimilaritySearch(ctx context.Context, query string, topK int) ([]*Document, error)
+//
+// Deprecated: Use interfaces.VectorStore instead.
+// This type alias provides backward compatibility. It will be removed in v1.0.0.
+//
+// Migration: import "github.com/kart-io/k8s-agent/pkg/agent/interfaces"
+// See: pkg/agent/docs/refactoring/migration-guide.md
+type VectorStore = interfaces.VectorStore
 
-	// SimilaritySearchWithScore 带分数的相似度搜索
-	SimilaritySearchWithScore(ctx context.Context, query string, topK int) ([]*Document, error)
-
-	// AddDocuments 添加文档
-	AddDocuments(ctx context.Context, docs []*Document) error
-
-	// Delete 删除文档
-	Delete(ctx context.Context, ids []string) error
-}
+// Document 文档类型
+//
+// Deprecated: Use interfaces.Document instead.
+// This type alias provides backward compatibility. It will be removed in v1.0.0.
+//
+// Migration: import "github.com/kart-io/k8s-agent/pkg/agent/interfaces"
+// See: pkg/agent/docs/refactoring/migration-guide.md
+type Document = interfaces.Document
 
 // VectorStoreRetriever 向量存储检索器
 //

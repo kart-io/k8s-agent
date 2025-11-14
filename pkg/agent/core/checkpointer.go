@@ -18,6 +18,10 @@ import (
 //   - Multi-turn conversations
 //   - Resuming interrupted workflows
 //   - A/B testing different conversation paths
+//
+// Note: The canonical Checkpointer interface is defined in interfaces.Checkpointer
+// with a slightly different method signature. This interface is maintained for
+// backward compatibility with existing code.
 type Checkpointer interface {
 	// Save persists the current state for a thread/session.
 	Save(ctx context.Context, threadID string, state State) error
@@ -36,6 +40,10 @@ type Checkpointer interface {
 }
 
 // CheckpointInfo contains metadata about a checkpoint.
+//
+// Note: The canonical version is interfaces.CheckpointMetadata with slightly
+// different field names (CreatedAt vs Created, no Updated field).
+// This struct is maintained for backward compatibility.
 type CheckpointInfo struct {
 	// ThreadID is the unique identifier for the thread/session
 	ThreadID string `json:"thread_id"`
